@@ -1,4 +1,9 @@
 # Classical taggers
+Instructions for launching the following scripts:
+- `pyTorchTraining.py`: script used for training the Neural Network. Usage:
+    `python pyTorchTraining.py <DecayType> <TaggerType>` (ex. `python pyTorchTraining.py Bu2JpsiK OSKaon`)
+- `pipeline.py`: script that modifies the NTuples created previously (one for each decay). TO BE REPRODUCED WITH UPSTREAM TRACKS.
+## PyTorch C++ interface
 - The code implementation for loading PyTorch models into C++ refers to https://pytorch.org/tutorials/advanced/cpp_export.html.
 - Please note that you need `libtorch` for loading PyTorch models into C++. Follow instructions here https://pytorch.org/ to download it.
 - In order to have a compatible `gcc` version, you need to do:

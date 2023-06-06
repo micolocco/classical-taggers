@@ -1,1 +1,1 @@
-/ceph/users/molocco/classical_taggers/,/ceph/users/jroensch/masterthesis/Upload/
+/ceph/users/molocco/classical-taggers/,/ceph/users/jroensch/masterthesis/Upload/
