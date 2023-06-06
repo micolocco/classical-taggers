@@ -1,0 +1,9 @@
+plots/
+calibrationPlots/
+**/*.root
+libtorch/
+libtorch-shared-with-deps-latest.zip
+Cimplementation/build/**
+Cimplementation/tracedModels/**
+scripts/__pycache__
+scripts/.ipynb_checkpoints/
