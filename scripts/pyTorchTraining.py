@@ -2,6 +2,8 @@ import numpy as np
 import sys 
 import pandas as pd 
 import os
+import time
+import uproot
 
 # Decay and tagger type are given as inputs by the user 
 eventType = sys.argv[1]
@@ -27,23 +29,26 @@ if tagger in taggers:
     selection_variables = ["entry", "label" , "B_Tr_T_PROBNN_K", "B_Tr_T_P" , "B_Tr_T_ISMUON", "B_Tr_T_BPVX" , "B_BPVX" , 
                          "B_Tr_T_BPVY" ,"B_BPVY" ,"B_Tr_T_BPVZ" , "B_BPVZ","B_Tr_T_Charge", "B_TRUEID", "B_Tr_T_absIP",
                          "B_Tr_T_PROBNN_PI", "B_Tr_T_PROBNN_P", "B_Tr_T_PROBNN_E", "B_Tr_T_PIDe", "B_Tr_T_PIDK", "B_Tr_T_PIDmu"]
-
-    features += selection_variables
+   
+    # Definition of the variables that will be loaded from the NTuple
+    loading_variables = features + selection_variables
 
     if "SS" in tagger:
         particle = tagger.removeprefix("SS")
-        features += ["B_Tr_T_DeltaQ_"+particle]
+        loading_variables += ["B_Tr_T_DeltaQ_" + particle]
         if particle in ("Proton", "Pion"):
-            features += ["B_Tr_T_PIDP"]
+            loading_variables += ["B_Tr_T_PIDP"]
 
 # Check whether the specified directories exist, otherwise create them
 directory_list = ['calibrationPlots', 'plots', 'results', 'root']
 
-for dir in directory_list:
-    dir_path = f'{repoPath}/{dir}'
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-    if not os.path.exists(f'{dir_path}/{eventType}'):
-        os.makedirs(f'{dir_path}/{eventType}')
-    if not os.path.exists(f'{dir_path}/{eventType}/{tagger}'):
-        os.makedirs(f'{dir_path}/{eventType}/{tagger}')
+# Read from file path to the workspace folder and to the ROOT NTuple input
+repoPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")[0]
+rootPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")[1] # Path to be re-adjusted according to where it's your ROOT file
+
+inputPath = f"{rootPath}oot/{eventType}.root:DecayTree" 
+start = time.time()
+print("Reading the ROOT file")
+df = uproot.open(inputPath).arrays(loading_variables,library = "pd" ) # load all data
+print(f"Finished reading in {round(-start+ time.time() , 2)}s")
+
