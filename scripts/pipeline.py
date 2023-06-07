@@ -1,120 +1,69 @@
-import pandas as pd
+from dir_checker import check_directories
 import sys
-import uproot
 import numpy as np
-import matplotlib.pyplot as plt
-import json
-import time
+import pyTorchTraining as pyTrain
+# Decay and tagger type are given as inputs by the user 
+eventType = sys.argv[1]
+tagger = sys.argv[2]
 
-repoPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")
+# Read from file path to the workspace folder and to the ROOT NTuple input
+repoPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")[0]
+rootPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")[1] # Path to be re-adjusted according to where it's your ROOT file
 
-eventType = sys.argv[1] #For running same script for different eventType 
+# Path to the ROOT file
+inputPath = f"{rootPath}root/{eventType}.root:DecayTree"
+# Path to where the scaler parameters will be saved
+scalerPath = f"{repoPath}scaler/{eventType}/{tagger}/std_scaler.bin"
 
+# Check whether the specified directories exist, otherwise create them
+directory_list = ["calibrationPlots", "plots", "results", "root", "scaler"]
+check_directories(repoPath, directory_list, eventType, tagger)
 
-# Get the raw root file 
-# Charge and absID are needed for the label 
-# List of daughters of the signal B
-if eventType == "Bs2DsPi": 
-    abs_id = 531
-    charge = False
-    path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}.root:Tuple/DecayTree;1"
-    daughters = ["Ds_P","pi_P","Kp_P","Km_P"]
+# Definition of the features for the NN and the selection variables   
+features = ["B_Tr_T_cos_diff_Phi",
+        "B_Tr_T_PhiDistance",
+        "B_Tr_T_PT",
+        "B_Tr_T_CHI2DOF",
+        "B_Tr_T_BPVIP",
+        "B_Tr_T_GHOSTPROB",
+        "B_Tr_T_BPVIPCHI2",
+        "diff_P",
+        "B_Tr_T_EtaDistance",
+        "P_proj",
+        "EVIP"]
 
-elif eventType == "Bd2JpsiKst":
-    abs_id = 511
-    charge = False
-    path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}.root:Tuple/DecayTree;1"
-    daughters = ["Muminus_P","Muplus_P","Kst_P","Jpsi1S_P"]
+selection_variables = ["entry", "label" , "B_Tr_T_PROBNN_K", "B_Tr_T_P" , "B_Tr_T_ISMUON", "B_Tr_T_BPVX" , "B_BPVX" , 
+                        "B_Tr_T_BPVY" ,"B_BPVY" ,"B_Tr_T_BPVZ" , "B_BPVZ","B_Tr_T_Charge", "B_TRUEID", "B_Tr_T_absIP",
+                        "B_Tr_T_PROBNN_PI", "B_Tr_T_PROBNN_P", "B_Tr_T_PROBNN_E", "B_Tr_T_PIDe", "B_Tr_T_PIDK", "B_Tr_T_PIDmu"]
 
-elif eventType == "Bu2JpsiK":
-    B = "B"
-    abs_id = 521
-    charge = True
-    path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}_nPVsnTracks.root:Tuple/DecayTree;1" # needs to be reproduced in the Repo
-    daughters = ["K_P","Muminus_P","Muplus_P","Jpsi1S_P"]
+# Definition of the variables that will be loaded from the NTuple
+loading_variables = features + selection_variables
 
-stepsize = 100000    #the Root file will gel load in chunks
+if "SS" in tagger:
+    particle = tagger.removeprefix("SS")
+    loading_variables += ["B_Tr_T_DeltaQ_" + particle]
+    if particle in ("Proton", "Pion"):
+        loading_variables += ["B_Tr_T_PIDP"]
 
-def DeltaQ(df,Mass):
-    E =np.sqrt( Mass**2 + df[f"B_Tr_T_PX"]**2 + df[f"B_Tr_T_PY"]**2 + df[f"B_Tr_T_PZ"]**2)
-    DeltaQ = np.sqrt( (E + df[f"B_ENERGY"])**2  - ((df[f"B_Tr_T_PX"] + df[f"B_PX"])**2 + (df[f"B_Tr_T_PY"] + df[f"B_PY"])**2 + (df[f"B_Tr_T_PZ"] + df[f"B_PZ"])**2 )   ) -df.B_M  - Mass
-    return(DeltaQ)
+# Make sure no feature is doubled 
+loading_variables = np.unique(loading_variables).tolist() 
 
-
-
-start_time = time.time()
-run_time = time.time()
-
-
-
-needed_feature= ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Charge", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
-                f"B_Tr_T_BPVY",f"B_Tr_T_BPVX",f"B_Eta",f"B_Tr_T_Eta",f"B_Tr_T_BPVIP",f"B_Tr_T_PX",f"B_Tr_T_PY",f"B_Tr_T_PZ","B_P",
-                f"B_ENERGY",f"B_PX",f"B_PY",f"B_PZ",f"B_Tr_T_TRUEID", "B_PT",
-                 "B_Tr_T_ENERGY", "B_Tr_T_PT"  ,"B_M", "B_Tr_T_ISMUON","B_ENDVX","B_ENDVY","B_ENDVZ","B_Tr_T_X","B_Tr_T_Y","B_Tr_T_Z", "B_Tr_T_M","B_Tr_T_PROBNN_E", "B_Tr_T_PIDK", "B_Tr_T_PIDe", "B_Tr_T_PIDmu", "B_Tr_T_PIDP",f"B_Tr_T_CHI2DOF",f"B_Tr_T_PROBNN_P",f"B_Tr_T_PROBNN_K",f"B_Tr_T_PROBNN_PI",f"B_Tr_T_GHOSTPROB",f"B_Tr_T_BPVIPCHI2"]+daughters
-
-
-
-n = True #is needed for saving the file 
-
-for df in uproot.iterate(path_to_tuple,needed_feature,step_size=stepsize, library = "pd"):
-    
-    print("-------------------Start Block-----------------------------")
-    df.drop(df[abs(df[f"B_TRUEID"]) != abs_id ].index , inplace = True) # just need the wanted B mesons
-    if charge: #getting the labels 
-        df["label"] = df[f"B_Charge"] * df[f"B_Tr_T_Charge"]   
-    else:
-        df["label"] = df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) * df[f"B_Tr_T_Charge"]  
-    
-    df.loc[df.label == -1, "label"] = 0 #shiftig the label to 0,1 
-    for daughter in daughters: #remove daughter
-        df.drop(df.loc[df[f"B_Tr_T_P"] == df[daughter]].index, inplace = True)
-
-    df.reset_index(inplace=True, drop = False) 
-
-    #Add some needed features
-    df.eval(f"B_Tr_T_cos_diff_Phi=cos(B_Phi-B_Tr_T_Phi)", inplace=True)
-    df.eval(f"B_Tr_T_diff_z = abs(B_BPVZ - B_Tr_T_BPVZ)" , inplace = True)
-    df.eval(f"B_Tr_T_PhiDistance =abs(B_Phi - B_Tr_T_Phi)" , inplace = True)  
-
-    df.eval("B_Tr_T_DeltaR= (B_Eta - B_Tr_T_Eta)**2 + B_Tr_T_PhiDistance**2", inplace = True)
-    df.eval("diff_P = abs(B_P - B_Tr_T_P)", inplace = True)
-    df.eval("P_proj = B_ENERGY*B_Tr_T_ENERGY - (B_Tr_T_PX*B_PX + B_Tr_T_PY*B_PY +B_Tr_T_PZ*B_PZ ) ", inplace = True)
-    df.eval("t = (B_ENDVX**2 + B_ENDVY**2 + B_ENDVZ**2 - B_ENDVX*B_Tr_T_X - B_ENDVY*B_Tr_T_Y - B_ENDVZ*B_Tr_T_Z) / (B_ENDVX * B_Tr_T_PX + B_ENDVY * B_Tr_T_PY + B_ENDVZ * B_Tr_T_PZ)" , inplace = True)
-    df.eval("EVIP = sqrt((B_Tr_T_X**2 + B_Tr_T_Y**2 + B_Tr_T_Z**2) + t**2 * (B_Tr_T_PX**2 + B_Tr_T_PY**2 + B_Tr_T_PZ**2) + 2*t*(B_Tr_T_X * B_Tr_T_PX + B_Tr_T_Y * B_Tr_T_PY + B_Tr_T_Z * B_Tr_T_PZ))", inplace = True)
-    df.eval("B_Tr_T_absIP = abs(B_Tr_T_BPVIP)", inplace = True)
-    
-    df.eval("B_Tr_T_EtaDistance = abs(B_Eta - B_Tr_T_Eta)", inplace = True)
-    df[f"B_Tr_T_DeltaQ_Pion"] = DeltaQ(df,139.5706)
-    df[f"B_Tr_T_DeltaQ_Mu"] = DeltaQ(df,105.65837)
-    df[f"B_Tr_T_DeltaQ_Electron"] = DeltaQ(df,0.51100)
-    df[f"B_Tr_T_DeltaQ_Proton"] = DeltaQ(df,938.27208)
-    df[f"B_Tr_T_DeltaQ_Kaon"] = DeltaQ(df,493.677)
-    
-    df.eval("B_Tr_T_Signal_TagPart_PT = sqrt( (B_PX + B_Tr_T_PX) **2 + (B_PY + B_Tr_T_PY)**2)", inplace = True)
-    df.eval("B_Tr_T_eoverP = B_Tr_T_Charge/B_Tr_T_P", inplace = True)
-    df.eval("B_Tr_T_absID =abs(B_Tr_T_TRUEID)", inplace = True)
-
-    df.eval("EVIP = log(EVIP)", inplace = True)
-    df.eval("B_Tr_T_IPSig = sqrt(B_Tr_T_BPVIPCHI2)" , inplace = True)
-    df.eval("P_proj = log(P_proj)", inplace = True)
-
-    if n: 
-        df_save = df
-        n = False
-    else:
-        df_save = pd.concat([df_save,df], ignore_index = True, copy = False)
-    print(f"Block finished in {round(time.time() - run_time,2)}s")
-    print("--------------------End Block------------------------------")
-    print()
-    print()
-
-    
-    run_time = time.time()
-    
+train_dl, validation_dl, test_dl = pyTrain.prepare_data(inputPath, loading_variables, scalerPath)
+print(len(train_dl.dataset), len(test_dl.dataset))
 
 
-with uproot.recreate(f"{repoPath}Root/{eventType}.root") as f:
-    f["DecayTree"] = df_save
+## DA QUIIIIIIIIII
+# define the network
+model = MLP(34)
+# train the model
+train_model(train_dl, model)
+# evaluate the model
+acc = evaluate_model(test_dl, model)
+print('Accuracy: %.3f' % acc)
+# make a single prediction (expect class=1)
+row = [1,0,0.99539,-0.05889,0.85243,0.02306,0.83398,-0.37708,1,0.03760,0.85243,-0.17755,0.59755,-0.44945,0.60536,-0.38223,0.84356,-0.38542,0.58212,-0.32192,0.56971,-0.29674,0.36946,-0.47357,0.56811,-0.51171,0.41078,-0.46168,0.21266,-0.34090,0.42267,-0.54487,0.18641,-0.45300]
+yhat = predict(row, model)
+print('Predicted: %.3f (class=%d)' % (yhat, yhat.round()))
 
-
-
+finire modulo: https://machinelearningmastery.com/pytorch-tutorial-develop-deep-learning-models/
+plots: https://www.cs.toronto.edu/~lczhang/360/lec/w02/training.html

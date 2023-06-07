@@ -4,51 +4,48 @@ import pandas as pd
 import os
 import time
 import uproot
+import inputDataset
+from torch.utils.data import DataLoader
 
-# Decay and tagger type are given as inputs by the user 
-eventType = sys.argv[1]
-tagger = sys.argv[2]
 
-# Definition of the features and the variables used for pre-selection cuts (outputs od the Decision Tree)
-taggers = ["OSKaon", "OSMuon", "OSElectron", "SSKaon", "SSPion", "SSProton"]
+# Prepare the dataset
+def prepare_data(inputPath, loading_variables, scalerPath, train_batch_size = 32, test_batch_size = 1024):
+    # Load the dataset
+    dataset = inputDataset(inputPath, loading_variables, scalerPath)
+    # Splitting
+    train, validation, test = dataset.get_splits()
+    # Prepare data loaders
+    train_dl = DataLoader(train, train_batch_size = train_batch_size, shuffle=True)
+    validation_dl = DataLoader(validation, batch_size = test_batch_size, shuffle=False)
+    test_dl = DataLoader(test, batch_size=test_batch_size, shuffle=False)
+    return train_dl, validation_dl, test_dl
 
-if tagger in taggers:
-    
-    features = ["B_Tr_T_cos_diff_Phi",
-            "B_Tr_T_PhiDistance",
-            "B_Tr_T_PT",
-            "B_Tr_T_CHI2DOF",
-            "B_Tr_T_BPVIP",
-            "B_Tr_T_GHOSTPROB",
-            "B_Tr_T_BPVIPCHI2",
-            "diff_P",
-            "B_Tr_T_EtaDistance",
-            "P_proj",
-            "EVIP"]
+# evaluate the model
+def evaluate_model(test_dl, model):
+    predictions, actuals = list(), list()
+    for i, (inputs, targets) in enumerate(test_dl):
+        # evaluate the model on the test set
+        yhat = model(inputs)
+        # retrieve numpy array
+        yhat = yhat.detach().numpy()
+        actual = targets.numpy()
+        actual = actual.reshape((len(actual), 1))
+        # round to class values
+        yhat = yhat.round()
+        # store
+        predictions.append(yhat)
+        actuals.append(actual)
+    predictions, actuals = vstack(predictions), vstack(actuals)
+    # calculate accuracy
+    acc = accuracy_score(actuals, predictions)
+    return acc
 
-    selection_variables = ["entry", "label" , "B_Tr_T_PROBNN_K", "B_Tr_T_P" , "B_Tr_T_ISMUON", "B_Tr_T_BPVX" , "B_BPVX" , 
-                         "B_Tr_T_BPVY" ,"B_BPVY" ,"B_Tr_T_BPVZ" , "B_BPVZ","B_Tr_T_Charge", "B_TRUEID", "B_Tr_T_absIP",
-                         "B_Tr_T_PROBNN_PI", "B_Tr_T_PROBNN_P", "B_Tr_T_PROBNN_E", "B_Tr_T_PIDe", "B_Tr_T_PIDK", "B_Tr_T_PIDmu"]
-   
-    # Definition of the variables that will be loaded from the NTuple
-    loading_variables = features + selection_variables
-
-    if "SS" in tagger:
-        particle = tagger.removeprefix("SS")
-        loading_variables += ["B_Tr_T_DeltaQ_" + particle]
-        if particle in ("Proton", "Pion"):
-            loading_variables += ["B_Tr_T_PIDP"]
-
-# Check whether the specified directories exist, otherwise create them
-directory_list = ['calibrationPlots', 'plots', 'results', 'root']
-
-# Read from file path to the workspace folder and to the ROOT NTuple input
-repoPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")[0]
-rootPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")[1] # Path to be re-adjusted according to where it's your ROOT file
-
-inputPath = f"{rootPath}oot/{eventType}.root:DecayTree" 
-start = time.time()
-print("Reading the ROOT file")
-df = uproot.open(inputPath).arrays(loading_variables,library = "pd" ) # load all data
-print(f"Finished reading in {round(-start+ time.time() , 2)}s")
-
+# make a class prediction for one row of data
+def predict(row, model):
+    # convert row to data
+    row = Tensor([row])
+    # make prediction
+    yhat = model(row)
+    # retrieve numpy array
+    yhat = yhat.detach().numpy()
+    return yhat
