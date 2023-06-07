@@ -6,10 +6,10 @@ import pandas as pd
 class NeuralNetwork(nn.Module):
     torch.manual_seed(42) # needed to be sure the result is reproducable
 
-    def __init__(self, n_features, optimizer=torch.optim.Adam, optimizer_kwargs={}, lossfind=nn.BCELoss()):
+    def __init__(self, n_features, optimizer=torch.optim.Adam, optimizer_kwargs={}, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024, n_epochs = 100):
         super().__init__()
         self.n_input = n_features # can be change in PyTorchTraining.py or use the default which can be seen above
-        #self.loss = lossfind
+        self.criterion = loss
         self.NN = nn.Sequential(
             nn.Linear(self.n_input, 32),
             nn.Dropout(0.5),
@@ -24,11 +24,29 @@ class NeuralNetwork(nn.Module):
             nn.Sigmoid()
         )
         self.optimizer = optimizer(self.parameters(), **optimizer_kwargs)
+        self.train_batch_size = train_batch_size
+        self.test_batch_size = test_batch_size
+        self.n_epochs = n_epochs
 
+    def forward(self, x): # from the input tensor x it gives the output tensor of the NN
+        return self.NN(x)
 
-    #def forward(self, x): # from the input tensor x it gives the output tensor of the NN
-    #    return self.NN(x)
-
+    # train the model
+    def train_model(self, train_dl):
+        # enumerate epochs
+        for epoch in range(self.n_epochs):
+            # enumerate mini batches
+            for i, (inputs, targets) in enumerate(train_dl):
+                # clear the gradients
+                self.optimizer.zero_grad()
+                # compute the model output
+                yhat = self(inputs)
+                # calculate loss
+                loss = self.criterion(yhat, targets)
+                # credit assignment
+                loss.backward()
+                # update model weights
+                self.optimizer.step()
   
 '''
     def fit(self,x,y,x_test,y_test): # training with back propagation
