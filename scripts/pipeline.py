@@ -2,21 +2,29 @@ from dir_checker import check_directories
 import sys
 import numpy as np
 import pyTorchTraining as pyTrain
+from NNModel import NeuralNetwork
+import torch
+
 # Decay and tagger type are given as inputs by the user 
 eventType = sys.argv[1]
 tagger = sys.argv[2]
 
+if len(sys.argv)>3: # For the grid search 
+    grid_n = sys.argv[3]
+    if len(sys.argv)>4:
+        KaonCombiner = True
+else: 
+    optimized = True
 # Read from file path to the workspace folder and to the ROOT NTuple input
-repoPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")[0]
-rootPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")[1] # Path to be re-adjusted according to where it's your ROOT file
+repoPath = "/ceph/users/molocco/classical-taggers/"
 
 # Path to the ROOT file
-inputPath = f"{rootPath}root/{eventType}.root:DecayTree"
+inputPath = f"{repoPath}root/{eventType}/{tagger}/selected.root:DecayTree"
 # Path to where the scaler parameters will be saved
 scalerPath = f"{repoPath}scaler/{eventType}/{tagger}/std_scaler.bin"
 
 # Check whether the specified directories exist, otherwise create them
-directory_list = ["calibrationPlots", "plots", "results", "root", "scaler"]
+directory_list = ["calibrationPlots", "plots", "results", "root", "scaler", "csv", "cuts", "modelSave"]
 check_directories(repoPath, directory_list, eventType, tagger)
 
 # Definition of the features for the NN and the selection variables   
@@ -38,7 +46,9 @@ selection_variables = ["entry", "label" , "B_Tr_T_PROBNN_K", "B_Tr_T_P" , "B_Tr_
 
 # Definition of the variables that will be loaded from the NTuple
 loading_variables = features + selection_variables
-
+if "OS" in tagger:
+        if optimized:
+                features = features +["B_Tr_T_absIP"]
 if "SS" in tagger:
     particle = tagger.removeprefix("SS")
     loading_variables += ["B_Tr_T_DeltaQ_" + particle]
@@ -47,23 +57,18 @@ if "SS" in tagger:
 
 # Make sure no feature is doubled 
 loading_variables = np.unique(loading_variables).tolist() 
+features = np.unique(features).tolist()
+#features = features + ['label'] + ['entry']
+train_dl, validation_dl, test_dl = pyTrain.prepare_data(inputPath, features, scalerPath)
+print(f"Training set has {len(train_dl.dataset)} rows")
+print(f"Validation set has {len(validation_dl.dataset)} rows")
 
-train_dl, validation_dl, test_dl = pyTrain.prepare_data(inputPath, loading_variables, scalerPath)
-print(len(train_dl.dataset), len(test_dl.dataset))
+model_name = 'Prova'
+learning_rate = 0.001
+print(len(features))
+print(len(features))
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = NeuralNetwork(modelName = model_name, n_features=len(features), optimizer_kwargs={"lr" : learning_rate}).to(device)
+trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, repoPath, eventType, tagger, earlyStop = 2)
+pyTrain.plot_losses(model, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, repoPath, eventType, tagger)
 
-
-## DA QUIIIIIIIIII
-# define the network
-model = MLP(34)
-# train the model
-train_model(train_dl, model)
-# evaluate the model
-acc = evaluate_model(test_dl, model)
-print('Accuracy: %.3f' % acc)
-# make a single prediction (expect class=1)
-row = [1,0,0.99539,-0.05889,0.85243,0.02306,0.83398,-0.37708,1,0.03760,0.85243,-0.17755,0.59755,-0.44945,0.60536,-0.38223,0.84356,-0.38542,0.58212,-0.32192,0.56971,-0.29674,0.36946,-0.47357,0.56811,-0.51171,0.41078,-0.46168,0.21266,-0.34090,0.42267,-0.54487,0.18641,-0.45300]
-yhat = predict(row, model)
-print('Predicted: %.3f (class=%d)' % (yhat, yhat.round()))
-
-finire modulo: https://machinelearningmastery.com/pytorch-tutorial-develop-deep-learning-models/
-plots: https://www.cs.toronto.edu/~lczhang/360/lec/w02/training.html
