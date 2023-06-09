@@ -6,24 +6,53 @@ import matplotlib.pyplot as plt
 import json
 import time
 
-repoPath = np.genfromtxt(f"../config.txt", dtype = str, delimiter=",")
+repoPath = "/ceph/users/molocco/classical-taggers/"
+
 
 eventType = sys.argv[1] #For running same script for different eventType 
+tagger = sys.argv[2]
+training = True
 
+# Decay and tagger type are given as inputs by the user 
+eventType = sys.argv[1]
+tagger = sys.argv[2]
+
+if len(sys.argv)>3: # For the grid search 
+    grid_n = sys.argv[3]
+    if len(sys.argv)>4:
+        KaonCombiner = True
+else: 
+    optimized = True
+
+def read_cut(repoPath, tagger, grid_n = None, KaonCombiner = False, optimized = False):
+    
+    prePath = f"{repoPath}cuts/{tagger}/"
+    if grid_n != None: # Load the cut strings 
+        if KaonCombiner:
+            name = f"recursive_combiner_{grid_n}"
+        else:
+            name = f"recursive_{grid_n}"
+    else:
+        if optimized:
+            name = f"recursive_optimized"
+        else:
+            name = f"recursive"
+    cut = np.genfromtxt(f"{prePath}{name}.txt", dtype = str, delimiter=",")
+    return cut
 
 # Get the raw root file 
 # Charge and absID are needed for the label 
 # List of daughters of the signal B
+path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}.root:Tuple/DecayTree;1"
+
 if eventType == "Bs2DsPi": 
     abs_id = 531
     charge = False
-    path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}.root:Tuple/DecayTree;1"
     daughters = ["Ds_P","pi_P","Kp_P","Km_P"]
 
 elif eventType == "Bd2JpsiKst":
     abs_id = 511
     charge = False
-    path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}.root:Tuple/DecayTree;1"
     daughters = ["Muminus_P","Muplus_P","Kst_P","Jpsi1S_P"]
 
 elif eventType == "Bu2JpsiK":
@@ -39,8 +68,6 @@ def DeltaQ(df,Mass):
     E =np.sqrt( Mass**2 + df[f"B_Tr_T_PX"]**2 + df[f"B_Tr_T_PY"]**2 + df[f"B_Tr_T_PZ"]**2)
     DeltaQ = np.sqrt( (E + df[f"B_ENERGY"])**2  - ((df[f"B_Tr_T_PX"] + df[f"B_PX"])**2 + (df[f"B_Tr_T_PY"] + df[f"B_PY"])**2 + (df[f"B_Tr_T_PZ"] + df[f"B_PZ"])**2 )   ) -df.B_M  - Mass
     return(DeltaQ)
-
-
 
 start_time = time.time()
 run_time = time.time()
@@ -97,6 +124,7 @@ for df in uproot.iterate(path_to_tuple,needed_feature,step_size=stepsize, librar
     df.eval("EVIP = log(EVIP)", inplace = True)
     df.eval("B_Tr_T_IPSig = sqrt(B_Tr_T_BPVIPCHI2)" , inplace = True)
     df.eval("P_proj = log(P_proj)", inplace = True)
+    cut = read_cut(repoPath, tagger, grid_n = None, KaonCombiner = False, optimized = False)
     df.eval(f"selected_track = {cut}", inplace = True)
     df.selected_track = df.selected_track.astype(int, copy = False) 
 
@@ -119,7 +147,7 @@ for df in uproot.iterate(path_to_tuple,needed_feature,step_size=stepsize, librar
     
 
 
-with uproot.recreate(f"{repoPath}root/{eventType}.root") as f:
+with uproot.recreate(f"{repoPath}root/{eventType}withSelected.root") as f:
     f["DecayTree"] = df_save
 
 

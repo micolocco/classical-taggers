@@ -1,17 +1,17 @@
 from torch.utils.data import Dataset
 from torch.utils.data import random_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.externals.joblib import dump
+from joblib import dump
 import time
 import uproot
 
 # Dataset definition
 class inputDataset(Dataset):
     # load the dataset
-    def __init__(self, inputPath, loading_variables, scalerPath):
+    def __init__(self, inputPath, features, scalerPath):
         start = time.time()
         print(f"Reading {inputPath} file")
-        df = uproot.open(inputPath).arrays(loading_variables, library = "pd" )
+        df = uproot.open(inputPath).arrays(features + ['label'], library = "pd" )
         print(f"Finished reading in {round(-start+ time.time() , 2)}s")
         # store the inputs and outputs
         self.X = df.values[:, :-1]
