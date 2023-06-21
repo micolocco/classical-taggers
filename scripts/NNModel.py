@@ -9,13 +9,13 @@ from sklearn.metrics import accuracy_score
 class NeuralNetwork(nn.Module):
     torch.manual_seed(42) # needed to be sure the result is reproducable
 
-    def __init__(self, modelName, n_features, optimizer=torch.optim.Adam, optimizer_kwargs={}, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024 ): #originally 75, for testing purpose changed to 200
+    def __init__(self, modelName, features, optimizer=torch.optim.Adam, optimizer_kwargs={}, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024 ): #originally 75, for testing purpose changed to 200
         super().__init__()
         self.modelName = modelName
-        self.n_input = n_features # can be change in PyTorchTraining.py or use the default which can be seen above
+        self.features = features
         self.criterion = loss
         self.NN = nn.Sequential(
-            nn.Linear(self.n_input, 32),
+            nn.Linear(len(self.features), 32),
             nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(32, 64),
@@ -38,6 +38,7 @@ class NeuralNetwork(nn.Module):
     def train_model(self, train_dl, epoch,n_epochs):
         n_total_steps = len(train_dl)
         stepLoss = []
+        self.train()
         # enumerate mini batches
         for i, (inputsTrain, targetsTrain) in enumerate(train_dl):
             # Clear the gradients
@@ -50,20 +51,22 @@ class NeuralNetwork(nn.Module):
             self.optimizer.step()
             # Calculate per batch loss
             stepLoss.append(training_loss.item())
-            if (i+1) % 1 == 0:
-                print (f'Epoch [{epoch+1}/{n_epochs}], Step [{i+1}/{n_total_steps}], Loss: {training_loss.item():.4f}')
-            return stepLoss, training_loss
+            #if (i+1) % 1000 == 0:
+                #print (f'Epoch [{epoch+1}/{n_epochs}], Step [{i+1}/{n_total_steps}], Loss: {training_loss.item():.4f}')
+        return stepLoss
 
     def validate_model(self, validation_dl):
         self.eval()
+        validationStep_loss = []
         for i, (inputsVal, targetsVal) in enumerate(validation_dl):
-            validationStep_loss = []
+    
             # Forward pass
             yPredVal = self(inputsVal)
             validation_loss = self.criterion(yPredVal, targetsVal)
             validationStep_loss.append(validation_loss.item())
-        return validationStep_loss, validation_loss
+        return validationStep_loss
 
+'''
     # Evaluate the model
     def evaluate_model(self, test_dl):
         predictions, actuals = list(), list()
@@ -82,7 +85,7 @@ class NeuralNetwork(nn.Module):
         predictions, actuals = vstack(predictions), vstack(actuals)
         # calculate accuracy
         acc = accuracy_score(actuals, predictions)
-    
+ '''   
   
 '''
     def fit(self,x,y,x_test,y_test): # training with back propagation

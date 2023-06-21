@@ -4,6 +4,7 @@ from sklearn.preprocessing import StandardScaler
 from joblib import dump
 import time
 import uproot
+import numpy as np
 
 # Dataset definition
 class inputDataset(Dataset):
@@ -13,7 +14,7 @@ class inputDataset(Dataset):
         print(f"Reading {inputPath} file")
         df = uproot.open(inputPath).arrays(features + ['label'], library = "pd" )
         print(f"Finished reading in {round(-start+ time.time() , 2)}s")
-        # store the inputs and outputs
+        df = df.sample(frac=1).reset_index(drop=True)        # store the inputs and outputs
         self.X = df.values[:, :-1]
         self.y = df.values[:, -1]
         # ensure input data is floats
@@ -40,4 +41,4 @@ class inputDataset(Dataset):
         validation_size = round(n_validation * len(self.X))
         test_size = len(self.X) - (train_size + validation_size)
         # Split dataset into train, validation and test
-        return random_split(self, [train_size, validation_size, test_size])
+        return random_split(self, np.array([train_size, validation_size, test_size]))

@@ -24,7 +24,7 @@ inputPath = f"{repoPath}root/{eventType}/{tagger}/selected.root:DecayTree"
 scalerPath = f"{repoPath}scaler/{eventType}/{tagger}/std_scaler.bin"
 
 # Check whether the specified directories exist, otherwise create them
-directory_list = ["calibrationPlots", "plots", "results", "root", "scaler", "csv", "cuts", "modelSave"]
+directory_list = ["calibrationPlots", "plots", "results", "root", "scaler", "csv", "cuts", "savedModels"]
 check_directories(repoPath, directory_list, eventType, tagger)
 
 # Definition of the features for the NN and the selection variables   
@@ -65,10 +65,9 @@ print(f"Validation set has {len(validation_dl.dataset)} rows")
 
 model_name = 'Prova'
 learning_rate = 0.001
-print(len(features))
-print(len(features))
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = NeuralNetwork(modelName = model_name, n_features=len(features), optimizer_kwargs={"lr" : learning_rate}).to(device)
-trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, repoPath, eventType, tagger, earlyStop = 2)
+model = NeuralNetwork(modelName = model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : learning_rate}).to(device)
+trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, repoPath, eventType, tagger, n_epochs=5, earlyStop = 3)
 pyTrain.plot_losses(model, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, repoPath, eventType, tagger)
-
+pyTrain.save_losses(model, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, repoPath, eventType, tagger)
+pyTrain.plot_ROC(model, test_dl, eventType, tagger, repoPath)
