@@ -7,3 +7,5 @@ Cimplementation/build/**
 Cimplementation/tracedModels/**
 scripts/__pycache__
 scripts/.ipynb_checkpoints/
+scaler/
+savedModels/
