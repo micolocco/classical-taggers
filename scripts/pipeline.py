@@ -4,19 +4,11 @@ import numpy as np
 import pyTorchTraining as pyTrain
 from NNModel import NeuralNetwork
 import torch
+from configParameters import *
 
 # Decay and tagger type are given as inputs by the user 
 eventType = sys.argv[1]
 tagger = sys.argv[2]
-
-if len(sys.argv)>3: # For the grid search 
-    grid_n = sys.argv[3]
-    if len(sys.argv)>4:
-        KaonCombiner = True
-else: 
-    optimized = True
-# Read from file path to the workspace folder and to the ROOT NTuple input
-repoPath = "/ceph/users/molocco/classical-taggers/"
 
 # Path to the ROOT file
 inputPath = f"{repoPath}root/{eventType}/{tagger}/selected.root:DecayTree"
@@ -63,11 +55,20 @@ train_dl, validation_dl, test_dl = pyTrain.prepare_data(inputPath, features, sca
 print(f"Training set has {len(train_dl.dataset)} rows")
 print(f"Validation set has {len(validation_dl.dataset)} rows")
 
-model_name = 'Prova'
-learning_rate = 0.001
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model = NeuralNetwork(modelName = model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : learning_rate}).to(device)
-trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, repoPath, eventType, tagger, n_epochs=5, earlyStop = 3)
-pyTrain.plot_losses(model, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, repoPath, eventType, tagger)
-pyTrain.save_losses(model, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, repoPath, eventType, tagger)
-pyTrain.plot_ROC(model, test_dl, eventType, tagger, repoPath)
+# Train the model
+if training: 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = NeuralNetwork(modelName = model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : learning_rate}).to(device)
+    trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, repoPath, eventType, tagger, n_epochs=100, earlyStop = 30) # earlyStop must be < n_epochs
+    pyTrain.plot_losses(model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, repoPath, eventType, tagger)
+    pyTrain.save_losses(model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, repoPath, eventType, tagger)
+
+# Load the best model (ie with the lowest training loss) 
+bestModel = NeuralNetwork(modelName = model_name, features=features, optimizer_kwargs={"lr" : learning_rate}).to(device)
+pyTrain.load_model(bestModel, repoPath, eventType, tagger)
+bestModel.eval()
+yPredTest, yTrueTest = bestModel.evaluate_model(test_dl)
+yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
+# Plot the ROC curve for both, training and test sets
+pyTrain.plot_ROC(model_name, yPredTest, yTrueTest, yPredTrain, yTrueTrain, eventType, tagger, repoPath)
+pyTrain.plot_mistag()
