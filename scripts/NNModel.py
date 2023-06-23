@@ -66,7 +66,7 @@ class NeuralNetwork(nn.Module):
             validationStep_loss.append(validation_loss.item())
         return validationStep_loss
 
-'''
+
     # Evaluate the model
     def evaluate_model(self, test_dl):
         predictions, actuals = list(), list()
@@ -78,36 +78,12 @@ class NeuralNetwork(nn.Module):
             actual = targets.numpy()
             actual = actual.reshape((len(actual), 1))
             # round to class values
-            yPred = yPred.round()
+            #yPred = yPred.round()
             # store
             predictions.append(yPred)
             actuals.append(actual)
         predictions, actuals = vstack(predictions), vstack(actuals)
         # calculate accuracy
-        acc = accuracy_score(actuals, predictions)
- '''   
+        return predictions, actuals
   
-'''
-    def fit(self,x,y,x_test,y_test): # training with back propagation
-        if self.isScaled == False:
-            self.scaler.fit(x)
-            self.isScaled = True
-        x = torch.tensor(x).float()
-        y = torch.tensor(y).float()
-        x_test = torch.tensor(x_test).float()
-        y_test = torch.tensor(y_test).float()
-        self.train()
-        y_pred = self(x)
-        loss = self.loss(y_pred, y.reshape(y_pred.shape))
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-        y_pred_test = self(x_test)
-        loss_train = self.loss(y_pred,y.reshape(y_pred.shape)).item()
-        loss_test = self.loss(y_pred_test,y_test.reshape(y_pred_test.shape)).item()
-        return loss_train, loss_test
-    
-    def get_scaledx(self,x):
-        if self.isScaled:
-            return(self.scaler.transform(x))# takes a pandas dataframe
-'''
+
