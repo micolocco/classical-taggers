@@ -5,40 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import time
+from saver import Saver
 
 repoPath = "/ceph/users/molocco/classical-taggers/"
-
-
-eventType = sys.argv[1] #For running same script for different eventType 
-tagger = sys.argv[2]
-training = True
-
 # Decay and tagger type are given as inputs by the user 
 eventType = sys.argv[1]
-tagger = sys.argv[2]
-
-if len(sys.argv)>3: # For the grid search 
-    grid_n = sys.argv[3]
-    if len(sys.argv)>4:
-        KaonCombiner = True
-else: 
-    optimized = True
-
-def read_cut(repoPath, tagger, grid_n = None, KaonCombiner = False, optimized = False):
-    
-    prePath = f"{repoPath}cuts/{tagger}/"
-    if grid_n != None: # Load the cut strings 
-        if KaonCombiner:
-            name = f"recursive_combiner_{grid_n}"
-        else:
-            name = f"recursive_{grid_n}"
-    else:
-        if optimized:
-            name = f"recursive_optimized"
-        else:
-            name = f"recursive"
-    cut = np.genfromtxt(f"{prePath}{name}.txt", dtype = str, delimiter=",")
-    return cut
 
 # Get the raw root file 
 # Charge and absID are needed for the label 
@@ -47,18 +18,18 @@ path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventT
 
 if eventType == "Bs2DsPi": 
     abs_id = 531
-    charge = False
+    neutral = True
     daughters = ["Ds_P","pi_P","Kp_P","Km_P"]
 
 elif eventType == "Bd2JpsiKst":
     abs_id = 511
-    charge = False
+    neutral = True
     daughters = ["Muminus_P","Muplus_P","Kst_P","Jpsi1S_P"]
 
 elif eventType == "Bu2JpsiK":
     B = "B"
     abs_id = 521
-    charge = True
+    neutral = False
     path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}_nPVsnTracks.root:Tuple/DecayTree;1" # needs to be reproduced in the Repo
     daughters = ["K_P","Muminus_P","Muplus_P","Jpsi1S_P"]
 
@@ -72,23 +43,21 @@ def DeltaQ(df,Mass):
 start_time = time.time()
 run_time = time.time()
 
-
-
-needed_feature= ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Charge", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
+loading_variables = ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Charge", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
                 f"B_Tr_T_BPVY",f"B_Tr_T_BPVX",f"B_Eta",f"B_Tr_T_Eta",f"B_Tr_T_BPVIP",f"B_Tr_T_PX",f"B_Tr_T_PY",f"B_Tr_T_PZ","B_P",
                 f"B_ENERGY",f"B_PX",f"B_PY",f"B_PZ",f"B_Tr_T_TRUEID", "B_PT",
                  "B_Tr_T_ENERGY", "B_Tr_T_PT"  ,"B_M", "B_Tr_T_ISMUON","B_ENDVX","B_ENDVY","B_ENDVZ","B_Tr_T_X","B_Tr_T_Y","B_Tr_T_Z", "B_Tr_T_M","B_Tr_T_PROBNN_E", "B_Tr_T_PIDK", "B_Tr_T_PIDe", "B_Tr_T_PIDmu", "B_Tr_T_PIDP",f"B_Tr_T_CHI2DOF",f"B_Tr_T_PROBNN_P",f"B_Tr_T_PROBNN_K",f"B_Tr_T_PROBNN_PI",f"B_Tr_T_GHOSTPROB",f"B_Tr_T_BPVIPCHI2"]+daughters
 
 
 
-n = True #is needed for saving the file 
-print('Starting the reading process')
-for df in uproot.iterate(path_to_tuple,needed_feature,step_size=stepsize, library = "pd"):
+print('Started reading')
+for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, library = "pd"):
     
     print("-------------------Start Block-----------------------------")
     df.drop(df[abs(df[f"B_TRUEID"]) != abs_id ].index , inplace = True) # just need the wanted B mesons
-    if charge: #getting the labels 
-        df["label"] = df[f"B_Charge"] * df[f"B_Tr_T_Charge"]   
+    if neutral & (tagger == "SSKaon" | tagger == "SSPion" ): #getting the labels 
+        
+        df["label"] = (-1)* df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) * df[f"B_Tr_T_Charge"]   
     else:
         df["label"] = df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) * df[f"B_Tr_T_Charge"]  
     
@@ -124,31 +93,17 @@ for df in uproot.iterate(path_to_tuple,needed_feature,step_size=stepsize, librar
     df.eval("EVIP = log(EVIP)", inplace = True)
     df.eval("B_Tr_T_IPSig = sqrt(B_Tr_T_BPVIPCHI2)" , inplace = True)
     df.eval("P_proj = log(P_proj)", inplace = True)
-    cut = read_cut(repoPath, tagger, grid_n = None, KaonCombiner = False, optimized = False)
-    df.eval(f"selected_track = {cut}", inplace = True)
-    df.selected_track = df.selected_track.astype(int, copy = False) 
-
-    # In case of training = True save only selected tracks. In case of calibration, all tracks are needed for the efficiency computation
-    if training:
-        df = df.loc[df.selected_track == 1]
-
-    if n: 
-        df_save = df
-        n = False
-    else:
-        df_save = pd.concat([df_save,df], ignore_index = True, copy = False)
+    
     print(f"Block finished in {round(time.time() - run_time,2)}s")
     print("--------------------End Block------------------------------")
     print()
-    print()
-
     
     run_time = time.time()
     
+path = f"{repoPath}root/{eventType}/notSelected.root"
+with uproot.recreate(path) as f:
+    f["DecayTree"] = df
 
-
-with uproot.recreate(f"{repoPath}root/{eventType}withSelected.root") as f:
-    f["DecayTree"] = df_save
-
+print(f"Modified NTuple saved at {path}")
 
 
