@@ -2,21 +2,15 @@ from torch.utils.data import Dataset
 from torch.utils.data import random_split
 from sklearn.preprocessing import StandardScaler
 from joblib import dump
-import time
-import uproot
 import numpy as np
 
 # Dataset definition
 class inputDataset(Dataset):
     # load the dataset
-    def __init__(self, inputPath, features, scalerPath):
-        start = time.time()
-        print(f"Reading {inputPath} file")
-        df = uproot.open(inputPath).arrays(features + ['label'], library = "pd" )
-        print(f"Finished reading in {round(-start+ time.time() , 2)}s")
-        df = df.sample(frac=1).reset_index(drop=True)        # store the inputs and outputs
-        self.X = df.values[:, :-1]
-        self.y = df.values[:, -1]
+    def __init__(self, df, scalerPath):
+        
+        self.X = df[df.selected_track==1].drop(columns = ['selected_track']).values[:, :-1]
+        self.y = df[df.selected_track==1].drop(columns = ['selected_track']).values[:, -1]
         # ensure input data is floats
         self.X = self.X.astype('float32')
         self.scaler = StandardScaler()
@@ -40,5 +34,8 @@ class inputDataset(Dataset):
         train_size = round(n_train * len(self.X))
         validation_size = round(n_validation * len(self.X))
         test_size = len(self.X) - (train_size + validation_size)
+        if test_size < 1:
+            print("Pre-selection cuts are too tight")
+            exit()
         # Split dataset into train, validation and test
         return random_split(self, np.array([train_size, validation_size, test_size]))
