@@ -54,19 +54,11 @@ print('Started reading')
 for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, library = "pd"):
     
     print("-------------------Start Block-----------------------------")
-    df.drop(df[abs(df[f"B_TRUEID"]) != abs_id ].index , inplace = True) # just need the wanted B mesons
-    if neutral & (tagger == "SSKaon" | tagger == "SSPion" ): #getting the labels 
-        
-        df["label"] = (-1)* df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) * df[f"B_Tr_T_Charge"]   
-    else:
-        df["label"] = df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) * df[f"B_Tr_T_Charge"]  
-    
-    df.loc[df.label == -1, "label"] = 0 #shiftig the label to 0,1 
+    df.drop(df[abs(df[f"B_TRUEID"]) != abs_id ].index , inplace = True) # drop the B mesons or other particles that are not of interest
+    df["label"] = df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) * df[f"B_Tr_T_Charge"]  
     for daughter in daughters: #remove daughter
         df.drop(df.loc[df[f"B_Tr_T_P"] == df[daughter]].index, inplace = True)
-
     df.reset_index(inplace=True, drop = False) 
-
     #Add some needed features
     df.eval(f"B_Tr_T_cos_diff_Phi=cos(B_Phi-B_Tr_T_Phi)", inplace=True)
     df.eval(f"B_Tr_T_diff_z = abs(B_BPVZ - B_Tr_T_BPVZ)" , inplace = True)

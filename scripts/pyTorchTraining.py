@@ -137,7 +137,6 @@ def plot_NNoutput(name, yPred, yTrue, yPredTrain, yTrueTrain, name_formatter, nb
     prob_train_1_bin_edges = prob_train_1_bin_edges[:len(prob_train_1_bin_edges)-1]+ (prob_train_1_bin_edges[1]-prob_train_1_bin_edges[0])/2
     plt.plot(prob_train_0_bin_edges ,prob_train_0_height, "b.", label = "Train (Label = 0)")
     plt.plot(prob_train_1_bin_edges ,prob_train_1_height, "r.", label = "Train (Label = 1)")
-    #plt.xlabel(r"Mistag rate $\eta$")
     plt.xlabel(r"NN Output")
     plt.grid()
     plt.ylabel("Normalized number of tracks")
@@ -146,27 +145,28 @@ def plot_NNoutput(name, yPred, yTrue, yPredTrain, yTrueTrain, name_formatter, nb
     saveName = name_formatter.assign_name(folder, name)
     plt.savefig(f"{saveName}_NNOutput.pdf")
 
-def mistag (name, model, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter, nbins=100):
+def logistic_regression(yPredTrain, yTrueTrain, name_formatter):
+    
     clf = LogisticRegression().fit(yPredTrain, yTrueTrain.ravel())  
     folder = "savedModels"
     prePath = name_formatter.assign_name(folder, "LogReg")
     pickle.dump(clf , open(f"{prePath}.pck" , "wb"))
-    eta = clf.predict_proba(yPredTest)[:,1]
+    return clf
 
+def plot_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter, nbins=100):
     
     plt.figure()
-    '''
     LR_test = np.linspace(0, 1, 300)
     loss = expit(LR_test * clf.coef_ + clf.intercept_).ravel()
     plt.title("Logistic Regression")
     plt.grid()
-    plt.plot(yPredTest[yTrueTest == 0][0:1000], np.zeros(1000) , "b.",alpha = 0.5, label = "Label = 0")
-    plt.plot(yPredTest[yTrueTest == 1][0:1000], np.ones(1000) ,  "r.",alpha = 0.5, label = "Label = 1")
+    plt.plot(yPredTest[yTrueTest == 0][0:10000], np.zeros(10000) , "b.",alpha = 0.5, label = "Label = 0")
+    plt.plot(yPredTest[yTrueTest == 1][0:10000], np.ones(10000) ,  "r.",alpha = 0.5, label = "Label = 1")
     plt.plot(LR_test, loss ,color = "k")
     plt.legend(loc = "best")
     folder = 'plots'
     saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_LogReg.pdf")'''
+    plt.savefig(f"{saveName}_LogReg.pdf")
     
     prob_train_0_height , prob_train_0_bin_edges= np.histogram(yPredTrain[yTrueTrain == 0] , bins = nbins, density = True)
     prob_train_0_bin_edges = prob_train_0_bin_edges[:len(prob_train_0_bin_edges)-1]+ (prob_train_0_bin_edges[1]-prob_train_0_bin_edges[0])/2
@@ -195,6 +195,7 @@ def mistag (name, model, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_form
     axs[1].set_title("LogReg Output")
     axs[1].set_yscale("log")
     axs[1].set_ylabel("Normalized number of tracks")
+    axs[1].set_xlabel(r"Mistag rate $\eta$")
     axs[1].hist(y_test_predict_LR[yTrueTest.ravel() == 0],bins = nbins,density = True,histtype="stepfilled",color = "b", alpha = 0.5, label = "Test (Label = 0)")
     axs[1].hist(y_test_predict_LR[yTrueTest.ravel() == 1],bins = nbins,density = True,histtype="stepfilled",color = "r", alpha = 0.5, label = "Test (Label = 1)")
     axs[1].plot(prob_train_0_bin_edges_LR ,prob_train_0_height_LR, "b.", label = "Train (Label = 0)")
@@ -204,8 +205,8 @@ def mistag (name, model, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_form
 
     folder = 'plots'
     saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_output.pdf")
+    plt.savefig(f"{saveName}_mistag.pdf")
     plt.close()
 
-def eta_determination (yPredTest):
-    if 
+'''def eta_determination (yPredTest):
+    if '''

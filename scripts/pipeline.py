@@ -68,12 +68,15 @@ if "SS" in tagger:
 # Reading dataset
 if preSelected == False:
     print("Applying pre-selections")
-    df = preSel.apply_preSelections(loading_variables + ['selected_track'], selected_rootPath, name_formatter, repoPath, eventType, tagger)
+    df = preSel.apply_preSelections(loading_variables, selected_rootPath, name_formatter, repoPath, eventType, tagger)
     
 else:
 	print(f"Reading input file")
-	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(loading_variables + ['selected_track'], library = "pd" )
-    
+	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['label', 'selected_track'], library = "pd" )
+
+if ("Bd" or "Bs" in eventType) and (tagger == "SSKaon" or tagger == "SSPion" ): 
+    df["label"] = (-1)* df["label"]  # labels must be reverted 
+df.loc[df.label == -1, "label"] = 0 #shiftig the label to 0,1   0 == correct tag  1 == wrong tag
 # Splitting dataset
 df = df.sample(frac=1).reset_index(drop=True)
 df.dropna(inplace = True)  
@@ -100,8 +103,11 @@ yPredTest, yTrueTest = bestModel.evaluate_model(test_dl)
 yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
 # Plot the ROC curve for both, training and test sets
 pyTrain.plot_ROC(model_name, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter)
-pyTrain.plot_NNoutput(model_name, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter)
-#pyTrain.mistag(model_name, bestModel, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter)
+clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, name_formatter)
+eta = clf.predict_proba(yPredTest)[:,1]
+
+#pyTrain.plot_NNoutput(model_name , yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter)
+pyTrain.plot_mistag(model_name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter)
 
 # Calibrtaion of the tagger. 
 test_indices = test_dl.dataset.indices
@@ -109,7 +115,9 @@ df_val = df.iloc[test_indices]
 # Add equal amount of selected_track = 0 
 #df_val = pd.concat([df_val,df[df.selected_track==0][:len(test_indices)]])
 #print(df_val.shape[0])
-df_val["eta"] = yPredTest.tolist()
-df_val["TagDec"] = df_val[f"B_Tr_T_Charge"] *-1
+if ("Bd" or "Bs" in eventType) and (tagger == "SSKaon" or tagger == "SSPion" ): 
+    df_val["TagDec"] = df_val[f"B_Tr_T_Charge"]
+else:
+    df_val["TagDec"] = df_val[f"B_Tr_T_Charge"] *-1
 df_vall.loc[df_vall.Eta > 0.5, "Eta"] *= -1   # classic
 df_vall.loc[df_vall.Eta < 0, "Eta"] += 1   # classic
