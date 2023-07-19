@@ -73,7 +73,7 @@ It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tag
     * $\pi^+ \rightarrow d = +1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
     * $\pi^- \rightarrow d = -1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
 * Assuming $\bar{B^0}, SS\pi$
-    * $\pi^+ \rightarrow d = +1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
+    * $\pi^+ \rightarrow d = +1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*  
     * $\pi^- \rightarrow d = -1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
 
 *It will be rescaled to 0
