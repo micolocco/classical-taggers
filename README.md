@@ -20,29 +20,69 @@ C++ commands to run :
 5) `make` (this can take a bit)
 6) `./C_modelLoader <model_path>`
 
-# Tagging decision
-according to the convention used, B0, B+, B0s are given tagging decision = -1 (since they contain bbar), while B-, B0bar, B0sbar are given tagging decision = -1 (since they contain b).
+# Schema for Tagging Decision and NN label assignment 
 
-If we want to get this information from the particles produced, we need to define the tagging decision as follow:
+w = not a tagging particle for that B decay as a signal
+r = tagging particle for that B decay as a signal
 
-for OS Kaon, OS muon, OS electron in all decays + SS Pion and SS Kaon for charged decay only as: tagging_decision = charge of the track * -1
-for SS Pion and SS Kaon in the case of B neutral decays as: tagging_decision = charge of the track
+   |     | $\pi^+$ | $\pi^-$ |$K^+$ | $K^-$ |
+   | --- | --- | --- | ---|---|
+$B^+$ | w   | r   |/|/|
+$B^-$ | r   | w   | /|/|
+$B^0$ |r    | w   |/|/|
+$\bar{B^0}$ | w   | r   |/|/|
+$B^0_s$ |/    | /   |r|w|
+$\bar{B^0_s}$ | /  | /   |w|r|
 
-Jonas defined the tagging decision always as given by tagging_decision = charge of the track * -1 but actually this doesn't hold true for SS Pion and SS Kaon for neutral B if the general convention is that b -->-1 and bbar-->+1
+## Tagging decision
+**$Q_f$ = flavour charge.** 
+* $Q_f$ = +1 $\rightarrow$ It's a particle
+* $Q_f$ = -1 $\rightarrow$ It's an anti-particle
 
-also, the NN labels (ie the outputs that must be predicted) are:
+**$d$ = tagging decision d[$Q_c$(track), B species, tagger].** 
+It's a function of the charge of the track $Q_c$, the $B$ decay species and the tagger type.
+* $d = +1$ $\rightarrow$ the signal has a $\bar b$
+* $d = -1$ $\rightarrow$ the signal has a $b$
+```
+    d = +1 * Qc(track) if Bs0 and SSK
+    d = -1 * Qc(track) if Bd0 and SSK*
+    d = +1 * Qc(track) if Bd0 and SSpi
+    d = -1 * Qc(track) if Bd0 and SSp
+    d = -1 * Qc(track) if B+ and any tagger
+    d = -1 * Qc(track) if Bd0 and any OS tagger
+    d = -1 * Qc(track) if Bs0 and any OS tagger
+  ```  
+*$B^0$(bbar, d) and $K^*$(dbar, s)->$K^-$(s, ubar)$\pi^+$(dbar, u). We can have SS $K$ taggers for $B^0$ as well but in this situation it's mostly used the SS $\pi$ as a tagging particle.
 
-0 (which is in origin -1 but then rescaled to 0) if the tag is correct
-1 if the tag is wrong
-Again, in order to maintain the convention and the definition of the label consistent, the label is defined as: 
+## Label
+**label = output of the Neural Network.** 
+It's a fucntion of the tagging decision $d$ and of the $B$ flavour charge $Q_f$.
+It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tagging decision is correct when it has the same sign of the $B$ flavour charge).
 
-7:57 PM
-
-
-
-
+    label = d * Qf(B) = -1 * Qc(track) * Qf(B)
+    label(d, Qf(B)) = d * Qf(B)    
 
 
+* Assuming $B^+, SS\pi$
+    * $\pi^+  \rightarrow d = -1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
+    * $\pi^- \rightarrow d = +1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
+* Assuming $B^-, SS\pi$
+    * $\pi^+ \rightarrow d = -1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
+    * $\pi^- \rightarrow d = +1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
+* Assuming $B^0, SS\pi$
+    * $\pi^+ \rightarrow d = +1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
+    * $\pi^- \rightarrow d = -1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
+* Assuming $\bar{B^0}, SS\pi$
+    * $\pi^+ \rightarrow d = +1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
+    * $\pi^- \rightarrow d = -1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
 
-OS Kaon, OS muon, OS electron in all B decays + SS Pion and SS Kaon for charged B decays only as: label = B_TRUEID/abs(B_TRUEID) * B_Tr_T_Charge
-for SS Pion and SS Kaon in the case of neutral B decays as: label = -B_TRUEID/abs(B_TRUEID) * B_Tr_T_Charge
+*It will be rescaled to 0
+## Mistag
+**$\eta$  = mistag.** 
+It's the probability of assigning a wrong tag. 
+If $\eta$ > 0.5, the tagging decision $d$ is flipped and the new mistag is $\eta'=1-\eta$. 
+$\eta$ is obtained from the output of the NN that gives the probability of getting label = 1.
+   ``` 
+ NNoutput = prob[label=1] = prob[d=Q(B)]
+mistag = 1 - NNout = prob[label=0] = prob[d*(-1)=Q(B)] 
+```
