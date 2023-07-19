@@ -9,3 +9,5 @@ scripts/__pycache__
 scripts/.ipynb_checkpoints/
 scaler/
 savedModels/
+csv/
+*.csv
