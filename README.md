@@ -59,7 +59,7 @@ It's a function of the charge of the track $Q_c$, the $B$ decay species and the 
 It's a fucntion of the tagging decision $d$ and of the $B$ flavour charge $Q_f$.
 It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tagging decision is correct when it has the same sign of the $B$ flavour charge).
 
-    label = d * Qf(B) = -1 * Qc(track) * Qf(B)
+    label = d * Qf(B) = (+-1) * Qc(track) * Qf(B)
     label(d, Qf(B)) = d * Qf(B)    
 
 
@@ -78,7 +78,7 @@ It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tag
 
 *It will be rescaled to 0
 ## Mistag
-**$\eta$  = mistag.** 
+**$\eta$  = mistag ** 
 It's the probability of assigning a wrong tag. 
 If $\eta$ > 0.5, the tagging decision $d$ is flipped and the new mistag is $\eta'=1-\eta$. 
 $\eta$ is obtained from the output of the NN that gives the probability of getting label = 1.
