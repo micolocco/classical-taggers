@@ -55,7 +55,7 @@ It's a function of the charge of the track $Q_c$, the $B$ decay species and the 
 *$B^0$(bbar, d) and $K^*$(dbar, s)->$K^-$(s, ubar)$\pi^+$(dbar, u). We can have SS $K$ taggers for $B^0$ as well but in this situation it's mostly used the SS $\pi$ as a tagging particle.
 
 ## Label
-**label = output of the Neural Network.** 
+**label = output of the Neural Network** 
 It's a fucntion of the tagging decision $d$ and of the $B$ flavour charge $Q_f$.
 It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tagging decision is correct when it has the same sign of the $B$ flavour charge).
 
@@ -64,7 +64,7 @@ It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tag
 
 
 * Assuming $B^+, SS\pi$
-    * $\pi^+  \rightarrow d = -1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
+    * $\pi^+ \rightarrow d = -1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
     * $\pi^- \rightarrow d = +1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
 * Assuming $B^-, SS\pi$
     * $\pi^+ \rightarrow d = -1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
@@ -82,7 +82,7 @@ It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tag
 It's the probability of assigning a wrong tag. 
 If $\eta$ > 0.5, the tagging decision $d$ is flipped and the new mistag is $\eta'=1-\eta$. 
 $\eta$ is obtained from the output of the NN that gives the probability of getting label = 1.
-   ``` 
+``` 
  NNoutput = prob[label=1] = prob[d=Q(B)]
 mistag = 1 - NNout = prob[label=0] = prob[d*(-1)=Q(B)] 
 ```
