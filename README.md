@@ -52,12 +52,12 @@ It's a function of the charge of the track $Q_c$, the $B$ decay species and the 
     d = -1 * Qc(track) if Bd0 and any OS tagger
     d = -1 * Qc(track) if Bs0 and any OS tagger
   ```  
-*$B^0$(bbar, d) and $K^*$(dbar, s)->$K^-$(s, ubar)$\pi^+$(dbar, u). We can have SS $K$ taggers for $B^0$ as well but in this situation it's mostly used the SS $\pi$ as a tagging particle.
+$*$$B^0$(bbar, d) and $K^*$(dbar, s)->$K^-$(s, ubar)$\pi^+$(dbar, u). We can have SS $K$ taggers for $B^0$ as well but in this situation it's mostly used the SS $\pi$ as a tagging particle.
 
 ## Label
 **label = output of the Neural Network** 
 It's a fucntion of the tagging decision $d$ and of the $B$ flavour charge $Q_f$.
-It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tagging decision is correct when it has the same sign of the $B$ flavour charge).
+It defines if the tag is correct (label = +1) or wrong (label = -1$*$) (ie the tagging decision is correct when it has the same sign of the $B$ flavour charge).
 
     label = d * Qf(B) = (+-1) * Qc(track) * Qf(B)
     label(d, Qf(B)) = d * Qf(B)    
@@ -76,7 +76,7 @@ It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tag
     * $\pi^+ \rightarrow d = +1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*  
     * $\pi^- \rightarrow d = -1, \text{label} = +1$ $\rightarrow$ *correct tagging decision*
 
-*It will be rescaled to 0
+$*#It will be rescaled to 0
 ## Mistag
 **$\eta$  = mistag ** 
 It's the probability of assigning a wrong tag. 
