@@ -59,8 +59,7 @@ $*B^0$(bbar, d) and $K^*$(dbar, s)->$K^-$(s, ubar)$\pi^+$(dbar, u). We can have 
 It's a fucntion of the tagging decision $d$ and of the $B$ flavour charge $Q_f$.
 It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tagging decision is correct when it has the same sign of the $B$ flavour charge).
 
-    label = d * Qf(B) = (+-1) * Qc(track) * Qf(B)
-    label(d, Qf(B)) = d * Qf(B)    
+    label(d, Qf(B)) = d * Qf(B) = (+-1) * Qc(track) * Qf(B)    
 
 
 * Assuming $B^+, SS\pi$
