@@ -61,6 +61,7 @@ It defines if the tag is correct (label = +1) or wrong (label = -1*) (ie the tag
 
     label(d, Qf(B)) = d * Qf(B) = (+-1) * Qc(track) * Qf(B)    
 
+where Qf(B) = B_TRUEID/abs(B_TRUEID)
 
 * Assuming $B^+, SS\pi$
     * $\pi^+ \rightarrow d = -1, \text{label} = -1$ $\rightarrow$ *wrong tagging decision*
