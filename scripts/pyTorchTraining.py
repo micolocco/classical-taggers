@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import auc, roc_curve
 from sklearn.linear_model import LogisticRegression
 import pickle
+from scipy.special import expit
 
 
 
@@ -160,8 +161,8 @@ def plot_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_f
     loss = expit(LR_test * clf.coef_ + clf.intercept_).ravel()
     plt.title("Logistic Regression")
     plt.grid()
-    plt.plot(yPredTest[yTrueTest == 0][0:10000], np.zeros(10000) , "b.",alpha = 0.5, label = "Label = 0")
-    plt.plot(yPredTest[yTrueTest == 1][0:10000], np.ones(10000) ,  "r.",alpha = 0.5, label = "Label = 1")
+    plt.plot(yPredTest[yTrueTest == 0][0:500], np.zeros(500) , "b.",alpha = 0.5, label = "Label = 0")
+    plt.plot(yPredTest[yTrueTest == 1][0:500], np.ones(500) ,  "r.",alpha = 0.5, label = "Label = 1")
     plt.plot(LR_test, loss ,color = "k")
     plt.legend(loc = "best")
     folder = 'plots'
@@ -190,6 +191,7 @@ def plot_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_f
     axs[0].plot(prob_train_0_bin_edges, prob_train_0_height, "b.", label = "Train (Label = 0)")
     axs[0].plot(prob_train_1_bin_edges, prob_train_1_height, "r.", label = "Train (Label = 1)")
     axs[0].grid()
+    axs[0].set_xlabel(r"NN output")
     axs[0].set_ylabel("Normalized number of tracks")
     axs[0].legend(loc = "best")
     axs[1].set_title("LogReg Output")
@@ -208,5 +210,48 @@ def plot_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_f
     plt.savefig(f"{saveName}_mistag.pdf")
     plt.close()
 
-'''def eta_determination (yPredTest):
-    if '''
+def plot_tagDec(df_cal, name, name_formatter, nbins=100):
+    # Get the particle with the lowest mistag for each event
+    df_TagParticles = df_cal.sort_values(by = ["entry","Eta"] , ascending = [True,True]).groupby("entry").first()
+    df_TagParticles.head()
+    plt.figure()
+    plt.title(r"$\eta$ TagParticle")
+    plt.yscale("log")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "blue" , alpha = 0.5, label = f"(TagDec = -1)")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "red" ,  alpha = 0.5,label = f"(TagDec = 1)")
+    plt.grid()
+    plt.xlabel(r"$\eta$")
+    plt.ylabel("Normalized number of tracks")
+    plt.legend(loc = "best")
+    folder = 'plots'
+    saveName = name_formatter.assign_name(folder, name)
+    plt.savefig(f"{saveName}_mistag_TagPower.pdf")
+    plt.close()
+
+def calibration(modelName, tagger, df_tag, eventType, name_formatter):
+
+    #Calibration of the taggers and parameters saving
+    import lhcb_ftcalib as ft
+    import json 
+
+    taggers = ft.TaggerCollection()
+    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = eventType[:2])
+    taggers.set_calibration(ft.PolynomialCalibration(npar = 2,link =  ft.link.mistag))
+    taggers.calibrate()
+
+    # Plotting of calibration curves
+    folder = 'calibrationPlots'
+    saveName = name_formatter.assign_name(folder, modelName)
+    if os.path.isdir(saveName) == False:
+            os.system(f"mkdir {saveName}")
+    taggers.plot_calibration_curves(savepath = saveName)
+
+    folder = 'results'
+    saveName = name_formatter.assign_name(folder, modelName)
+    info_dict = {"TaggingEfficiency" : taggers[tagger].stats.tagging_efficiency(calibrated = False),
+    "TaggingPower" : taggers[tagger].stats.tagging_power(calibrated = False) ,
+    "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True), "TaggingPower_Cali" : taggers[tagger].stats.tagging_power(calibrated = True),
+    "EffectiveMistag_Cali" : taggers[tagger].stats.effective_mistag(calibrated = True) , "EffectiveMistag" : taggers[tagger].stats.effective_mistag(calibrated = False) }
+    with open(f"{saveName}_taggingInfo.json", "w") as f:
+        json.dump(info_dict, f)
+

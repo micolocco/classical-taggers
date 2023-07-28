@@ -18,18 +18,15 @@ path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventT
 
 if eventType == "Bs2DsPi": 
     abs_id = 531
-    neutral = True
     daughters = ["Ds_P","pi_P","Kp_P","Km_P"]
 
 elif eventType == "Bd2JpsiKst":
     abs_id = 511
-    neutral = True
     daughters = ["Muminus_P","Muplus_P","Kst_P","Jpsi1S_P"]
 
 elif eventType == "Bu2JpsiK":
     B = "B"
     abs_id = 521
-    neutral = False
     path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}_nPVsnTracks.root:Tuple/DecayTree;1" # needs to be reproduced in the Repo
     daughters = ["K_P","Muminus_P","Muplus_P","Jpsi1S_P"]
 
@@ -55,7 +52,6 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
     
     print("-------------------Start Block-----------------------------")
     df.drop(df[abs(df[f"B_TRUEID"]) != abs_id ].index , inplace = True) # drop the B mesons or other particles that are not of interest
-    df["label"] = df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) * df[f"B_Tr_T_Charge"]  
     for daughter in daughters: #remove daughter
         df.drop(df.loc[df[f"B_Tr_T_P"] == df[daughter]].index, inplace = True)
     df.reset_index(inplace=True, drop = False) 
