@@ -12,7 +12,7 @@ preSelected = True
 model_name = 'Prova'
 learning_rate = 0.0001
 n_epochs=100
-earlyStop = 30
+earlyStop = 5
 
 # Change to False if no training is needed
 training = False

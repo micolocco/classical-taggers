@@ -9,8 +9,8 @@ class inputDataset(Dataset):
     # load the dataset
     def __init__(self, df, scalerPath):
         
-        self.X = df[df.selected_track==1].drop(columns = ['selected_track']).values[:, :-1]
-        self.y = df[df.selected_track==1].drop(columns = ['selected_track']).values[:, -1]
+        self.X = df.values[:, :-1]
+        self.y = df.values[:, -1]
         # ensure input data is floats
         self.X = self.X.astype('float32')
         self.scaler = StandardScaler()

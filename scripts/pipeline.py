@@ -52,7 +52,7 @@ prePath = name_formatter.assign_name(folder, "selected")
 selected_rootPath = f"{prePath}.root"
 start = time.time()
 
-selection_variables = ["entry", "label" , "B_Tr_T_PROBNN_K", "B_Tr_T_P" , "B_Tr_T_ISMUON", "B_Tr_T_BPVX" , "B_BPVX" , 
+selection_variables = ["entry", "B_Tr_T_PROBNN_K", "B_Tr_T_P" , "B_Tr_T_ISMUON", "B_Tr_T_BPVX" , "B_BPVX" , 
                         "B_Tr_T_BPVY" ,"B_BPVY" ,"B_Tr_T_BPVZ" , "B_BPVZ","B_Tr_T_Charge", "B_TRUEID", "B_Tr_T_absIP",
                         "B_Tr_T_PROBNN_PI", "B_Tr_T_PROBNN_P", "B_Tr_T_PROBNN_E", "B_Tr_T_PIDe", "B_Tr_T_PIDK", "B_Tr_T_PIDmu"]
 
@@ -68,19 +68,35 @@ if "SS" in tagger:
 # Reading dataset
 if preSelected == False:
     print("Applying pre-selections")
-    df = preSel.apply_preSelections(loading_variables, selected_rootPath, name_formatter, repoPath, eventType, tagger)
+    df = preSel.apply_preSelections(loading_variables, selected_rootPath, name_formatter, repoPath, eventType, tagger)[features + ['B_TRUEID', 'B_Tr_T_Charge','selected_track']]
     
 else:
 	print(f"Reading input file")
-	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['label', 'selected_track'], library = "pd" )
+	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['B_TRUEID','B_Tr_T_Charge','selected_track', 'entry'], library = "pd" )
+
+df = df[df.selected_track==1]
+df.drop(columns = ['selected_track'], inplace = True)
+
+# Assignation of the tagging decision (d)
+# d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
 
 if ("Bd" or "Bs" in eventType) and (tagger == "SSKaon" or tagger == "SSPion" ): 
-    df["label"] = (-1)* df["label"]  # labels must be reverted 
-df.loc[df.label == -1, "label"] = 0 #shiftig the label to 0,1   0 == correct tag  1 == wrong tag
+    df["TagDec"] = df[f"B_Tr_T_Charge"]
+else:
+    df["TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
+
+# Assignation of the label (it will be used as NN output)
+# The label is given by the product of the tagging decision and the flavour charge of the B. 
+# It indicates if the tagging decision is wrong or correct.
+# -1 == wrong tag  1 == correct tag
+
+df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"])
+df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0  
+
 # Splitting dataset
 df = df.sample(frac=1).reset_index(drop=True)
 df.dropna(inplace = True)  
-train_dl, validation_dl, test_dl = pyTrain.prepare_data(df[features + ['label', 'selected_track']], scalerPath)
+train_dl, validation_dl, test_dl = pyTrain.prepare_data(df[features + ['label']], scalerPath)
 print(f"Training set has {len(train_dl.dataset)} rows")
 print(f"Validation set has {len(validation_dl.dataset)} rows")
 print(f"Test set has {len(test_dl.dataset)} rows")
@@ -93,31 +109,33 @@ if training:
     pyTrain.plot_losses(model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, name_formatter)
     pyTrain.save_losses(model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, name_formatter)
 
-
-
 # Load the best model (ie with the lowest training loss) 
 bestModel = NeuralNetwork(modelName = model_name, features=features, optimizer_kwargs={"lr" : learning_rate}).to(device)
 pyTrain.load_model(bestModel, name_formatter)
 bestModel.eval()
 yPredTest, yTrueTest = bestModel.evaluate_model(test_dl)
 yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
+
 # Plot the ROC curve for both, training and test sets
 pyTrain.plot_ROC(model_name, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter)
 clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, name_formatter)
-eta = clf.predict_proba(yPredTest)[:,1]
 
 #pyTrain.plot_NNoutput(model_name , yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter)
 pyTrain.plot_mistag(model_name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter)
 
-# Calibrtaion of the tagger. 
+# Calibration of the tagger. 
 test_indices = test_dl.dataset.indices
-df_val = df.iloc[test_indices]
+df_cal = df.iloc[test_indices][['entry','label','TagDec','B_TRUEID']].copy(deep=True)
+df_cal.reset_index(drop=True, inplace = True)
+df_cal['Eta'] = clf.predict_proba(yPredTest)[:,0]
 # Add equal amount of selected_track = 0 
-#df_val = pd.concat([df_val,df[df.selected_track==0][:len(test_indices)]])
-#print(df_val.shape[0])
-if ("Bd" or "Bs" in eventType) and (tagger == "SSKaon" or tagger == "SSPion" ): 
-    df_val["TagDec"] = df_val[f"B_Tr_T_Charge"]
-else:
-    df_val["TagDec"] = df_val[f"B_Tr_T_Charge"] *-1
-df_vall.loc[df_vall.Eta > 0.5, "Eta"] *= -1   # classic
-df_vall.loc[df_vall.Eta < 0, "Eta"] += 1   # classic
+#df_cal = pd.concat([df_cal,df[df.selected_track==0][:len(test_indices)]])
+#print(df_cal.shape[0])
+
+df_cal.loc[df_cal.Eta > 0.5 ,"TagDec"] *= -1  
+df_cal.loc[df_cal.Eta > 0.5, "Eta"] *= -1   
+df_cal.loc[df_cal.Eta < 0, "Eta"] += 1   
+
+pyTrain.plot_tagDec(df_cal, model_name, name_formatter)
+
+pyTrain.calibration(model_name, tagger, df_cal, eventType, name_formatter)
