@@ -11,3 +11,6 @@ scaler/
 savedModels/
 csv/
 *.csv
+stack_v2/
+Data/Database/
+Data/.snakemake/

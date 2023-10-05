@@ -4,7 +4,6 @@ import uproot
 
 def apply_preSelections(loading_variables, selected_rootPath, name_formatter, repoPath, eventType, tagger):
 
-    
     decayPath = f"{repoPath}root/{eventType}/notSelected.root:DecayTree"
     df = uproot.open(decayPath).arrays(loading_variables,library = "pd" ) # load all data
     cuts = read_cuts(name_formatter)
@@ -14,7 +13,7 @@ def apply_preSelections(loading_variables, selected_rootPath, name_formatter, re
     # Save the selected tracks into NTuples
     with uproot.recreate(f"{selected_rootPath}") as file:
         file["DecayTree"] = df
-    print(f"Applied pre-selections and saved NTuple at {selected_rootPath}")
+    print(f"Saved NTuple with pre-selections at {selected_rootPath}")
     return df
 
 def read_cuts(name_formatter):

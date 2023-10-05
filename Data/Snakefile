@@ -1,0 +1,19 @@
+rule Bu2JpsiK:
+    input: Tuple = expand("/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_{n}.root", n = range(2)), Histos = expand("/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_{n}.root", n = range(2))
+
+rule run_Bu2JpsiK_DaVinci:
+    input:  opt = "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/options_SM/options_{n}.yaml"#,dst = "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/Output/hlt2_Bu2JpsiK_SM_{n}.dst",json = "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/Output/hlt2_Bu2JpsiK_tck_SM_{n}.json"
+    output: "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_{n}.root",  "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_{n}.root"
+    log: "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/LogFile/log_SM_DaVinci_{n}.txt"
+    run:
+        command = f"/interactive_storage/molocco/stack_v2/DaVinci/run lbexec /ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/Algs:main {input.opt}|tee {log}"
+        shell(command)
+
+
+#rule run_Bu2JpsiK_Moore:
+#    input: "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/SM_lines/Bu2JpsiK_line_SnakeMake_{n}.py"
+#    output: "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/Output/hlt2_Bu2JpsiK_SM_{n}.dst","/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/Output/hlt2_Bu2JpsiK_tck_SM_{n}.json"
+#    log: "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/LogFile/log_Bu2JpsiK_SM_Moore_{n}.txt"
+#    run:
+#        command = f"/interactive_storage/jroensch/Stack_4/Moore/run gaudirun.py {input} | tee {log}"
+#        shell(command)

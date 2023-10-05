@@ -40,7 +40,8 @@ def DeltaQ(df,Mass):
 start_time = time.time()
 run_time = time.time()
 
-loading_variables = ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Charge", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
+#loading_variables = ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Charge", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
+ #loading_variables = ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
                 f"B_Tr_T_BPVY",f"B_Tr_T_BPVX",f"B_Eta",f"B_Tr_T_Eta",f"B_Tr_T_BPVIP",f"B_Tr_T_PX",f"B_Tr_T_PY",f"B_Tr_T_PZ","B_P",
                 f"B_ENERGY",f"B_PX",f"B_PY",f"B_PZ",f"B_Tr_T_TRUEID", "B_PT",
                  "B_Tr_T_ENERGY", "B_Tr_T_PT"  ,"B_M", "B_Tr_T_ISMUON","B_ENDVX","B_ENDVY","B_ENDVZ","B_Tr_T_X","B_Tr_T_Y","B_Tr_T_Z", "B_Tr_T_M","B_Tr_T_PROBNN_E", "B_Tr_T_PIDK", "B_Tr_T_PIDe", "B_Tr_T_PIDmu", "B_Tr_T_PIDP",f"B_Tr_T_CHI2DOF",f"B_Tr_T_PROBNN_P",f"B_Tr_T_PROBNN_K",f"B_Tr_T_PROBNN_PI",f"B_Tr_T_GHOSTPROB",f"B_Tr_T_BPVIPCHI2"]+daughters
@@ -74,7 +75,7 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
     df[f"B_Tr_T_DeltaQ_Proton"] = DeltaQ(df,938.27208)
     df[f"B_Tr_T_DeltaQ_Kaon"] = DeltaQ(df,493.677)
     
-    df.eval("B_Tr_T_Signal_TagPart_PT = sqrt( (B_PX + B_Tr_T_PX) **2 + (B_PY + B_Tr_T_PY)**2)", inplace = True)
+    df.eval("B_Tr_T_Signal_TagPart_PT = sqrt((B_PX + B_Tr_T_PX) **2 + (B_PY + B_Tr_T_PY)**2)", inplace = True)
     df.eval("B_Tr_T_eoverP = B_Tr_T_Charge/B_Tr_T_P", inplace = True)
     df.eval("B_Tr_T_absID =abs(B_Tr_T_TRUEID)", inplace = True)
 
@@ -93,5 +94,3 @@ with uproot.recreate(path) as f:
     f["DecayTree"] = df
 
 print(f"Modified NTuple saved at {path}")
-
-
