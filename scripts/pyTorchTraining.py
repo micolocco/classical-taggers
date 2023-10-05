@@ -3,7 +3,6 @@ import sys
 import pandas as pd 
 import os
 import time
-import uproot
 from inputDataset import inputDataset
 from torch.utils.data import DataLoader
 import copy
@@ -15,19 +14,41 @@ import pickle
 from scipy.special import expit
 
 
-
-# Prepare the dataset
-def prepare_data(df, scalerPath, train_batch_size = 32, test_batch_size = 1024):
-    
+def prepare_data(train_df, scalerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
-    dataset = inputDataset(df, scalerPath)
-    # Splitting
-    train, validation, test = dataset.get_splits()
+    train_dataset = inputDataset(train_df, scalerPath, test = False)
+    # Splitting in train and validation datasets
+    train, validation = train_dataset.get_splits()
     # Prepare data loaders
     train_dl = DataLoader(train, batch_size = train_batch_size, shuffle=False)
     validation_dl = DataLoader(validation, batch_size = test_batch_size, shuffle=False)
-    test_dl = DataLoader(test, batch_size = test_batch_size, shuffle=False)
-    return train_dl, validation_dl, test_dl
+    return train_dl, validation_dl 
+
+
+def plot_features(data, name_formatter, nbins=100):
+
+    # Plot input features 
+    plt.figure(figsize=(24,50))
+    try:
+        for i, col in enumerate(data.columns.to_list()):
+            plt.subplot(10, 3, i + 1)
+            
+            if col == 'B_Tr_T_BPVIP':
+                plotting_data = data[data[col]<2.5]
+                plt.hist(plotting_data[col][plotting_data['label']==0], density = True, bins=nbins, label = "Label = 0",color='b', alpha=0.5)
+                plt.hist(plotting_data[col][plotting_data['label']==1], density = True, bins=nbins, label = "Label = 1",color='r', alpha=0.5)
+            else:
+                plt.hist(data[col][data['label']==0], density = True, bins=nbins, label = "Label = 0",color='b', alpha=0.5)
+                plt.hist(data[col][data['label']==1], density = True, bins=nbins, label = "Label = 1",color='r', alpha=0.5)
+           
+            plt.legend()
+            plt.title(col)
+            plt.tight_layout()
+            folder = 'plots'
+        saveName = name_formatter.assign_name(folder, 'features')
+        plt.savefig(f"{saveName}.pdf")
+    except Exception as e:
+        print(col,e)
 
 def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = 500, earlyStop = 75):
        
@@ -59,6 +80,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_
                     lossTrainBest = trainingEpoch_loss[-1]
                     bestEpoch = epoch
                     save_model(model, name_formatter)
+                    bestModel = copy.deepcopy(model)
                     
             if epoch > (earlyStop +1):
                 if rollingAverageNew > rollingAverageOld:
@@ -69,7 +91,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_
             i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
         print(f"Training finished in {training_time} min, {i} epochs, early stopping: {stopped}")
-        return trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
+        return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
         
 def save_model(model, name_formatter):
     
@@ -87,6 +109,7 @@ def load_model(model, name_formatter):
 def save_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, name_formatter):
     
     folder = 'csv'
+    name = 'losses/' + name
     saveName = name_formatter.assign_name(folder, name)
     np.savetxt(f"{saveName}_Test.csv", valLoss, delimiter=",")
     np.savetxt(f"{saveName}_Train.csv", trainLoss, delimiter=",")
@@ -104,15 +127,12 @@ def plot_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, name_formatter)
     saveName = name_formatter.assign_name(folder, name)
     plt.savefig(f"{saveName}_Loss.pdf")
    
-def plot_ROC(name, yPred, yTrue, yPredTrain, yTrueTrain, name_formatter):
+def plot_ROC(name, yPred, yTrue, name_formatter, yPredTrain = None, yTrueTrain = None):
     
     plt.figure()
-    fpr, tpr,_ = roc_curve(yTrueTrain, yPredTrain)
-    fpr_test, tpr_test,_ = roc_curve(yTrue, yPred)
-    roc_auc = round(auc(fpr, tpr),2)
-    roc_auc_test = round(auc(fpr_test, tpr_test),2)
     lw  = 2
-    plt.plot(fpr, tpr, color='darkorange',lw=lw, label=f'Train (area = {roc_auc})' )
+    fpr_test, tpr_test,_ = roc_curve(yTrue, yPred)
+    roc_auc_test = round(auc(fpr_test, tpr_test),5)
     plt.plot(fpr_test, tpr_test, color='darkblue',lw=lw, label=f'Test (area = {roc_auc_test})' )
     plt.plot([0, 1], [0, 1], color='k', lw=lw, linestyle='--')
     plt.xlim([-0.02, 1.0])
@@ -120,31 +140,17 @@ def plot_ROC(name, yPred, yTrue, yPredTrain, yTrueTrain, name_formatter):
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.title(f'ROC curve ')
+    folder = 'plots'
     plt.legend(loc="lower right")
-    folder = 'plots'
     saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_ROC.pdf")
-
-def plot_NNoutput(name, yPred, yTrue, yPredTrain, yTrueTrain, name_formatter, nbins=100):
-
-    plt.figure()
-    plt.title("NN Output")
-    plt.yscale("log")
-    plt.hist(yPred[yTrue == 0], bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = "Test (Label = 0)")
-    plt.hist(yPred[yTrue == 1], bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = "Test (Label = 1)")
-    prob_train_0_height , prob_train_0_bin_edges= np.histogram(yPredTrain[yTrueTrain == 0] , bins = nbins, density = True)
-    prob_train_0_bin_edges = prob_train_0_bin_edges[:len(prob_train_0_bin_edges)-1]+ (prob_train_0_bin_edges[1]-prob_train_0_bin_edges[0])/2
-    prob_train_1_height , prob_train_1_bin_edges= np.histogram(yPredTrain[yTrueTrain == 1] ,bins = nbins, density = True)
-    prob_train_1_bin_edges = prob_train_1_bin_edges[:len(prob_train_1_bin_edges)-1]+ (prob_train_1_bin_edges[1]-prob_train_1_bin_edges[0])/2
-    plt.plot(prob_train_0_bin_edges ,prob_train_0_height, "b.", label = "Train (Label = 0)")
-    plt.plot(prob_train_1_bin_edges ,prob_train_1_height, "r.", label = "Train (Label = 1)")
-    plt.xlabel(r"NN Output")
-    plt.grid()
-    plt.ylabel("Normalized number of tracks")
-    plt.legend(loc = "best")
-    folder = 'plots'
-    saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_NNOutput.pdf")
+    if yPredTrain is not None:
+        fpr, tpr,_ = roc_curve(yTrueTrain, yPredTrain)
+        roc_auc = round(auc(fpr, tpr),5)
+        plt.plot(fpr, tpr, color='darkorange',lw=lw, label=f'Train (area = {roc_auc})' )
+        plt.legend(loc="lower right")
+        plt.savefig(f"{saveName}_ROC_TRAIN_VAL.pdf")
+    else:
+        plt.savefig(f"{saveName}_ROC_TEST.pdf")
 
 def logistic_regression(yPredTrain, yTrueTrain, name_formatter):
     
@@ -154,7 +160,7 @@ def logistic_regression(yPredTrain, yTrueTrain, name_formatter):
     pickle.dump(clf , open(f"{prePath}.pck" , "wb"))
     return clf
 
-def plot_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter, nbins=100):
+def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter, nbins=100):
     
     plt.figure()
     LR_test = np.linspace(0, 1, 300)
@@ -174,16 +180,15 @@ def plot_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_f
     prob_train_1_height , prob_train_1_bin_edges= np.histogram(yPredTrain[yTrueTrain == 1] ,bins = nbins, density = True)
     prob_train_1_bin_edges = prob_train_1_bin_edges[:len(prob_train_1_bin_edges)-1]+ (prob_train_1_bin_edges[1]-prob_train_1_bin_edges[0])/2
 
-    y_test_predict_LR = clf.predict_proba(yPredTest)[:,1]
-    y_train_predict_LR = clf.predict_proba(yPredTrain)[:,1]
+    y_test_predict_LR = clf.predict_proba(yPredTest)[:,0]
+    y_train_predict_LR = clf.predict_proba(yPredTrain)[:,0]
 
     prob_train_0_height_LR , prob_train_0_bin_edges_LR= np.histogram(y_train_predict_LR[yTrueTrain.ravel() == 0], bins = nbins, density = True)
     prob_train_0_bin_edges_LR = prob_train_0_bin_edges_LR[:len(prob_train_0_bin_edges_LR)-1]+ (prob_train_0_bin_edges_LR[1]-prob_train_0_bin_edges_LR[0])/2
     prob_train_1_height_LR , prob_train_1_bin_edges_LR= np.histogram(y_train_predict_LR[yTrueTrain.ravel() == 1], bins = nbins, density = True)
     prob_train_1_bin_edges_LR = prob_train_1_bin_edges_LR[:len(prob_train_1_bin_edges_LR)-1]+ (prob_train_1_bin_edges_LR[1]-prob_train_1_bin_edges_LR[0])/2
     
-    plt.figure()
-    fig, axs = plt.subplots(1,3, figsize = (10,5))
+    fig, axs = plt.subplots(1,2, figsize = (10,5))
     axs[0].set_title("NN Output")
     axs[0].set_yscale("log")
     axs[0].hist(yPredTest[yTrueTest == 0],bins = nbins, density = True,histtype="stepfilled",color = "b", alpha = 0.5, label = "Test (Label = 0)")
@@ -207,13 +212,27 @@ def plot_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_f
 
     folder = 'plots'
     saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_mistag.pdf")
+    plt.savefig(f"{saveName}_NNoutput_mistag.pdf")
     plt.close()
 
-def plot_tagDec(df_cal, name, name_formatter, nbins=100):
+def plot_mistag(name, clf, yPred, yTrue, name_formatter, type, nbins=100):
+
+    plt.figure()
+    plt.title("Mistag rate")
+    plt.yscale("log")
+    y_predict_LR = clf.predict_proba(yPred)[:,0]
+    plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} (Label = 0)")
+    plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} (Label = 1)")
+    plt.xlabel(r"$\eta$")
+    plt.grid()
+    plt.ylabel("Normalized number of tracks")
+    plt.legend(loc = "best")
+    folder = 'plots'
+    saveName = name_formatter.assign_name(folder, name)
+    plt.savefig(f"{saveName}_mistag_{type}.pdf")
+
+def plot_tagDec(df_TagParticles, name, name_formatter, nbins=100):
     # Get the particle with the lowest mistag for each event
-    df_TagParticles = df_cal.sort_values(by = ["entry","Eta"] , ascending = [True,True]).groupby("entry").first()
-    df_TagParticles.head()
     plt.figure()
     plt.title(r"$\eta$ TagParticle")
     plt.yscale("log")
@@ -225,7 +244,7 @@ def plot_tagDec(df_cal, name, name_formatter, nbins=100):
     plt.legend(loc = "best")
     folder = 'plots'
     saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_mistag_TagPower.pdf")
+    plt.savefig(f"{saveName}_mistag_TagDec.pdf")
     plt.close()
 
 def calibration(modelName, tagger, df_tag, eventType, name_formatter):
@@ -254,4 +273,5 @@ def calibration(modelName, tagger, df_tag, eventType, name_formatter):
     "EffectiveMistag_Cali" : taggers[tagger].stats.effective_mistag(calibrated = True) , "EffectiveMistag" : taggers[tagger].stats.effective_mistag(calibrated = False) }
     with open(f"{saveName}_taggingInfo.json", "w") as f:
         json.dump(info_dict, f)
+    print(f"Tagger parameters saved at {saveName}")
 
