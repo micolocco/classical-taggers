@@ -10,8 +10,8 @@ if not os.path.exists(f"{dir_path}options_SM/"):
     os.makedirs(f"{dir_path}options_SM/")
 if not os.path.exists(f"{dir_path}output/"):
     os.makedirs(f"{dir_path}output/")
-if not os.path.exists(f"{dir_path}LogFile/"):
-    os.makedirs(f"{dir_path}LogFile/")
+if not os.path.exists(f"{dir_path}logs/"):
+    os.makedirs(f"{dir_path}logs/")
 if not os.path.exists(f"{dir_path}RootRaw/"):
     os.makedirs(f"{dir_path}RootRaw/")
 

@@ -1,19 +1,19 @@
 rule Bu2JpsiK:
-    input: Tuple = expand("/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_{n}.root", n = range(2)), Histos = expand("/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_{n}.root", n = range(2))
+    input: Tuple = expand("/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_{n}.root", n = range(1)), Histos = expand("/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_{n}.root", n = range(1))
 
 rule run_Bu2JpsiK_DaVinci:
-    input:  opt = "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/options_SM/options_{n}.yaml"#,dst = "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/Output/hlt2_Bu2JpsiK_SM_{n}.dst",json = "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/Output/hlt2_Bu2JpsiK_tck_SM_{n}.json"
+    input:  opt = "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/options_SM/options_{n}.yaml", dst = "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_SM_{n}.dst",json = "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_tck_SM_{n}.json"
     output: "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_{n}.root",  "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_{n}.root"
-    log: "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/LogFile/log_SM_DaVinci_{n}.txt"
+    log: "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/logs/log_SM_DaVinci_{n}.txt"
     run:
-        command = f"/interactive_storage/molocco/stack_v2/DaVinci/run lbexec /ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/Algs:main {input.opt}|tee {log}"
+        command = f"/interactive_storage/molocco/stack_v2/DaVinci/build.x86_64_v2-centos7-gcc12+detdesc-opt/run lbexec /ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/Algs.py:main {input.opt}|tee {log}"
         shell(command)
 
 
 #rule run_Bu2JpsiK_Moore:
-#    input: "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/SM_lines/Bu2JpsiK_line_SnakeMake_{n}.py"
+#    input: "/ceph/users/molocco/classical-taggers/Data/moore_scripts/SM_lines/Bu2JpsiK/line_SnakeMake_{n}.py"
 #    output: "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/Output/hlt2_Bu2JpsiK_SM_{n}.dst","/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/Output/hlt2_Bu2JpsiK_tck_SM_{n}.json"
-#    log: "/ceph/users/jroensch/masterthesis/Bu2JpsiK/HLT/LogFile/log_Bu2JpsiK_SM_Moore_{n}.txt"
+#    log: "/ceph/users/molocco/classical-taggers/Data/moore_scripts/SM_lines/Bu2JpsiK/logs/SM_Moore_{n}.txt"
 #    run:
-#        command = f"/interactive_storage/jroensch/Stack_4/Moore/run gaudirun.py {input} | tee {log}"
+#        command = f"/interactive_storage/molocco/stack_v2/Moore/build.x86_64_v2-centos7-gcc12+detdesc-opt/run gaudirun.py {input} | tee {log}"
 #        shell(command)
