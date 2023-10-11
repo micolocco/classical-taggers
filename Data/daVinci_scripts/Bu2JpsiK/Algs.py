@@ -52,10 +52,14 @@ def main(options: Options):
     int_class = int(0)
     # helper lambda function
     mctruth = MCTruthAndBkgCat(B2JpsiK)
-    mctruth_tagging = MCTruthAndBkgCat(tagging_container)
-
+    mctruth_tag = MCTruthAndBkgCat(tagging_container)
+    
     MCTRUTH = lambda func: F.MAP_INPUT(Functor=func, Relations=mctruth.MCAssocTable)
-    MCTRUTH_tagging = lambda func: F.MAP_INPUT(Functor=func, Relations=mctruth_tagging.MCAssocTable)
+    MCTRUTH_TAG = lambda func: F.MAP_INPUT(Functor=func, Relations=mctruth_tag.MCAssocTable)
+
+    MCMOTHER_ID = lambda n: F.MAP_INPUT_ARRAY(Functor=F.VALUE_OR(0) @ MCTRUTH_TAG(F.MC_MOTHER(n, F.PARTICLE_ID)), Relations=tagAlg_rels)
+    MCMOTHER_KEY = lambda n: F.MAP_INPUT_ARRAY(Functor=F.VALUE_OR(0) @ MCTRUTH_TAG(F.MC_MOTHER(n, F.OBJECT_KEY)), Relations=tagAlg_rels)
+
 
 
     variables_Bu = FunctorCollection({
@@ -92,7 +96,7 @@ def main(options: Options):
         "Tr_T_PX" : F.MAP_INPUT_ARRAY(Functor= F.PX, Relations = tagAlg_rels),
         "Tr_T_PY" : F.MAP_INPUT_ARRAY(Functor= F.PY, Relations = tagAlg_rels),
         "Tr_T_PZ" : F.MAP_INPUT_ARRAY(Functor= F.PZ, Relations = tagAlg_rels),
-        "Tr_T_TRUEID":  F.VALUE_OR(0) @ F.MAP_INPUT_ARRAY(Functor=F.VALUE_OR(0) @ MCTRUTH_tagging(F.PARTICLE_ID),Relations=tagAlg_rels),
+        "Tr_T_TRUEID":  F.VALUE_OR(0) @ F.MAP_INPUT_ARRAY(Functor=F.VALUE_OR(0) @ MCTRUTH_TAG(F.PARTICLE_ID),Relations=tagAlg_rels),
         "Tr_T_X": F.MAP_INPUT_ARRAY(Functor= F.REFERENCEPOINT_X, Relations=tagAlg_rels),
         "Tr_T_Y": F.MAP_INPUT_ARRAY(Functor= F.REFERENCEPOINT_Y, Relations=tagAlg_rels),
         "Tr_T_Z": F.MAP_INPUT_ARRAY(Functor= F.REFERENCEPOINT_Z, Relations=tagAlg_rels),
