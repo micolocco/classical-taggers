@@ -3,6 +3,20 @@ Instructions for launching the following scripts:
 - `pyTorchTraining.py`: script used for training the Neural Network. Usage:
     `python pyTorchTraining.py <DecayType> <TaggerType>` (ex. `python pyTorchTraining.py Bu2JpsiK OSKaon`)
 - `pipeline.py`: script that modifies the NTuples created previously (one for each decay). TO BE REPRODUCED WITH UPSTREAM TRACKS.
+
+## Producing NTuples
+sequence:
+1) you need to produce the list of LNF from the `All_LFN.txt`:
+`cd classical-taggers/Data/moore_scripts/LFNs/`
+`python cuts_LFN.py <number_of_files> <decay>`
+2) `cd ../SM_lines`
+`python produce_lines.py <number_of_files> <decay>`
+3) go back to the `classical-taggers` folder and launch `snakemake`:
+`snakemake -n -j <number_of_jobs>`
+ALternatively you can run Moore and DaVinci seperately with:
+`<path_to_stack>/Moore/build.x86_64_v2-centos7-gcc12+detdesc-opt/run gaudirun.py Data/moore_scripts/SM_lines/<decay>/line_SnakeMake_<n>.py` 
+`<path_to_stack>/DaVinci/build.x86_64_v2-centos7-gcc12+detdesc-opt/run lbexec Data/daVinci_scripts/Bu2JpsiK/Algs.py:main Data/daVinci_scripts/Bu2JpsiK/options_SM/options_<n>.yaml`
+where `n` is the option file for the n-th LFN 
 ## PyTorch C++ interface
 - The code implementation for loading PyTorch models into C++ refers to https://pytorch.org/tutorials/advanced/cpp_export.html.
 - Please note that you need `libtorch` for loading PyTorch models into C++. Follow instructions here https://pytorch.org/ to download it.
