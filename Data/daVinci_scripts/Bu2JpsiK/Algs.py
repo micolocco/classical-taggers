@@ -1,12 +1,12 @@
 import Functors as F
 from DaVinci import Options, make_config
-from RecoConf.reconstruction_objects import reconstruction, make_pvs
 from FunTuple import FunctorCollection, FunTuple_Particles as Funtuple
 from PyConf.Algorithms import ParticleTaggerAlg, ParticleContainerMerger
 from FunTuple.functorcollections import Kinematics, EventInfo ,MCKinematics, MCHierarchy
 from PyConf.reading import get_odin 
 from DaVinciMCTools import MCTruthAndBkgCat #changed
-from PyConf.reading import get_particles
+from PyConf.reading import get_particles, get_pvs
+from RecoConf.event_filters import require_pvs
 
 
 
@@ -20,8 +20,7 @@ def main(options: Options):
         "Muminus": "[B+ -> (J/psi(1S) -> mu+ ^mu-) K+]CC",
     }
 
-    with reconstruction.bind(): 
-        pvs = make_pvs() 
+    pvs = get_pvs()
 
     variables_all = Kinematics() #Mass,P,PT,P{XYZ},ENERGY
     all_variables_add =  FunctorCollection({
@@ -40,10 +39,12 @@ def main(options: Options):
         "BPVZ":F.BPVZ(pvs),
     })
 
-    B2JpsiK = get_particles('/Event/HLT2/Hlt2_BuToJpsiK_JpsiToMuMu/Particles')
-    pions = get_particles('/Event/HLT2/Hlt2_BuToJpsiK_JpsiToMuMu/TaggingPions/Particles')
+    B2JpsiK = get_particles('/Event/HLT2/Hlt2_Bu2JpsiK_Jpsi2MuMu/Particles')
+    longPions = get_particles('/Event/HLT2/Hlt2_Bu2JpsiK_Jpsi2MuMu/LongTaggingParticles/Particles')
+    upstreamPions = get_particles('/Event/HLT2/Hlt2_Bu2JpsiK_Jpsi2MuMu/UpstreamTaggingParticles/Particles')
+
     tagging_container = ParticleContainerMerger(
-        InputContainers=[pions]).OutputContainer
+        InputContainers=[longPions, upstreamPions]).OutputContainer
 
     tagAlg = ParticleTaggerAlg(
         Input=B2JpsiK, TaggingContainer=tagging_container, OutputLevel=3)
@@ -138,4 +139,4 @@ def main(options: Options):
     variables=variables,
     event_variables=evt_vars,
     inputs=B2JpsiK)
-    return(make_config(options , [tuple_B2JpsiK]))
+    return(make_config(options , [require_pvs(pvs), tuple_B2JpsiK]))

@@ -9,7 +9,7 @@ if not os.path.exists(f"{dir_path}{eventType}"):
     os.makedirs(f"{dir_path}{eventType}")
 
 for n in range(i):
-    fin = open(f"{dir_path}/template.txt" , "rt")
+    fin = open(f"{dir_path}template.txt" , "rt")
     fout = open(f"{dir_path}{eventType}/line_SnakeMake_{n}.py", "wt")
     for line in fin:
         fout.write(line.replace("@",f"{n}").replace("eventType",f"{eventType}"))
