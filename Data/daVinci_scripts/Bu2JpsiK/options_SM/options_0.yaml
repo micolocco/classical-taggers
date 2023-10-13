@@ -2,6 +2,7 @@ input_files: '/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2Jpsi
 input_manifest_file: '/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_tck_SM_0.json'
 evt_max: -1
 input_type: ROOT
+input_raw_format: 0.5
 data_type: Upgrade
 conddb_tag: sim-20210617-vc-md100  
 dddb_tag: dddb-20210617  

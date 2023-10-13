@@ -10,6 +10,7 @@ from RecoConf.reconstruction_objects import (
 )
 from PyConf.application import configure_input, configure
 import os 
+from RecoConf.hlt1_muonid import make_muon_hits
 
 def all_lines():
     return [Bu2JpsiK_Jpsi2MuMu_line()]
@@ -25,7 +26,7 @@ LFN_list = open(f"{LFN_path}LFN_0.txt","r").read().split("\n")
 FileCatalog().Catalogs = [f'xmlcatalog_file:/ceph/users/molocco/classical-taggers/Data/Database/Bu2JpsiK/{catalog_sample}' ]
 options.input_files =  LFN_list
 
-outputPath = f"/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/"
+outputPath = f"/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output"
 if not os.path.exists(outputPath):
     os.makedirs(outputPath)
 
@@ -39,6 +40,8 @@ options.output_type = 'ROOT'
 options.dddb_tag = 'dddb-20210617'  
 options.conddb_tag = 'sim-20210617-vc-md100' 
 options.output_manifest_file = f'{outputPath}/hlt2_tck_SM_0.json'
+
+make_muon_hits.global_bind(geometry_version=2)
 
 with reconstruction.bind(from_file=False):
     run_moore(options, all_lines, public_tools)

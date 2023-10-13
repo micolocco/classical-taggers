@@ -1,1 +1,1064 @@
 # WARNING: input_stream is set to 'default', but will be reset to '' because current input_process = Hlt2
+ApplicationMgr    SUCCESS 
+====================================================================================================================================
+                                                   Welcome to DaVinci version 63.12
+                                          running on bernhard.e5.physik.tu-dortmund.de on Fri Oct 13 10:02:32 2023
+====================================================================================================================================
+ApplicationMgr       INFO Application Manager Configured successfully
+ToolSvc.GitDDDB                        INFO opening Git repository '/cvmfs/lhcb.cern.ch/lib/lhcb/git-conddb/DDDB.git'
+ToolSvc.GitDDDB                        INFO using commit 'upgrade/dddb-20210617' corresponding to 1871f1bb5c0d68c81dda62e84cf1eb3a45513521
+ToolSvc.GitSIMCOND                     INFO opening Git repository '/cvmfs/lhcb.cern.ch/lib/lhcb/git-conddb/SIMCOND.git'
+ToolSvc.GitSIMCOND                     INFO using commit 'upgrade/sim-20210617-vc-md100' corresponding to 9aa116c7143d21760d1be07ce1ef22c0f8f07bdf
+DetectorPersistencySvc                 INFO Added successfully Conversion service:XmlCnvSvc
+DetectorDataSvc                     SUCCESS Detector description database: git:/lhcb.xml
+EventClockSvc.FakeEventTime            INFO Event times generated from 0 with steps of 0
+EventClockSvc.FakeEventTime            INFO Run numbers generated from 0 every 0 events
+MagneticFieldGridReader INFO  Opened magnetic field file:  /cvmfs/lhcb.cern.ch/lib/lhcb/DBASE/FieldMap/v5r7/cdf//field.v5r0.c1.down.cdf
+MagneticFieldGridReader INFO  Opened magnetic field file:  /cvmfs/lhcb.cern.ch/lib/lhcb/DBASE/FieldMap/v5r7/cdf//field.v5r0.c2.down.cdf
+MagneticFieldGridReader INFO  Opened magnetic field file:  /cvmfs/lhcb.cern.ch/lib/lhcb/DBASE/FieldMap/v5r7/cdf//field.v5r0.c3.down.cdf
+MagneticFieldGridReader INFO  Opened magnetic field file:  /cvmfs/lhcb.cern.ch/lib/lhcb/DBASE/FieldMap/v5r7/cdf//field.v5r0.c4.down.cdf
+MagneticFieldSvc                       INFO Map scaled by factor 1 with polarity internally used: -1 signed relative current: -1
+Gaudi__Histograming__Sink__Root        INFO Writing ROOT histograms to: /ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_0.root
+NTupleSvc                              INFO Added stream file:/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_0.root as FILE1
+HLTControlFlowMgr                      INFO Start initialization
+RootHistSvc                            INFO Writing ROOT histograms to: /ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_0.root
+HistogramPersistencySvc                INFO Added successfully Conversion service:RootHistSvc
+MCTruthAndBkgCatAlg_1717127a.DaV...    INFO Will look into protoparticle locations [/Event/HLT2/Relations/ChargedPP2MCP, /Event/HLT2/Relations/NeutralPP2MCP]
+MCTruthAndBkgCatAlg_1717127a.DaV...    INFO Will look into protoparticle locations [/Event/HLT2/Relations/ChargedPP2MCP, /Event/HLT2/Relations/NeutralPP2MCP]
+MCTruthAndBkgCatAlg_1717127a.Bac...    INFO Will look into protoparticle locations [/Event/HLT2/Relations/ChargedPP2MCP, /Event/HLT2/Relations/NeutralPP2MCP]
+MCTruthAndBkgCatAlg_f5976c95.DaV...    INFO Will look into protoparticle locations [/Event/HLT2/Relations/ChargedPP2MCP, /Event/HLT2/Relations/NeutralPP2MCP]
+MCTruthAndBkgCatAlg_f5976c95.DaV...    INFO Will look into protoparticle locations [/Event/HLT2/Relations/ChargedPP2MCP, /Event/HLT2/Relations/NeutralPP2MCP]
+MCTruthAndBkgCatAlg_f5976c95.Bac...    INFO Will look into protoparticle locations [/Event/HLT2/Relations/ChargedPP2MCP, /Event/HLT2/Relations/NeutralPP2MCP]
+Tuple                                  INFO User specified descriptor: [B+ -> (J/psi(1S) -> mu+ mu-) K+]CC
+Tuple                                  INFO Number of decay possibilities with specified descriptor: 2
+Tuple                                  INFO Possibility #0: B+ -> (J/psi(1S) -> mu+ mu-) K+
+Tuple                                  INFO Possibility #1: B- -> (J/psi(1S) -> mu- mu+) K-
+HLTControlFlowMgr                      INFO Concurrency level information:
+HLTControlFlowMgr                      INFO  o Number of events slots: 1
+HLTControlFlowMgr                      INFO  o TBB thread pool size:  'ThreadPoolSize':1
+HLTControlFlowMgr                      INFO ---> End of Initialization. This took 746 ms
+ApplicationMgr                         INFO Application Manager Initialized successfully
+FunctorFactory                         INFO Reusing functor library: "/tmp/molocco/FunctorJitLib_0xf15fbe8def1c4f21_0x89e036e65421eedd.so"
+DeFTDetector                           INFO Current FT geometry version =   64
+ApplicationMgr                         INFO Application Manager Started successfully
+EventPersistencySvc                    INFO Added successfully Conversion service:RootCnvSvc
+EventSelector                          INFO Stream:EventSelector.DataStreamTool_1 Def:DATAFILE='/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_SM_0.dst' SVC='Gaudi::RootEvtSelector' OPT='READ' IgnoreChecksum='YES'
+HLTControlFlowMgr                      INFO Will measure time between events 10 and 2147483647 (stop might be some events later)
+HLTControlFlowMgr                      INFO Starting loop on events
+EventSelector                       SUCCESS Reading Event record 1. Record number within stream 1: 1
+HltANNSvc                           WARNING key 0xd5bca5d9 has an explicitly configured overrule -- using that...
+RFileCnv                               INFO opening Root file "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_0.root" for writing
+RCWNTupleCnv                           INFO Booked TTree with ID: DecayTree "DecayTree" in directory /ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_0.root:/Tuple
+HLTControlFlowMgr                      INFO Timing started at: 10:03:11
+HLTControlFlowMgr                      INFO No more events in event selection 
+HLTControlFlowMgr                      INFO ---> Loop over 266 Events Finished -  WSS 1562.06, timed 256 Events: 874 ms, Evts/s = 292.906
+Gaudi__Histograming__Sink__Root        INFO Completed update of ROOT histograms in: /ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_0.root
+FilterDstDataSize_Hlt2                 INFO Number of counters : 1
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ |*"Number of too small raw banks size"            |       266 |        266 |( 100.0000 +- 0.000000)% |
+HLTControlFlowMgr                      INFO Number of counters : 1
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "Processed events"                              |       266 |
+MCTruthAndBkgCatAlg_1717127a           INFO Number of counters : 3
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "Events"                                        |       266 |
+ | "Ghosts"                                        |      4065 |          0 |     0.0000 |     0.0000 |  4.2950e+09 |      0.0000 |
+ | "Particles"                                     |     26308 |          0 |     0.0000 |     0.0000 |  4.2950e+09 |      0.0000 |
+MCTruthAndBkgCatAlg_f5976c95           INFO Number of counters : 3
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "Events"                                        |       266 |
+ | "Ghosts"                                        |        23 |          0 |     0.0000 |     0.0000 |  4.2950e+09 |      0.0000 |
+ | "Particles"                                     |      1355 |          0 |     0.0000 |     0.0000 |  4.2950e+09 |      0.0000 |
+ParticleContainerMerger_243e3974       INFO Number of counters : 2
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "# input particles"                             |       532 |      26308 |     49.451 |
+ | "# output particles"                            |     26308 |          0 |     0.0000 |
+ParticleTaggerAlg_56c3bece             INFO Number of counters : 3
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "Events"                                        |       266 |
+ | "Input Particles"                               |       266 |        271 |     1.0188 |    0.13581 |      1.0000 |      2.0000 |
+ | "Output Particles"                              |       266 |      26308 |     98.902 |     46.559 |      23.000 |      319.00 |
+Tuple                                  INFO Number of counters : 11
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "# events with multiple candidates for field B" |         5 |
+ | "# events with multiple candidates for field Jpsi1S"|         5 |
+ | "# events with multiple candidates for field K" |         5 |
+ | "# events with multiple candidates for field Muminus"|         5 |
+ | "# events with multiple candidates for field Muplus"|         5 |
+ | "# non-empty events for field B"                |       266 |
+ | "# non-empty events for field Jpsi1S"           |       266 |
+ | "# non-empty events for field K"                |       266 |
+ | "# non-empty events for field Muminus"          |       266 |
+ | "# non-empty events for field Muplus"           |       266 |
+ | "# processed events"                            |       266 |
+Unpack_Hlt2__Event_HLT2_Hlt2_Bu2...    INFO Number of counters : 3
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "# UnpackedData"                                |       266 |      26308 |     98.902 |
+ | "Buffer size"                                   |       266 |    4798164 |    18038.0 |
+ |*"Target data already present"                   |       266 |          0 |( 0.000000 +- 0.000000)% |
+Unpack_Hlt2__Event_HLT2_Hlt2_Bu2...    INFO Number of counters : 4
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "# Linked BufferData"                           |      2660 |3.341772e+07 |    12563.0 |
+ | "# UnpackedData"                                |       266 |        271 |     1.0188 |
+ | "Buffer size"                                   |       266 |      63726 |     239.57 |
+ |*"Target data already present"                   |       266 |          0 |( 0.000000 +- 0.000000)% |
+Unpack_Hlt2__Event_HLT2_Hlt2_Bu2...    INFO Number of counters : 3
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "# UnpackedData"                                |       266 |          0 |     0.0000 |
+ | "Buffer size"                                   |       266 |       7980 |     30.000 |
+ |*"Target data already present"                   |       266 |          0 |( 0.000000 +- 0.000000)% |
+Unpack_Hlt2__Event_HLT2_Rec_Vert...    INFO Number of counters : 3
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "# UnpackedData"                                |       266 |       1561 |     5.8684 |
+ | "Buffer size"                                   |       266 |      99582 |     374.37 |
+ |*"Target data already present"                   |       266 |          0 |( 0.000000 +- 0.000000)% |
+Unpack_Hlt2__Event_HLT2_Relation...    INFO Number of counters : 3
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "# UnpackedData"                                |       266 |      22243 |     83.620 |
+ | "Buffer size"                                   |       266 |     461352 |     1734.4 |
+ |*"Target data already present"                   |       266 |          0 |( 0.000000 +- 0.000000)% |
+Unpack_Hlt2__Event_HLT2_Relation...    INFO Number of counters : 3
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ | "# UnpackedData"                                |       266 |          0 |     0.0000 |
+ | "Buffer size"                                   |       266 |      14364 |     54.000 |
+ |*"Target data already present"                   |       266 |          0 |( 0.000000 +- 0.000000)% |
+require_pvs                            INFO Number of counters : 1
+ |    Counter                                      |     #     |    sum     | mean/eff^* | rms/err^*  |     min     |     max     |
+ |*"Cut selection efficiency"                      |       266 |        266 |( 100.0000 +- 0.000000)% |
+ApplicationMgr                         INFO Application Manager Stopped successfully
+Tuple                               SUCCESS Booked 1 N-Tuples and 0 Event Tag Collections
+Tuple                               SUCCESS List of booked N-Tuples in directory "FILE1/Tuple"
+Tuple                               SUCCESS  ID=DecayTree     Title="DecayTree"                               #items=220{BUNCHCROSSING_ID,BUNCHCROSSING_TYPE,EVENTNUMBER,EVENTTYPE,GPSTIME,ODINTCK,RUNNUMB}
+HLTControlFlowMgr                      INFO Memory pool: used 0.0170323 +/- 0.000136715 MiB (min: 0, max: 0) in 1 +/- 0 blocks (allocated >once in 0 +/- 0% events). Allocated capacity was 10 +/- 0 MiB (min: 10, max: 10) and 228.117 +/- 1.82359 (min: 224, max: 443) requests were served
+HLTControlFlowMgr                      INFO Timing table:
+HLTControlFlowMgr                      INFO 
+ | Name of Algorithm                                                                      | Execution Count | Total Time / s  | Avg. Time / us   |
+ | Sum of all Algorithms                                                                  |             266 |           3.426 |        12880.665 |
+ | "Fetch__Event_DAQ_RawEvent"                                                            |             266 |           2.509 |         9431.548 |
+ | "Tuple"                                                                                |             266 |           0.531 |         1997.721 |
+ | "Unpack_Hlt2__Event_HLT2_Hlt2_Bu2JpsiK_Jpsi2MuMu_Particles "                           |             266 |           0.140 |          525.056 |
+ | "PackedBufferDecoder_Hlt2"                                                             |             266 |           0.075 |          283.537 |
+ | "MCTruthAndBkgCatAlg_1717127a"                                                         |             266 |           0.069 |          259.717 |
+ | "MCTruthAndBkgCatAlg_f5976c95"                                                         |             266 |           0.024 |           91.306 |
+ | "Unpack_Hlt2__Event_HLT2_Hlt2_Bu2JpsiK_Jpsi2MuMu_LongTaggingParticles_Particles "      |             266 |           0.015 |           54.600 |
+ | "Unpack__Event_HLT2_MC_Particles"                                                      |             266 |           0.013 |           48.479 |
+ | "Unpack__Event_HLT2_MC_Vertices"                                                       |             266 |           0.012 |           45.643 |
+ | "reserveIOV"                                                                           |             266 |           0.011 |           41.434 |
+ | "Unpack_Hlt2__Event_HLT2_Relations_ChargedPP2MCP "                                     |             266 |           0.006 |           22.961 |
+ | "Unpack_Hlt2__Event_HLT2_Rec_Vertex_Primary "                                          |             266 |           0.005 |           17.685 |
+ | "ParticleContainerMerger_243e3974"                                                     |             266 |           0.004 |           16.818 |
+ | "ParticleTaggerAlg_56c3bece"                                                           |             266 |           0.002 |            8.300 |
+ | "UnpackRawEvent_DstData"                                                               |             266 |           0.002 |            7.996 |
+ | "Unpack_Hlt2__Event_HLT2_Hlt2_Bu2JpsiK_Jpsi2MuMu_UpstreamTaggingParticles_Particles "  |             266 |           0.002 |            6.492 |
+ | "Unpack_Hlt2__Event_HLT2_Relations_NeutralPP2MCP "                                     |             266 |           0.001 |            5.545 |
+ | "RecV1ToPVConverter_5d099e8f"                                                          |             266 |           0.001 |            3.135 |
+ | "Decode_ODIN"                                                                          |             266 |           0.001 |            3.025 |
+ | "require_pvs"                                                                          |             266 |           0.001 |            2.510 |
+ | "DummyEventTime"                                                                       |             266 |           0.000 |            1.490 |
+ | "UnpackRawEvent_HltDecReports"                                                         |             266 |           0.000 |            1.440 |
+ | "Fetch__Event_HLT2_pSim_MCParticles"                                                   |             266 |           0.000 |            1.429 |
+ | "UnpackRawEvent_ODIN"                                                                  |             266 |           0.000 |            1.361 |
+ | "Fetch__Event_HLT2_pSim_MCVertices"                                                    |             266 |           0.000 |            0.809 |
+ | "FilterDstDataSize_Hlt2"                                                               |             266 |           0.000 |            0.670 |
+
+HLTControlFlowMgr                      INFO StateTree: CFNode   #executed  #passed
+LAZY_AND: DaVinci                            #=266     Sum=266         Eff=|( 100.0000 +- 0.00000 )%|
+ NONLAZY_OR: UserAnalysis                    #=266     Sum=266         Eff=|( 100.0000 +- 0.00000 )%|
+  LAZY_AND: default                          #=266     Sum=266         Eff=|( 100.0000 +- 0.00000 )%|
+   RawBankSizeFilter/FilterDstDataSize_Hlt2  #=266     Sum=266         Eff=|( 100.0000 +- 0.00000 )%|
+   VoidFilter/require_pvs                    #=266     Sum=266         Eff=|( 100.0000 +- 0.00000 )%|
+   FunTupleBase_Particles/Tuple              #=266     Sum=266         Eff=|( 100.0000 +- 0.00000 )%|
+
+HLTControlFlowMgr                      INFO Histograms converted successfully according to request.
+ToolSvc                                INFO Removing all tools created by ToolSvc
+RootCnvSvc                             INFO Disconnected data IO:F3BA5776-6812-11EE-B314-0CC47A8F014F [/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_SM_0.dst]
+RFileCnv                               INFO dumping contents of /NTUPLES/FILE1
+TFile: name=/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_0.root, title=Gaudi Trees, option=CREATE
+******************************************************************************
+*Tree    :DecayTree : DecayTree                                              *
+*Entries :      271 : Total =         5372069 bytes  File  Size =    3116058 *
+*        :          : Tree compression factor =   1.69                       *
+******************************************************************************
+*Br    0 :BUNCHCROSSING_ID : BUNCHCROSSING_ID/s                              *
+*Entries :      271 : Total  Size=       1163 bytes  File Size  =        113 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   5.58     *
+*............................................................................*
+*Br    1 :BUNCHCROSSING_TYPE : BUNCHCROSSING_TYPE/b                          *
+*Entries :      271 : Total  Size=        900 bytes  File Size  =        113 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.19     *
+*............................................................................*
+*Br    2 :EVENTNUMBER : EVENTNUMBER/l                                        *
+*Entries :      271 : Total  Size=       2776 bytes  File Size  =        687 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.28     *
+*............................................................................*
+*Br    3 :EVENTTYPE : EVENTTYPE/s                                            *
+*Entries :      271 : Total  Size=       1128 bytes  File Size  =        106 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   5.88     *
+*............................................................................*
+*Br    4 :GPSTIME   : GPSTIME/l                                              *
+*Entries :      271 : Total  Size=       2756 bytes  File Size  =        120 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=  18.73     *
+*............................................................................*
+*Br    5 :ODINTCK   : ODINTCK/i                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =        110 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=  10.57     *
+*............................................................................*
+*Br    6 :RUNNUMBER : RUNNUMBER/i                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =        190 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   6.13     *
+*............................................................................*
+*Br    7 :B_nPVs    : B_nPVs/I                                               *
+*Entries :      271 : Total  Size=       1659 bytes  File Size  =        349 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.33     *
+*............................................................................*
+*Br    8 :B_nTracks : B_nTracks/I                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =        576 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   2.02     *
+*............................................................................*
+*Br    9 :indx      : indx/I                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =        571 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   2.03     *
+*............................................................................*
+*Br   10 :B_Tr_T_BPVIP : B_Tr_T_BPVIP[indx]/F                                *
+*Entries :      271 : Total  Size=     110264 bytes  File Size  =      97765 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.12     *
+*............................................................................*
+*Br   11 :B_Tr_T_BPVIPCHI2 : B_Tr_T_BPVIPCHI2[indx]/F                        *
+*Entries :      271 : Total  Size=     110296 bytes  File Size  =      99392 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.10     *
+*............................................................................*
+*Br   12 :B_Tr_T_Charge : B_Tr_T_Charge[indx]/F                              *
+*Entries :      271 : Total  Size=     110272 bytes  File Size  =      13864 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   7.91     *
+*............................................................................*
+*Br   13 :B_Tr_T_ISMUON : B_Tr_T_ISMUON[indx]/F                              *
+*Entries :      271 : Total  Size=     110272 bytes  File Size  =       9596 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=  11.43     *
+*............................................................................*
+*Br   14 :B_Tr_T_ENERGY : B_Tr_T_ENERGY[indx]/F                              *
+*Entries :      271 : Total  Size=     110272 bytes  File Size  =      96330 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br   15 :B_Tr_T_Eta : B_Tr_T_Eta[indx]/F                                    *
+*Entries :      271 : Total  Size=     110248 bytes  File Size  =      91906 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.19     *
+*............................................................................*
+*Br   16 :B_Tr_T_MINIP : B_Tr_T_MINIP[indx]/F                                *
+*Entries :      271 : Total  Size=     110264 bytes  File Size  =      97765 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.12     *
+*............................................................................*
+*Br   17 :B_Tr_T_MINIPChi2 : B_Tr_T_MINIPChi2[indx]/F                        *
+*Entries :      271 : Total  Size=     110296 bytes  File Size  =      99380 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.10     *
+*............................................................................*
+*Br   18 :B_Tr_T_P  : B_Tr_T_P[indx]/F                                       *
+*Entries :      271 : Total  Size=     110232 bytes  File Size  =      96295 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br   19 :B_Tr_T_PT : B_Tr_T_PT[indx]/F                                      *
+*Entries :      271 : Total  Size=     110240 bytes  File Size  =      96313 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br   20 :B_Tr_T_PIDK : B_Tr_T_PIDK[indx]/F                                  *
+*Entries :      271 : Total  Size=     110256 bytes  File Size  =      93249 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.18     *
+*............................................................................*
+*Br   21 :B_Tr_T_PIDe : B_Tr_T_PIDe[indx]/F                                  *
+*Entries :      271 : Total  Size=     110256 bytes  File Size  =      96094 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br   22 :B_Tr_T_PIDmu : B_Tr_T_PIDmu[indx]/F                                *
+*Entries :      271 : Total  Size=     110264 bytes  File Size  =      96909 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.13     *
+*............................................................................*
+*Br   23 :B_Tr_T_PIDP : B_Tr_T_PIDP[indx]/F                                  *
+*Entries :      271 : Total  Size=     110256 bytes  File Size  =      93112 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.18     *
+*............................................................................*
+*Br   24 :B_Tr_T_PROBNN_GHOST : B_Tr_T_PROBNN_GHOST[indx]/F                  *
+*Entries :      271 : Total  Size=     110320 bytes  File Size  =      94863 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.16     *
+*............................................................................*
+*Br   25 :B_Tr_T_PROBNN_E : B_Tr_T_PROBNN_E[indx]/F                          *
+*Entries :      271 : Total  Size=     110288 bytes  File Size  =     100121 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.10     *
+*............................................................................*
+*Br   26 :B_Tr_T_PROBNN_K : B_Tr_T_PROBNN_K[indx]/F                          *
+*Entries :      271 : Total  Size=     110288 bytes  File Size  =     100502 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.09     *
+*............................................................................*
+*Br   27 :B_Tr_T_PROBNN_P : B_Tr_T_PROBNN_P[indx]/F                          *
+*Entries :      271 : Total  Size=     110288 bytes  File Size  =     100353 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.09     *
+*............................................................................*
+*Br   28 :B_Tr_T_PROBNN_MU : B_Tr_T_PROBNN_MU[indx]/F                        *
+*Entries :      271 : Total  Size=     110296 bytes  File Size  =       9610 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=  11.41     *
+*............................................................................*
+*Br   29 :B_Tr_T_PROBNN_PI : B_Tr_T_PROBNN_PI[indx]/F                        *
+*Entries :      271 : Total  Size=     110296 bytes  File Size  =      99529 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.10     *
+*............................................................................*
+*Br   30 :B_Tr_T_BPVX : B_Tr_T_BPVX[indx]/F                                  *
+*Entries :      271 : Total  Size=     110256 bytes  File Size  =      27279 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   4.02     *
+*............................................................................*
+*Br   31 :B_Tr_T_BPVY : B_Tr_T_BPVY[indx]/F                                  *
+*Entries :      271 : Total  Size=     110256 bytes  File Size  =      27159 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   4.04     *
+*............................................................................*
+*Br   32 :B_Tr_T_BPVZ : B_Tr_T_BPVZ[indx]/F                                  *
+*Entries :      271 : Total  Size=     110256 bytes  File Size  =      27862 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   3.94     *
+*............................................................................*
+*Br   33 :B_Tr_T_Phi : B_Tr_T_Phi[indx]/F                                    *
+*Entries :      271 : Total  Size=     110248 bytes  File Size  =      98940 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.11     *
+*............................................................................*
+*Br   34 :B_Tr_T_M  : B_Tr_T_M[indx]/F                                       *
+*Entries :      271 : Total  Size=     110232 bytes  File Size  =       1972 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=  55.59     *
+*............................................................................*
+*Br   35 :B_Tr_T_CHI2DOF : B_Tr_T_CHI2DOF[indx]/F                            *
+*Entries :      271 : Total  Size=     110280 bytes  File Size  =      93739 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.17     *
+*............................................................................*
+*Br   36 :B_Tr_T_GHOSTPROB : B_Tr_T_GHOSTPROB[indx]/F                        *
+*Entries :      271 : Total  Size=     110296 bytes  File Size  =      95991 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br   37 :B_Tr_T_PX : B_Tr_T_PX[indx]/F                                      *
+*Entries :      271 : Total  Size=     110240 bytes  File Size  =      89509 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.22     *
+*............................................................................*
+*Br   38 :B_Tr_T_PY : B_Tr_T_PY[indx]/F                                      *
+*Entries :      271 : Total  Size=     110240 bytes  File Size  =      89627 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.22     *
+*............................................................................*
+*Br   39 :B_Tr_T_PZ : B_Tr_T_PZ[indx]/F                                      *
+*Entries :      271 : Total  Size=     110240 bytes  File Size  =      92861 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.18     *
+*............................................................................*
+*Br   40 :B_Tr_T_TRUEID : B_Tr_T_TRUEID[indx]/F                              *
+*Entries :      271 : Total  Size=     110272 bytes  File Size  =      24146 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   4.54     *
+*............................................................................*
+*Br   41 :B_Tr_T_X  : B_Tr_T_X[indx]/F                                       *
+*Entries :      271 : Total  Size=     110232 bytes  File Size  =      71093 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.54     *
+*............................................................................*
+*Br   42 :B_Tr_T_Y  : B_Tr_T_Y[indx]/F                                       *
+*Entries :      271 : Total  Size=     110232 bytes  File Size  =      70277 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.56     *
+*............................................................................*
+*Br   43 :B_Tr_T_Z  : B_Tr_T_Z[indx]/F                                       *
+*Entries :      271 : Total  Size=     110232 bytes  File Size  =      98061 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   1.12     *
+*............................................................................*
+*Br   44 :B_ENDVX   : B_ENDVX/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1163 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.00     *
+*............................................................................*
+*Br   45 :B_ENDVY   : B_ENDVY/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1151 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br   46 :B_ENDVZ   : B_ENDVZ/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1150 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br   47 :B_Tr_T_TRUEPRIMARYVERTEX_X : B_Tr_T_TRUEPRIMARYVERTEX_X[indx]/F    *
+*Entries :      271 : Total  Size=     110376 bytes  File Size  =      28232 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   3.89     *
+*............................................................................*
+*Br   48 :B_Tr_T_TRUEPRIMARYVERTEX_Y : B_Tr_T_TRUEPRIMARYVERTEX_Y[indx]/F    *
+*Entries :      271 : Total  Size=     110376 bytes  File Size  =      28202 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   3.89     *
+*............................................................................*
+*Br   49 :B_Tr_T_TRUEPRIMARYVERTEX_Z : B_Tr_T_TRUEPRIMARYVERTEX_Z[indx]/F    *
+*Entries :      271 : Total  Size=     110376 bytes  File Size  =      29139 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   3.76     *
+*............................................................................*
+*Br   50 :B_Tr_T_TRUEORIGINVERTEX_X : B_Tr_T_TRUEORIGINVERTEX_X[indx]/F      *
+*Entries :      271 : Total  Size=     110368 bytes  File Size  =      39739 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   2.76     *
+*............................................................................*
+*Br   51 :B_Tr_T_TRUEORIGINVERTEX_Y : B_Tr_T_TRUEORIGINVERTEX_Y[indx]/F      *
+*Entries :      271 : Total  Size=     110368 bytes  File Size  =      39816 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   2.76     *
+*............................................................................*
+*Br   52 :B_Tr_T_TRUEORIGINVERTEX_Z : B_Tr_T_TRUEORIGINVERTEX_Z[indx]/F      *
+*Entries :      271 : Total  Size=     110368 bytes  File Size  =      40372 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   2.72     *
+*............................................................................*
+*Br   53 :B_Tr_T_MC_MOTHER_ID : B_Tr_T_MC_MOTHER_ID[indx]/F                  *
+*Entries :      271 : Total  Size=     110320 bytes  File Size  =      32954 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   3.33     *
+*............................................................................*
+*Br   54 :B_Tr_T_MC_MOTHER_KEY : B_Tr_T_MC_MOTHER_KEY[indx]/F                *
+*Entries :      271 : Total  Size=     110328 bytes  File Size  =      50221 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   2.18     *
+*............................................................................*
+*Br   55 :B_Tr_T_MC_GD_MOTHER_ID : B_Tr_T_MC_GD_MOTHER_ID[indx]/F            *
+*Entries :      271 : Total  Size=     110344 bytes  File Size  =      20390 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   5.38     *
+*............................................................................*
+*Br   56 :B_Tr_T_MC_GD_MOTHER_KEY : B_Tr_T_MC_GD_MOTHER_KEY[indx]/F          *
+*Entries :      271 : Total  Size=     110352 bytes  File Size  =      25490 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   4.30     *
+*............................................................................*
+*Br   57 :B_Tr_T_MC_GD_GD_MOTHER_ID : B_Tr_T_MC_GD_GD_MOTHER_ID[indx]/F      *
+*Entries :      271 : Total  Size=     110368 bytes  File Size  =      11551 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   9.50     *
+*............................................................................*
+*Br   58 :B_Tr_T_MC_GD_GD_MOTHER_KEY : B_Tr_T_MC_GD_GD_MOTHER_KEY[indx]/F    *
+*Entries :      271 : Total  Size=     110376 bytes  File Size  =      12967 *
+*Baskets :        4 : Basket Size=      32000 bytes  Compression=   8.46     *
+*............................................................................*
+*Br   59 :B_BKGCAT  : B_BKGCAT/I                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =        214 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   5.44     *
+*............................................................................*
+*Br   60 :B_M       : B_M/D                                                  *
+*Entries :      271 : Total  Size=       2736 bytes  File Size  =       2048 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.10     *
+*............................................................................*
+*Br   61 :B_P       : B_P/F                                                  *
+*Entries :      271 : Total  Size=       1644 bytes  File Size  =       1102 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br   62 :B_PT      : B_PT/F                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =       1111 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br   63 :B_PX      : B_PX/F                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =       1127 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br   64 :B_PY      : B_PY/F                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =       1124 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br   65 :B_PZ      : B_PZ/F                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =       1106 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br   66 :B_ENERGY  : B_ENERGY/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1111 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br   67 :B_BPVIP   : B_BPVIP/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1116 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br   68 :B_MINIP   : B_MINIP/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1116 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br   69 :B_MINIPCHI2 : B_MINIPCHI2/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1137 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br   70 :B_ID      : B_ID/I                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =        239 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.85     *
+*............................................................................*
+*Br   71 :B_ISMUON  : B_ISMUON/O                                             *
+*Entries :      271 : Total  Size=        850 bytes  File Size  =        103 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.41     *
+*............................................................................*
+*Br   72 :B_OBJECT_KEY : B_OBJECT_KEY/I                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =        131 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   8.92     *
+*............................................................................*
+*Br   73 :B_Phi     : B_Phi/F                                                *
+*Entries :      271 : Total  Size=       1654 bytes  File Size  =       1148 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br   74 :B_Eta     : B_Eta/F                                                *
+*Entries :      271 : Total  Size=       1654 bytes  File Size  =       1066 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.09     *
+*............................................................................*
+*Br   75 :B_CHI2DOF : B_CHI2DOF/D                                            *
+*Entries :      271 : Total  Size=       2766 bytes  File Size  =       1457 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.54     *
+*............................................................................*
+*Br   76 :B_BPVX    : B_BPVX/F                                               *
+*Entries :      271 : Total  Size=       1659 bytes  File Size  =       1011 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.15     *
+*............................................................................*
+*Br   77 :B_BPVY    : B_BPVY/F                                               *
+*Entries :      271 : Total  Size=       1659 bytes  File Size  =       1018 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br   78 :B_BPVZ    : B_BPVZ/F                                               *
+*Entries :      271 : Total  Size=       1659 bytes  File Size  =       1137 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.02     *
+*............................................................................*
+*Br   79 :B_TRUEP   : B_TRUEP/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1094 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.06     *
+*............................................................................*
+*Br   80 :B_TRUEPT  : B_TRUEPT/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1101 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.06     *
+*............................................................................*
+*Br   81 :B_TRUEPX  : B_TRUEPX/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1114 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br   82 :B_TRUEPY  : B_TRUEPY/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1117 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br   83 :B_TRUEPZ  : B_TRUEPZ/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1095 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.06     *
+*............................................................................*
+*Br   84 :B_TRUEENERGY : B_TRUEENERGY/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1103 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.06     *
+*............................................................................*
+*Br   85 :B_TRUEID  : B_TRUEID/I                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =        268 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.34     *
+*............................................................................*
+*Br   86 :B_MC_MOTHER_ID : B_MC_MOTHER_ID/I                                  *
+*Entries :      271 : Total  Size=       1699 bytes  File Size  =        368 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.18     *
+*............................................................................*
+*Br   87 :B_MC_MOTHER_KEY : B_MC_MOTHER_KEY/I                                *
+*Entries :      271 : Total  Size=       1704 bytes  File Size  =        701 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.67     *
+*............................................................................*
+*Br   88 :B_MC_GD_MOTHER_ID : B_MC_GD_MOTHER_ID/I                            *
+*Entries :      271 : Total  Size=       1714 bytes  File Size  =        369 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.18     *
+*............................................................................*
+*Br   89 :B_MC_GD_MOTHER_KEY : B_MC_GD_MOTHER_KEY/I                          *
+*Entries :      271 : Total  Size=       1719 bytes  File Size  =        645 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.82     *
+*............................................................................*
+*Br   90 :B_MC_GD_GD_MOTHER_ID : B_MC_GD_GD_MOTHER_ID/I                      *
+*Entries :      271 : Total  Size=       1729 bytes  File Size  =        171 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   6.88     *
+*............................................................................*
+*Br   91 :B_MC_GD_GD_MOTHER_KEY : B_MC_GD_GD_MOTHER_KEY/I                    *
+*Entries :      271 : Total  Size=       1734 bytes  File Size  =        205 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   5.74     *
+*............................................................................*
+*Br   92 :Jpsi1S_M  : Jpsi1S_M/D                                             *
+*Entries :      271 : Total  Size=       2761 bytes  File Size  =       2075 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.08     *
+*............................................................................*
+*Br   93 :Jpsi1S_P  : Jpsi1S_P/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1110 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br   94 :Jpsi1S_PT : Jpsi1S_PT/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1116 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br   95 :Jpsi1S_PX : Jpsi1S_PX/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1132 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br   96 :Jpsi1S_PY : Jpsi1S_PY/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1134 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br   97 :Jpsi1S_PZ : Jpsi1S_PZ/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1112 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br   98 :Jpsi1S_ENERGY : Jpsi1S_ENERGY/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1119 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br   99 :Jpsi1S_BPVIP : Jpsi1S_BPVIP/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1134 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  100 :Jpsi1S_MINIP : Jpsi1S_MINIP/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1134 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  101 :Jpsi1S_MINIPCHI2 : Jpsi1S_MINIPCHI2/F                              *
+*Entries :      271 : Total  Size=       1709 bytes  File Size  =       1159 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br  102 :Jpsi1S_ID : Jpsi1S_ID/I                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =        115 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=  10.13     *
+*............................................................................*
+*Br  103 :Jpsi1S_ISMUON : Jpsi1S_ISMUON/O                                    *
+*Entries :      271 : Total  Size=        875 bytes  File Size  =        108 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.30     *
+*............................................................................*
+*Br  104 :Jpsi1S_OBJECT_KEY : Jpsi1S_OBJECT_KEY/I                            *
+*Entries :      271 : Total  Size=       1714 bytes  File Size  =        219 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   5.36     *
+*............................................................................*
+*Br  105 :Jpsi1S_Phi : Jpsi1S_Phi/F                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =       1157 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br  106 :Jpsi1S_Eta : Jpsi1S_Eta/F                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =       1071 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.09     *
+*............................................................................*
+*Br  107 :Jpsi1S_CHI2DOF : Jpsi1S_CHI2DOF/D                                  *
+*Entries :      271 : Total  Size=       2791 bytes  File Size  =       1461 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.54     *
+*............................................................................*
+*Br  108 :Jpsi1S_BPVX : Jpsi1S_BPVX/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1017 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.15     *
+*............................................................................*
+*Br  109 :Jpsi1S_BPVY : Jpsi1S_BPVY/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1028 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br  110 :Jpsi1S_BPVZ : Jpsi1S_BPVZ/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1140 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.02     *
+*............................................................................*
+*Br  111 :Jpsi1S_TRUEP : Jpsi1S_TRUEP/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1113 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  112 :Jpsi1S_TRUEPT : Jpsi1S_TRUEPT/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1118 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  113 :Jpsi1S_TRUEPX : Jpsi1S_TRUEPX/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1123 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  114 :Jpsi1S_TRUEPY : Jpsi1S_TRUEPY/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1124 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  115 :Jpsi1S_TRUEPZ : Jpsi1S_TRUEPZ/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1107 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.06     *
+*............................................................................*
+*Br  116 :Jpsi1S_TRUEENERGY : Jpsi1S_TRUEENERGY/F                            *
+*Entries :      271 : Total  Size=       1714 bytes  File Size  =       1123 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  117 :Jpsi1S_TRUEID : Jpsi1S_TRUEID/I                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =        151 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   7.74     *
+*............................................................................*
+*Br  118 :Jpsi1S_MC_MOTHER_ID : Jpsi1S_MC_MOTHER_ID/I                        *
+*Entries :      271 : Total  Size=       1724 bytes  File Size  =        281 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.18     *
+*............................................................................*
+*Br  119 :Jpsi1S_MC_MOTHER_KEY : Jpsi1S_MC_MOTHER_KEY/I                      *
+*Entries :      271 : Total  Size=       1729 bytes  File Size  =        835 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.41     *
+*............................................................................*
+*Br  120 :Jpsi1S_MC_GD_MOTHER_ID : Jpsi1S_MC_GD_MOTHER_ID/I                  *
+*Entries :      271 : Total  Size=       1739 bytes  File Size  =        388 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.04     *
+*............................................................................*
+*Br  121 :Jpsi1S_MC_GD_MOTHER_KEY : Jpsi1S_MC_GD_MOTHER_KEY/I                *
+*Entries :      271 : Total  Size=       1744 bytes  File Size  =        696 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.69     *
+*............................................................................*
+*Br  122 :Jpsi1S_MC_GD_GD_MOTHER_ID : Jpsi1S_MC_GD_GD_MOTHER_ID/I            *
+*Entries :      271 : Total  Size=       1754 bytes  File Size  =        376 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.14     *
+*............................................................................*
+*Br  123 :Jpsi1S_MC_GD_GD_MOTHER_KEY : Jpsi1S_MC_GD_GD_MOTHER_KEY/I          *
+*Entries :      271 : Total  Size=       1759 bytes  File Size  =        659 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.79     *
+*............................................................................*
+*Br  124 :K_M       : K_M/D                                                  *
+*Entries :      271 : Total  Size=       2736 bytes  File Size  =        516 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.35     *
+*............................................................................*
+*Br  125 :K_P       : K_P/F                                                  *
+*Entries :      271 : Total  Size=       1644 bytes  File Size  =       1112 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  126 :K_PT      : K_PT/F                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =       1101 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  127 :K_PX      : K_PX/F                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =       1114 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  128 :K_PY      : K_PY/F                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =       1122 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  129 :K_PZ      : K_PZ/F                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =       1109 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  130 :K_ENERGY  : K_ENERGY/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1123 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  131 :K_BPVIP   : K_BPVIP/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1130 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  132 :K_MINIP   : K_MINIP/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1130 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  133 :K_MINIPCHI2 : K_MINIPCHI2/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1160 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br  134 :K_ID      : K_ID/I                                                 *
+*Entries :      271 : Total  Size=       1649 bytes  File Size  =        238 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.87     *
+*............................................................................*
+*Br  135 :K_ISMUON  : K_ISMUON/O                                             *
+*Entries :      271 : Total  Size=        850 bytes  File Size  =        137 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   2.56     *
+*............................................................................*
+*Br  136 :K_OBJECT_KEY : K_OBJECT_KEY/I                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =        543 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   2.15     *
+*............................................................................*
+*Br  137 :K_Phi     : K_Phi/F                                                *
+*Entries :      271 : Total  Size=       1654 bytes  File Size  =       1149 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br  138 :K_Eta     : K_Eta/F                                                *
+*Entries :      271 : Total  Size=       1654 bytes  File Size  =       1074 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.08     *
+*............................................................................*
+*Br  139 :K_CHI2DOF : K_CHI2DOF/D                                            *
+*Entries :      271 : Total  Size=       2766 bytes  File Size  =       1381 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.63     *
+*............................................................................*
+*Br  140 :K_BPVX    : K_BPVX/F                                               *
+*Entries :      271 : Total  Size=       1659 bytes  File Size  =       1008 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.15     *
+*............................................................................*
+*Br  141 :K_BPVY    : K_BPVY/F                                               *
+*Entries :      271 : Total  Size=       1659 bytes  File Size  =       1020 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br  142 :K_BPVZ    : K_BPVZ/F                                               *
+*Entries :      271 : Total  Size=       1659 bytes  File Size  =       1134 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.02     *
+*............................................................................*
+*Br  143 :K_TRUEP   : K_TRUEP/F                                              *
+*Entries :      271 : Total  Size=       1664 bytes  File Size  =       1117 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  144 :K_TRUEPT  : K_TRUEPT/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1113 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  145 :K_TRUEPX  : K_TRUEPX/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1126 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  146 :K_TRUEPY  : K_TRUEPY/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1128 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  147 :K_TRUEPZ  : K_TRUEPZ/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1113 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  148 :K_TRUEENERGY : K_TRUEENERGY/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1124 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  149 :K_TRUEID  : K_TRUEID/I                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =        291 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.00     *
+*............................................................................*
+*Br  150 :K_MC_MOTHER_ID : K_MC_MOTHER_ID/I                                  *
+*Entries :      271 : Total  Size=       1699 bytes  File Size  =        295 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.97     *
+*............................................................................*
+*Br  151 :K_MC_MOTHER_KEY : K_MC_MOTHER_KEY/I                                *
+*Entries :      271 : Total  Size=       1704 bytes  File Size  =        835 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.40     *
+*............................................................................*
+*Br  152 :K_MC_GD_MOTHER_ID : K_MC_GD_MOTHER_ID/I                            *
+*Entries :      271 : Total  Size=       1714 bytes  File Size  =        383 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.06     *
+*............................................................................*
+*Br  153 :K_MC_GD_MOTHER_KEY : K_MC_GD_MOTHER_KEY/I                          *
+*Entries :      271 : Total  Size=       1719 bytes  File Size  =        690 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.70     *
+*............................................................................*
+*Br  154 :K_MC_GD_GD_MOTHER_ID : K_MC_GD_GD_MOTHER_ID/I                      *
+*Entries :      271 : Total  Size=       1729 bytes  File Size  =        374 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.14     *
+*............................................................................*
+*Br  155 :K_MC_GD_GD_MOTHER_KEY : K_MC_GD_GD_MOTHER_KEY/I                    *
+*Entries :      271 : Total  Size=       1734 bytes  File Size  =        649 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.81     *
+*............................................................................*
+*Br  156 :Muplus_M  : Muplus_M/D                                             *
+*Entries :      271 : Total  Size=       2761 bytes  File Size  =        543 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.14     *
+*............................................................................*
+*Br  157 :Muplus_P  : Muplus_P/F                                             *
+*Entries :      271 : Total  Size=       1669 bytes  File Size  =       1119 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  158 :Muplus_PT : Muplus_PT/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1107 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  159 :Muplus_PX : Muplus_PX/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1124 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  160 :Muplus_PY : Muplus_PY/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1120 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  161 :Muplus_PZ : Muplus_PZ/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1113 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  162 :Muplus_ENERGY : Muplus_ENERGY/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1126 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  163 :Muplus_BPVIP : Muplus_BPVIP/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1130 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  164 :Muplus_MINIP : Muplus_MINIP/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1130 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  165 :Muplus_MINIPCHI2 : Muplus_MINIPCHI2/F                              *
+*Entries :      271 : Total  Size=       1709 bytes  File Size  =       1157 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br  166 :Muplus_ID : Muplus_ID/I                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =        242 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.81     *
+*............................................................................*
+*Br  167 :Muplus_ISMUON : Muplus_ISMUON/O                                    *
+*Entries :      271 : Total  Size=        875 bytes  File Size  =        161 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   2.21     *
+*............................................................................*
+*Br  168 :Muplus_OBJECT_KEY : Muplus_OBJECT_KEY/I                            *
+*Entries :      271 : Total  Size=       1714 bytes  File Size  =        546 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   2.15     *
+*............................................................................*
+*Br  169 :Muplus_Phi : Muplus_Phi/F                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =       1158 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br  170 :Muplus_Eta : Muplus_Eta/F                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =       1069 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.09     *
+*............................................................................*
+*Br  171 :Muplus_CHI2DOF : Muplus_CHI2DOF/D                                  *
+*Entries :      271 : Total  Size=       2791 bytes  File Size  =       1375 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.64     *
+*............................................................................*
+*Br  172 :Muplus_BPVX : Muplus_BPVX/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1020 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br  173 :Muplus_BPVY : Muplus_BPVY/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1031 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.13     *
+*............................................................................*
+*Br  174 :Muplus_BPVZ : Muplus_BPVZ/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1146 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.02     *
+*............................................................................*
+*Br  175 :Muplus_TRUEP : Muplus_TRUEP/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1126 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  176 :Muplus_TRUEPT : Muplus_TRUEPT/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1114 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  177 :Muplus_TRUEPX : Muplus_TRUEPX/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1129 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  178 :Muplus_TRUEPY : Muplus_TRUEPY/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1124 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  179 :Muplus_TRUEPZ : Muplus_TRUEPZ/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1121 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  180 :Muplus_TRUEENERGY : Muplus_TRUEENERGY/F                            *
+*Entries :      271 : Total  Size=       1714 bytes  File Size  =       1128 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  181 :Muplus_TRUEID : Muplus_TRUEID/I                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =        275 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.25     *
+*............................................................................*
+*Br  182 :Muplus_MC_MOTHER_ID : Muplus_MC_MOTHER_ID/I                        *
+*Entries :      271 : Total  Size=       1724 bytes  File Size  =        150 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   7.83     *
+*............................................................................*
+*Br  183 :Muplus_MC_MOTHER_KEY : Muplus_MC_MOTHER_KEY/I                      *
+*Entries :      271 : Total  Size=       1729 bytes  File Size  =        698 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.68     *
+*............................................................................*
+*Br  184 :Muplus_MC_GD_MOTHER_ID : Muplus_MC_GD_MOTHER_ID/I                  *
+*Entries :      271 : Total  Size=       1739 bytes  File Size  =        279 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.22     *
+*............................................................................*
+*Br  185 :Muplus_MC_GD_MOTHER_KEY : Muplus_MC_GD_MOTHER_KEY/I                *
+*Entries :      271 : Total  Size=       1744 bytes  File Size  =        839 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.41     *
+*............................................................................*
+*Br  186 :Muplus_MC_GD_GD_MOTHER_ID : Muplus_MC_GD_GD_MOTHER_ID/I            *
+*Entries :      271 : Total  Size=       1754 bytes  File Size  =        377 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.13     *
+*............................................................................*
+*Br  187 :Muplus_MC_GD_GD_MOTHER_KEY : Muplus_MC_GD_GD_MOTHER_KEY/I          *
+*Entries :      271 : Total  Size=       1759 bytes  File Size  =        700 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.69     *
+*............................................................................*
+*Br  188 :Muminus_M : Muminus_M/D                                            *
+*Entries :      271 : Total  Size=       2766 bytes  File Size  =        584 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.85     *
+*............................................................................*
+*Br  189 :Muminus_P : Muminus_P/F                                            *
+*Entries :      271 : Total  Size=       1674 bytes  File Size  =       1120 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  190 :Muminus_PT : Muminus_PT/F                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =       1111 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  191 :Muminus_PX : Muminus_PX/F                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =       1119 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  192 :Muminus_PY : Muminus_PY/F                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =       1122 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  193 :Muminus_PZ : Muminus_PZ/F                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =       1113 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  194 :Muminus_ENERGY : Muminus_ENERGY/F                                  *
+*Entries :      271 : Total  Size=       1699 bytes  File Size  =       1126 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  195 :Muminus_BPVIP : Muminus_BPVIP/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1136 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  196 :Muminus_MINIP : Muminus_MINIP/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1136 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.03     *
+*............................................................................*
+*Br  197 :Muminus_MINIPCHI2 : Muminus_MINIPCHI2/F                            *
+*Entries :      271 : Total  Size=       1714 bytes  File Size  =       1163 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.01     *
+*............................................................................*
+*Br  198 :Muminus_ID : Muminus_ID/I                                          *
+*Entries :      271 : Total  Size=       1679 bytes  File Size  =        243 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.80     *
+*............................................................................*
+*Br  199 :Muminus_ISMUON : Muminus_ISMUON/O                                  *
+*Entries :      271 : Total  Size=        880 bytes  File Size  =        157 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   2.27     *
+*............................................................................*
+*Br  200 :Muminus_OBJECT_KEY : Muminus_OBJECT_KEY/I                          *
+*Entries :      271 : Total  Size=       1719 bytes  File Size  =        553 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   2.12     *
+*............................................................................*
+*Br  201 :Muminus_Phi : Muminus_Phi/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1149 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.02     *
+*............................................................................*
+*Br  202 :Muminus_Eta : Muminus_Eta/F                                        *
+*Entries :      271 : Total  Size=       1684 bytes  File Size  =       1069 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.09     *
+*............................................................................*
+*Br  203 :Muminus_CHI2DOF : Muminus_CHI2DOF/D                                *
+*Entries :      271 : Total  Size=       2796 bytes  File Size  =       1389 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.62     *
+*............................................................................*
+*Br  204 :Muminus_BPVX : Muminus_BPVX/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1021 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.14     *
+*............................................................................*
+*Br  205 :Muminus_BPVY : Muminus_BPVY/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1031 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.13     *
+*............................................................................*
+*Br  206 :Muminus_BPVZ : Muminus_BPVZ/F                                      *
+*Entries :      271 : Total  Size=       1689 bytes  File Size  =       1140 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.02     *
+*............................................................................*
+*Br  207 :Muminus_TRUEP : Muminus_TRUEP/F                                    *
+*Entries :      271 : Total  Size=       1694 bytes  File Size  =       1123 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  208 :Muminus_TRUEPT : Muminus_TRUEPT/F                                  *
+*Entries :      271 : Total  Size=       1699 bytes  File Size  =       1117 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.05     *
+*............................................................................*
+*Br  209 :Muminus_TRUEPX : Muminus_TRUEPX/F                                  *
+*Entries :      271 : Total  Size=       1699 bytes  File Size  =       1123 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  210 :Muminus_TRUEPY : Muminus_TRUEPY/F                                  *
+*Entries :      271 : Total  Size=       1699 bytes  File Size  =       1123 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  211 :Muminus_TRUEPZ : Muminus_TRUEPZ/F                                  *
+*Entries :      271 : Total  Size=       1699 bytes  File Size  =       1124 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  212 :Muminus_TRUEENERGY : Muminus_TRUEENERGY/F                          *
+*Entries :      271 : Total  Size=       1719 bytes  File Size  =       1133 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.04     *
+*............................................................................*
+*Br  213 :Muminus_TRUEID : Muminus_TRUEID/I                                  *
+*Entries :      271 : Total  Size=       1699 bytes  File Size  =        274 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.27     *
+*............................................................................*
+*Br  214 :Muminus_MC_MOTHER_ID : Muminus_MC_MOTHER_ID/I                      *
+*Entries :      271 : Total  Size=       1729 bytes  File Size  =        163 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   7.21     *
+*............................................................................*
+*Br  215 :Muminus_MC_MOTHER_KEY : Muminus_MC_MOTHER_KEY/I                    *
+*Entries :      271 : Total  Size=       1734 bytes  File Size  =        701 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.68     *
+*............................................................................*
+*Br  216 :Muminus_MC_GD_MOTHER_ID : Muminus_MC_GD_MOTHER_ID/I                *
+*Entries :      271 : Total  Size=       1744 bytes  File Size  =        285 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   4.14     *
+*............................................................................*
+*Br  217 :Muminus_MC_GD_MOTHER_KEY : Muminus_MC_GD_MOTHER_KEY/I              *
+*Entries :      271 : Total  Size=       1749 bytes  File Size  =        843 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.40     *
+*............................................................................*
+*Br  218 :Muminus_MC_GD_GD_MOTHER_ID : Muminus_MC_GD_GD_MOTHER_ID/I          *
+*Entries :      271 : Total  Size=       1759 bytes  File Size  =        381 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   3.10     *
+*............................................................................*
+*Br  219 :Muminus_MC_GD_GD_MOTHER_KEY : Muminus_MC_GD_GD_MOTHER_KEY/I        *
+*Entries :      271 : Total  Size=       1764 bytes  File Size  =        708 *
+*Baskets :        1 : Basket Size=      32000 bytes  Compression=   1.67     *
+*............................................................................*
+NTupleSvc                              INFO NTuples saved successfully
+ApplicationMgr                         INFO Application Manager Finalized successfully
+ApplicationMgr                         INFO Application Manager Terminated successfully
