@@ -29,3 +29,4 @@ options_SM/
 output/
 Data/PyConf-create-lhcb-metadata-git-repo.lock
 Data/daVinci_scripts/Bu2JpsiK/output/hlt2_SM_0.dst
+results/
