@@ -1,1 +1,0 @@
-((B_Tr_T_ISMUON == 1) & (B_Tr_T_PIDmu >-11.222) & (B_Tr_T_PIDe < 1.498) & (B_Tr_T_BPVZ == B_BPVZ) & (B_Tr_T_BPVY == B_BPVY) & (B_Tr_T_BPVX == B_BPVX) & (B_Tr_T_IPSig > 0.1) & (B_Tr_T_absIP < 3.0) & (B_Tr_T_PT  > 0.0) & (B_Tr_T_P > 0.0))

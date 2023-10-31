@@ -1,1 +1,0 @@
-((B_Tr_T_PIDe>0.93) & (B_Tr_T_ISMUON == 0) & (B_Tr_T_BPVZ == B_BPVZ) & (B_Tr_T_BPVY == B_BPVY) & (B_Tr_T_BPVX == B_BPVX) )

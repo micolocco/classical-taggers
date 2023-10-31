@@ -1,0 +1,1 @@
+((Bp_Tr_T_PIDK>5.49 )& ((Bp_Tr_T_PROBNN_K >0.717) | (Bp_Tr_T_PIDe <1.917 & Bp_Tr_T_PROBNN_P <0.99)) & (Bp_Tr_T_ISMUON == 0) & (Bp_Tr_T_BPVZ == Bp_BPVZ) & (Bp_Tr_T_BPVY == Bp_BPVY) & (Bp_Tr_T_BPVX == Bp_BPVX) & (Bp_Tr_T_IPSig < 0.1)  & (Bp_Tr_T_DeltaQ_Kaon < 2000.0) &(Bp_Tr_T_EtaDistance < 4.0) &(Bp_Tr_T_PhiDistance < 4.0) & (Bp_Tr_T_PT > 0.0) & (Bp_Tr_T_P > 0.0))

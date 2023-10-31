@@ -11,4 +11,4 @@ def check_directories (repoPath,directory_list, eventType, tagger):
         if not os.path.exists(f"{dir_path}/{eventType}/{tagger}"):
             os.makedirs(f"{dir_path}/{eventType}/{tagger}")
     if not os.path.exists(f"{repoPath}/csv/{eventType}/{tagger}/losses"):
-        os.makedirs(f"{dir_path}/{eventType}/{tagger}/losses")
+        os.makedirs(f"{repoPath}/csv/{eventType}/{tagger}/losses")
