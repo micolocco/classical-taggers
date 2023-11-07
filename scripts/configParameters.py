@@ -1,6 +1,9 @@
 # path to the workspace folder and to the ROOT NTuple input
 repoPath = "/ceph/users/molocco/classical-taggers/"
 
+# sample type: openVELO or closedVELO
+sample_type = 'closedVELO'
+
 grid_n = None # For the grid search. Set to None if no grid is used
 KaonCombiner = False
 optimized = True
@@ -14,7 +17,7 @@ learning_rate = 0.001
 n_epochs = 500
 earlyStop = 75 #100
 seed = 42 #11 
-model_name = f'Jonas_seed{seed}_{learning_rate}_{n_epochs}_{earlyStop}'
+model_name = f'{sample_type}_seed{seed}_{learning_rate}_{n_epochs}_{earlyStop}'
 
 
 # Change to False if no training is needed
