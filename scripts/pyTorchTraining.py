@@ -25,7 +25,7 @@ def prepare_data(train_df, scalerPath, train_batch_size = 32, test_batch_size = 
     return train_dl, validation_dl 
 
 
-def plot_features(data, name_formatter, nbins=100):
+def plot_features(data, name_formatter, name, folder='plots', nbins=100):
 
     # Plot input features 
     plt.figure(figsize=(24,50))
@@ -44,8 +44,7 @@ def plot_features(data, name_formatter, nbins=100):
             plt.legend()
             plt.title(col)
             plt.tight_layout()
-            folder = 'plots'
-        saveName = name_formatter.assign_name(folder, 'features')
+        saveName = name_formatter.assign_name(folder, name)
         plt.savefig(f"{saveName}.pdf")
     except Exception as e:
         print(col,e)
@@ -97,13 +96,13 @@ def save_model(model, name_formatter):
     
     folder = 'savedModels'
     saveName = name_formatter.assign_name(folder, model.modelName)
-    torch.save(copy.deepcopy(model.state_dict()), f"{saveName}.pth")
+    torch.save(copy.deepcopy(model.state_dict()), f"{saveName}_Model.pth")
 
 def load_model(model, name_formatter):
 
     folder = 'savedModels'
     saveName = name_formatter.assign_name(folder, model.modelName)
-    model.load_state_dict(torch.load(f"{saveName}.pth"))
+    model.load_state_dict(torch.load(f"{saveName}_Model.pth"))
     
 
 def save_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, name_formatter):
@@ -152,12 +151,12 @@ def plot_ROC(name, yPred, yTrue, name_formatter, yPredTrain = None, yTrueTrain =
     else:
         plt.savefig(f"{saveName}_ROC_TEST.pdf")
 
-def logistic_regression(yPredTrain, yTrueTrain, name_formatter):
+def logistic_regression(yPredTrain, yTrueTrain, name_formatter, name):
     
     clf = LogisticRegression().fit(yPredTrain, yTrueTrain.ravel())  
     folder = "savedModels"
-    prePath = name_formatter.assign_name(folder, "LogReg")
-    pickle.dump(clf , open(f"{prePath}.pck" , "wb"))
+    prePath = name_formatter.assign_name(folder, name)
+    pickle.dump(clf , open(f"{prePath}_LogReg.pck" , "wb"))
     return clf
 
 def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter, nbins=100):
@@ -263,7 +262,7 @@ def calibration(modelName, tagger, df_tag, eventType, name_formatter):
     saveName = name_formatter.assign_name(folder, modelName)
     if os.path.isdir(saveName) == False:
             os.system(f"mkdir {saveName}")
-    taggers.plot_calibration_curves(savepath = saveName)
+    taggers.plot_calibration_curves(savepath = saveName, omega_range="minimal", nbins=10)
 
     folder = 'results'
     saveName = name_formatter.assign_name(folder, modelName)

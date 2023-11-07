@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from inputDataset import inputDataset
 from torch.utils.data import DataLoader
 import pickle
+from matplotlib import pyplot as plt
 
 
 
@@ -21,18 +22,11 @@ import pickle
 eventType = sys.argv[1]
 tagger = sys.argv[2]
 
-# Path to the ROOT file
-inputPath = f"{config.repoPath}root/{eventType}/{tagger}/selected.root:DecayTree"
-# Path to where the scaler parameters will be saved
-scalerPath = f"{config.repoPath}scaler/{eventType}/{tagger}/std_scaler.pkl"
-# Path to where the test set will be saved
-testSetPath = f"{config.repoPath}csv/{eventType}/{tagger}/testSet.csv"
-
 # Check whether the specified directories exist, otherwise create them
 directory_list = ["calibrationPlots", "plots", "results", "root", "scaler", "csv", "cuts", "savedModels"]
 check_directories(config.repoPath, directory_list, eventType, tagger)
 
-#Definiiton of the object that will be used for saving
+#Definiton of the object that will be used for saving in the right name format
 name_formatter = Saver(eventType, tagger, config.repoPath, config.KaonCombiner, config.grid_n, config.optimized)
 
 # Definition of the features for the NN and the selection variables   
@@ -55,14 +49,26 @@ if "OS" in tagger:
 # Make sure no feature is doubled 
 features = np.unique(features).tolist()
 
+# Path to the ROOT input file
 folder = "root"
-prePath = name_formatter.assign_name(folder, "selected")
-selected_rootPath = f"{prePath}.root"
-start = time.time()
+rootPrePath = name_formatter.assign_name(folder,f"{config.sample_type}_selected")
+selected_rootPath = f"{rootPrePath}.root"
+
+# Path to where the scaler parameters will be saved
+folder = "scaler"
+scalerPrePath = name_formatter.assign_name(folder, f"{config.sample_type}_stdScaler")
+scalerPath = f"{scalerPrePath}.pkl"
+
+# Path to where the test set will be saved
+folder = "csv"
+testSetPrePath = name_formatter.assign_name(folder, f"{config.sample_type}_testSet")
+testSetPath = f"{testSetPrePath}.csv"
 
 selection_variables = ["entry", "Bp_Tr_T_PROBNN_K", "Bp_Tr_T_P" , "Bp_Tr_T_ISMUON", "Bp_Tr_T_BPVX" , "Bp_BPVX" , 
                         "Bp_Tr_T_BPVY" ,"Bp_BPVY" ,"Bp_Tr_T_BPVZ" , "Bp_BPVZ","Bp_Tr_T_Charge", "Bp_TRUEID", "Bp_Tr_T_absIP",
                         "Bp_Tr_T_PROBNN_PI", "Bp_Tr_T_PROBNN_P", "Bp_Tr_T_PROBNN_E", "Bp_Tr_T_PIDe", "Bp_Tr_T_PIDK", "Bp_Tr_T_PIDmu"]
+
+start = time.time()
 
 # Definition of the variables that will be loaded from the NTuple
 loading_variables = features + selection_variables
@@ -123,7 +129,7 @@ if config.training:
     print(f' label 0 : {df1[df1.label==0].shape[0]}, label 1 : {df1[df1.label==1].shape[0]}')
     '''
 
-    pyTrain.plot_features(df.iloc[train_dl.dataset.indices], name_formatter)
+    pyTrain.plot_features(df.iloc[train_dl.dataset.indices], name_formatter, name='input_features')
     model = NeuralNetwork(modelName = config.model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = config.n_epochs, earlyStop = config.earlyStop) # earlyStop must be < n_epochs
     pyTrain.plot_losses(config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, name_formatter)
@@ -135,15 +141,15 @@ if config.training:
     yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
     pyTrain.plot_ROC(model.modelName, yPredVal, yTrueVal, name_formatter, yPredTrain, yTrueTrain)
     # Fit with logistic regression and save it
-    clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, name_formatter)
+    clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, name_formatter, model.modelName)
     #pyTrain.plot_NNoutput(config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, name_formatter)
     pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, name_formatter, type = 'validation')
 
 else:
     test_df = pd.read_csv(f"{testSetPath}")
     folder = "savedModels"
-    prePath = name_formatter.assign_name(folder, "LogReg")
-    clf = pickle.load(open(f"{prePath}.pck", 'rb'))
+    prePath = name_formatter.assign_name(folder, config.model_name)
+    clf = pickle.load(open(f"{prePath}_LogReg.pck", 'rb'))
 
 # Load the best model (ie with the lowest training loss) and evaluate it on the test set
 bestModel = NeuralNetwork(modelName = config.model_name, features=features, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
@@ -162,7 +168,14 @@ test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath,
 test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
 test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
+
 test_df = test_df[['entry','selected_track', 'Eta', 'TagDec','Bp_TRUEID']]
+
+
+print(test_df.loc[test_df.selected_track == 1].Eta)
+plt.figure()
+plt.hist(test_df.loc[test_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
+plt.savefig(f"debug/{config.sample_type}_etaNotnormalized.pdf")
 
 test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1  
 test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1   
@@ -170,9 +183,15 @@ test_df.loc[test_df.Eta < 0, "Eta"] += 1
 test_df.loc[test_df.selected_track == 0, "TagDec"] = 0  # classic
 test_df.loc[test_df.selected_track == 0, "Eta"] = 0.5  # classic
 
-print(test_df.shape[0])
+plt.figure()
+plt.hist(test_df.loc[test_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
+plt.savefig(f"debug/{config.sample_type}_eta.pdf")
+#print(test_df[ (test_df[ "Eta"] == 0.4930005622788447)])
+#print(test_df.shape[0])
+#print(test_df[test_df.selected_track == 1].shape[0])
+
 df_TagParticles = test_df.sort_values(by = ["entry","selected_track","Eta"] , ascending = [True,False,True]).groupby("entry").first()
-print(df_TagParticles.shape[0])
+#print(df_TagParticles.shape[0])
 
 pyTrain.plot_tagDec(df_TagParticles, config.model_name, name_formatter)
 # Calibrating the tagger and saving parameters
