@@ -1,1 +1,1 @@
-((Bp_Tr_T_PIDK<-0.001) & (Bp_Tr_T_PIDe<0.727)) | ((Bp_Tr_T_PIDK>-0.001) & (Bp_Tr_T_PROBNN_PI>0.392) & (Bp_Tr_T_PT>113.238))
+((Bp_Tr_T_PIDK<-0.001) & (Bp_Tr_T_PIDe<0.727)) | ((Bp_Tr_T_PIDK>-0.001) & (Bp_Tr_T_PROBNN_PI>0.392) & (Bp_Tr_T_PT>113.238)) & (Bp_Tr_T_ISMUON == 0) & (Bp_Tr_T_BPVZ == Bp_BPVZ) & (Bp_Tr_T_BPVY == Bp_BPVY) & (Bp_Tr_T_BPVX == Bp_BPVX)
