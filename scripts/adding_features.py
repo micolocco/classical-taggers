@@ -27,7 +27,7 @@ elif eventType == "Bd2JpsiKst":
 elif eventType == "Bu2JpsiK":
     B = "B"
     abs_id = 521
-    path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}_nPVsnTracks.root:Tuple/DecayTree;1" # needs to be reproduced in the Repo
+   # path_to_tuple = f"/ceph/users/jroensch/masterthesis/{eventType}/SM_Tuple/{eventType}_nPVsnTracks.root:Tuple/DecayTree;1" # needs to be reproduced in the Repo
     daughters = ["K_P","Muminus_P","Muplus_P","Jpsi1S_P"]
 
 stepsize = 100000    #the Root file will gel load in chunks
@@ -40,7 +40,7 @@ def DeltaQ(df,Mass):
 start_time = time.time()
 run_time = time.time()
 
-#loading_variables = ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Charge", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
+loading_variables = ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Charge", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
  #loading_variables = ["B_nPVs","B_nTracks",f"B_TRUEID", f"B_Tr_T_Charge",f"B_Tr_T_P",f"B_Phi",f"B_Tr_T_Phi",f"B_BPVZ",f"B_BPVY",f"B_BPVX",f"B_Tr_T_BPVZ",
                 f"B_Tr_T_BPVY",f"B_Tr_T_BPVX",f"B_Eta",f"B_Tr_T_Eta",f"B_Tr_T_BPVIP",f"B_Tr_T_PX",f"B_Tr_T_PY",f"B_Tr_T_PZ","B_P",
                 f"B_ENERGY",f"B_PX",f"B_PY",f"B_PZ",f"B_Tr_T_TRUEID", "B_PT",

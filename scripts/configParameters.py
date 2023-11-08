@@ -18,6 +18,6 @@ model_name = f'M_seed{seed}_{learning_rate}_{n_epochs}_{earlyStop}'
 
 
 # Change to False if no training is needed
-training = True
+training = False
 # In calibration mode, all tracks are needed 
 calibration = False

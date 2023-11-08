@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from inputDataset import inputDataset
 from torch.utils.data import DataLoader
 import pickle
+from matplotlib import pyplot as plt
 
 
 
@@ -162,6 +163,11 @@ test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath,
 test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
 test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
+
+plt.figure()
+plt.hist(test_df.loc[test_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
+plt.savefig(f"debug/old_branch_etaNotnormalized.pdf")
+
 test_df = test_df[['entry','selected_track', 'Eta', 'TagDec','B_TRUEID']]
 
 test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1  
