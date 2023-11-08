@@ -33,7 +33,7 @@ def plot_features(data, name_formatter, name, folder='plots', nbins=100):
         for i, col in enumerate(data.columns.to_list()):
             plt.subplot(10, 3, i + 1)
             
-            if col == 'Bp_Tr_T_BPVIP':
+            if col == 'B_Tr_T_BPVIP':
                 plotting_data = data[data[col]<2.5]
                 plt.hist(plotting_data[col][plotting_data['label']==0], density = True, bins=nbins, label = "Label = 0",color='b', alpha=0.5)
                 plt.hist(plotting_data[col][plotting_data['label']==1], density = True, bins=nbins, label = "Label = 1",color='r', alpha=0.5)
@@ -253,7 +253,7 @@ def calibration(modelName, tagger, df_tag, eventType, name_formatter):
     import json 
 
     taggers = ft.TaggerCollection()
-    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.Bp_TRUEID.tolist(),mode = eventType[:2])
+    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = eventType[:2])
     taggers.set_calibration(ft.PolynomialCalibration(npar = 2,link =  ft.link.mistag))
     taggers.calibrate()
 

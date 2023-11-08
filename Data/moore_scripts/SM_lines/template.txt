@@ -1,5 +1,5 @@
 from Moore import options, run_moore
-from Hlt2Conf.lines.hlt2_line_Bp_JpsiK_FT import Bu2JpsiK_Jpsi2MuMu_line
+from Hlt2Conf.lines.hlt2_line_B_JpsiK_FT import Bu2JpsiK_Jpsi2MuMu_line
 
 from RecoConf.global_tools import stateProvider_with_simplified_geom
 from Gaudi.Configuration import FileCatalog

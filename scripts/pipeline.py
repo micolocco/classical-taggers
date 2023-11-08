@@ -30,21 +30,21 @@ check_directories(config.repoPath, directory_list, eventType, tagger)
 name_formatter = Saver(eventType, tagger, config.repoPath, config.KaonCombiner, config.grid_n, config.optimized)
 
 # Definition of the features for the NN and the selection variables   
-features = ["Bp_Tr_T_cos_diff_Phi",
-        "Bp_Tr_T_PhiDistance",
-        "Bp_Tr_T_PT",
-        "Bp_Tr_T_CHI2DOF",
-        "Bp_Tr_T_BPVIP",
-        "Bp_Tr_T_GHOSTPROB",
-        "Bp_Tr_T_IPSig",
+features = ["B_Tr_T_cos_diff_Phi",
+        "B_Tr_T_PhiDistance",
+        "B_Tr_T_PT",
+        "B_Tr_T_CHI2DOF",
+        "B_Tr_T_BPVIP",
+        "B_Tr_T_GHOSTPROB",
+        "B_Tr_T_IPSig",
         "diff_P",
-        "Bp_Tr_T_EtaDistance",
+        "B_Tr_T_EtaDistance",
         "P_proj",
         "EVIP"]
 
 if "OS" in tagger:
     if config.optimized:
-        features = features +["Bp_Tr_T_absIP"]
+        features = features +["B_Tr_T_absIP"]
 
 # Make sure no feature is doubled 
 features = np.unique(features).tolist()
@@ -64,9 +64,9 @@ folder = "csv"
 testSetPrePath = name_formatter.assign_name(folder, f"{config.sample_type}_testSet")
 testSetPath = f"{testSetPrePath}.csv"
 
-selection_variables = ["entry", "Bp_Tr_T_PROBNN_K", "Bp_Tr_T_P" , "Bp_Tr_T_ISMUON", "Bp_Tr_T_BPVX" , "Bp_BPVX" , 
-                        "Bp_Tr_T_BPVY" ,"Bp_BPVY" ,"Bp_Tr_T_BPVZ" , "Bp_BPVZ","Bp_Tr_T_Charge", "Bp_TRUEID", "Bp_Tr_T_absIP",
-                        "Bp_Tr_T_PROBNN_PI", "Bp_Tr_T_PROBNN_P", "Bp_Tr_T_PROBNN_E", "Bp_Tr_T_PIDe", "Bp_Tr_T_PIDK", "Bp_Tr_T_PIDmu"]
+selection_variables = ["entry", "B_Tr_T_PROBNN_K", "B_Tr_T_P" , "B_Tr_T_ISMUON", "B_Tr_T_BPVX" , "B_BPVX" , 
+                        "B_Tr_T_BPVY" ,"B_BPVY" ,"B_Tr_T_BPVZ" , "B_BPVZ","B_Tr_T_Charge", "B_TRUEID", "B_Tr_T_absIP",
+                        "B_Tr_T_PROBNN_PI", "B_Tr_T_PROBNN_P", "B_Tr_T_PROBNN_E", "B_Tr_T_PIDe", "B_Tr_T_PIDK", "B_Tr_T_PIDmu"]
 
 start = time.time()
 
@@ -75,18 +75,18 @@ loading_variables = features + selection_variables
 loading_variables = np.unique(loading_variables).tolist() 
 if "SS" in tagger:
     particle = tagger.removeprefix("SS")
-    loading_variables += ["Bp_Tr_T_DeltaQ_" + particle]
+    loading_variables += ["B_Tr_T_DeltaQ_" + particle]
     if particle in ("Proton", "Pion"):
-        loading_variables += ["Bp_Tr_T_PIDP"]
+        loading_variables += ["B_Tr_T_PIDP"]
 
 # Reading dataset
 if config.preSelected == False:
     print("Applying pre-selections")
-    df = preSel.apply_preSelections(loading_variables, selected_rootPath, name_formatter, config.repoPath, eventType, tagger)[features + ['entry', 'Bp_TRUEID', 'Bp_Tr_T_Charge','selected_track']]
+    df = preSel.apply_preSelections(loading_variables, selected_rootPath, name_formatter, config.repoPath, eventType, tagger)[features + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','selected_track']]
     
 else:
 	print(f"Reading input file")
-	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['Bp_TRUEID','Bp_Tr_T_Charge','selected_track', 'entry'], library = "pd" )
+	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['B_TRUEID','B_Tr_T_Charge','selected_track', 'entry'], library = "pd" )
 
 df = df.sample(frac=1).reset_index(drop=True)
 df.dropna(inplace = True)  
@@ -95,30 +95,30 @@ print(f"{df[df.selected_track==1].shape[0]} tracks among the {df.shape[0]} total
 # Assignation of the tagging decision (d)
 # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
 if ("Bd" or "Bs" in eventType) and (tagger == "SSKaon" or tagger == "SSPion" ): 
-    df["TagDec"] = df[f"Bp_Tr_T_Charge"]
+    df["TagDec"] = df[f"B_Tr_T_Charge"]
 else:
-    df["TagDec"] = df[f"Bp_Tr_T_Charge"] * (-1)
+    df["TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
 
 # Assignation of the label (it will be used as NN output)
 # The label is given by the product of the tagging decision and the flavour charge of the B. 
 # It indicates if the tagging decision is wrong or correct.
 # -1 == wrong tag  1 == correct tag
-df["label"] = df[f"TagDec"] * df[f"Bp_TRUEID"]/abs(df[f"Bp_TRUEID"])
+df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"])
 df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0  
 
 # Splitting dataset
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-columns_to_drop = ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID',]
+columns_to_drop = ['entry', 'selected_track', 'TagDec', 'B_TRUEID',]
 
 # Train the model
 if config.training: 
-    #train_df, test_df = train_test_split(df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']], test_size=0.3)    
-    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']].sample(frac=config.test_split, random_state=200)
-    test_df = df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']].drop(train_df.index)
+    #train_df, test_df = train_test_split(df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']], test_size=0.3)    
+    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].sample(frac=(1-config.test_split), random_state=200)
+    test_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].drop(train_df.index)
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
-
+    print(f"SHape of ONLY selected {train_df[train_df['selected_track']==1].shape[0]}")
     train_dl, validation_dl = pyTrain.prepare_data(train_df[train_df['selected_track']==1].drop(columns = columns_to_drop), scalerPath)
     print(f"Training set has {len(train_dl.dataset)} rows")
     print(f"Validation set has {len(validation_dl.dataset)} rows")
@@ -145,6 +145,11 @@ if config.training:
     #pyTrain.plot_NNoutput(config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, name_formatter)
     pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, name_formatter, type = 'validation')
 
+    train_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(train_dl)[0])[:,0]
+    plt.figure()
+    plt.hist(train_df.loc[train_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.savefig(f"debug/train_{config.sample_type}_etaNotnormalized.pdf")
+
 else:
     test_df = pd.read_csv(f"{testSetPath}")
     folder = "savedModels"
@@ -169,10 +174,10 @@ test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
 test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
 
-test_df = test_df[['entry','selected_track', 'Eta', 'TagDec','Bp_TRUEID']]
+test_df = test_df[['entry','selected_track', 'Eta', 'TagDec','B_TRUEID']]
 
 
-print(test_df.loc[test_df.selected_track == 1].Eta)
+#print(test_df.loc[test_df.selected_track == 1].Eta)
 plt.figure()
 plt.hist(test_df.loc[test_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
 plt.savefig(f"debug/{config.sample_type}_etaNotnormalized.pdf")
