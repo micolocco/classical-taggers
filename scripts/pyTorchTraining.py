@@ -29,6 +29,10 @@ def plot_features(data, name_formatter, name, folder='plots', nbins=100):
 
     # Plot input features 
     plt.figure(figsize=(24,50))
+    print(f"33333 IPsigma: \n{data[data['selected_track']==1]['B_Tr_T_IPSig'].max()}")
+
+    print(f"33333 IPsigma: \n{data[data['selected_track']==1]['B_Tr_T_IPSig']}")
+
     try:
         for i, col in enumerate(data.columns.to_list()):
             plt.subplot(10, 3, i + 1)
