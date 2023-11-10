@@ -81,11 +81,10 @@ if "SS" in tagger:
 
 # Reading dataset
 if config.preSelected == False:
-    print("Applying pre-selections")
     df = preSel.apply_preSelections(loading_variables, selected_rootPath, name_formatter, config.repoPath, eventType, tagger)[features + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','selected_track']]
     
 else:
-	print(f"Reading input file")
+	print(f"Reading input file: {selected_rootPath}")
 	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['B_TRUEID','B_Tr_T_Charge','selected_track', 'entry'], library = "pd" )
 
 df = df.sample(frac=1).reset_index(drop=True)
@@ -105,7 +104,7 @@ else:
 # -1 == wrong tag  1 == correct tag
 df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"])
 df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0  
-
+print(f"IPsigma: \n{df[df['selected_track']==1]['B_Tr_T_IPSig'].max()}")
 # Splitting dataset
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -114,7 +113,9 @@ columns_to_drop = ['entry', 'selected_track', 'TagDec', 'B_TRUEID',]
 # Train the model
 if config.training: 
     #train_df, test_df = train_test_split(df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']], test_size=0.3)    
-    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].sample(frac=(1-config.test_split), random_state=200)
+    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].sample(frac=(config.test_split), random_state=200)
+    print(f"IPsigma: \n{train_df[train_df['selected_track']==1]['B_Tr_T_IPSig'].max()}")
+
     test_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].drop(train_df.index)
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
@@ -144,11 +145,7 @@ if config.training:
     clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, name_formatter, model.modelName)
     #pyTrain.plot_NNoutput(config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, name_formatter)
     pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, name_formatter, type = 'validation')
-
-    train_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(train_dl)[0])[:,0]
-    plt.figure()
-    plt.hist(train_df.loc[train_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
-    plt.savefig(f"debug/train_{config.sample_type}_etaNotnormalized.pdf")
+   
 
 else:
     test_df = pd.read_csv(f"{testSetPath}")
