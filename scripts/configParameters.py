@@ -9,15 +9,15 @@ KaonCombiner = False
 optimized = True
 
 # If preSelected = False, the decision tree cuts are applied and tracks are pre-selected accordingly. Otherwise NTuples with pre-selcted tracks already exist.
-preSelected = True
+preSelected = False
 
 # NN parameters
-test_split = 0.15 # test set percentage of dataset
+test_split = 0.3 # test set percentage of dataset
 learning_rate = 0.001
 n_epochs = 500
 earlyStop = 75 #75 #100
 seed = 42 #11 
-model_name = f'{sample_type}_seed{seed}_{learning_rate}_{n_epochs}_{earlyStop}'
+model_name = f'test_{test_split}'
 
 
 # Change to False if no training is needed
