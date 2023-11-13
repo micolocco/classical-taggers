@@ -104,7 +104,6 @@ else:
 # -1 == wrong tag  1 == correct tag
 df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"])
 df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0  
-print(f"IPsigma: \n{df[df['selected_track']==1]['B_Tr_T_IPSig'].max()}")
 # Splitting dataset
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -113,13 +112,11 @@ columns_to_drop = ['entry', 'selected_track', 'TagDec', 'B_TRUEID',]
 # Train the model
 if config.training: 
     #train_df, test_df = train_test_split(df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']], test_size=0.3)    
-    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].sample(frac=(config.test_split), random_state=200)
-    print(f"IPsigma: \n{train_df[train_df['selected_track']==1]['B_Tr_T_IPSig'].max()}")
+    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].sample(frac=(config.test_split), random_state=20)
 
     test_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].drop(train_df.index)
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
-    print(f"SHape of ONLY selected {train_df[train_df['selected_track']==1].shape[0]}")
     train_dl, validation_dl = pyTrain.prepare_data(train_df[train_df['selected_track']==1].drop(columns = columns_to_drop), scalerPath)
     print(f"Training set has {len(train_dl.dataset)} rows")
     print(f"Validation set has {len(validation_dl.dataset)} rows")
@@ -130,7 +127,7 @@ if config.training:
     print(f' label 0 : {df1[df1.label==0].shape[0]}, label 1 : {df1[df1.label==1].shape[0]}')
     '''
 
-    pyTrain.plot_features(df.iloc[train_dl.dataset.indices], name_formatter, name='input_features')
+    pyTrain.plot_features(df.iloc[train_dl.dataset.indices], name_formatter, name=f'{config.model_name}_inputFeatures')
     model = NeuralNetwork(modelName = config.model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = config.n_epochs, earlyStop = config.earlyStop) # earlyStop must be < n_epochs
     pyTrain.plot_losses(config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, name_formatter)
@@ -177,7 +174,7 @@ test_df = test_df[['entry','selected_track', 'Eta', 'TagDec','B_TRUEID']]
 #print(test_df.loc[test_df.selected_track == 1].Eta)
 plt.figure()
 plt.hist(test_df.loc[test_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
-plt.savefig(f"debug/{config.sample_type}_etaNotnormalized.pdf")
+plt.savefig(f"../plots/{eventType}/{tagger}/{config.model_name}_etaNotnormalized.pdf")
 
 test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1  
 test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1   
@@ -185,9 +182,6 @@ test_df.loc[test_df.Eta < 0, "Eta"] += 1
 test_df.loc[test_df.selected_track == 0, "TagDec"] = 0  # classic
 test_df.loc[test_df.selected_track == 0, "Eta"] = 0.5  # classic
 
-plt.figure()
-plt.hist(test_df.loc[test_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
-plt.savefig(f"debug/{config.sample_type}_eta.pdf")
 #print(test_df[ (test_df[ "Eta"] == 0.4930005622788447)])
 #print(test_df.shape[0])
 #print(test_df[test_df.selected_track == 1].shape[0])
