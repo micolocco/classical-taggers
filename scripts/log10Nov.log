@@ -5,7 +5,7 @@
 --------------------------------------------------------------------------
 --------------------------------------------------------------------------
 Applying pre-selections on sample: /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/closedVELO_notSelected.root:DecayTree
-The applied cut is: ((B_Tr_T_ISMUON == 1) & (B_Tr_T_PIDmu >-11.222) & (B_Tr_T_PIDe < 1.498) & (B_Tr_T_BPVZ == B_BPVZ) & (B_Tr_T_BPVY == B_BPVY) & (B_Tr_T_BPVX == B_BPVX) )
+The applied cut is: ((Bp_Tr_T_ISMUON == 1) & (Bp_Tr_T_PIDmu >-11.222) & (Bp_Tr_T_PIDe < 1.498) & (Bp_Tr_T_BPVZ == Bp_BPVZ) & (Bp_Tr_T_BPVY == Bp_BPVY) & (Bp_Tr_T_BPVX == Bp_BPVX) )
 Pre-selections applied. NTuple saved at /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/OSMuon/closedVELO_selected_optimized.root
 71823 tracks among the 6328965 total tracks have been selected as tagging particles
 Training set has 9582 rows
@@ -284,7 +284,7 @@ splitting: [array([0.09720343, 0.10064855, 0.1072765 , ..., 0.4117256 , 0.411732
 [1m[97m INFO [0m pdf file OSMuon_Calibration.pdf has been created
 Tagger parameters saved at /ceph/users/molocco/classical-taggers/results/Bu2JpsiK/OSMuon/moreData_closedVELO_seed42_0.001_500_75_optimized
 Applying pre-selections on sample: /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/closedVELO_notSelected.root:DecayTree
-The applied cut is: (((B_Tr_T_PIDK>5.49 )& ((B_Tr_T_PROBNN_K >0.717) | (B_Tr_T_PIDe <1.917 & B_Tr_T_PROBNN_P <0.99)) & (B_Tr_T_ISMUON == 0) & (B_Tr_T_BPVZ == B_BPVZ) & (B_Tr_T_BPVY == B_BPVY) & (B_Tr_T_BPVX == B_BPVX)) & (B_Tr_T_IPSig > 2.3727272727272726))
+The applied cut is: (((Bp_Tr_T_PIDK>5.49 )& ((Bp_Tr_T_PROBNN_K >0.717) | (Bp_Tr_T_PIDe <1.917 & Bp_Tr_T_PROBNN_P <0.99)) & (Bp_Tr_T_ISMUON == 0) & (Bp_Tr_T_BPVZ == Bp_BPVZ) & (Bp_Tr_T_BPVY == Bp_BPVY) & (Bp_Tr_T_BPVX == Bp_BPVX)) & (Bp_Tr_T_IPSig > 2.3727272727272726))
 Pre-selections applied. NTuple saved at /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/OSKaon/closedVELO_selected_optimized.root
 79045 tracks among the 6328965 total tracks have been selected as tagging particles
 Training set has 10710 rows
@@ -562,7 +562,7 @@ splitting: [array([0.14542552, 0.15359384, 0.16152115, ..., 0.36399154, 0.363992
 [1m[97m INFO [0m pdf file OSKaon_Calibration.pdf has been created
 Tagger parameters saved at /ceph/users/molocco/classical-taggers/results/Bu2JpsiK/OSKaon/moreData_closedVELO_seed42_0.001_500_75_optimized
 Applying pre-selections on sample: /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/closedVELO_notSelected.root:DecayTree
-The applied cut is: ((B_Tr_T_PIDe>0.93) & (B_Tr_T_ISMUON == 0) & (B_Tr_T_BPVZ == B_BPVZ) & (B_Tr_T_BPVY == B_BPVY) & (B_Tr_T_BPVX == B_BPVX) )
+The applied cut is: ((Bp_Tr_T_PIDe>0.93) & (Bp_Tr_T_ISMUON == 0) & (Bp_Tr_T_BPVZ == Bp_BPVZ) & (Bp_Tr_T_BPVY == Bp_BPVY) & (Bp_Tr_T_BPVX == Bp_BPVX) )
 Pre-selections applied. NTuple saved at /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/OSElectron/closedVELO_selected_optimized.root
 109951 tracks among the 6328965 total tracks have been selected as tagging particles
 Training set has 14944 rows
@@ -841,7 +841,7 @@ splitting: [array([0.05021609, 0.06062523, 0.07139591, ..., 0.43829467, 0.438294
 [1m[97m INFO [0m pdf file OSElectron_Calibration.pdf has been created
 Tagger parameters saved at /ceph/users/molocco/classical-taggers/results/Bu2JpsiK/OSElectron/moreData_closedVELO_seed42_0.001_500_75_optimized
 Applying pre-selections on sample: /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/closedVELO_notSelected.root:DecayTree
-The applied cut is: (((B_Tr_T_PIDK>5.49 )& ((B_Tr_T_PROBNN_K >0.717) | (B_Tr_T_PIDe <1.917 & B_Tr_T_PROBNN_P <0.99)) & (B_Tr_T_ISMUON == 0) & (B_Tr_T_BPVZ == B_BPVZ) & (B_Tr_T_BPVY == B_BPVY) & (B_Tr_T_BPVX == B_BPVX)) & (B_Tr_T_IPSig < 2.3727272727272726))
+The applied cut is: (((Bp_Tr_T_PIDK>5.49 )& ((Bp_Tr_T_PROBNN_K >0.717) | (Bp_Tr_T_PIDe <1.917 & Bp_Tr_T_PROBNN_P <0.99)) & (Bp_Tr_T_ISMUON == 0) & (Bp_Tr_T_BPVZ == Bp_BPVZ) & (Bp_Tr_T_BPVY == Bp_BPVY) & (Bp_Tr_T_BPVX == Bp_BPVX)) & (Bp_Tr_T_IPSig < 2.3727272727272726))
 Pre-selections applied. NTuple saved at /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/SSKaon/closedVELO_selected_optimized.root
 235435 tracks among the 6328965 total tracks have been selected as tagging particles
 Training set has 31884 rows
@@ -1119,7 +1119,7 @@ splitting: [array([0.08967627, 0.1083731 , 0.13447809, ..., 0.43084222, 0.430842
 [1m[97m INFO [0m pdf file SSKaon_Calibration.pdf has been created
 Tagger parameters saved at /ceph/users/molocco/classical-taggers/results/Bu2JpsiK/SSKaon/moreData_closedVELO_seed42_0.001_500_75_optimized
 Applying pre-selections on sample: /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/closedVELO_notSelected.root:DecayTree
-The applied cut is: (((B_Tr_T_CHI2DOF < 0.74) & (B_Tr_T_PIDP<-2.386)) | ((B_Tr_T_PIDP > 6.477) &(B_Tr_T_GHOSTPROB < 0.37) & ((B_Tr_T_PROBNN_P > 0.604) | ((B_Tr_T_PROBNN_P < 0.604) & (B_Tr_T_PROBNN_K < 0.999) & (B_Tr_T_PIDe <3.298)) )) & (B_Tr_T_ISMUON == 0) & (B_Tr_T_BPVZ == B_BPVZ) & (B_Tr_T_BPVY == B_BPVY) & (B_Tr_T_BPVX == B_BPVX))
+The applied cut is: (((Bp_Tr_T_CHI2DOF < 0.74) & (Bp_Tr_T_PIDP<-2.386)) | ((Bp_Tr_T_PIDP > 6.477) &(Bp_Tr_T_GHOSTPROB < 0.37) & ((Bp_Tr_T_PROBNN_P > 0.604) | ((Bp_Tr_T_PROBNN_P < 0.604) & (Bp_Tr_T_PROBNN_K < 0.999) & (Bp_Tr_T_PIDe <3.298)) )) & (Bp_Tr_T_ISMUON == 0) & (Bp_Tr_T_BPVZ == Bp_BPVZ) & (Bp_Tr_T_BPVY == Bp_BPVY) & (Bp_Tr_T_BPVX == Bp_BPVX))
 Pre-selections applied. NTuple saved at /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/SSProton/closedVELO_selected_optimized.root
 563998 tracks among the 6328965 total tracks have been selected as tagging particles
 Training set has 76176 rows
@@ -1407,7 +1407,7 @@ splitting: [array([0.11614974, 0.1299727 , 0.13229385, ..., 0.45667004, 0.456672
 [1m[97m INFO [0m pdf file SSProton_Calibration.pdf has been created
 Tagger parameters saved at /ceph/users/molocco/classical-taggers/results/Bu2JpsiK/SSProton/moreData_closedVELO_seed42_0.001_500_75_optimized
 Applying pre-selections on sample: /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/closedVELO_notSelected.root:DecayTree
-The applied cut is: (((B_Tr_T_PIDK<-0.001) & (B_Tr_T_PIDe<0.727)) | ((B_Tr_T_PIDK>-0.001) & (B_Tr_T_PROBNN_PI>0.392) & (B_Tr_T_PT>113.238)))
+The applied cut is: (((Bp_Tr_T_PIDK<-0.001) & (Bp_Tr_T_PIDe<0.727)) | ((Bp_Tr_T_PIDK>-0.001) & (Bp_Tr_T_PROBNN_PI>0.392) & (Bp_Tr_T_PT>113.238)))
 Pre-selections applied. NTuple saved at /ceph/users/molocco/classical-taggers/root/Bu2JpsiK/SSPion/closedVELO_selected_optimized.root
 3506052 tracks among the 6328965 total tracks have been selected as tagging particles
 Training set has 473277 rows
