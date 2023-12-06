@@ -2,7 +2,7 @@
 repoPath = "/ceph/users/molocco/classical-taggers/"
 
 # sample type: openVELO or closedVELO
-sample_type = 'closedVELO'
+sample_type = 'openVELO'
 
 grid_n = None # For the grid search. Set to None if no grid is used
 KaonCombiner = False
