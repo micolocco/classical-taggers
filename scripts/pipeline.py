@@ -131,7 +131,7 @@ if config.training:
 
     pyTrain.plot_features(df.iloc[train_dl.dataset.indices], name_formatter, name=f'{config.model_name}_inputFeatures')
     model = NeuralNetwork(modelName = config.model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = config.n_epochs, earlyStop = config.earlyStop) # earlyStop must be < n_epochs
+    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = config.n_epochs) 
     pyTrain.plot_losses(config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, name_formatter)
     pyTrain.save_losses(config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, name_formatter)
     
