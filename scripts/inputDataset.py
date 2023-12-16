@@ -39,8 +39,5 @@ class inputDataset(Dataset):
         # determine sizes
         train_size = int(n_train * len(self.X))
         val_size = len(self.X) - train_size
-        if val_size < 1:
-            print("Pre-selection cuts are too tight")
-            exit()
         # Split dataset into train, validation and test
         return random_split(self, np.array([train_size, val_size]))
