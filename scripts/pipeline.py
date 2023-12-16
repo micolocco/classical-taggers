@@ -89,7 +89,7 @@ else:
 	print(f"Reading input file: {selected_rootPath}")
 	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['Bp_TRUEID','Bp_Tr_T_Charge','selected_track', 'entry'], library = "pd" )
 
-df = df.sample(frac=1).reset_index(drop=True)
+df = df.sample(frac=1, random_state=1).reset_index(drop=True)
 df.dropna(inplace = True)  
 print(f"{df[df.selected_track==1].shape[0]} tracks among the {df.shape[0]} total tracks have been selected as tagging particles")
 
@@ -114,7 +114,7 @@ columns_to_drop = ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID',]
 # Train the model
 if config.training: 
     #train_df, test_df = train_test_split(df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']], test_size=0.3)    
-    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']].sample(frac=(config.test_split), random_state=20)
+    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']].sample(frac=(config.train_split), random_state=20)
 
     test_df = df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']].drop(train_df.index)
     # Save test dataframe for calibration
