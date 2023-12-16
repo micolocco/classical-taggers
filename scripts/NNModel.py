@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score
 import configParameters as config
 
 class NeuralNetwork(nn.Module):
+
     torch.manual_seed(config.seed) # needed to be sure the result is reproducible
 
     def __init__(self, modelName, features, optimizer=torch.optim.Adam, optimizer_kwargs={}, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024 ): #originally 75, for testing purpose changed to 200
@@ -18,13 +19,13 @@ class NeuralNetwork(nn.Module):
         self.NN = nn.Sequential(
             nn.Linear(len(self.features), 32),
             nn.Dropout(0.5),
-            nn.ReLU(),
+            nn.ELU(), #ELU, ReLU
             nn.Linear(32, 64),
             nn.Dropout(0.5),
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(64, 32),
             nn.Dropout(0.5),
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(32, 1),
             nn.Sigmoid()
         )
@@ -87,4 +88,21 @@ class NeuralNetwork(nn.Module):
         # calculate accuracy
         return predictions, actuals
   
+class EarlyStopper:
+
+    def __init__(self, patience=5, min_delta=0.001):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
 

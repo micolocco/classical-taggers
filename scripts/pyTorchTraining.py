@@ -12,7 +12,8 @@ from sklearn.metrics import auc, roc_curve
 from sklearn.linear_model import LogisticRegression
 import pickle
 from scipy.special import expit
-
+from NNModel import EarlyStopper
+import configParameters as config
 
 def prepare_data(train_df, scalerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
@@ -49,7 +50,7 @@ def plot_features(data, name_formatter, name, folder='plots', nbins=100):
     except Exception as e:
         print(col,e)
 
-def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = 500, earlyStop = 75):
+def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = 500):
        
         trainingEpoch_loss = []
         validationEpoch_loss = []
@@ -60,6 +61,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_
         bestEpoch = 0
 
         training_start = time.time()
+        early_stopper = EarlyStopper(patience=config.patience, min_delta=config.min_delta)
 
         i = 1
         for epoch in range(n_epochs):
@@ -72,26 +74,36 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_
             validationStep_loss = model.validate_model(validation_dl)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
             print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s") 
-            if epoch > earlyStop:  # check the termination condition
-                rollingAverageNew = np.mean(validationEpoch_loss[-earlyStop:])
-                if validationEpoch_loss[-1] < lossValBest:
-                    lossValBest = validationEpoch_loss[-1]
-                    lossTrainBest = trainingEpoch_loss[-1]
-                    bestEpoch = epoch
-                    save_model(model, name_formatter)
-                    bestModel = copy.deepcopy(model)
-                    
-            if epoch > (earlyStop +1):
-                if rollingAverageNew > rollingAverageOld:
-                    stopped = True 
-                    break
-                rollingAverageOld = rollingAverageNew 
-
+            if early_stopper.early_stop(validationEpoch_loss[-1]): 
+                stopped = True 
+                break
+            if early_stopper.counter == 0:
+                lossValBest = validationEpoch_loss[-1]
+                lossTrainBest = trainingEpoch_loss[-1]
+                bestEpoch = epoch
+                save_model(model, name_formatter)
+                bestModel = copy.deepcopy(model)
             i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
         print(f"Training finished in {training_time} min, {i} epochs, early stopping: {stopped}")
         return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
-        
+            #if epoch > earlyStop:  # check the termination condition
+            #    rollingAverageNew = np.mean(validationEpoch_loss[-earlyStop:])
+            #    if validationEpoch_loss[-1] < lossValBest:
+            #        lossValBest = validationEpoch_loss[-1]
+            #        lossTrainBest = trainingEpoch_loss[-1]
+            #        bestEpoch = epoch
+            #        save_model(model, name_formatter)
+            #        bestModel = copy.deepcopy(model)
+            #        
+            #if epoch > (earlyStop +1):
+            #    if rollingAverageNew > rollingAverageOld:
+            #        stopped = True 
+            #        break
+            #    rollingAverageOld = rollingAverageNew 
+            
+        #return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, dtype=float)
+
 def save_model(model, name_formatter):
     
     folder = 'savedModels'
@@ -253,7 +265,7 @@ def calibration(modelName, tagger, df_tag, eventType, name_formatter):
     import json 
 
     taggers = ft.TaggerCollection()
-    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), Bp_ID = df_tag.Bp_TRUEID.tolist(),mode = eventType[:2])
+    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.Bp_TRUEID.tolist(),mode = eventType[:2])
     taggers.set_calibration(ft.PolynomialCalibration(npar = 2,link =  ft.link.mistag))
     taggers.calibrate()
 
