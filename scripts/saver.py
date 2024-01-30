@@ -1,7 +1,7 @@
 
 class Saver():
     
-    def __init__(self, eventType, tagger, repoPath, KaonCombiner, grid_n, optimized):
+    def __init__(self, sample_type, eventType, tagger, repoPath, KaonCombiner, grid_n, optimized):
         
         self.eventType = eventType
         self.tagger = tagger
@@ -9,11 +9,12 @@ class Saver():
         self.KaonCombiner = KaonCombiner
         self.grid_n = grid_n
         self.optimized = optimized
+        self.sample_type = sample_type
 
     # Define name format according to conditions set in configuration file
     def assign_name(self, folder, name):
         
-        prePath = f'{self.repoPath}{folder}/{self.eventType}/{self.tagger}/'
+        prePath = f'{self.repoPath}{folder}/{self.sample_type}/{self.eventType}/{self.tagger}/'
         if self.grid_n != None: 
             if self.KaonCombiner:
                 name = name + f"_combiner_{self.grid_n}"

@@ -1,1 +1,0 @@
-(((B_Tr_T_CHI2DOF < 0.74) & (B_Tr_T_PIDP<-2.386)) | ((B_Tr_T_PIDP > 6.477) &(B_Tr_T_GHOSTPROB < 0.37) & ((B_Tr_T_PROBNN_P > 0.604) | ((B_Tr_T_PROBNN_P < 0.604) & (B_Tr_T_PROBNN_K < 0.999) & (B_Tr_T_PIDe <3.298)) )) & (B_Tr_T_ISMUON == 0) & (B_Tr_T_BPVZ == B_BPVZ) & (B_Tr_T_BPVY == B_BPVY) & (B_Tr_T_BPVX == B_BPVX))
