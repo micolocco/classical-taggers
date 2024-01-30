@@ -13,3 +13,4 @@ lhcb-metainfo/
 __pycache__/
 Data/*
 os_commands.py
+scaler_old
