@@ -11,6 +11,7 @@ savedModels/*
 lhcb-metainfo/
 .snakemake/
 __pycache__/
-Data/*
+Data/**
+Data/PyConf-create-lhcb-metadata-git-repo.lock
 os_commands.py
 scaler_old
