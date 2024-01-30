@@ -18,7 +18,7 @@ Data/moore_scripts/LFNs/**/LFN_*.txt
 Data/moore_scripts/SM_lines/*
 !Data/moore_scripts/SM_lines/produce_lines.py
 !Data/moore_scripts/SM_lines/template.txt
-logs/
+*/*log
 Data/daVinci_scripts/*
 !Data/daVinci_scripts/template.txt
 !Data/daVinci_scripts/produce_options.lhcb-metainfo
@@ -31,3 +31,4 @@ Data/PyConf-create-lhcb-metadata-git-repo.lock
 Data/daVinci_scripts/Bu2JpsiK/output/hlt2_SM_0.dst
 results/
 scripts/debug/
+os_commands.py
