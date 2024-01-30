@@ -35,7 +35,7 @@ class inputDataset(Dataset):
         return [self.X[index], self.y[index]]
     
     # Get indexes for train and test rows
-    def get_splits(self, n_train = 0.8):
+    def get_splits(self, n_train = 0.7):
         # determine sizes
         train_size = int(n_train * len(self.X))
         val_size = len(self.X) - train_size

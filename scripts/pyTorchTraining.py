@@ -14,6 +14,21 @@ import pickle
 from scipy.special import expit
 from NNModel import EarlyStopper
 import configParameters as config
+import json 
+
+
+
+def splitByEvent (df):
+    import random
+    '''Function to random split by events (not by index) the dataset into training and test set
+    Use random.Random(2) to reproduce same shuffling''' 
+    events_list = np.unique(df.entry)
+    random.Random(2).shuffle(events_list) 
+    n_train = int(config.train_split*len(events_list))
+    train_df = df[df.entry.isin(events_list[:n_train])]
+    test_df = df[df.entry.isin(events_list[n_train:])]
+    return train_df, test_df
+
 
 def prepare_data(train_df, scalerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
@@ -26,7 +41,7 @@ def prepare_data(train_df, scalerPath, train_batch_size = 32, test_batch_size = 
     return train_dl, validation_dl 
 
 
-def plot_features(data, name_formatter, name, folder='plots', nbins=100):
+def plot_features(data, target_path, name, folder='target_path', nbins=100):
 
     # Plot input features 
     plt.figure(figsize=(24,50))
@@ -34,7 +49,7 @@ def plot_features(data, name_formatter, name, folder='plots', nbins=100):
         for i, col in enumerate(data.columns.to_list()):
             plt.subplot(10, 3, i + 1)
             
-            if col == 'Bp_Tr_T_BPVIP':
+            if col == 'B_Tr_T_BPVIP':
                 plotting_data = data[data[col]<2.5]
                 plt.hist(plotting_data[col][plotting_data['label']==0], density = True, bins=nbins, label = "Label = 0",color='b', alpha=0.5)
                 plt.hist(plotting_data[col][plotting_data['label']==1], density = True, bins=nbins, label = "Label = 1",color='r', alpha=0.5)
@@ -45,13 +60,13 @@ def plot_features(data, name_formatter, name, folder='plots', nbins=100):
             plt.legend()
             plt.title(col)
             plt.tight_layout()
-        saveName = name_formatter.assign_name(folder, name)
-        plt.savefig(f"{saveName}.pdf")
+        #saveName = name_formatter.assign_name(folder, name)
+        plt.savefig(f"{target_path}/input_features.pdf")
     except Exception as e:
         print(col,e)
 
-def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = 500):
-       
+def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epochs = 500):
+        
         trainingEpoch_loss = []
         validationEpoch_loss = []
         lossValBest = 10000
@@ -66,7 +81,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_
         i = 1
         for epoch in range(n_epochs):
             epoch_start = time.time()
-            print(f"--------------Epoch:{epoch}/{n_epochs-1}-------------")
+            print(f"--------------Epoch:{epoch+1}/{n_epochs}-------------")
             stepLoss = model.train_model(train_dl, epoch, n_epochs)
             # Train over mini-batches
             trainingEpoch_loss.append(np.array(stepLoss).mean())
@@ -81,9 +96,9 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_
                 lossValBest = validationEpoch_loss[-1]
                 lossTrainBest = trainingEpoch_loss[-1]
                 bestEpoch = epoch
-                save_model(model, name_formatter)
+                save_model(model, target_path)
                 bestModel = copy.deepcopy(model)
-            i +=1
+                i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
         print(f"Training finished in {training_time} min, {i} epochs, early stopping: {stopped}")
         return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
@@ -104,29 +119,42 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_
             
         #return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, dtype=float)
 
-def save_model(model, name_formatter):
+def save_model(model, target_path):
+    # target_path = name_formatter.assign_name(folder, target_path)
+    torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/{model.modelName}_model.pth")
+    save_hyperparameters(model, target_path)
+
+def save_hyperparameters(model, target_path):
+    info_dict = {
+                'ModelName:' : model.modelName, 
+                'learning_rate' : config.learning_rate,
+                'patience' : config.patience,
+                'min_delta' : config.min_delta,
+                'activation_function' : config.activation_function,
+                'n_epochs' : config.n_epochs,
+                'train_split' : config.train_split,
+                'randomSeed' : config.seed
+                }
+    with open(f"{target_path}/hyperparameters.json", "w") as f:
+        json.dump(info_dict, f)
+
+
+def load_model(model, target_path):
+   # target_path = name_formatter.assign_name(folder, target_path)    
+    # saveName = name_formatter.assign_name(target_path, model.modelName)
+    model.load_state_dict(torch.load(f"{target_path}/{model.modelName}_model.pth"))
     
-    folder = 'savedModels'
-    saveName = name_formatter.assign_name(folder, model.modelName)
-    torch.save(copy.deepcopy(model.state_dict()), f"{saveName}_Model.pth")
 
-def load_model(model, name_formatter):
-
-    folder = 'savedModels'
-    saveName = name_formatter.assign_name(folder, model.modelName)
-    model.load_state_dict(torch.load(f"{saveName}_Model.pth"))
+def save_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     
+    folder = f'{target_path}/losses'
+    os.mkdir(f'{folder}')
+    #saveName = name_formatter.assign_name(folder, name)
+    np.savetxt(f"{folder}/test.csv", valLoss, delimiter=",")
+    np.savetxt(f"{folder}/train.csv", trainLoss, delimiter=",")
+    np.savetxt(f"{folder}/best.csv", [bestEpoch,bestLosses[0],bestLosses[1]], delimiter=",")
 
-def save_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, name_formatter):
-    
-    folder = 'csv'
-    name = 'losses/' + name
-    saveName = name_formatter.assign_name(folder, name)
-    np.savetxt(f"{saveName}_Test.csv", valLoss, delimiter=",")
-    np.savetxt(f"{saveName}_Train.csv", trainLoss, delimiter=",")
-    np.savetxt(f"{saveName}_Best.csv", [bestEpoch,bestLosses[0],bestLosses[1]], delimiter=",")
-
-def plot_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, name_formatter):
+def plot_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     
     plt.figure()
     plt.plot(trainLoss, label='Training loss', c = 'orange')
@@ -134,11 +162,9 @@ def plot_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, name_formatter)
     plt.plot((bestEpoch, bestEpoch), (bestLosses[0], bestLosses[1]) ,"k--", label = "Best epoch")
     plt.legend(loc = "best")
     plt.title(name)
-    folder = 'plots'
-    saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_Loss.pdf")
+    plt.savefig(f"{target_path}/Loss.pdf")
    
-def plot_ROC(name, yPred, yTrue, name_formatter, yPredTrain = None, yTrueTrain = None):
+def plot_ROC(name, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = None):
     
     plt.figure()
     lw  = 2
@@ -153,25 +179,24 @@ def plot_ROC(name, yPred, yTrue, name_formatter, yPredTrain = None, yTrueTrain =
     plt.title(f'ROC curve ')
     folder = 'plots'
     plt.legend(loc="lower right")
-    saveName = name_formatter.assign_name(folder, name)
+    #.assign_name(folder, name)
     if yPredTrain is not None:
         fpr, tpr,_ = roc_curve(yTrueTrain, yPredTrain)
         roc_auc = round(auc(fpr, tpr),5)
         plt.plot(fpr, tpr, color='darkorange',lw=lw, label=f'Train (area = {roc_auc})' )
         plt.legend(loc="lower right")
-        plt.savefig(f"{saveName}_ROC_TRAIN_VAL.pdf")
+        plt.savefig(f"{target_path}/ROC_TRAIN_VAL.pdf")
     else:
-        plt.savefig(f"{saveName}_ROC_TEST.pdf")
+        plt.savefig(f"{target_path}/ROC_TEST.pdf")
 
-def logistic_regression(yPredTrain, yTrueTrain, name_formatter, name):
+def logistic_regression(yPredTrain, yTrueTrain, target_path, name):
     
     clf = LogisticRegression().fit(yPredTrain, yTrueTrain.ravel())  
-    folder = "savedModels"
-    prePath = name_formatter.assign_name(folder, name)
-    pickle.dump(clf , open(f"{prePath}_LogReg.pck" , "wb"))
+    #prePath = target_path.assign_name(folder, name)
+    pickle.dump(clf , open(f"{target_path}/LogReg.pck" , "wb"))
     return clf
 
-def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, name_formatter, nbins=100):
+def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, target_path, nbins=100):
     
     plt.figure()
     LR_test = np.linspace(0, 1, 300)
@@ -183,8 +208,8 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
     plt.plot(LR_test, loss ,color = "k")
     plt.legend(loc = "best")
     folder = 'plots'
-    saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_LogReg.pdf")
+   # saveName = name_formatter.assign_name(folder, name)
+    plt.savefig(f"{target_path}/LogReg.pdf")
     
     prob_train_0_height , prob_train_0_bin_edges= np.histogram(yPredTrain[yTrueTrain == 0] , bins = nbins, density = True)
     prob_train_0_bin_edges = prob_train_0_bin_edges[:len(prob_train_0_bin_edges)-1]+ (prob_train_0_bin_edges[1]-prob_train_0_bin_edges[0])/2
@@ -221,12 +246,12 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
     axs[1].grid()
     axs[1].legend(loc = "best")
 
-    folder = 'plots'
-    saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_NNoutput_mistag.pdf")
+    #folder = 'plots'
+    #saveName = name_formatter.assign_name(folder, name)
+    plt.savefig(f"{target_path}/NNoutput_mistag.pdf")
     plt.close()
 
-def plot_mistag(name, clf, yPred, yTrue, name_formatter, type, nbins=100):
+def plot_mistag(name, clf, yPred, yTrue, target_path, type, nbins=100):
 
     plt.figure()
     plt.title("Mistag rate")
@@ -238,11 +263,11 @@ def plot_mistag(name, clf, yPred, yTrue, name_formatter, type, nbins=100):
     plt.grid()
     plt.ylabel("Normalized number of tracks")
     plt.legend(loc = "best")
-    folder = 'plots'
-    saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_mistag_{type}.pdf")
+   # folder = 'plots'
+   # saveName = name_formatter.assign_name(folder, name)
+    plt.savefig(f"{target_path}/mistag_{type}.pdf")
 
-def plot_tagDec(df_TagParticles, name, name_formatter, nbins=100):
+def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.title(r"$\eta$ TagParticle")
@@ -253,36 +278,35 @@ def plot_tagDec(df_TagParticles, name, name_formatter, nbins=100):
     plt.xlabel(r"$\eta$")
     plt.ylabel("Normalized number of tracks")
     plt.legend(loc = "best")
-    folder = 'plots'
-    saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{saveName}_mistag_TagDec.pdf")
+    #folder = 'plots'
+    #aveName = name_formatter.assign_name(folder, name)
+    plt.savefig(f"{target_path}/mistag_TagDec.pdf")
     plt.close()
 
-def calibration(modelName, tagger, df_tag, eventType, name_formatter):
+def calibration(modelName, tagger, df_tag, eventType, target_path):
 
     #Calibration of the taggers and parameters saving
     import lhcb_ftcalib as ft
-    import json 
 
     taggers = ft.TaggerCollection()
-    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.Bp_TRUEID.tolist(),mode = eventType[:2])
+    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = eventType[:2])
     taggers.set_calibration(ft.PolynomialCalibration(npar = 2,link =  ft.link.mistag))
     taggers.calibrate()
 
     # Plotting of calibration curves
-    folder = 'calibrationPlots'
-    saveName = name_formatter.assign_name(folder, modelName)
-    if os.path.isdir(saveName) == False:
-            os.system(f"mkdir {saveName}")
-    taggers.plot_calibration_curves(savepath = saveName, omega_range="minimal", nbins=10)
+   # folder = 'calibrationPlots'
+   # saveName = name_formatter.assign_name(folder, modelName)
+  #  if os.path.isdir(saveName) == False:
+       #     os.system(f"mkdir {saveName}")
+    taggers.plot_calibration_curves(savepath = target_path, omega_range="minimal", nbins=10)
 
-    folder = 'results'
-    saveName = name_formatter.assign_name(folder, modelName)
+    #folder = 'results'
+   # saveName = name_formatter.assign_name(folder, modelName)
     info_dict = {"TaggingEfficiency" : taggers[tagger].stats.tagging_efficiency(calibrated = False),
     "TaggingPower" : taggers[tagger].stats.tagging_power(calibrated = False) ,
     "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True), "TaggingPower_Cali" : taggers[tagger].stats.tagging_power(calibrated = True),
     "EffectiveMistag_Cali" : taggers[tagger].stats.effective_mistag(calibrated = True) , "EffectiveMistag" : taggers[tagger].stats.effective_mistag(calibrated = False) }
-    with open(f"{saveName}_taggingInfo.json", "w") as f:
+    with open(f"{target_path}/taggingInfo.json", "w") as f:
         json.dump(info_dict, f)
-    print(f"Tagger parameters saved at {saveName}")
+    print(f"Tagger parameters saved at {target_path}")
 

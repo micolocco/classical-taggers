@@ -1,6 +1,3 @@
-SSPion
-SSProton
-SSKaon
 OSKaon
 OSMuon
 OSElectron
