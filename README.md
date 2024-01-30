@@ -5,6 +5,7 @@
  python -c 'import scripts.dir_checker; scripts.dir_checker.data_make_dir("<sample_type>")'
  example:  python -c 'import scripts.dir_checker; scripts.dir_checker.data_make_dir("noUT_MC_2024")'
 ```
+## Training/calibration
 Instructions for training and calibrating the taggers. In the `scripts` folder:
 - `confParameters.py`: configuration file. It's the only file that need to be modified by the user according to the task wanted (ex. training+calibration, calibration only, preselection on/off).
 - `pipeline.py`: main script. Usage:
