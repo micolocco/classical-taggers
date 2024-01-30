@@ -1,4 +1,3 @@
-from dir_checker import check_directories
 import sys
 import numpy as np
 import pyTorchTraining as pyTrain
@@ -15,60 +14,61 @@ from inputDataset import inputDataset
 from torch.utils.data import DataLoader
 import pickle
 from matplotlib import pyplot as plt
-
-
+from IPython import embed
+from datetime import datetime   
+import os
+import dir_checker
 
 # Decay and tagger type are given as inputs by the user 
-eventType = sys.argv[1]
+decayType = sys.argv[1]
 tagger = sys.argv[2]
 
-# Check whether the specified directories exist, otherwise create them
-directory_list = ["calibrationPlots", "plots", "results", "root", "scaler", "csv", "cuts", "savedModels"]
-check_directories(config.repoPath, directory_list, eventType, tagger)
-
-#Definiton of the object that will be used for saving in the right name format
-name_formatter = Saver(eventType, tagger, config.repoPath, config.KaonCombiner, config.grid_n, config.optimized)
-
 # Definition of the features for the NN and the selection variables   
-features = ["Bp_Tr_T_cos_diff_Phi",
-        "Bp_Tr_T_PhiDistance",
-        "Bp_Tr_T_PT",
-        "Bp_Tr_T_CHI2DOF",
-        "Bp_Tr_T_BPVIP",
-        "Bp_Tr_T_GHOSTPROB",
-        "Bp_Tr_T_IPSig",
+features = ["B_Tr_T_cos_diff_Phi",
+        "B_Tr_T_PhiDistance",
+        "B_Tr_T_PT",
+        "B_Tr_T_CHI2DOF",
+        "B_Tr_T_BPVIP",
+        "B_Tr_T_GHOSTPROB",
+        "B_Tr_T_IPSig",
         "diff_P",
-        "Bp_Tr_T_EtaDistance",
+        "B_Tr_T_EtaDistance",
         "P_proj",
         "EVIP"]
 
 if "OS" in tagger:
     if config.optimized:
-        features = features +["Bp_Tr_T_absIP"]
+        features = features +["B_Tr_T_absIP"]
 
 # Make sure no feature is doubled 
 features = np.unique(features).tolist()
 
-prefix = f'all_{config.sample_type}'
-notSelected_rootPath = f"{config.repoPath}root/{eventType}/{prefix}_notSelected.root:DecayTree"
+notSelected_rootPath = f"{config.repoPath}Data/{config.sample_type}/2_added_features/{decayType}/notSelected.root:DecayTree"
 # Path to the ROOT input file
-folder = "root"
-rootPrePath = name_formatter.assign_name(folder,f"{config.sample_type}_selected")
-selected_rootPath = f"{rootPrePath}.root"
+selected_rootPath = f"{config.repoPath}Data/{config.sample_type}/3_selected/{decayType}/selected.root"
+
+# Check and eventually make output directory
+dir_checker.make_dir(config.repoPath, config.sample_type, decayType)
+
+# Directory that will be used for saving training/calibration or reading information for the calibration
+if config.training:
+    target_dir = datetime.now().strftime("%d_%m_%Y:%H%M%S")
+    os.mkdir(f'{config.repoPath}savedModels/{config.sample_type}/{decayType}/{tagger}/{target_dir}')
+else:
+    target_dir = config.target_dir
+    if target_dir is None:
+        raise ValueError('target_dir must be set to an existing directory in configParameters.py')
+
+target_path = f'{config.repoPath}savedModels/{config.sample_type}/{decayType}/{tagger}/{target_dir}'
 
 # Path to where the scaler parameters will be saved
-folder = "scaler"
-scalerPrePath = name_formatter.assign_name(folder, f"{config.sample_type}_stdScaler")
-scalerPath = f"{scalerPrePath}.pkl"
+scalerPath = f"{target_path}/scaler.pkl"
 
 # Path to where the test set will be saved
-folder = "csv"
-testSetPrePath = name_formatter.assign_name(folder, f"{config.sample_type}_testSet")
-testSetPath = f"{testSetPrePath}.csv"
+testSetPath = f"{target_path}/testSet.csv"
 
-selection_variables = ["entry", "Bp_Tr_T_PROBNN_K", "Bp_Tr_T_P" , "Bp_Tr_T_ISMUON", "Bp_Tr_T_BPVX" , "Bp_BPVX" , 
-                        "Bp_Tr_T_BPVY" ,"Bp_BPVY" ,"Bp_Tr_T_BPVZ" , "Bp_BPVZ","Bp_Tr_T_Charge", "Bp_TRUEID", "Bp_Tr_T_absIP",
-                        "Bp_Tr_T_PROBNN_PI", "Bp_Tr_T_PROBNN_P", "Bp_Tr_T_PROBNN_E", "Bp_Tr_T_PIDe", "Bp_Tr_T_PIDK", "Bp_Tr_T_PIDmu"]
+#selection_variables = ['entry','B_Tr_T_P', 'B_Tr_T_TRACKISLONG', 'DOF', 'B_Tr_T_ISMUON', 'B_Tr_T_GHOSTPROB', 'B_Tr_T_PROBNN_MU', 'B_Tr_T_PROBNN_PI', 'B_Tr_T_PROBNN_P', 'B_Tr_T_PROBNN_E', 'B_Tr_T_PROBNN_K', 'B_Tr_T_IPSig', 'B_Tr_T_absIP', 'B_Tr_T_PIDK', 'B_Tr_T_IPSig', 'B_Tr_T_absID', 'B_Tr_T_P', 'B_Tr_T_PT', 'B_Tr_T_ISMUON', 'DOF', 'B_Tr_T_IPSig', 'B_Tr_T_PIDmu', 'B_Tr_T_GHOSTPROB', 'B_Tr_T_PROBNN_PI', 'B_Tr_T_PROBNN_E', 'B_Tr_T_PROBNN_K', 'B_Tr_T_PROBNN_P']
+selection_variables = ['entry','B_Tr_T_ISMUON', 'B_Tr_T_CHI2DOF', 'B_TRUEID','B_Tr_T_Charge']
 
 start = time.time()
 
@@ -77,46 +77,46 @@ loading_variables = features + selection_variables
 loading_variables = np.unique(loading_variables).tolist() 
 if "SS" in tagger:
     particle = tagger.removeprefix("SS")
-    loading_variables += ["Bp_Tr_T_DeltaQ_" + particle]
+    loading_variables += ["B_Tr_T_DeltaQ_" + particle]
     if particle in ("Proton", "Pion"):
-        loading_variables += ["Bp_Tr_T_PIDP"]
+        loading_variables += ["B_Tr_T_PIDP"]
 
 # Reading dataset
 if config.preSelected == False:
-    df = preSel.apply_preSelections(notSelected_rootPath, loading_variables, selected_rootPath, name_formatter, config.repoPath, eventType, tagger)[features + ['entry', 'Bp_TRUEID', 'Bp_Tr_T_Charge','selected_track']]
+    cut_file = f'{config.repoPath}cuts/{config.sample_type}/{decayType}/{tagger}/{config.cut_file}'
+    df = preSel.apply_preSelections(notSelected_rootPath, cut_file, loading_variables, selected_rootPath)[features + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','selected_track']]
     
 else:
 	print(f"Reading input file: {selected_rootPath}")
-	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['Bp_TRUEID','Bp_Tr_T_Charge','selected_track', 'entry'], library = "pd" )
+	df = uproot.open(f"{selected_rootPath}:DecayTree").arrays(features + ['B_TRUEID','B_Tr_T_Charge','selected_track', 'entry'], library = "pd" )
 
-df = df.sample(frac=1, random_state=1).reset_index(drop=True)
+df = df.sample(frac=1, random_state=config.seed).reset_index(drop=True)
 df.dropna(inplace = True)  
 print(f"{df[df.selected_track==1].shape[0]} tracks among the {df.shape[0]} total tracks have been selected as tagging particles")
 
 # Assignation of the tagging decision (d)
 # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
-if ("Bd" or "Bs" in eventType) and (tagger == "SSKaon" or tagger == "SSPion" ): 
-    df["TagDec"] = df[f"Bp_Tr_T_Charge"]
+if ("Bd" or "Bs" in decayType) and (tagger == "SSKaon" or tagger == "SSPion" ): 
+    df["TagDec"] = df[f"B_Tr_T_Charge"]
 else:
-    df["TagDec"] = df[f"Bp_Tr_T_Charge"] * (-1)
+    df["TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
 
 # Assignation of the label (it will be used as NN output)
 # The label is given by the product of the tagging decision and the flavour charge of the B. 
 # It indicates if the tagging decision is wrong or correct.
 # -1 == wrong tag  1 == correct tag
-df["label"] = df[f"TagDec"] * df[f"Bp_TRUEID"]/abs(df[f"Bp_TRUEID"])
+df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"])
 df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0  
 # Splitting dataset
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-columns_to_drop = ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID',]
+columns_to_drop = ['entry', 'selected_track', 'TagDec', 'B_TRUEID',]
 
 # Train the model
 if config.training: 
-    #train_df, test_df = train_test_split(df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']], test_size=0.3)    
-    train_df = df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']].sample(frac=(config.train_split), random_state=20)
-
-    test_df = df[features + ['entry', 'selected_track', 'TagDec', 'Bp_TRUEID', 'label']].drop(train_df.index)
+    #train_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].sample(frac=(config.train_split), random_state=20)
+    #test_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']].drop(train_df.index)
+    train_df, test_df = pyTrain.splitByEvent(df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']])
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
     train_dl, validation_dl = pyTrain.prepare_data(train_df[train_df['selected_track']==1].drop(columns = columns_to_drop), scalerPath)
@@ -128,55 +128,56 @@ if config.training:
     df1 = df.iloc[train_indices][['label','entry']]
     print(f' label 0 : {df1[df1.label==0].shape[0]}, label 1 : {df1[df1.label==1].shape[0]}')
     '''
-
-    pyTrain.plot_features(df.iloc[train_dl.dataset.indices], name_formatter, name=f'{config.model_name}_inputFeatures')
+    pyTrain.plot_features(df.iloc[train_dl.dataset.indices], target_path, name=f'{config.model_name}_inputFeatures')
     model = NeuralNetwork(modelName = config.model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, name_formatter, n_epochs = config.n_epochs) 
-    pyTrain.plot_losses(config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, name_formatter)
-    pyTrain.save_losses(config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, name_formatter)
+    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epochs = config.n_epochs) 
+    pyTrain.plot_losses(config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, target_path)
+    pyTrain.save_losses(config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, target_path)
     
     # Plot ROC curves for validation and train test
     bestModel.eval()
     yPredVal, yTrueVal = bestModel.evaluate_model(validation_dl)
     yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
-    pyTrain.plot_ROC(model.modelName, yPredVal, yTrueVal, name_formatter, yPredTrain, yTrueTrain)
+    pyTrain.plot_ROC(model.modelName, yPredVal, yTrueVal, target_path, yPredTrain, yTrueTrain)
     # Fit with logistic regression and save it
-    clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, name_formatter, model.modelName)
-    #pyTrain.plot_NNoutput(config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, name_formatter)
-    pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, name_formatter, type = 'validation')
+    clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, target_path, model.modelName)
+    #pyTrain.plot_NNoutput(config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, target_path)
+    pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, target_path, type = 'validation')
    
 
 else:
+
     test_df = pd.read_csv(f"{testSetPath}")
+    test_df = df[features + ['entry', 'selected_track', 'TagDec', 'B_TRUEID', 'label']]
     folder = "savedModels"
-    prePath = name_formatter.assign_name(folder, config.model_name)
-    clf = pickle.load(open(f"{prePath}_LogReg.pck", 'rb'))
+    #prePath = name_formatter.assign_name(folder, config.model_name)
+    clf = pickle.load(open(f"{target_path}/LogReg.pck", 'rb'))
 
 # Load the best model (ie with the lowest training loss) and evaluate it on the test set
 bestModel = NeuralNetwork(modelName = config.model_name, features=features, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
-pyTrain.load_model(bestModel, name_formatter)
+pyTrain.load_model(bestModel, target_path)
 bestModel.eval()
 # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
 test_dataset_sel1 = inputDataset(test_df[test_df['selected_track']==1].drop(columns = columns_to_drop), scalerPath, test = True)
 test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
 print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
 yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
-pyTrain.plot_ROC(bestModel.modelName, yPredTest, yTrueTest, name_formatter)
-pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest, yTrueTest, name_formatter, type = 'Test')
+pyTrain.plot_ROC(bestModel.modelName, yPredTest, yTrueTest, target_path)
+pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest, yTrueTest, target_path, type = 'Test')
 
 #     
 test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
 test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
-test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-
-test_df = test_df[['entry','selected_track', 'Eta', 'TagDec','Bp_TRUEID']]
-
+#test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
+test_df['Eta'] = 1- bestModel.evaluate_model(test_dl)[0]
+test_df = test_df[['entry','selected_track', 'Eta', 'TagDec','B_TRUEID']]
+#embed()
 
 #print(test_df.loc[test_df.selected_track == 1].Eta)
 plt.figure()
 plt.hist(test_df.loc[test_df.selected_track == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
-plt.savefig(f"../plots/{eventType}/{tagger}/{config.model_name}_etaNotnormalized.pdf")
+plt.savefig(f"{target_path}/etaNotnormalized.pdf")
 
 test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1  
 test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1   
@@ -184,13 +185,9 @@ test_df.loc[test_df.Eta < 0, "Eta"] += 1
 test_df.loc[test_df.selected_track == 0, "TagDec"] = 0  # classic
 test_df.loc[test_df.selected_track == 0, "Eta"] = 0.5  # classic
 
-#print(test_df[ (test_df[ "Eta"] == 0.4930005622788447)])
-#print(test_df.shape[0])
-#print(test_df[test_df.selected_track == 1].shape[0])
-
 df_TagParticles = test_df.sort_values(by = ["entry","selected_track","Eta"] , ascending = [True,False,True]).groupby("entry").first()
 #print(df_TagParticles.shape[0])
 
-pyTrain.plot_tagDec(df_TagParticles, config.model_name, name_formatter)
+pyTrain.plot_tagDec(df_TagParticles, config.model_name, target_path)
 # Calibrating the tagger and saving parameters
-pyTrain.calibration(config.model_name, tagger, df_TagParticles, eventType, name_formatter)
+pyTrain.calibration(config.model_name, tagger, df_TagParticles, decayType, target_path)
