@@ -11,7 +11,7 @@ optimized = False
 # If preSelected = False, the decision tree cuts are applied and tracks are pre-selected accordingly. Otherwise NTuples with pre-selcted tracks already exist.
 preSelected = False
 # Set file from which to read the pre-selection cuts
-cut_file = 'test_cut'
+cut_file = 'run2_cut'
 
 # NN parameters
 train_split = 0.6 # test set percentage of dataset
