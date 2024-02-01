@@ -9,14 +9,14 @@ KaonCombiner = False
 optimized = False
 
 # If preSelected = False, the decision tree cuts are applied and tracks are pre-selected accordingly. Otherwise NTuples with pre-selcted tracks already exist.
-preSelected = True
+preSelected = False
 # Set file from which to read the pre-selection cuts
 cut_file = 'test_cut'
 
 # NN parameters
 train_split = 0.6 # test set percentage of dataset
 learning_rate = 0.0001
-n_epochs = 1 #500
+n_epochs = 70 #500
 patience = 25 #75 #100
 min_delta = 0.00
 seed = 45 #11 Need to change see?
@@ -24,6 +24,7 @@ activation_function= 'ELU' #ReLU, ELU
 model_name = f'test'
 
 # Change to False if no training is needed
-training = False
-# To be change to the specific date-folder for the model wanted in case no training is needed
-target_dir = None
+training = True
+# To be changed to the specific date-folder for the input model in case no training is needed.
+# Format must be of type "dd_mm_yyyy:hhmmss" ex. "31_01_2024:171750" (note the "")
+target_dir = "31_01_2024:171750"
