@@ -1,7 +1,24 @@
 import numpy as np
 import pandas as pd
 import uproot
-import configParameters as config
+import re
+
+
+def extract_selection_var(cut_file):
+    '''
+    Function to extract strings from pre-selections cat. 
+    Return vector of strings
+    '''
+    # Input string
+    input_string = np.genfromtxt(f"{cut_file}.txt", dtype = str, delimiter=",")
+    # Define the regular expression pattern
+    pattern = r'\(([^<>=]+)[<>=]'
+    # Use the findall function to extract all matches
+    matches = re.findall(pattern, f"{input_string}")
+    # Create an array with the extracted strings
+    result_array = [match.strip() for match in matches]
+    result_array = np.unique(result_array).tolist()
+    return result_array
 
 def apply_preSelections(notSelected_rootPath, cut_file, loading_variables, selected_rootPath):
 
