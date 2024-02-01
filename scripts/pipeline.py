@@ -67,23 +67,21 @@ scalerPath = f"{target_path}/scaler.pkl"
 # Path to where the test set will be saved
 testSetPath = f"{target_path}/testSet.csv"
 
-#selection_variables = ['entry','B_Tr_T_P', 'B_Tr_T_TRACKISLONG', 'DOF', 'B_Tr_T_ISMUON', 'B_Tr_T_GHOSTPROB', 'B_Tr_T_PROBNN_MU', 'B_Tr_T_PROBNN_PI', 'B_Tr_T_PROBNN_P', 'B_Tr_T_PROBNN_E', 'B_Tr_T_PROBNN_K', 'B_Tr_T_IPSig', 'B_Tr_T_absIP', 'B_Tr_T_PIDK', 'B_Tr_T_IPSig', 'B_Tr_T_absID', 'B_Tr_T_P', 'B_Tr_T_PT', 'B_Tr_T_ISMUON', 'DOF', 'B_Tr_T_IPSig', 'B_Tr_T_PIDmu', 'B_Tr_T_GHOSTPROB', 'B_Tr_T_PROBNN_PI', 'B_Tr_T_PROBNN_E', 'B_Tr_T_PROBNN_K', 'B_Tr_T_PROBNN_P']
-selection_variables = ['entry','B_Tr_T_ISMUON', 'B_Tr_T_CHI2DOF', 'B_TRUEID','B_Tr_T_Charge']
-
 start = time.time()
 
-# Definition of the variables that will be loaded from the NTuple
-loading_variables = features + selection_variables
-loading_variables = np.unique(loading_variables).tolist() 
-if "SS" in tagger:
-    particle = tagger.removeprefix("SS")
-    loading_variables += ["B_Tr_T_DeltaQ_" + particle]
-    if particle in ("Proton", "Pion"):
-        loading_variables += ["B_Tr_T_PIDP"]
 
 # Reading dataset
 if config.preSelected == False:
+    # Definition of the variables that will be loaded from the NTuple
     cut_file = f'{config.repoPath}cuts/{config.sample_type}/{decayType}/{tagger}/{config.cut_file}'
+    selection_variables = preSel.extract_selection_var(cut_file) + ['entry', 'B_TRUEID', 'B_Tr_T_Charge']
+    loading_variables = features + selection_variables
+    loading_variables = np.unique(loading_variables).tolist() 
+    if "SS" in tagger:
+        particle = tagger.removeprefix("SS")
+        loading_variables += ["B_Tr_T_DeltaQ_" + particle]
+        if particle in ("Proton", "Pion"):
+            loading_variables += ["B_Tr_T_PIDP"]
     df = preSel.apply_preSelections(notSelected_rootPath, cut_file, loading_variables, selected_rootPath)[features + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','selected_track']]
     
 else:
