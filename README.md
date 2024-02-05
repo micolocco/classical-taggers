@@ -1,4 +1,26 @@
 # Classical taggers
+## Set up
+Create a Python environment with libraries required for the project.
+```
+name: ft_env
+channels:
+
+pytorch
+defaults
+dependencies:
+
+pip
+pytorch
+scikit-learn
+numpy==1.21
+matplotlib
+pandas
+python
+uproot
+ipython
+pip:
+lhcb-ftcalib
+```
 ## Getting data
 - As first step, since we can have several NTuples for different decays it's better to have a folder structure. You can run the following command to create it. Replace `<sample_type>` with the desired name (ex: `withUT` or `noUT` )
 ```
