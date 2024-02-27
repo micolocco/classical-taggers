@@ -1,18 +1,19 @@
 import os 
 
 def data_make_dir(sample_type):
-    decays = ["Bd2JpsiKst" , "Bs2DsPi", "Bu2JpsiK"]
+    decays = ["Bd2JpsiKst" , "Bs2DsPi", "Bu2JpsiK", "Bd2DmPi"]
     folders = ['1_raw', '2_added_features', '3_selected']
-    if not os.path.exists(f"Data"):
-        os.makedirs(f"Data")
-    if not os.path.exists(f"Data/{sample_type}"):
-        os.makedirs(f"Data/{sample_type}")
+    path = '/eos/lhcb/user/m/miolocco/FT_NTuple'
+    #if not os.path.exists(f"Data"):
+    #    os.makedirs(f"Data")
+    if not os.path.exists(f"{path}/{sample_type}"):
+        os.makedirs(f"{path}/{sample_type}")
     for folder in folders:
-        if not os.path.exists(f"Data/{sample_type}/{folder}"):
-            os.makedirs(f"Data/{sample_type}/{folder}")
+        if not os.path.exists(f"{path}/{sample_type}/{folder}"):
+            os.makedirs(f"{path}/{sample_type}/{folder}")
         for decay in decays:
-            if not os.path.exists(f"Data/{sample_type}/{folder}/{decay}"):
-                os.makedirs(f"Data/{sample_type}/{folder}/{decay}")
+            if not os.path.exists(f"{path}/{sample_type}/{folder}/{decay}"):
+                os.makedirs(f"{path}/{sample_type}/{folder}/{decay}")
 
 
 def make_dir(repoPath, sample_type, decay):

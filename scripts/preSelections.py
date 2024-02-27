@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import uproot
 import re
+from matplotlib import pyplot as plt
 
 
 def extract_selection_var(cut_file):
@@ -20,15 +21,14 @@ def extract_selection_var(cut_file):
     result_array = np.unique(result_array).tolist()
     return result_array
 
-def apply_preSelections(notSelected_rootPath, cut_file, loading_variables, selected_rootPath):
+def apply_preSelections(notSelected_rootPath, target_path, cut_file, loading_variables, selected_rootPath):
 
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
     df = uproot.open(notSelected_rootPath).arrays(loading_variables,library = "pd" ) # load all data
     cuts = np.genfromtxt(f"{cut_file}.txt", dtype = str, delimiter=",")
     print(f"The applied cut is: {cuts}")
-    df.eval(f"selected_track = {cuts}", inplace = True)
-    df.selected_track = df.selected_track.astype(int, copy = False) 
-
+    df.eval(f"selected = {cuts}", inplace = True)
+    df.selected = df.selected.astype(int, copy = False) 
     # Save the selected tracks into NTuples
     with uproot.recreate(f"{selected_rootPath}") as file:
         file["DecayTree"] = df
