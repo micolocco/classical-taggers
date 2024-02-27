@@ -41,7 +41,7 @@ def prepare_data(train_df, scalerPath, train_batch_size = 32, test_batch_size = 
     return train_dl, validation_dl 
 
 
-def plot_features(data, target_path, name, folder='target_path', nbins=100):
+def plot_features(data, target_path, name, flag, nbins=100):
 
     # Plot input features 
     plt.figure(figsize=(24,50))
@@ -51,17 +51,17 @@ def plot_features(data, target_path, name, folder='target_path', nbins=100):
             
             if col == 'B_Tr_T_BPVIP':
                 plotting_data = data[data[col]<2.5]
-                plt.hist(plotting_data[col][plotting_data['label']==0], density = True, bins=nbins, label = "Label = 0",color='b', alpha=0.5)
-                plt.hist(plotting_data[col][plotting_data['label']==1], density = True, bins=nbins, label = "Label = 1",color='r', alpha=0.5)
+                plt.hist(plotting_data[col][plotting_data[flag]==0], density = True, bins=nbins, label = "Label = 0",color='b', alpha=0.5)
+                plt.hist(plotting_data[col][plotting_data[flag]==1], density = True, bins=nbins, label = "Label = 1",color='r', alpha=0.5)
             else:
-                plt.hist(data[col][data['label']==0], density = True, bins=nbins, label = "Label = 0",color='b', alpha=0.5)
-                plt.hist(data[col][data['label']==1], density = True, bins=nbins, label = "Label = 1",color='r', alpha=0.5)
+                plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5)
+                plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5)
            
             plt.legend()
             plt.title(col)
             plt.tight_layout()
         #saveName = name_formatter.assign_name(folder, name)
-        plt.savefig(f"{target_path}/input_features.pdf")
+        plt.savefig(f"{target_path}/{name}.pdf")
     except Exception as e:
         print(col,e)
 
