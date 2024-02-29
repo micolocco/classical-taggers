@@ -10,7 +10,8 @@ dependencies:
   - matplotlib
   - pandas
   - python
-  - uproot
+  - uproot==4.3.7
+  - awkward==1.10.2
   - ipython
   - numba==0.53
   - pip:
