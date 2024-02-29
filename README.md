@@ -2,23 +2,8 @@
 ## Set up
 Create a Python environment with libraries required for the project.
 ```
-name: ft_env
-channels:
-  - pytorch
-  - defaults
-dependencies:
-  - pip
-  - pytorch
-  - scikit-learn
-  - numpy==1.21
-  - matplotlib
-  - pandas
-  - python
-  - uproot
-  - ipython
-  - numba==0.53
-  - pip:
-    - lhcb-ftcalib
+conda env create -f ft_env.yml
+conda activate ft_env
 
 ```
 ## Getting data
@@ -35,7 +20,8 @@ Instructions for training and calibrating the taggers. In the `scripts` folder:
 python pipeline.py <decayType> <tagger>
 example: python pipeline.py Bu2JpsiK OSKaon
 ```
-
+Decay must be one among Bd2JpsiKst,  Bs2DsPi,  Bu2JpsiK 
+Taggers must be one among OSKaon, OSMuon, OSElectron, SSPion, SSProton, SSKaon
 
 ## Producing NTuples
 
