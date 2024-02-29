@@ -1,0 +1,17 @@
+name: ft_env
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - pip
+  - pytorch
+  - scikit-learn
+  - numpy==1.21
+  - matplotlib
+  - pandas
+  - python
+  - uproot
+  - ipython
+  - numba==0.53
+  - pip:
+    - lhcb-ftcalib
