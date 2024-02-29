@@ -9,7 +9,7 @@ from saver import Saver
 import configParameters as config
 import os
 
-repoPath = '/ceph/users/molocco/classical-taggers/'
+repoPath = config.repoPath
 
 # Decay and tagger type are given as inputs by the user 
 eventType = sys.argv[1]
@@ -43,6 +43,21 @@ def DeltaQ(df,Mass):
     E =np.sqrt( Mass**2 + df['B_Tr_T_PX']**2 + df['B_Tr_T_PY']**2 + df['B_Tr_T_PZ']**2)
     DeltaQ = np.sqrt( (E + df['B_ENERGY'])**2  - ((df['B_Tr_T_PX'] + df['B_PX'])**2 + (df['B_Tr_T_PY'] + df['B_PY'])**2 + (df['B_Tr_T_PZ'] + df['B_PZ'])**2 )   ) -df.B_M  - Mass
     return(DeltaQ)
+
+# Phi distance definition from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/src/Utils/TaggingHelpers.cpp?ref_type=heads#L43
+def min_dPhi(df):
+    df.eval('B_Tr_T_cos_Phi=cos(B_Tr_T_Phi)', inplace=True)
+    df.eval('B_Tr_T_sin_Phi=sin(B_Tr_T_Phi)', inplace=True)
+    df.eval('B_cos_Phi=cos(B_PHI)', inplace=True)
+    df.eval('B_sin_Phi=sin(B_PHI)', inplace=True)
+    df.eval('x_arctan=(B_Tr_T_cos_Phi*B_sin_Phi) - (B_cos_Phi*B_Tr_T_sin_Phi)', inplace=True)
+    df.eval('y_arctan=(B_Tr_T_cos_Phi*B_cos_Phi) + (B_sin_Phi*B_Tr_T_sin_Phi)', inplace=True)
+    df.eval('B_Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
+    # A bit of a hack to add the minimum distance
+    _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group['B_Tr_T_PhiDistance']))).reset_index(name='B_Tr_T_minPhiDistance')
+    df = pd.merge(df, _df, on='entry', how='left')
+    df.drop(['B_Tr_T_cos_Phi', 'B_Tr_T_sin_Phi', 'B_cos_Phi', 'B_sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
+    return df
 
 start_time = time.time()
 run_time = time.time()
@@ -86,7 +101,7 @@ loading_variables =[
     'B_Tr_T_MINIP',
     'B_Tr_T_MINIPChi2',
     'B_Tr_T_OBJECT_KEY',
-    'B_Tr_T_Origin_Flag',
+    'B_Tr_T_Origin_Flag', # tag codes in https://gitlab.cern.ch/lhcb/Rec/-/blob/7a77f1c3ba0e2384c2becbd7f4acf22e79b898f0/Phys/DaVinciMCKernel/include/Kernel/MCTaggingHelper.h#L17
     'B_Tr_T_P',
     'B_Tr_T_PIDK',
     'B_Tr_T_PIDP',
@@ -127,9 +142,10 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
     df.reset_index(inplace=True, drop = False) 
     #Add some needed features
             # return std::abs( recVertexIP / recVertexIPerr );
-    df.eval('B_Tr_T_cos_diff_Phi=cos(B_PHI-B_Tr_T_Phi)', inplace=True)
+    # A bit of a hack to add the minimum distance
+    df = min_dPhi(df)
+    df.eval('B_Tr_T_cos_PhiDistance=cos(B_Tr_T_PhiDistance)', inplace=True)
     df.eval('B_Tr_T_diff_z = abs(B_BPVZ - B_Tr_T_BPVZ)' , inplace = True)
-    df.eval('B_Tr_T_PhiDistance =abs(B_PHI - B_Tr_T_Phi)' , inplace = True)  
 
     df.eval('B_Tr_T_DeltaR= (B_ETA - B_Tr_T_Eta)**2 + B_Tr_T_PhiDistance**2', inplace = True)
     df.eval('diff_P = abs(B_P - B_Tr_T_P)', inplace = True)
@@ -137,7 +153,7 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
     df.eval('t = (B_END_VX**2 + B_END_VY**2 + B_END_VZ**2 - B_END_VX*B_Tr_T_X - B_END_VY*B_Tr_T_Y - B_END_VZ*B_Tr_T_Z) / (B_END_VX * B_Tr_T_PX + B_END_VY * B_Tr_T_PY + B_END_VZ * B_Tr_T_PZ)' , inplace = True)
     df.eval('EVIP = sqrt((B_Tr_T_X**2 + B_Tr_T_Y**2 + B_Tr_T_Z**2) + t**2 * (B_Tr_T_PX**2 + B_Tr_T_PY**2 + B_Tr_T_PZ**2) + 2*t*(B_Tr_T_X * B_Tr_T_PX + B_Tr_T_Y * B_Tr_T_PY + B_Tr_T_Z * B_Tr_T_PZ))', inplace = True)
     df.eval('B_Tr_T_absIP = abs(B_Tr_T_BPVIP)', inplace = True)
-    
+    df.B_Tr_T_Origin_Flag.astype(int)
     df.eval('B_Tr_T_EtaDistance = abs(B_ETA - B_Tr_T_Eta)', inplace = True)
     df['B_Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706)
     df['B_Tr_T_DeltaQ_Mu'] = DeltaQ(df,105.65837)
