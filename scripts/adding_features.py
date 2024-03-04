@@ -37,8 +37,7 @@ elif eventType == 'Bd2DmPi':
     abs_id = 511
     
 
-stepsize = 100000    #the Root file will gel load in chunks
-firstRound = True
+stepsize = 10000    #the ROOT file will gel load in chunks
 
 def DeltaQ(df,Mass):
     E =np.sqrt( Mass**2 + df['B_Tr_T_PX']**2 + df['B_Tr_T_PY']**2 + df['B_Tr_T_PZ']**2)
@@ -133,6 +132,8 @@ loading_variables =[
     'B_nPVs',
     'B_nTracks']#+daughters
 
+df_save = df = pd.DataFrame(columns=loading_variables)
+
 print('Started reading')
 for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, library = 'pd'):
     
@@ -168,16 +169,10 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
 
     df.eval('EVIP = log(EVIP)', inplace = True)
     df.eval('B_Tr_T_BVIPSig = sqrt(B_Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
-    # To be checked if B_Tr_T_BVIPSig needs dof normalization
-    #df.eval('B_Tr_T_BVIPSig = abs(B_Tr_T_BPVIP / B_Tr_T_IPErr)' , inplace = True) #IP significance
     df.eval('P_proj = log(P_proj)', inplace = True)
     
-    if firstRound: 
-        df_save = df
-        firstRound = False
-        print(df_save.shape[0])
-    else:
-        df_save = pd.concat([df_save, df], ignore_index = True, copy = False)
+    df_save = pd.concat([df_save, df], ignore_index = True, copy = False)
+    print(f"{df_save.shape[0]} tracks will be saved")
 
     print(f'Block finished in {round(time.time() - run_time,2)}s')
     print('--------------------End Block------------------------------')
@@ -190,7 +185,7 @@ if chooseName:
 else:
     path = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/2_added_features/{eventType}/notSelected.root'
 
-print(df_save.shape[0])
+print(f"Saved {df_save.shape[0]} tracks in dataframe")
 with uproot.recreate(f'{path}') as f:
     f['DecayTree'] = df_save
 
