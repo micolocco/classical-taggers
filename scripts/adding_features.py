@@ -22,16 +22,12 @@ path_to_tuple = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/1_raw
 
 if eventType == 'Bs2DsPi': 
     abs_id = 531
-    daughters = ['Ds_P','piMinus_P','KPlus_P','KMinus_P']
 
 elif eventType == 'Bd2JpsiKst':
     abs_id = 511
-    daughters = ['muPlus_P','muMinus_P','Kstar_P','Jpsi_P']
 
 elif eventType == 'Bu2JpsiK':
-    B = 'B'
     abs_id = 521
-    daughters = ['KPlus_P','muMinus_P','muPlus_P','Jpsi_P']
 
 elif eventType == 'Bd2DmPi':
     abs_id = 511
@@ -82,8 +78,8 @@ loading_variables =[
     'B_TRUEID',
     'B_Tr_T_BPVIP',
     'B_Tr_T_BPVIPCHI2',
-    'B_Tr_T_BPVX',
-    'B_Tr_T_BPVY',
+    #'B_Tr_T_BPVX',
+    #'B_Tr_T_BPVY',
     'B_Tr_T_BPVZ',
     'B_Tr_T_CHI2DOF',
     'B_Tr_T_Charge',
@@ -92,12 +88,12 @@ loading_variables =[
     'B_Tr_T_GHOSTPROB',
     'B_Tr_T_ISMUON',
     'B_Tr_T_M',
-    'B_Tr_T_MC_GD_GD_MOTHER_ID',
-    'B_Tr_T_MC_GD_GD_MOTHER_KEY',
-    'B_Tr_T_MC_GD_MOTHER_ID',
-    'B_Tr_T_MC_GD_MOTHER_KEY',
-    'B_Tr_T_MC_MOTHER_ID',
-    'B_Tr_T_MC_MOTHER_KEY',
+    #'B_Tr_T_MC_GD_GD_MOTHER_ID',
+    #'B_Tr_T_MC_GD_GD_MOTHER_KEY',
+    #'B_Tr_T_MC_GD_MOTHER_ID',
+    #'B_Tr_T_MC_GD_MOTHER_KEY',
+    #'B_Tr_T_MC_MOTHER_ID',
+    #'B_Tr_T_MC_MOTHER_KEY',
     'B_Tr_T_MINIP',
     'B_Tr_T_MINIPChi2',
     'B_Tr_T_OBJECT_KEY',
@@ -120,27 +116,25 @@ loading_variables =[
     'B_Tr_T_Phi',
     'B_Tr_T_TRACKISLONG',
     'B_Tr_T_TRUEID',
-    'B_Tr_T_TRUEORIGINVERTEX_X',
-    'B_Tr_T_TRUEORIGINVERTEX_Y',
-    'B_Tr_T_TRUEORIGINVERTEX_Z',
-    'B_Tr_T_TRUEPRIMARYVERTEX_X',
-    'B_Tr_T_TRUEPRIMARYVERTEX_Y',
-    'B_Tr_T_TRUEPRIMARYVERTEX_Z',
+    # 'B_Tr_T_TRUEORIGINVERTEX_X',
+    #'B_Tr_T_TRUEORIGINVERTEX_Y',
+    #'B_Tr_T_TRUEORIGINVERTEX_Z',
+    #'B_Tr_T_TRUEPRIMARYVERTEX_X',
+    #'B_Tr_T_TRUEPRIMARYVERTEX_Y',
+    #'B_Tr_T_TRUEPRIMARYVERTEX_Z',
     'B_Tr_T_X',
     'B_Tr_T_Y',
     'B_Tr_T_Z',
     'B_nPVs',
-    'B_nTracks']#+daughters
+    'B_nTracks']
 
-df_save = df = pd.DataFrame(columns=loading_variables)
+df_save = pd.DataFrame(columns=loading_variables)
 
 print('Started reading')
 for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, library = 'pd'):
     
     print('-------------------Start Block-----------------------------')
     df.drop(df[abs(df['B_TRUEID']) != abs_id ].index , inplace = True) # drop the B mesons or other particles that are not of interest
-    #for daughter in daughters: #remove daughter
-    #    df.drop(df.loc[df['B_Tr_T_P'] == df[daughter]].index, inplace = True)
     df.reset_index(inplace=True, drop = False) 
     #Add some needed features
             # return std::abs( recVertexIP / recVertexIPerr );
@@ -148,7 +142,6 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
     df = min_dPhi(df)
     df.eval('B_Tr_T_cos_PhiDistance=cos(B_Tr_T_PhiDistance)', inplace=True)
     df.eval('B_Tr_T_diff_z = abs(B_BPVZ - B_Tr_T_BPVZ)' , inplace = True)
-
     df.eval('B_Tr_T_DeltaR= (B_ETA - B_Tr_T_Eta)**2 + B_Tr_T_PhiDistance**2', inplace = True)
     df.eval('diff_P = abs(B_P - B_Tr_T_P)', inplace = True)
     df.eval('P_proj = B_ENERGY*B_Tr_T_ENERGY - (B_Tr_T_PX*B_PX + B_Tr_T_PY*B_PY +B_Tr_T_PZ*B_PZ ) ', inplace = True)
@@ -162,11 +155,9 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
     df['B_Tr_T_DeltaQ_Electron'] = DeltaQ(df,0.51100)
     df['B_Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208)
     df['B_Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677)
-    
     df.eval('B_Tr_T_Signal_TagPart_PT = sqrt((B_PX + B_Tr_T_PX) **2 + (B_PY + B_Tr_T_PY)**2)', inplace = True)
     df.eval('B_Tr_T_eoverP = B_Tr_T_Charge/B_Tr_T_P', inplace = True)
     df.eval('B_Tr_T_absID =abs(B_Tr_T_TRUEID)', inplace = True)
-
     df.eval('EVIP = log(EVIP)', inplace = True)
     df.eval('B_Tr_T_BVIPSig = sqrt(B_Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval('P_proj = log(P_proj)', inplace = True)
@@ -179,6 +170,8 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
     print()
 
     run_time = time.time()
+    if df_save.shape[0] > 6*10e8:
+        break
 
 if chooseName:
     path = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/2_added_features/{eventType}/{chooseName}.root'
