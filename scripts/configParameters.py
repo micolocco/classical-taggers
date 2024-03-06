@@ -1,5 +1,5 @@
 # path to the workspace folder and to the ROOT NTuple input
-repoPath = "/ceph/users/molocco/classical-taggers/"
+repoPath = "/work/celani/flavour_tagging/classical-taggers/"
 
 # sample type: openVELO or closedVELO, MC2024_withUT
 sample_type = 'withUT_MC_2024'
@@ -11,12 +11,12 @@ optimized = False
 # If preSelected = False, the decision tree cuts are applied and tracks are pre-selected accordingly. Otherwise NTuples with pre-selcted tracks already exist.
 preSelected = False
 # Set file from which to read the pre-selection cuts
-cut_file = 'run2_cut'
+cut_file = 'test_cut'
 
 # NN parameters
 train_split = 0.6 # test set percentage of dataset
 learning_rate = 0.0001
-n_epochs = 70 #500
+n_epochs = 5 #500
 patience = 25 #75 #100
 min_delta = 0.00
 seed = 45 #11 Need to change see?

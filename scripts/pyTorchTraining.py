@@ -148,7 +148,7 @@ def load_model(model, target_path):
 def save_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     
     folder = f'{target_path}/losses'
-    os.mkdir(f'{folder}')
+    os.makedirs(f'{folder}', exist_ok=True)
     #saveName = name_formatter.assign_name(folder, name)
     np.savetxt(f"{folder}/test.csv", valLoss, delimiter=",")
     np.savetxt(f"{folder}/train.csv", trainLoss, delimiter=",")

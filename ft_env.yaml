@@ -16,3 +16,4 @@ dependencies:
   - numba==0.53
   - pip:
     - lhcb-ftcalib
+    - snakemake
