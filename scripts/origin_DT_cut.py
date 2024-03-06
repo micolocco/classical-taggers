@@ -11,9 +11,9 @@ import uproot
 import os
 import configParameters as config
 import glob
-
+from IPython import embed
 '''
-Origin Flag values:
+Origin Flag IDs:
 
 0 == Signal
 1 == SS Fragmentation
@@ -26,59 +26,60 @@ Origin Flag values:
 
 '''
 
-def plot_features(data, values, nbins=100):
+def plot_features(data, IDs, particle_type, output_dir, nbins=100):
 
     # Plot input features 
-    plt.figure(figsize=(24,50))
+    plt.figure(figsize=(40,40))
     try:
         for i, col in enumerate(data.columns.to_list()[:5]):
             plt.subplot(3, 2, i + 1)
-            plt.hist(data[col][data['particle_type']==values[0]], density = True, bins=nbins, label = f"{values[0]}", fill=False, color='m', alpha=0.5)
-            plt.hist(data[col][data['particle_type']==values[1]], density = True, bins=nbins, label = f"{values[1]}", fill=False, color='b', alpha=0.5)
-            plt.hist(data[col][data['particle_type']==values[2]], density = True, bins=nbins, label = f"{values[2]}", fill=False, color='c', alpha=0.5)
-            plt.hist(data[col][data['particle_type']==values[3]], density = True, bins=nbins, label = f"{values[3]}", fill=False, color='g', alpha=0.5)
-            plt.hist(data[col][data['particle_type']==values[4]], density = True, bins=nbins, label = f"{values[4]}", fill=False, color='y', alpha=0.5)
-            plt.hist(data[col][data['particle_type']==values[5]], density = True, bins=nbins, label = f"{values[5]}", fill=False, color='r', alpha=0.5)
+            plt.hist(data[col][data['ID_type']==0], density = True, bins=nbins, label = f"{particle_type[0]}", fill=True, color='m', alpha=0.5)
+            plt.hist(data[col][data['ID_type']==1], density = True, bins=nbins, label = f"{particle_type[1]}", fill=True, color='b', alpha=0.5)
+            plt.hist(data[col][data['ID_type']==2], density = True, bins=nbins, label = f"{particle_type[2]}", fill=True, color='c', alpha=0.5)
+            plt.hist(data[col][data['ID_type']==3], density = True, bins=nbins, label = f"{particle_type[3]}", fill=True, color='g', alpha=0.5)
+            plt.hist(data[col][data['ID_type']==4], density = True, bins=nbins, label = f"{particle_type[4]}", fill=True, color='y', alpha=0.5)
+            plt.hist(data[col][data['ID_type']==5], density = True, bins=nbins, label = f"{particle_type[5]}", fill=True, color='r', alpha=0.5)
+            plt.hist(data[col][data['ID_type']==6], density = True, bins=nbins, label = f"{particle_type[6]}", fill=True, color='r', alpha=0.5)
+
             plt.legend()
             plt.title(col)
             plt.tight_layout()
-        plt.savefig(f"../{DT_output}/DT_features.pdf")
+        plt.savefig(f"{output_dir}/DT_features.pdf")
     except Exception as e:
         print(col,e)
 
-features = [
-    "B_Tr_T_PIDK",
-    "B_Tr_T_PIDP",
-    "B_Tr_T_PIDe",
-    "B_Tr_T_PIDmu",
-    "B_Tr_T_BVIPSig",
-            ]
+
 
 start = time.time()
+run_time = time.time()
+features = ['B_Tr_T_PIDK', 'B_Tr_T_PIDe', 'B_Tr_T_PIDmu', 'B_Tr_T_PIDP', 'B_Tr_T_BVIPSig', 'B_Tr_T_ISMUON']
 
 # Path to input root file
-file_pattern = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/2_added_features/*/notSelected.root'
-file_paths = glob.glob(file_pattern)
-print("Load Data: Start")
+#file_pattern = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/2_added_features/*/notSelected.root:DecayTree'
+#input_paths = glob.glob(file_pattern)
+#input_paths = [path + ':Tuple/DecayTree;1' for path in input_paths] 
 
-df = uproot.open(path).arrays(features+["B_Tr_T_absID", "B_Tr_T_Origin_Flag"],library = "pd" )
-# Loop through each file and read the contents
-for file_path in file_paths:
-    with uproot.open(f'{file_path}:DecayTree').arrays(features+["B_Tr_T_absID", "B_Tr_T_Origin_Flag"],library = "pd" ) as file:
-        # Loop through each key (object) in the file
-        for key in file.keys():
-            # Access the data associated with each key
-            data = file[key].arrays()
-            
-            # Check if the key already exists in the dictionary
-            if key in data_dict:
-                # Concatenate the data if the key already exists
-                data_dict[key] = uproot.concatenate([data_dict[key], data[key]])
-            else:
-                # Add the data to the dictionary if the key does not exist
-                data_dict[key] = data[key] 
+input_paths = '/eos/lhcb/user/m/miolocco/FT_NTuple/withUT_MC_2024/2_added_features/Bs2DsPi/notSelected.root'
+outputPath = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/2_added_features/allDecays_DTinput.root'
+output_dir = 'DT_outputs'
 
-print(f"Load Data: Finished in {round(-start+ time.time() , 2)}s")
+loading_variables = features+["B_Tr_T_absID", "B_Tr_T_Origin_Flag"]
+
+df_save = pd.DataFrame(columns=loading_variables) #Book dataframe for saving
+print(f"Loading data: Start \n")
+
+for df in uproot.iterate(f'{input_paths}:DecayTree', loading_variables, step_size=100000, library = 'pd'):
+        df_save = pd.concat([df_save, df], ignore_index = True, copy = False)
+        print(f"{df_save.shape[0]} tracks will be saved")
+        print(f'Block finished in {round(time.time() - run_time,2)}s')
+        print('--------------------End Block------------------------------')
+        print()
+
+print(f"Loading data finished in {round(-start+ time.time() , 2)}s")
+print(f"Saved {df_save.shape[0]} tracks in dataframe")
+with uproot.recreate(f'{outputPath}') as f:
+    f['DecayTree'] = df_save
+print(f'NTuple for Decision Tree saved at {outputPath}')
 
 df.B_Tr_T_Origin_Flag.astype(int)
 
@@ -91,39 +92,36 @@ conditions = [
    (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1),
    (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1),
 ]
-values = ["OSKaon", "OSMuon", "OSElectron", "SSPion", "SSProton", "SSKaon"]
+IDs = [1, 2, 3, 4, 5, 6] 
+particle_type = ["OSKaon", "OSMuon", "OSElectron", "SSPion", "SSProton", "SSKaon"]
+df['ID_type'] = np.select(conditions, IDs)
+df.loc[~df['ID_type'].isin(IDs), 'ID_type'] = 0
+#Append IDs for particles that are nbot tagging particles
+IDs.insert(0, 0)
+particle_type.insert(0, 'not_taggingPart')
 
-df['particle_type'] = np.select(conditions, values)
-print(f"Composition: \n {round(df.particle_type.value_counts()/df.shape[0],4)*100}")
-df.loc[~df['particle_type'].isin(values), 'particle_type'] = 'not_taggingPart'
+print(f"Composition:\n{round(df.ID_type.value_counts()/df.shape[0],4)*100}")
 
 # Plot features
-plot_features(df, values)
-embed()
+plot_features(df, IDs, particle_type, output_dir)
 
-RIVEDERE
 # Shuffle 
 df = df.sample(frac=1)
-x = df.loc[df.particle_type == 1][features + ["particle_type"]]
-## Micol: added condition about IS_MUON cause Jonas additionally asked for this condition
-#if tagger != 'Muon':
-#    x = x[x['B_Tr_T_ISMUON']<=0.5]
-#else:
-#    x = x[x['B_Tr_T_ISMUON']>0.5]
+df.dropna(inplace=True)
+x = df.loc[df.ID_type != 0][features + ["ID_type"]]
 
-# To get same amount of label 0 and label 1
-x = pd.concat([x, df.loc[df.label == 0][features + ["particle_type"]].head(len(x))])
-# Shuffle the data
-y = x.particle_type
-
-x.drop(columns="particle_type" , inplace = True)
+# To get same amount of not_taggingPart
+x = pd.concat([x, df.loc[df.ID_type == 0][features + ["ID_type"]].head(len(x))])
+y = x.ID_type
+x.drop(columns="ID_type" , inplace = True)
 
 x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.3, random_state=42)
 
 start = time.time()
 print("Start fitting")
-clf = tree.DecisionTreeClassifier(max_depth = 5)
+clf = tree.DecisionTreeClassifier(max_depth = 5, class_weight='balanced')
 
+embed()
 clf.fit(x_train, y_train)
 print(f"Fit in: {round(-start+ time.time() , 2)}s")
 
@@ -134,17 +132,7 @@ if printFeatImport:
     for i in range(len(feat_import)):
         print(features[i],round(100*feat_import[i],2))
 
-
-#Check if directories exist
-dir = 'plots'
-dir_path = f'{config.repoPath}/{dir}'
-if not os.path.exists(dir_path):
-    os.makedirs(dir_path)
-if not os.path.exists(f'{dir_path}/{eventType}'):
-    os.makedirs(f'{dir_path}/{eventType}')
-if not os.path.exists(f'{dir_path}/{eventType}/DT'):
-    os.makedirs(f'{dir_path}/{eventType}/DT')
-    
+'''   
 #Plot the ROC Curve
 y_test_predict = clf.predict_proba(x_test)[:,1]
 y_train_predict = clf.predict_proba(x_train)[:,1]
@@ -165,17 +153,14 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title(f'ROC curve ')
 plt.legend(loc="lower right")
-plt.savefig(f"{config.repoPath}plots/{eventType}/DT/{particle}_ROC_AUC.pdf")
+plt.savefig(f"{output_dir}/ ROC_AUC.pdf")
 #plt.show()
 plt.close()
-
+'''
 
 # Visualize the decision tree
-dot_data = tree.export_graphviz(clf,feature_names=features,class_names=[f"Not{particle}",f"{particle}"],filled=True, rounded=True,special_characters=True  ) 
+dot_data = tree.export_graphviz(clf,feature_names=features,class_names=particle_type,filled=True, rounded=True,special_characters=True) 
 graph = graphviz.Source(dot_data) 
-graph.render(f"{config.repoPath}plots/{eventType}/DT/{particle}_DT")
+graph.render(f"{output_dir}/tree_schema")
 
 #print(f"Accuracy:{clf.score(x_test,y_test)}")
-
-path_to_tuple = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/2_added_features/*/notSelected.root:DecayTree;1'
-for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, library = 'pd'):
