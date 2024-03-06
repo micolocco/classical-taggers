@@ -1,62 +1,8 @@
 import pandas as pd
-import sys
 import uproot
 import numpy as np
-import matplotlib.pyplot as plt
-import json
-import time
-from saver import Saver
-import configParameters as config
 import os
-
-repoPath = config.repoPath
-
-# Decay and tagger type are given as inputs by the user 
-eventType = sys.argv[1]
-chooseName = None
-
-# Get the raw root file 
-# Charge and absID are needed for the label 
-# List of daughters of the signal B
-path_to_tuple = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/1_raw/{eventType}/merged.root:Tuple/DecayTree;1'
-
-if eventType == 'Bs2DsPi': 
-    abs_id = 531
-
-elif eventType == 'Bd2JpsiKst':
-    abs_id = 511
-
-elif eventType == 'Bu2JpsiK':
-    abs_id = 521
-
-elif eventType == 'Bd2DmPi':
-    abs_id = 511
-    
-
-stepsize = 10000    #the ROOT file will gel load in chunks
-
-def DeltaQ(df,Mass):
-    E =np.sqrt( Mass**2 + df['B_Tr_T_PX']**2 + df['B_Tr_T_PY']**2 + df['B_Tr_T_PZ']**2)
-    DeltaQ = np.sqrt( (E + df['B_ENERGY'])**2  - ((df['B_Tr_T_PX'] + df['B_PX'])**2 + (df['B_Tr_T_PY'] + df['B_PY'])**2 + (df['B_Tr_T_PZ'] + df['B_PZ'])**2 )   ) -df.B_M  - Mass
-    return(DeltaQ)
-
-# Phi distance definition from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/src/Utils/TaggingHelpers.cpp?ref_type=heads#L43
-def min_dPhi(df):
-    df.eval('B_Tr_T_cos_Phi=cos(B_Tr_T_Phi)', inplace=True)
-    df.eval('B_Tr_T_sin_Phi=sin(B_Tr_T_Phi)', inplace=True)
-    df.eval('B_cos_Phi=cos(B_PHI)', inplace=True)
-    df.eval('B_sin_Phi=sin(B_PHI)', inplace=True)
-    df.eval('x_arctan=(B_Tr_T_cos_Phi*B_sin_Phi) - (B_cos_Phi*B_Tr_T_sin_Phi)', inplace=True)
-    df.eval('y_arctan=(B_Tr_T_cos_Phi*B_cos_Phi) + (B_sin_Phi*B_Tr_T_sin_Phi)', inplace=True)
-    df.eval('B_Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
-    # A bit of a hack to add the minimum distance
-    _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group['B_Tr_T_PhiDistance']))).reset_index(name='B_Tr_T_minPhiDistance')
-    df = pd.merge(df, _df, on='entry', how='left')
-    df.drop(['B_Tr_T_cos_Phi', 'B_Tr_T_sin_Phi', 'B_cos_Phi', 'B_sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
-    return df
-
-start_time = time.time()
-run_time = time.time()
+import argparse
 
 loading_variables =[
     'B_BPVX',
@@ -130,16 +76,57 @@ loading_variables =[
 
 df_save = pd.DataFrame(columns=loading_variables)
 
-print('Started reading')
-for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, library = 'pd'):
-    
-    print('-------------------Start Block-----------------------------')
-    # Drop NaN values
-    df.dropna(inplace=True)
-    df.drop(df[abs(df['B_TRUEID']) != abs_id ].index , inplace = True) # drop the B mesons or other particles that are not of interest
-    df.reset_index(inplace=True, drop = False) 
-    #Add some needed features
-            # return std::abs( recVertexIP / recVertexIPerr );
+def DeltaQ(df,Mass):
+    E =np.sqrt( Mass**2 + df['B_Tr_T_PX']**2 + df['B_Tr_T_PY']**2 + df['B_Tr_T_PZ']**2)
+    DeltaQ = np.sqrt( (E + df['B_ENERGY'])**2  - ((df['B_Tr_T_PX'] + df['B_PX'])**2 + (df['B_Tr_T_PY'] + df['B_PY'])**2 + (df['B_Tr_T_PZ'] + df['B_PZ'])**2 )   ) -df.B_M  - Mass
+    return(DeltaQ)
+
+# Phi distance definition from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/src/Utils/TaggingHelpers.cpp?ref_type=heads#L43
+def min_dPhi(df):
+    df.eval('B_Tr_T_cos_Phi=cos(B_Tr_T_Phi)', inplace=True)
+    df.eval('B_Tr_T_sin_Phi=sin(B_Tr_T_Phi)', inplace=True)
+    df.eval('B_cos_Phi=cos(B_PHI)', inplace=True)
+    df.eval('B_sin_Phi=sin(B_PHI)', inplace=True)
+    df.eval('x_arctan=(B_Tr_T_cos_Phi*B_sin_Phi) - (B_cos_Phi*B_Tr_T_sin_Phi)', inplace=True)
+    df.eval('y_arctan=(B_Tr_T_cos_Phi*B_cos_Phi) + (B_sin_Phi*B_Tr_T_sin_Phi)', inplace=True)
+    df.eval('B_Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
+    # A bit of a hack to add the minimum distance
+    _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group['B_Tr_T_PhiDistance']))).reset_index(name='B_Tr_T_minPhiDistance')
+    df = pd.merge(df, _df, on='entry', how='left')
+    df.drop(['B_Tr_T_cos_Phi', 'B_Tr_T_sin_Phi', 'B_cos_Phi', 'B_sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
+    return df
+
+B_abs_id_dic = {
+    'Bs2DsPi': 531,
+    'Bd2JpsiKst': 511,
+    'Bu2JpsiK': 521,
+    'Bd2DmPi': 511,
+    }
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Add features used to select tracks and to train',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument('--raw', help='Raw file', type=str)
+    parser.add_argument('--output', help='Name of the output file', type=str)
+    parser.add_argument('--evtType', help='Decay which is being useed', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi'))
+    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
+
+    cfg = parser.parse_args()
+
+    from pprint import pprint
+    pprint(cfg)
+
+    print('Started reading')
+    with uproot.open("{}".format(cfg.raw)) as f:
+        df = f[cfg.treename].arrays(loading_variables, library="pd")
+
+    # drop the B mesons or other particles that are not of interest
+    abs_id = B_abs_id_dic[cfg.evtType]
+    df.drop(df[abs(df['B_TRUEID']) != abs_id ].index , inplace = True)
+    df.reset_index(inplace=True, drop = False)
+    # Add some needed features
     # A bit of a hack to add the minimum distance
     df = min_dPhi(df)
     df.eval('B_Tr_T_cos_PhiDistance=cos(B_Tr_T_PhiDistance)', inplace=True)
@@ -163,25 +150,9 @@ for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, l
     df.eval('EVIP = log(EVIP)', inplace = True)
     df.eval('B_Tr_T_BVIPSig = sqrt(B_Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval('P_proj = log(P_proj)', inplace = True)
-    
-    df_save = pd.concat([df_save, df], ignore_index = True, copy = False)
-    print(f"{df_save.shape[0]} tracks will be saved")
 
-    print(f'Block finished in {round(time.time() - run_time,2)}s')
-    print('--------------------End Block------------------------------')
-    print()
+    os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
+    with uproot.recreate(cfg.output) as f:
+        f[cfg.treename] = df
 
-    run_time = time.time()
-    if df_save.shape[0] > 6*10e8:
-        break
-
-if chooseName:
-    path = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/2_added_features/{eventType}/{chooseName}.root'
-else:
-    path = f'/eos/lhcb/user/m/miolocco/FT_NTuple/{config.sample_type}/2_added_features/{eventType}/notSelected.root'
-
-print(f"Saved {df_save.shape[0]} tracks in dataframe")
-with uproot.recreate(f'{path}') as f:
-    f['DecayTree'] = df_save
-
-print(f'Modified NTuple saved at {path}')
+    print(f'Modified NTuple saved at {cfg.output}')
