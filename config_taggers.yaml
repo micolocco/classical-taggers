@@ -1,0 +1,8 @@
+{
+    "__comment":  "Snakemake configuration for Heidelberg cluster infrastructure",
+    "DATA": "/auto/data/celani/FT",
+    "REPO": "/work/celani/flavour_tagging/classical-taggers",
+    "nCPUs":      "1",
+    "LOCALTMP": "/work/celani/flavour_tagging/outdir/tmp",
+    "LOG": "/work/celani/flavour_tagging/outdir/log",
+}

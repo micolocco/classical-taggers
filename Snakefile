@@ -1,19 +1,115 @@
-rule Bu2JpsiK:
-    input: Tuple = expand("/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_{n}.root", n = range(7238)), Histos = expand("/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_{n}.root", n = range(7238))
+from os.path import join, exists, dirname, basename, splitext, split
+from os import makedirs
+import numpy as np
+import os
+from copy import deepcopy
 
-rule run_Bu2JpsiK_DaVinci:
-    input:  opt = "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/options_SM/options_{n}.yaml", dst = "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_SM_{n}.dst",json = "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_tck_SM_{n}.json"
-    output: "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Tuple_SM_{n}.root",  "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/RootRaw/Histos_SM_{n}.root"
-    log: "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/logs/log_SM_DaVinci_{n}.txt"
+try:
+    data = config['DATA']
+    repo = config['REPO']
+except:
+    raise RuntimeError("Make sure to specify snakemake config")
+
+def in_data(data_path, list_of_files):
+    return [join(data_path, i) for i in list_of_files if '#' not in i and len(i) > 0]
+
+taggers_conf = {
+    'Bu2JpsiK': 'OSKaon'
+}
+
+# TO DO create a rules that copy the files from eos to the cluster
+ntuples_eos_withUT = {
+    'Bu2JpsiK': in_data(data, '''
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214053/0000/00214053_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214053/0000/00214053_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214053/0000/00214053_00000003_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214053/0000/00214053_00000004_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214053/0000/00214053_00000005_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214053/0000/00214053_00000006_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214053/0000/00214053_00000007_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000003_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000004_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000005_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000006_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000007_1.mc.root
+'''.split('\n'))
+}
+
+# TO DO add the other configurations e.g. noUT, openVELO etc
+ntuples_raw_withUT = deepcopy(ntuples_eos_withUT)
+for k,v in ntuples_raw_withUT.items():
+    ntuples_raw_withUT[k] = [f.replace(os.path.dirname(f), f'{data}/withUT_MC_2024/1_raw/{k}') for f in v]
+
+ntuples_added_features_withUT = {}
+for k,v in ntuples_raw_withUT.items():
+    ntuples_added_features_withUT.update({k: [f.replace('1_raw', '2_added_features') for f in v]})
+
+ntuples_selected_withUT = {}
+for k,v in ntuples_raw_withUT.items():
+    ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN') for f in v]})
+
+rule all:
+    input:
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_noGhosts/mistag_validation.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/mistag_validation.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_eta4.8/mistag_validation.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_eta4.7/mistag_validation.pdf'),
+
+rule add_features:
+    input:
+        script = join(repo, 'scripts/adding_features.py'),
+        raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root')
+    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     run:
-        command = f"/interactive_storage/molocco/stack_v2/DaVinci/build.x86_64_v2-centos7-gcc12+detdesc-opt/run lbexec /ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/Algs.py:main {input.opt}|tee {log}"
-        shell(command)
+        cmd = [
+            'python', input.script,
+            '--raw {input.raw}',
+            '--output {output}',
+            '--evtType {wildcards.decay}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
 
-
-rule run_Bu2JpsiK_Moore:
-    input: "/ceph/users/molocco/classical-taggers/Data/moore_scripts/SM_lines/Bu2JpsiK/line_SnakeMake_{n}.py"
-    output: "/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_SM_{n}.dst","/ceph/users/molocco/classical-taggers/Data/daVinci_scripts/Bu2JpsiK/output/hlt2_tck_SM_{n}.json"
-    log: "/ceph/users/molocco/classical-taggers/Data/moore_scripts/SM_lines/Bu2JpsiK/logs/SM_Moore_{n}.txt"
+rule add_selection:
+    input:
+        script = join(repo, 'scripts/preSelections.py'),
+        added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root')
+    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/.{id,.*}.log')
+    params:
+        tagger = lambda wildcards: taggers_conf[wildcards.decay]
     run:
-        command = f"/interactive_storage/molocco/stack_v2/Moore/build.x86_64_v2-centos7-gcc12+detdesc-opt/run gaudirun.py {input} | tee {log}"
-        shell(command)
+        cmd = [
+            'python', input.script,
+            '--added_features {input.added_features}',
+            '--output {output}',
+            '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{params.tagger}/{wildcards.cut_name}.txt'),
+            '--tagger {params.tagger}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
+
+rule train_tagger:
+    input:
+        selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
+        script = join(repo, 'scripts/pipeline.py'),
+    output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/mistag_validation.pdf')
+    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/mistag_validation.log')
+    params:
+        config = lambda wildcards: join(repo, f'configs/config_{wildcards.tagger}.json'),
+        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}')
+    run:
+        cmd = [
+            'python', input.script,
+            '--selected {input.selected}',
+            '--target_path {params.target_path}',
+            '--tagger {wildcards.tagger}',
+            '--config {params.config}',
+            '--decayType {wildcards.decay}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
