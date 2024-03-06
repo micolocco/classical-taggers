@@ -134,6 +134,8 @@ print('Started reading')
 for df in uproot.iterate(path_to_tuple, loading_variables, step_size=stepsize, library = 'pd'):
     
     print('-------------------Start Block-----------------------------')
+    # Drop NaN values
+    df.dropna(inplace=True)
     df.drop(df[abs(df['B_TRUEID']) != abs_id ].index , inplace = True) # drop the B mesons or other particles that are not of interest
     df.reset_index(inplace=True, drop = False) 
     #Add some needed features
