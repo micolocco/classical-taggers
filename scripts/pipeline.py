@@ -164,11 +164,11 @@ else:
     folder = "savedModels"
     #prePath = name_formatter.assign_name(folder, config.model_name)
     clf = pickle.load(open(f"{target_path}/LogReg.pck", 'rb'))
-
-# Load the best model (ie with the lowest training loss) and evaluate it on the test set
-bestModel = NeuralNetwork(modelName = config.model_name, features=features, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
-pyTrain.load_model(bestModel, target_path)
-bestModel.eval()
+    # Load the best model (ie with the lowest training loss) and evaluate it on the test set
+    bestModel = NeuralNetwork(modelName = config.model_name, features=features, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
+    pyTrain.load_model(bestModel, target_path)
+    bestModel.eval()
+    
 # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
 test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop), scalerPath, test = True)
 test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
