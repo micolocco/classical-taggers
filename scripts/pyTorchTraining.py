@@ -17,7 +17,6 @@ from scripts.inputDataset import inputDataset
 import scripts.configParameters as config
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-from IPython import embed
 
 # Definition of the features for the NN and the selection variables
 features = [
