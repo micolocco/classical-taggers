@@ -16,9 +16,6 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
-plt.rcParams.update({'axes.unicode_minus' : False})
-
 
 # Decay and tagger type are given as inputs by the user
 # Decay must be one among Bd2JpsiKst,  Bs2DsPi,  Bu2JpsiK 
@@ -88,7 +85,6 @@ if __name__ == '__main__':
 
     plt.figure(figsize=(24,25))
     pos=0
-    
     for i, col in enumerate(df.columns.to_list()):
         if col in features:
             plt.subplot(4, 3, pos + 1)
