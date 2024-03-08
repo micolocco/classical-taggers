@@ -14,7 +14,7 @@ preSelected = False
 cut_file = 'test_cut'
 
 # NN parameters
-train_split = 0.6 # test set percentage of dataset
+train_val_split = 0.6 # test set percentage of dataset
 learning_rate = 0.0001
 n_epochs = 5 #500
 patience = 25 #75 #100

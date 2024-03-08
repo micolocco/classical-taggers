@@ -49,14 +49,16 @@ if __name__ == '__main__':
     from pprint import pprint
     pprint(cfg)
 
-    selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID', 'B_Tr_T_PROBNN_MU']
+    selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID']
     loading_variables = features + selection_variables
     loading_variables = np.unique(loading_variables).tolist()
+    '''
     if "SS" in cfg.tagger:
         particle = cfg.tagger.removeprefix("SS")
         loading_variables += ["B_Tr_T_DeltaQ_" + particle]
         if particle in ("Proton", "Pion"):
             loading_variables += ["B_Tr_T_PIDP"]
+    '''
     df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
 
     # Save the selected tracks into NTuples
