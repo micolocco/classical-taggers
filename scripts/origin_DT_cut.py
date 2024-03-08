@@ -177,7 +177,7 @@ if __name__ == '__main__':
     '''
 
     # Visualize the decision tree
-    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=particle_type.values(),filled=True, rounded=True,special_characters=True) 
+    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=particle_type.keys(),filled=True, rounded=True,special_characters=True) 
     graph = graphviz.Source(dot_data) 
     graph.render(f"{output_dir}/tree_schema")
 
