@@ -34,6 +34,30 @@ ntuples_eos_withUT = {
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000005_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000006_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214051/0000/00214051_00000007_1.mc.root
+'''.split('\n')),
+    'Bd2JpsiKst': in_data(data, '''
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214049/0000/00214049_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214049/0000/00214049_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214049/0000/00214049_00000003_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214049/0000/00214049_00000004_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214049/0000/00214049_00000005_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214047/0000/00214047_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214047/0000/00214047_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214047/0000/00214047_00000003_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214047/0000/00214047_00000004_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214047/0000/00214047_00000005_1.mc.root
+'''.split('\n')),
+    'Bd2DmPi': in_data(data, '''
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214045/0000/00214045_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214045/0000/00214045_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214045/0000/00214045_00000003_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214043/0000/00214043_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214043/0000/00214043_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214043/0000/00214043_00000003_1.mc.root
+'''.split('\n')),
+    'Bs2DsPi': in_data(data, '''
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214057/0000/00214057_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214055/0000/00214055_00000001_1.mc.root
 '''.split('\n'))
 }
 
@@ -52,10 +76,12 @@ for k,v in ntuples_raw_withUT.items():
 
 rule all:
     input:
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_noGhosts/mistag_validation.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/mistag_validation.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_eta4.8/mistag_validation.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_eta4.7/mistag_validation.pdf'),
+        #ntuples_selected_withUT['Bs2DsPi'],
+        #ntuples_selected_withUT['Bd2DmPi'],
+        #ntuples_selected_withUT['Bd2JpsiKst'],
+        #ntuples_selected_withUT['Bu2JpsiK']
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN/mistag_validation.pdf')
+        
 
 rule add_features:
     input:

@@ -17,6 +17,7 @@ from scripts.inputDataset import inputDataset
 import scripts.configParameters as config
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
+from IPython import embed
 
 # Definition of the features for the NN and the selection variables
 features = [
@@ -50,21 +51,26 @@ def splitByEvent (df):
     '''Function to random split by events (not by index) the dataset into training and test set
     Use random.Random(2) to reproduce same shuffling''' 
     events_list = np.unique(df.entry)
-    random.Random(2).shuffle(events_list) 
-    n_train = int(config.train_split*len(events_list))
+    random.Random(2).shuffle(events_list)
+    n_train_val = int(config.train_val_split*len(events_list)) # Divide
+    n_train = int(0.8 * n_train_val)
+    n_val = n_train_val - n_train
+    print(f"{n_train_val} events used for training (including validation)")
+    print(f"{len(events_list)-n_train_val} events used for calibrating")
     train_df = df[df.entry.isin(events_list[:n_train])]
-    test_df = df[df.entry.isin(events_list[n_train:])]
-    return train_df, test_df
+    val_df = df[df.entry.isin(events_list[n_train:n_train+n_val])]
+    test_df = df[df.entry.isin(events_list[n_train+n_val:])]
+    return train_df, val_df, test_df
+    
 
-
-def prepare_data(train_df, scalerPath, train_batch_size = 32, test_batch_size = 1024):
+def prepare_data(train_df, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
     train_dataset = inputDataset(train_df, scalerPath, test = False)
-    # Splitting in train and validation datasets
-    train, validation = train_dataset.get_splits()
+    val_dataset = inputDataset(val_df, scalerPath, test = True)
+    plot_features(train_df, target_path=savePlot_path, flag='label', name=f'{config.model_name}_inputFeatures')
     # Prepare data loaders
-    train_dl = DataLoader(train, batch_size = train_batch_size, shuffle=False)
-    validation_dl = DataLoader(validation, batch_size = test_batch_size, shuffle=False)
+    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
+    validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
     return train_dl, validation_dl 
 
 
@@ -72,21 +78,18 @@ def plot_features(data, target_path, name, flag, nbins=100):
 
     # Plot input features 
     plt.figure(figsize=(24,25))
-    try:
-        pos=0
-        for i, col in enumerate(data.columns.to_list()):
-            if col in features:
-                plt.subplot(4, 3, pos + 1)
-                plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
-                plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
-                plt.legend()
-                plt.xlabel(nice_names[col])
-                plt.tight_layout()
-                pos+=1
-        #saveName = name_formatter.assign_name(folder, name)
-        plt.savefig(f"{target_path}/{name}.pdf")
-    except Exception as e:
-        print(col,e)
+    pos=0
+    for i, col in enumerate(data.columns.to_list()):
+        if col in features:
+            plt.subplot(4, 3, pos + 1)
+            plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
+            plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
+            plt.legend()
+            plt.xlabel(nice_names[col])
+            plt.tight_layout()
+            pos+=1
+    plt.savefig(f"{target_path}/{name}.pdf")
+    
 
 def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epochs = 500):
         
@@ -155,7 +158,7 @@ def save_hyperparameters(model, target_path):
                 'min_delta' : config.min_delta,
                 'activation_function' : config.activation_function,
                 'n_epochs' : config.n_epochs,
-                'train_split' : config.train_split,
+                'train_val_split' : config.train_val_split,
                 'randomSeed' : config.seed
                 }
     with open(f"{target_path}/hyperparameters.json", "w") as f:
