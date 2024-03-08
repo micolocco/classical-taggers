@@ -1,21 +1,48 @@
 import numpy as np 
-import sys 
-import pandas as pd 
 import os
 import time
-from inputDataset import inputDataset
+import torch
 from torch.utils.data import DataLoader
 import copy
-import torch
 from matplotlib import pyplot as plt
 from sklearn.metrics import auc, roc_curve
 from sklearn.linear_model import LogisticRegression
 import pickle
 from scipy.special import expit
-from NNModel import EarlyStopper
-import configParameters as config
 import json 
 
+# Local imports
+from scripts.NNModel import EarlyStopper
+from scripts.inputDataset import inputDataset
+import scripts.configParameters as config
+from scripts import ranges, nice_names, matplotlib_lhcb_style
+matplotlib_lhcb_style(plt)
+
+# Definition of the features for the NN and the selection variables
+features = [
+        # # "B_Tr_T_cos_PhiDistance",
+        # "B_Tr_T_PhiDistance",
+        # "B_Tr_T_PT",
+        # "B_Tr_T_CHI2DOF",
+        # "B_Tr_T_BPVIP",
+        # # "B_Tr_T_GHOSTPROB",
+        # "B_Tr_T_BVIPSig",
+        # "diff_P",
+        # "B_Tr_T_EtaDistance",
+        # "P_proj",
+        # "EVIP",
+        "B_nTracks",
+        "B_Tr_T_P",
+        "B_Tr_T_PT",
+        'B_nPVs',
+        'B_PT',
+        "B_Tr_T_BVIPSig",
+        "B_Tr_T_CHI2DOF",
+        'B_Tr_T_PIDK',
+        'B_Tr_T_PIDP',
+        "B_Tr_T_GHOSTPROB",
+        "B_Tr_T_absIP"
+        ]
 
 
 def splitByEvent (df):
@@ -44,22 +71,18 @@ def prepare_data(train_df, scalerPath, train_batch_size = 32, test_batch_size = 
 def plot_features(data, target_path, name, flag, nbins=100):
 
     # Plot input features 
-    plt.figure(figsize=(24,50))
+    plt.figure(figsize=(24,25))
     try:
+        pos=0
         for i, col in enumerate(data.columns.to_list()):
-            plt.subplot(10, 3, i + 1)
-            
-            if col == 'B_Tr_T_BPVIP':
-                plotting_data = data[data[col]<2.5]
-                plt.hist(plotting_data[col][plotting_data[flag]==0], density = True, bins=nbins, label = "Label = 0",color='b', alpha=0.5)
-                plt.hist(plotting_data[col][plotting_data[flag]==1], density = True, bins=nbins, label = "Label = 1",color='r', alpha=0.5)
-            else:
-                plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5)
-                plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5)
-           
-            plt.legend()
-            plt.title(col)
-            plt.tight_layout()
+            if col in features:
+                plt.subplot(4, 3, pos + 1)
+                plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
+                plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
+                plt.legend()
+                plt.xlabel(nice_names[col])
+                plt.tight_layout()
+                pos+=1
         #saveName = name_formatter.assign_name(folder, name)
         plt.savefig(f"{target_path}/{name}.pdf")
     except Exception as e:
@@ -157,11 +180,12 @@ def save_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
 def plot_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     
     plt.figure()
-    plt.plot(trainLoss, label='Training loss', c = 'orange')
-    plt.plot(valLoss,label='Validation loss', c='blue')
-    plt.plot((bestEpoch, bestEpoch), (bestLosses[0], bestLosses[1]) ,"k--", label = "Best epoch")
+    plt.plot(trainLoss, label='Training', c = 'orange')
+    plt.plot(valLoss,label='Validation', c='blue')
+    plt.axvline(bestEpoch, linestyle='--', color='tab:gray', label="Best epoch")
     plt.legend(loc = "best")
-    plt.title(name)
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
     plt.savefig(f"{target_path}/Loss.pdf")
    
 def plot_ROC(name, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = None):
@@ -176,7 +200,6 @@ def plot_ROC(name, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = No
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(f'ROC curve ')
     folder = 'plots'
     plt.legend(loc="lower right")
     #.assign_name(folder, name)
@@ -252,9 +275,8 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
     plt.close()
 
 def plot_mistag(name, clf, yPred, yTrue, target_path, type, nbins=100):
-
     plt.figure()
-    plt.title("Mistag rate")
+    # plt.title("Mistag rate")
     plt.yscale("log")
     y_predict_LR = clf.predict_proba(yPred)[:,0]
     plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} (Label = 0)")
@@ -270,12 +292,11 @@ def plot_mistag(name, clf, yPred, yTrue, target_path, type, nbins=100):
 def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
     # Get the particle with the lowest mistag for each event
     plt.figure()
-    plt.title(r"$\eta$ TagParticle")
     plt.yscale("log")
     plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "blue" , alpha = 0.5, label = f"(TagDec = -1)")
     plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "red" ,  alpha = 0.5,label = f"(TagDec = 1)")
     plt.grid()
-    plt.xlabel(r"$\eta$")
+    plt.xlabel(r"$\eta$ TagParticle")
     plt.ylabel("Normalized number of tracks")
     plt.legend(loc = "best")
     #folder = 'plots'
