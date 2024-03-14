@@ -91,6 +91,7 @@ rule add_features:
     log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     run:
         cmd = [
+            #'&& {eos}
             'python', input.script,
             '--raw {input.raw}',
             '--output {output}',

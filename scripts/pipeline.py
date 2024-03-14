@@ -163,6 +163,11 @@ if __name__ == '__main__':
     #embed()
 
     #print(test_df.loc[test_df.selected == 1].Eta)
+    print(f"{test_df.shape[0]} tracks used for testing")
+    print(f"{test_df[test_df.selected == 0].shape[0]} tracks used for testing, selected = 0 ")
+    print(f"{test_df[test_df.selected == 1].shape[0]} tracks used for testing, selected = 1")
+
+
     plt.figure()
     plt.hist(test_df.loc[test_df.selected == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.xlabel(r"$\eta$ Normalised")
@@ -175,8 +180,8 @@ if __name__ == '__main__':
     test_df.loc[test_df.selected == 0, "Eta"] = 0.5  # classic
 
     df_TagParticles = test_df.sort_values(by = ["entry","selected","Eta"] , ascending = [True,False,True]).groupby("entry").first()
-    #print(df_TagParticles.shape[0])
-
+    print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
+    embed()
     pyTrain.plot_tagDec(df_TagParticles, pyTrain.config.model_name, cfg.target_path)
     # Calibrating the tagger and saving parameters
     pyTrain.calibration(pyTrain.config.model_name, cfg.tagger, df_TagParticles, cfg.decayType, cfg.target_path)

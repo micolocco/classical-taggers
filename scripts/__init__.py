@@ -88,6 +88,10 @@ ranges = {
         'B_Tr_T_PIDP': (-150, 150),
         "B_Tr_T_GHOSTPROB": (0, 1),
         "B_Tr_T_absIP": (0,1.5),
+        "B_Tr_T_PIDe": (-30, 30),
+        "B_Tr_T_PIDmu": (-40, 40),
+        "B_Tr_T_ISMUON": (0,1)
+
     }
 
 nice_names = {
