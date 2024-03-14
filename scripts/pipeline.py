@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -6,7 +5,6 @@ import time
 import uproot
 import pandas as pd
 from inputDataset import inputDataset
-import pickle
 from matplotlib import pyplot as plt
 from IPython import embed
 import os
@@ -16,10 +14,40 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
+from rich.console import Console
+from rich.table import Table
+
 
 # Decay and tagger type are given as inputs by the user
 # Decay must be one among Bd2JpsiKst,  Bs2DsPi,  Bu2JpsiK 
 # Taggers must be one among OSKaon, OSMuon, OSElectron, SSPion, SSProton, SSKaon
+
+def stats_printout(df, train_df, val_df, test_df):
+    tot_evts = len(df['entry'].unique())
+    sel_evts = len(df[df.selected==1]['entry'].unique())
+    train_evts =  len(train_df[train_df.selected==1]['entry'].unique())
+    val_evts =  len(val_df[val_df.selected==1]['entry'].unique())
+    test_evts =  len(test_df[test_df.selected==1]['entry'].unique())
+
+    print("\n Statistics used in the pipeline\n")
+
+    console = Console()
+
+    table = Table(show_header=True)
+    table.add_column("Sets", justify="left", style='cyan')
+    table.add_column("Events", justify="right", style="green")
+    table.add_column("Tracks", justify="right", style="magenta")
+
+    table.add_row("Before selection", f"{tot_evts}", f"{df.shape[0]}")
+    table.add_row("After selection", f"{sel_evts}", f"{df[df.selected==1].shape[0]}")
+    table.add_row("Train", f"{train_evts}", f"{train_df.shape[0]}")
+    table.add_row("Validation", f"{val_evts}", f"{val_df.shape[0]}",)
+    table.add_row("Calibration", f"{test_evts}", f"{test_df.shape[0]}")
+
+    console.print(table)
+
+    print("\nThe train and the validation sets are made of tracks passing the preselection.")
+    print("The calibration set contains both selected and not selected events. \n")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -57,17 +85,19 @@ if __name__ == '__main__':
     start = time.time()
 
     # Reading datasets
-    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry']
+    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'EVENTNUMBER', 'RUNNUMBER']
     df = pd.DataFrame(columns=vars)
     for f in selected_files:
         print(f"Reading input file: {f}")
         with uproot.open("{}".format(f)) as _f:
             _df = _f[cfg.treename].arrays(vars, library="pd")
         df = pd.concat([df, _df], ignore_index = True)
-    
+    df['entry'] = df.groupby(['RUNNUMBER', 'EVENTNUMBER', 'entry']).ngroup() # in the concatenation the entries are the same among different files, needed to look at evt and run number to identify them
     df = df.sample(frac=1, random_state=pyTrain.config.seed).reset_index(drop=True)
     df.dropna(inplace = True)
-    print(f"{df[df.selected==1].shape[0]} tracks among the {df.shape[0]} total tracks have been selected as tagging particles")
+    df_events_sel = df[df.selected==1]['entry'].unique()
+    df_events = df['entry'].unique()
+
 
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
@@ -103,14 +133,14 @@ if __name__ == '__main__':
     columns_to_drop = ['entry', 'selected', 'TagDec', 'B_TRUEID',]
 
     # Split into train, validation, test sets
-    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['entry', 'selected', 'TagDec', 'B_TRUEID', 'label']])
+    df_selected = df.query('selected==1')
+    df_not_selected = df.query('selected==0')
+    train_df, val_df, test_df = pyTrain.splitByEvent(df_selected[features + ['entry', 'selected', 'TagDec', 'B_TRUEID', 'label', 'EVENTNUMBER', 'RUNNUMBER', 'B_Tr_T_Charge']])
+    test_df = pd.concat([test_df, df_not_selected], ignore_index =True)
+    stats_printout(df, train_df, val_df, test_df)
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
-    train_df = train_df[train_df['selected']==1].drop(columns = columns_to_drop)
-    val_df = val_df[val_df['selected']==1].drop(columns = columns_to_drop)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
-    print(f"Training set has {len(train_dl.dataset)} tracks")
-    print(f"Validation set has {len(validation_dl.dataset)} tracks")
 
     '''
     train_indices = train_dl.dataset.indices

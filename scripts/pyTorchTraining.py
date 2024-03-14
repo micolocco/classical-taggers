@@ -49,13 +49,12 @@ def splitByEvent (df):
     import random
     '''Function to random split by events (not by index) the dataset into training and test set
     Use random.Random(2) to reproduce same shuffling''' 
+    # df = df.query("selected==1")
     events_list = np.unique(df.entry)
     random.Random(2).shuffle(events_list)
     n_train_val = int(config.train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
     n_val = n_train_val - n_train
-    print(f"{n_train_val} events used for training (including validation)")
-    print(f"{len(events_list)-n_train_val} events used for calibrating")
     train_df = df[df.entry.isin(events_list[:n_train])]
     val_df = df[df.entry.isin(events_list[n_train:n_train+n_val])]
     test_df = df[df.entry.isin(events_list[n_train+n_val:])]
@@ -69,7 +68,7 @@ def prepare_data(train_df, val_df, savePlot_path, scalerPath, train_batch_size =
     plot_features(train_df, target_path=savePlot_path, flag='label', name=f'{config.model_name}_inputFeatures')
     # Prepare data loaders
     train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
-    validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
+    validation_dl = DataLoader(val_dataset, batch_size = None, shuffle=False)
     return train_dl, validation_dl 
 
 

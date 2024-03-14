@@ -80,7 +80,10 @@ rule all:
         #ntuples_selected_withUT['Bd2DmPi'],
         #ntuples_selected_withUT['Bd2JpsiKst'],
         #ntuples_selected_withUT['Bu2JpsiK']
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN/mistag_validation.pdf')
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig_noOriginFlag/mistag_validation.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN/mistag_validation.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/mistag_validation.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_noGhosts/mistag_validation.pdf')
         
 
 rule add_features:

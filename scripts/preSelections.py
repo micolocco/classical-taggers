@@ -2,7 +2,7 @@ import numpy as np
 import uproot
 import re
 from scripts.adding_features import loading_variables
-from scripts.pipeline import features
+from scripts.pyTorchTraining import features
 import argparse
 import os
 
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     from pprint import pprint
     pprint(cfg)
 
-    selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID']
+    selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID']
     loading_variables = features + selection_variables
     loading_variables = np.unique(loading_variables).tolist()
     '''
@@ -59,7 +59,7 @@ if __name__ == '__main__':
         if particle in ("Proton", "Pion"):
             loading_variables += ["B_Tr_T_PIDP"]
     '''
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
+    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry','RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
 
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
