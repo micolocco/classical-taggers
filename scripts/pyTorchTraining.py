@@ -49,16 +49,14 @@ def splitByEvent (df):
     import random
     '''Function to random split by events (not by index) the dataset into training and test set
     Use random.Random(2) to reproduce same shuffling''' 
-    events_list = np.unique(df.entry)
-    random.Random(2).shuffle(events_list)
+    events_list = np.unique(df.event_entry)
+    random.Random(config.seed).shuffle(events_list)
     n_train_val = int(config.train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
     n_val = n_train_val - n_train
-    print(f"{n_train_val} events used for training (including validation)")
-    print(f"{len(events_list)-n_train_val} events used for calibrating")
-    train_df = df[df.entry.isin(events_list[:n_train])]
-    val_df = df[df.entry.isin(events_list[n_train:n_train+n_val])]
-    test_df = df[df.entry.isin(events_list[n_train+n_val:])]
+    train_df = df[df.event_entry.isin(events_list[:n_train])]
+    val_df = df[df.event_entry.isin(events_list[n_train:n_train+n_val])]
+    test_df = df[df.event_entry.isin(events_list[n_train+n_val:])]
     return train_df, val_df, test_df
     
 

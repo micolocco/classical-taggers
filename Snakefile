@@ -72,15 +72,15 @@ for k,v in ntuples_raw_withUT.items():
 
 ntuples_selected_withUT = {}
 for k,v in ntuples_raw_withUT.items():
-    ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN') for f in v]})
+    ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN_IPSig') for f in v]})
 
 rule all:
     input:
         #ntuples_selected_withUT['Bs2DsPi'],
         #ntuples_selected_withUT['Bd2DmPi'],
         #ntuples_selected_withUT['Bd2JpsiKst'],
-        #ntuples_selected_withUT['Bu2JpsiK']
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN/mistag_validation.pdf')
+        ntuples_selected_withUT['Bu2JpsiK']
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/mistag_validation.pdf')
         
 
 rule add_features:
@@ -91,7 +91,6 @@ rule add_features:
     log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     run:
         cmd = [
-            #'&& {eos}
             'python', input.script,
             '--raw {input.raw}',
             '--output {output}',
@@ -122,7 +121,7 @@ rule add_selection:
 
 rule train_tagger:
     input:
-        selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
+        selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN_IPSig', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
         script = join(repo, 'scripts/pipeline.py'),
     output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/mistag_validation.pdf')
     log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/mistag_validation.log')
