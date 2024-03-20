@@ -72,7 +72,9 @@ loading_variables =[
     'B_Tr_T_Y',
     'B_Tr_T_Z',
     'B_nPVs',
-    'B_nTracks']
+    'B_nTracks',
+    'EVENTNUMBER',
+    'RUNNUMBER']
 
 df_save = pd.DataFrame(columns=loading_variables)
 
