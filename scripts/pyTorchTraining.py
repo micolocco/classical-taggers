@@ -54,9 +54,9 @@ def splitByEvent (df):
     n_train_val = int(config.train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
     n_val = n_train_val - n_train
-    train_df = df[df.event_entry.isin(events_list[:n_train])]
-    val_df = df[df.event_entry.isin(events_list[n_train:n_train+n_val])]
-    test_df = df[df.event_entry.isin(events_list[n_train+n_val:])]
+    train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
+    val_df = df[df.event_entry.isin(events_list[n_train:n_train+n_val])].copy()
+    test_df = df[df.event_entry.isin(events_list[n_train+n_val:])].copy()
     return train_df, val_df, test_df
     
 

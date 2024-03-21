@@ -151,7 +151,7 @@ if __name__ == '__main__':
     # Add tracks that don't pass preselection to the test set (needed for calibration)
     test_df = pd.concat([test_df, df_not_selected], ignore_index =True)
     stats_printout(df, train_df, val_df, test_df)
-    embed()
+    
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
     train_df.drop(columns = columns_to_drop, inplace = True)
@@ -228,7 +228,6 @@ if __name__ == '__main__':
 
     df_TagParticles = test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first()
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
-    embed()
     pyTrain.plot_tagDec(df_TagParticles, pyTrain.config.model_name, cfg.target_path)
     # Calibrating the tagger and saving parameters
     pyTrain.calibration(pyTrain.config.model_name, cfg.tagger, df_TagParticles, cfg.decayType, cfg.target_path)
