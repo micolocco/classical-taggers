@@ -19,7 +19,7 @@ class NeuralNetwork(nn.Module):
         self.NN = nn.Sequential(
             nn.Linear(len(self.features), 32),
             nn.Dropout(0.5),
-            nn.ELU(), #ELU, ReLU
+            nn.ELU(), #ELU, ReLU # activation_function=nn.ELU()
             nn.Linear(32, 64),
             nn.Dropout(0.5),
             nn.ELU(),
@@ -48,9 +48,12 @@ class NeuralNetwork(nn.Module):
             # compute the model output
             yPredTrain = self(inputsTrain)
             training_loss = self.criterion(yPredTrain, targetsTrain)
+            print(training_loss.item())
+
             training_loss.backward()
             # update model weights
             self.optimizer.step()
+            print(training_loss.item())
             # Calculate per batch loss
             stepLoss.append(training_loss.item())
             #if (i+1) % 1000 == 0:
