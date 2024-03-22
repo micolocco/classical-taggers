@@ -15,13 +15,13 @@ cut_file = 'test_cut'
 
 # NN parameters
 train_val_split = 0.6 # test set percentage of dataset
-learning_rate = 0.0001
-n_epochs = 70 #500
+learning_rate = 0.0008
+n_epochs = 20 #500
 patience = 25 #75 #100
 min_delta = 0.00
-seed = 45 #11 Need to change see?
-activation_function= 'ELU' #ReLU, ELU
-model_name = f'test'
+seed = 23 #11 Need to change see?
+activation_function= 'ReLU' #ReLU, ELU
+model_name = f'OSKaon'
 
 # Change to False if no training is needed
 training = True

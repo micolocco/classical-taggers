@@ -58,19 +58,34 @@ def splitByEvent (df):
     train_df = df[df.entry.isin(events_list[:n_train])]
     val_df = df[df.entry.isin(events_list[n_train:n_train+n_val])]
     test_df = df[df.entry.isin(events_list[n_train+n_val:])]
-    return train_df, val_df, test_df
+    train_val_df = df[df.entry.isin(events_list[:n_train+n_val])]
+    return train_df, val_df, test_df, train_val_df
     
 
-def prepare_data(train_df, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
+def prepare_data(train_df, val_df, train_val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
     train_dataset = inputDataset(train_df, scalerPath, test = False)
     val_dataset = inputDataset(val_df, scalerPath, test = True)
     plot_features(train_df, target_path=savePlot_path, flag='label', name=f'{config.model_name}_inputFeatures')
     # Prepare data loaders
     train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
-    validation_dl = DataLoader(val_dataset, batch_size = None, shuffle=False)
-    return train_dl, validation_dl 
+    # validation_dl = val_dataset
+    validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
 
+    train_val_dl = DataLoader(train_val_df, batch_size = test_batch_size, shuffle=True)
+    return train_dl, validation_dl , train_val_dl
+
+def prepare_kfolded_data(df, entry_values, train_entries, val_entries, columns_to_drop, scalerPath):
+    train_subset_df = df[df.entry.isin(entry_values[train_entries])].reset_index(drop=True)
+    val_subset_df = df[df.entry.isin(entry_values[val_entries])].reset_index(drop=True)
+    train_subset_df = train_subset_df.drop(columns=columns_to_drop)
+    val_subset_df = val_subset_df.drop(columns=columns_to_drop)
+    train_subset_df = inputDataset(train_subset_df, scalerPath, test = False)
+    val_data_subset = inputDataset(val_subset_df, scalerPath, test = True)
+    # Prepare data loaders
+    train_loader_subset = DataLoader(train_subset_df, batch_size = 32, shuffle=True)
+    # val_loader_subset = DataLoader(val_subset_df, batch_size = 1024, shuffle=False)
+    return train_loader_subset, val_data_subset
 
 def plot_features(data, target_path, name, flag, nbins=100):
 

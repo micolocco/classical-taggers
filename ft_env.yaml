@@ -18,3 +18,4 @@ dependencies:
     - lhcb-ftcalib
     - snakemake
     - rich
+    - mplhep

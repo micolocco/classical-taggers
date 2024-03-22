@@ -12,8 +12,12 @@ import argparse
 # Local import
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
+from sklearn.model_selection import KFold
+
 from scripts import ranges, nice_names, matplotlib_lhcb_style
-matplotlib_lhcb_style(plt)
+# matplotlib_lhcb_style(plt)
+import mplhep as hep
+hep.style.use("LHCb2")
 from rich.console import Console
 from rich.table import Table
 
@@ -95,8 +99,15 @@ if __name__ == '__main__':
     df['entry'] = df.groupby(['RUNNUMBER', 'EVENTNUMBER', 'entry']).ngroup() # in the concatenation the entries are the same among different files, needed to look at evt and run number to identify them
     df = df.sample(frac=1, random_state=pyTrain.config.seed).reset_index(drop=True)
     df.dropna(inplace = True)
-    df_events_sel = df[df.selected==1]['entry'].unique()
-    df_events = df['entry'].unique()
+    # mult_cand_grouped = len(df[['RUNNUMBER', 'EVENTNUMBER']].value_counts())
+    # tot = len(df[['RUNNUMBER', 'EVENTNUMBER', 'entry']].value_counts())
+    # mult_cand = ((tot-mult_cand_grouped)/tot)*100
+    # print(f"Total number of multiple candidates tracks {mult_cand}%")
+    # mult_cand_grouped_sel = len(df[df['selected']==1][['RUNNUMBER', 'EVENTNUMBER']].value_counts())
+    # tot_sel = len(df[df['selected']==1][['RUNNUMBER', 'EVENTNUMBER', 'entry']].value_counts())
+    # mult_cand_sel = ((tot_sel-mult_cand_grouped_sel)/tot_sel)*100
+    # print(f"Multiple candidates tracks in the selected sample {mult_cand_sel}%")
+
 
 
     # Assignation of the tagging decision (d)
@@ -130,38 +141,56 @@ if __name__ == '__main__':
     plt.savefig(f"{cfg.target_path}/preSelect_variables.pdf")
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    columns_to_drop = ['entry', 'selected', 'TagDec', 'B_TRUEID',]
-
+    columns_to_drop = ['entry', 'selected', 'TagDec', 'B_TRUEID', 'EVENTNUMBER', 'RUNNUMBER']
     # Split into train, validation, test sets
     df_selected = df.query('selected==1')
-    df_not_selected = df.query('selected==0')
-    train_df, val_df, test_df = pyTrain.splitByEvent(df_selected[features + ['entry', 'selected', 'TagDec', 'B_TRUEID', 'label', 'EVENTNUMBER', 'RUNNUMBER', 'B_Tr_T_Charge']])
+    df_not_selected = df.query('selected==0').drop(columns=['B_Tr_T_Charge'])
+    train_df, val_df, test_df, train_val_df = pyTrain.splitByEvent(df_selected[features + ['entry', 'selected', 'TagDec', 'B_TRUEID', 'label', 'EVENTNUMBER', 'RUNNUMBER']])
     test_df = pd.concat([test_df, df_not_selected], ignore_index =True)
     stats_printout(df, train_df, val_df, test_df)
+    train_df = train_df.drop(columns=columns_to_drop)
+    val_df = val_df.drop(columns=columns_to_drop)
     # Save test dataframe for calibration
-    test_df.to_csv(f"{testSetPath}", index = False)
-    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
+    # test_df.to_csv(f"{testSetPath}", index = False)
+    # train_dl, validation_dl, train_val_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, train_val_df=train_val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
 
     '''
     train_indices = train_dl.dataset.indices
     df1 = df.iloc[train_indices][['label','entry']]
     print(f' label 0 : {df1[df1.label==0].shape[0]}, label 1 : {df1[df1.label==1].shape[0]}')
     '''
-    model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
-    pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
-    pyTrain.save_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
-    
-    # Plot ROC curves for validation and train test
-    bestModel.eval()
-    yPredVal, yTrueVal = bestModel.evaluate_model(validation_dl)
-    yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
-    pyTrain.plot_ROC(model.modelName, yPredVal, yTrueVal, cfg.target_path, yPredTrain, yTrueTrain)
-    # Fit with logistic regression and save it
-    clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, cfg.target_path, model.modelName)
-    #pyTrain.plot_NNoutput(pyTrain.config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, target_path)
-    pyTrain.plot_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
-
+    # k-folding
+    n_splits=4
+    k_folds = KFold(n_splits=n_splits)
+    training_kFold_loss = []
+    validation_kFold_loss = []
+    best_kModels = []
+    entry_values = train_val_df['entry'].values
+    k=0
+    for train_entries, val_entries in k_folds.split(entry_values):
+        kfold_path = cfg.target_path + f"/{k}Fold"
+        os.makedirs(kfold_path, exist_ok=True)
+        model_name = pyTrain.config.model_name+f'_{k}Fold'
+        model = NeuralNetwork(modelName = model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
+        print(f'\n ------- Running the k-{k} fold ------- \n')
+        print(f'With {train_entries} and {val_entries} \n')
+        train_loader_subset, val_data_subset = pyTrain.prepare_kfolded_data(train_val_df, entry_values, train_entries, val_entries, columns_to_drop, scalerPath)
+        bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_loader_subset, val_data_subset, kfold_path, n_epochs = pyTrain.config.n_epochs)
+        pyTrain.plot_losses(model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, kfold_path)
+        pyTrain.save_losses(model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, kfold_path)
+        # Plot ROC curves for validation and train test
+        bestModel.eval()
+        yPredVal, yTrueVal = bestModel.evaluate_model(val_data_subset, validation=True)
+        yPredTrain, yTrueTrain = bestModel.evaluate_model(train_loader_subset)
+        pyTrain.plot_ROC(model_name, yPredVal, yTrueVal, kfold_path, yPredTrain, yTrueTrain)
+        # Fit with logistic regression and save it
+        clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, kfold_path, model_name)
+        #pyTrain.plot_NNoutput(pyTrain.config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, target_path)
+        pyTrain.plot_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, kfold_path, type = 'validation')
+        training_kFold_loss.append(bestLosses[0])
+        validation_kFold_loss.append(bestLosses[1])
+        best_kModels.append(bestModel)
+        k+=1
 
     # else:
 
@@ -177,18 +206,30 @@ if __name__ == '__main__':
         # bestModel.eval()
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop), scalerPath, test = True)
-    test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
-    print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
-    yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
-    pyTrain.plot_ROC(bestModel.modelName, yPredTest, yTrueTest, cfg.target_path)
-    pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest, yTrueTest, cfg.target_path, type = 'Test')
+    # test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
+    test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
+    # test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
+    print(f"Test set has {len(test_dataset_sel1)} tracks selected as tagging particles")
+    yPredTest_kfold = []
+    yTrueTest_kfold = []
+    test_eta_kfold = []
+    for bestModel in best_kModels:
+        yPredTest, yTrueTest = bestModel.evaluate_model(test_dataset_sel1, validation=True)
+        yPredTest_kfold.append(yPredTest)
+        yTrueTest_kfold.append(yTrueTest)
+        test_eta = 1- bestModel.evaluate_model(test_dataset, validation=True)[0]
+        test_eta_kfold.append(test_eta)
+    yPredTest_kmean = np.mean(np.array(yPredTest_kfold), axis=0)
+    yTrueTest_kmean = yTrueTest_kfold[0] # The true are always the same for all the k-folds
+    test_eta_kmean = np.mean(np.array(test_eta_kfold), axis=0)
+
+    pyTrain.plot_ROC(bestModel.modelName, yPredTest_kmean, yTrueTest_kmean, cfg.target_path)
+    # pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest_kmean, yTrueTest_kmean, cfg.target_path, type = 'Test')
 
     #
-    test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
-    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-    test_df['Eta'] = 1- bestModel.evaluate_model(test_dl)[0]
+    test_df['Eta'] = test_eta_kmean
     test_df = test_df[['entry','selected', 'Eta', 'TagDec','B_TRUEID']]
     #embed()
 
