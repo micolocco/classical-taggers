@@ -96,9 +96,12 @@ if __name__ == '__main__':
     testSetPath = f"{cfg.target_path}/testSet.csv"
 
     start = time.time()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
 
     # Reading datasets
     vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER']
+    
     df = pd.DataFrame(columns=vars)
     for f in selected_files:
         print(f"Reading input file: {f}")
@@ -107,11 +110,13 @@ if __name__ == '__main__':
         _df.dropna(inplace = True)
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
     df.sample(frac=1, random_state=pyTrain.config.seed).reset_index(drop=True)
+    print("Removing multicandidates")
     df_grouped = df.groupby(['RUNNUMBER', 'EVENTNUMBER'])
-    df = df_grouped.apply(filter_rows, include_groups=False).reset_index() # drop multicandidates
-    df['event_entry'] = df_grouped.ngroup() # in the concatenation the entries are the same among different files, needed to look at evt and run number to identify them
+    df = df_grouped.apply(filter_rows).drop(columns = ['RUNNUMBER', 'EVENTNUMBER']) #Drop multicandidates
+    df.reset_index(inplace=True)
+    df['event_entry'] = df.groupby(['RUNNUMBER', 'EVENTNUMBER']).ngroup() # in the concatenation the entries are the same among different files, needed to look at evt and run number to identify them
     df.drop(columns=['entry', 'level_2'], inplace=True)
-
+    embed()
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
     if ("Bd" or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
@@ -159,11 +164,8 @@ if __name__ == '__main__':
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
 
 
-    '''
-    train_indices = train_dl.dataset.indices
-    df1 = df.iloc[train_indices][['label','entry']]
-    print(f' label 0 : {df1[df1.label==0].shape[0]}, label 1 : {df1[df1.label==1].shape[0]}')
-    '''
+    
+   
     model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
     pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
@@ -181,19 +183,17 @@ if __name__ == '__main__':
 
 
     # else:
+    '''
+    test_df = pd.read_csv(f"{testSetPath}")
 
-    #     test_df = pd.read_csv(f"{testSetPath}")
-    #     test_df = df[features + ['entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
-    #     folder = "savedModels"
-    #     #prePath = name_formatter.assign_name(folder, pyTrain.config.model_name)
-    #     clf = pickle.load(open(f"{target_path}/LogReg.pck", 'rb'))
-
-        # Load the best model (ie with the lowest training loss) and evaluate it on the test set
-        # bestModel = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
-        # pyTrain.load_model(bestModel, target_path)
-        # bestModel.eval()
+    clf = pickle.load(open(f"{cfg.target_path}/LogReg.pck", 'rb'))   
+    #Load the best model (ie with the lowest training loss) and evaluate it on the test set
+    bestModel = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
+    pyTrain.load_model(bestModel, cfg.target_path)
+    bestModel.eval()
+    '''
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
-    test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop + ['RUNNUMBER', 'EVENTNUMBER']), scalerPath, test = True)
+    test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop), scalerPath, test = True)
     test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
     print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
     yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest, yTrueTest, cfg.target_path, type = 'Test')
 
     #
-    test_dataset = inputDataset(test_df.drop(columns = columns_to_drop + ['RUNNUMBER', 'EVENTNUMBER']), scalerPath, test = True)
+    test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
@@ -209,12 +209,7 @@ if __name__ == '__main__':
     test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID']]
     #embed()
 
-    #print(test_df.loc[test_df.selected == 1].Eta)
-    print(f"{test_df.shape[0]} tracks used for testing")
-    print(f"{test_df[test_df.selected == 0].shape[0]} tracks used for testing, selected = 0 ")
-    print(f"{test_df[test_df.selected == 1].shape[0]} tracks used for testing, selected = 1")
-
-
+    #print(test_df.loc[test_df.selected == 1].Eta)    
     plt.figure()
     plt.hist(test_df.loc[test_df.selected == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.xlabel(r"$\eta$ Normalised")
