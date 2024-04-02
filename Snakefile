@@ -79,23 +79,25 @@ rule all:
         #ntuples_selected_withUT['Bs2DsPi'],
         #ntuples_selected_withUT['Bd2DmPi'],
         #ntuples_selected_withUT['Bd2JpsiKst'],
-        ntuples_selected_withUT['Bu2JpsiK']
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/mistag_validation.pdf')
+        #ntuples_selected_withUT['Bu2JpsiK']
+        #ntuples_added_features_withUT['Bu2JpsiK']
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/simplify_NNnocluster/log.log')
         
-
+'''
 rule add_features:
     input:
         script = join(repo, 'scripts/adding_features.py'),
         raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root')
-    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
+    output: 
+        root =join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'),
+        log = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     run:
         cmd = [
             'python', input.script,
             '--raw {input.raw}',
             '--output {output}',
             '--evtType {wildcards.decay}',
-            '&> {log}',
+            '&> {output.log}',
         ]
         shell(' '.join(cmd))
 
@@ -103,8 +105,9 @@ rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
         added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root')
-    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/.{id,.*}.log')
+    output: 
+        root = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root'),
+        log = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/.{id,.*}.log')
     params:
         tagger = lambda wildcards: taggers_conf[wildcards.decay]
     run:
@@ -114,20 +117,25 @@ rule add_selection:
             '--output {output}',
             '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{params.tagger}/{wildcards.cut_name}.txt'),
             '--tagger {params.tagger}',
-            '&> {log}',
+            '&> {output.log}',
         ]
         shell(' '.join(cmd))
-
+'''
 
 rule train_tagger:
     input:
         selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN_IPSig', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
         script = join(repo, 'scripts/pipeline.py'),
-    output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/mistag_validation.pdf')
-    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/mistag_validation.log')
+    output:
+        pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/{dir_model}/mistag_validation.pdf'),
+        log=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/{dir_model}/log.log')
+    #log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|SSKaon)}/{cut_name}/mistag_validation.log')
+    resources:
+        mem_mb = 40000, # Specify memory requirement in megabytes 
+        gpus = 1
     params:
         config = lambda wildcards: join(repo, f'configs/config_{wildcards.tagger}.json'),
-        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}')
+        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.dir_model}/')
     run:
         cmd = [
             'python', input.script,
@@ -136,6 +144,7 @@ rule train_tagger:
             '--tagger {wildcards.tagger}',
             '--config {params.config}',
             '--decayType {wildcards.decay}',
-            '&> {log}',
+            '&> {output.log}',
         ]
         shell(' '.join(cmd))
+        
