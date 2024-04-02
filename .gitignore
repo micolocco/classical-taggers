@@ -16,3 +16,4 @@ Data/PyConf-create-lhcb-metadata-git-repo.lock
 os_commands.py
 scaler_old
 **/*.pdf
+*/DT_outputs
