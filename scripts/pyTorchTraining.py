@@ -46,18 +46,17 @@ features = [
 
 
 def splitByEvent (df):
-    import random
     '''Function to random split by events (not by index) the dataset into training and test set
     Use random.Random(2) to reproduce same shuffling''' 
+    import random
     events_list = np.unique(df.event_entry)
     random.Random(config.seed).shuffle(events_list)
     n_train_val = int(config.train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
-    n_val = n_train_val - n_train
     train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
-    val_df = df[df.event_entry.isin(events_list[n_train:n_train+n_val])].copy()
-    test_df = df[df.event_entry.isin(events_list[n_train+n_val:])].copy()
-    return train_df, val_df, test_df
+    val_df = df[df.event_entry.isin(events_list[n_train:n_train_val])].copy()
+    test_df = df[df.event_entry.isin(events_list[n_train_val:])].copy()
+    return train_df.query('selected==1'), val_df.query('selected==1'), test_df
     
 
 def prepare_data(train_df, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
@@ -121,7 +120,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epo
                 bestEpoch = epoch
                 save_model(model, target_path)
                 bestModel = copy.deepcopy(model)
-                i +=1
+            i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
         print(f"Training finished in {training_time} min, {i} epochs, early stopping: {stopped}")
         return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
@@ -156,7 +155,8 @@ def save_hyperparameters(model, target_path):
                 'activation_function' : config.activation_function,
                 'n_epochs' : config.n_epochs,
                 'train_val_split' : config.train_val_split,
-                'randomSeed' : config.seed
+                'randomSeed' : config.seed,
+                'train_batch_size': config.train_batch_size
                 }
     with open(f"{target_path}/hyperparameters.json", "w") as f:
         json.dump(info_dict, f)
