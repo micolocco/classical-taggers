@@ -111,12 +111,15 @@ if __name__ == '__main__':
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
     df.sample(frac=1, random_state=pyTrain.config.seed).reset_index(drop=True)
     print("Removing multicandidates")
+    removal_time1 = time.time()
     df_grouped = df.groupby(['RUNNUMBER', 'EVENTNUMBER'])
     df = df_grouped.apply(filter_rows).drop(columns = ['RUNNUMBER', 'EVENTNUMBER']) #Drop multicandidates
     df.reset_index(inplace=True)
+    removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
+    print(f"Removing multicandidates required {removal_time2}s")
     df['event_entry'] = df.groupby(['RUNNUMBER', 'EVENTNUMBER']).ngroup() # in the concatenation the entries are the same among different files, needed to look at evt and run number to identify them
     df.drop(columns=['entry', 'level_2'], inplace=True)
-    embed()
+    
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
     if ("Bd" or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
@@ -130,7 +133,7 @@ if __name__ == '__main__':
     # -1 == wrong tag  1 == correct tag
     df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"])
     df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
-
+    '''
     plt.figure(figsize=(24,25))
     pos=0
     for i, col in enumerate(df.columns.to_list()):
@@ -145,28 +148,24 @@ if __name__ == '__main__':
             plt.xlabel(nice_names[col])
             plt.tight_layout()
             pos+=1
-    plt.savefig(f"{cfg.target_path}/preSelect_variables.pdf")
+    plt.savefig(f"{cfg.target_path}/preSelect_variables.pdf")'''
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
-    df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
-    df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
-    # Split into train, validation, test sets
-    train_df, val_df, test_df = pyTrain.splitByEvent(df_selected)
-    # Add tracks that don't pass preselection to the test set (needed for calibration)
-    test_df = pd.concat([test_df, df_not_selected], ignore_index =True)
+    #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
+    #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
+    # Split data into training+validation set and test set
+    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']])
+    # For training: keep only tracks that pass the pre-selections. 
+    # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
+    # Training-validation sets splitting
     stats_printout(df, train_df, val_df, test_df)
-    
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
+    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
-
-
-    
-   
-    model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
+    model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, train_batch_size = pyTrain.config.train_batch_size, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
     pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
@@ -207,7 +206,6 @@ if __name__ == '__main__':
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
     test_df['Eta'] = 1- bestModel.evaluate_model(test_dl)[0]
     test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID']]
-    #embed()
 
     #print(test_df.loc[test_df.selected == 1].Eta)    
     plt.figure()
