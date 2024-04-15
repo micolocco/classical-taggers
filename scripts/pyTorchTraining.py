@@ -62,7 +62,7 @@ def splitByEvent (df):
     return train_df, val_df, test_df, train_val_df
     
 
-def prepare_data(train_df, val_df, train_val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
+def prepare_data(train_df, val_df, train_val_df, savePlot_path, scalerPath, train_batch_size = 1024, test_batch_size = 1024):
     # Load the dataset
     train_dataset = inputDataset(train_df, scalerPath, test = False)
     val_dataset = inputDataset(val_df, scalerPath, test = True)
@@ -83,7 +83,7 @@ def prepare_kfolded_data(df, entry_values, train_entries, val_entries, columns_t
     train_subset_df = inputDataset(train_subset_df, scalerPath, test = False)
     val_data_subset = inputDataset(val_subset_df, scalerPath, test = True)
     # Prepare data loaders
-    train_loader_subset = DataLoader(train_subset_df, batch_size = 32, shuffle=True)
+    train_loader_subset = DataLoader(train_subset_df, batch_size = 1024, shuffle=True)
     # val_loader_subset = DataLoader(val_subset_df, batch_size = 1024, shuffle=False)
     return train_loader_subset, val_data_subset
 
@@ -128,16 +128,16 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epo
             validationStep_loss = model.validate_model(validation_dl)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
             print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s") 
-            if early_stopper.early_stop(validationEpoch_loss[-1]): 
-                stopped = True 
-                break
-            if early_stopper.counter == 0:
-                lossValBest = validationEpoch_loss[-1]
-                lossTrainBest = trainingEpoch_loss[-1]
-                bestEpoch = epoch
-                save_model(model, target_path)
-                bestModel = copy.deepcopy(model)
-                i +=1
+            # if early_stopper.early_stop(validationEpoch_loss[-1]): 
+            #     stopped = True 
+            #     break
+            # if early_stopper.counter == 0:
+            lossValBest = validationEpoch_loss[-1]
+            lossTrainBest = trainingEpoch_loss[-1]
+            bestEpoch = epoch
+            save_model(model, target_path)
+            bestModel = copy.deepcopy(model)
+            i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
         print(f"Training finished in {training_time} min, {i} epochs, early stopping: {stopped}")
         return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)

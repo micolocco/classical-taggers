@@ -32,6 +32,7 @@ def stats_printout(df, train_df, val_df, test_df):
     train_evts =  len(train_df[train_df.selected==1]['entry'].unique())
     val_evts =  len(val_df[val_df.selected==1]['entry'].unique())
     test_evts =  len(test_df[test_df.selected==1]['entry'].unique())
+    test_evts_tot =  len(test_df['entry'].unique())
 
     print("\n Statistics used in the pipeline\n")
 
@@ -46,7 +47,8 @@ def stats_printout(df, train_df, val_df, test_df):
     table.add_row("After selection", f"{sel_evts}", f"{df[df.selected==1].shape[0]}")
     table.add_row("Train", f"{train_evts}", f"{train_df.shape[0]}")
     table.add_row("Validation", f"{val_evts}", f"{val_df.shape[0]}",)
-    table.add_row("Calibration", f"{test_evts}", f"{test_df.shape[0]}")
+    table.add_row("Calibration only selected", f"{test_evts}", f"{test_df[test_df.selected==1].shape[0]}")
+    table.add_row("Calibration tot", f"{test_evts_tot}", f"{test_df.shape[0]}")
 
     console.print(table)
 
@@ -171,7 +173,7 @@ if __name__ == '__main__':
         kfold_path = cfg.target_path + f"/{k}Fold"
         os.makedirs(kfold_path, exist_ok=True)
         model_name = pyTrain.config.model_name+f'_{k}Fold'
-        model = NeuralNetwork(modelName = model_name, features=features, train_batch_size = 100, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
+        model = NeuralNetwork(modelName = model_name, features=features, train_batch_size = 1024, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
         print(f'\n ------- Running the k-{k} fold ------- \n')
         print(f'With {train_entries} and {val_entries} \n')
         train_loader_subset, val_data_subset = pyTrain.prepare_kfolded_data(train_val_df, entry_values, train_entries, val_entries, columns_to_drop, scalerPath)
