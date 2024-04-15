@@ -18,16 +18,23 @@ class NeuralNetwork(nn.Module):
         self.criterion = loss
         self.NN = nn.Sequential(
             nn.Linear(len(self.features), 3),
-            # nn.Dropout(0.5),
-            nn.ELU(), #ELU, ReLU
+           # nn.Dropout(0.5),
+            nn.ELU(), 
             nn.Linear(3, 3),
-            # nn.Dropout(0.5),
             nn.ELU(),
-            # nn.Linear(64, 32),
-            # nn.Dropout(0.5),
-            # nn.ELU(),
             nn.Linear(3, 1),
             nn.Sigmoid()
+           # nn.Linear(len(self.features), 32),
+           # nn.Dropout(0.5),
+           # nn.ELU(), #ELU, ReLU # activation_function=nn.ELU()
+           # nn.Linear(32, 64),
+           # nn.Dropout(0.5),
+           # nn.ELU(),
+           # nn.Linear(64, 32),
+           # nn.Dropout(0.5),
+           # nn.ELU(),
+           # nn.Linear(32, 1),
+           # nn.Sigmoid()
         )
         self.optimizer = optimizer(self.parameters(), **optimizer_kwargs)
         self.train_batch_size = train_batch_size

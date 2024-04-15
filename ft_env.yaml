@@ -6,12 +6,13 @@ dependencies:
   - pip
   - pytorch
   - scikit-learn
-  - numpy==1.21
+  # - numpy==1.21
   - matplotlib
   - pandas
   - python
-  - uproot==4.3.7
-  - awkward==1.10.2
+  # - uproot==4.3.7
+  # - awkward==1.10.2
+  - pulp==2.7.0
   - ipython
   - numba==0.53
   - pip:
@@ -19,3 +20,5 @@ dependencies:
     - snakemake
     - rich
     - mplhep
+    - zstandard
+    - htcondor

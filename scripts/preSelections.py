@@ -33,6 +33,11 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
     df.selected = df.selected.astype(int, copy = False) 
     return df
 
+Run2_preselectionVariables = [ 'B_Tr_T_P' , 'B_Tr_T_TRACKISLONG' , 'B_Tr_T_CHI2DOF' , 'B_Tr_T_minPhiDistance' , 'B_Tr_T_ISMUON' , 'B_Tr_T_GHOSTPROB' , 'B_Tr_T_PIDK' , 'B_Tr_T_absIP' , 
+    'B_Tr_T_BVIPSig',
+
+]
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Apply a preselection for the tagging particles',
@@ -59,7 +64,11 @@ if __name__ == '__main__':
         if particle in ("Proton", "Pion"):
             loading_variables += ["B_Tr_T_PIDP"]
     '''
+<<<<<<< HEAD
     df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry','RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
+=======
+    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
+>>>>>>> master
 
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
