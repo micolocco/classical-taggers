@@ -20,8 +20,8 @@ train_batch_size = 1024
 n_epochs = 500 #500
 patience = 500 #75 #100
 min_delta = 0.00
-seed = 23 #11 Need to change see?
-activation_function= 'ReLU' #ReLU, ELU
+seed = 45 #11 Need to change see?
+activation_function= 'ELU' #ReLU, ELU
 model_name = f'OSKaon'
 
 # Change to False if no training is needed
