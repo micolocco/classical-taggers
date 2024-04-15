@@ -66,11 +66,8 @@ def prepare_data(train_df, val_df, train_val_df, savePlot_path, scalerPath, trai
     plot_features(train_df, target_path=savePlot_path, flag='label', name=f'{config.model_name}_inputFeatures')
     # Prepare data loaders
     train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
-    # validation_dl = val_dataset
     validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
-
-    train_val_dl = DataLoader(train_val_df, batch_size = test_batch_size, shuffle=True)
-    return train_dl, validation_dl , train_val_dl
+    return train_dl, validation_dl
 
 def prepare_kfolded_data(df, entry_values, train_entries, val_entries, columns_to_drop, scalerPath):
     train_subset_df = df[df.entry.isin(entry_values[train_entries])].reset_index(drop=True)

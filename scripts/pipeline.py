@@ -14,7 +14,6 @@ from pprint import pprint
 # Local import
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
-from sklearn.model_selection import KFold
 
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 # matplotlib_lhcb_style(plt)
@@ -227,24 +226,14 @@ if __name__ == '__main__':
     '''
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop), scalerPath, test = True)
-    # test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
+    test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
+    yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
+    pyTrain.plot_ROC(bestModel.modelName, yPredTest, yTrueTest, cfg.target_path)
+    pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest, yTrueTest, cfg.target_path, type = 'Test')
+ 
+     #
     test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
-    # test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
-    print(f"Test set has {len(test_dataset_sel1)} tracks selected as tagging particles")
-    yPredTest_kfold = []
-    yTrueTest_kfold = []
-    test_eta_kfold = []
-    for bestModel in best_kModels:
-        yPredTest, yTrueTest = bestModel.evaluate_model(test_dataset_sel1, validation=True)
-        yPredTest_kfold.append(yPredTest)
-        yTrueTest_kfold.append(yTrueTest)
-        test_eta = 1- bestModel.evaluate_model(test_dataset, validation=True)[0]
-        test_eta_kfold.append(test_eta)
-    yPredTest_kmean = np.mean(np.array(yPredTest_kfold), axis=0)
-    yTrueTest_kmean = yTrueTest_kfold[0] # The true are always the same for all the k-folds
-    test_eta_kmean = np.mean(np.array(test_eta_kfold), axis=0)
-
-    pyTrain.plot_ROC(bestModel.modelName, yPredTest_kmean, yTrueTest_kmean, cfg.target_path)
+    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
     # pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest_kmean, yTrueTest_kmean, cfg.target_path, type = 'Test')
 
     #

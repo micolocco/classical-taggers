@@ -64,11 +64,7 @@ if __name__ == '__main__':
         if particle in ("Proton", "Pion"):
             loading_variables += ["B_Tr_T_PIDP"]
     '''
-<<<<<<< HEAD
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry','RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
-=======
     df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
->>>>>>> master
 
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)

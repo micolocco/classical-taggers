@@ -68,8 +68,6 @@ class NeuralNetwork(nn.Module):
         self.eval()
         validationStep_loss = []
         for i, (inputsVal, targetsVal) in enumerate(validation_dl):
-            inputsVal = torch.tensor(inputsVal, dtype=torch.float32)
-            targetsVal = torch.tensor(targetsVal, dtype=torch.float32)
             # Forward pass
             yPredVal = self(inputsVal)
             validation_loss = self.criterion(yPredVal, targetsVal)
@@ -78,13 +76,10 @@ class NeuralNetwork(nn.Module):
 
 
     # Evaluate the model
-    def evaluate_model(self, test_dl, validation=False):
+    def evaluate_model(self, test_dl):
         predictions, actuals = list(), list()
         for i, (inputs, targets) in enumerate(test_dl):
             # evaluate the model on the test set
-            if validation==True:
-                inputs = torch.tensor(inputs, dtype=torch.float32)
-                targets = torch.tensor(targets, dtype=torch.float32)
             yPred = self(inputs)
             # retrieve numpy array
             yPred = yPred.detach().numpy()
