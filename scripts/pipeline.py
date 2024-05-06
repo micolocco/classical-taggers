@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -5,6 +6,7 @@ import time
 import uproot
 import pandas as pd
 from inputDataset import inputDataset
+import pickle
 from matplotlib import pyplot as plt
 from IPython import embed
 import os
@@ -14,16 +16,106 @@ from pprint import pprint
 # Local import
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
-
-from scripts import ranges, nice_names, matplotlib_lhcb_style
-# matplotlib_lhcb_style(plt)
+from scripts import ranges, nice_names
 import mplhep as hep
 hep.style.use("LHCb2")
-from rich.console import Console
-from rich.table import Table
+# matplotlib_lhcb_style(plt)
 
 
+def plot_mothers(df, mother, savepath, type):
+    names = {
+        'B_Tr_T_MC_MOTHER_ID': r'TRUEID Mother$(tag)$',
+        'B_Tr_T_MC_GD_MOTHER_ID': r'TRUEID GDMother$(tag)$',
+    }
+    df_grouped = df.groupby(mother)
+    ids = []
+    counts = []
+    for key, group in df_grouped:
+        ids.append(int(key))
+        counts.append(len(group))
+    plt.figure(figsize=(12, 6))
+    plt.bar(np.arange(len(ids))*3+3, counts)
+    plt.xticks(np.arange(len(ids))*3+3, ids, rotation=45, fontsize=6)
+    plt.xlim(0, len(ids)*3+3)
+    plt.xlabel(names[mother])
+    plt.minorticks_off()
+    plt.legend(title=f'OSKaon {type} set protons')
+    plt.savefig(f'{savepath}/{type}_tagProtons_{mother}.pdf')
+    plt.close()
+    plt.show()
 
+def plot_kp_for_torch(df, type, savepath):
+    true_kaons = df.query('B_Tr_T_TRUEID==321 or B_Tr_T_TRUEID==-321')
+    true_protons = df.query('B_Tr_T_TRUEID==2212 or B_Tr_T_TRUEID==-2212')
+    print(f'In the {type} samples there are {len(true_kaons)} true kaons and {len(true_protons)} true protons, out of a total {len(df)} tracks\n')
+    plt.hist(true_kaons['B_Tr_T_P'], range=ranges['B_Tr_T_P'], bins=100, density=True, label='True kaons')
+    plt.hist(true_protons['B_Tr_T_P'], range=ranges['B_Tr_T_P'], bins=100, density=True, label='True protons', alpha=0.8)
+    plt.xlabel(r'$p(tag)~[\mathrm{MeV}/c^2]$')
+    plt.legend(title=f'OSKaon {type} set')
+    plt.savefig(f'{savepath}/{type}_pk.pdf')
+    plt.close()
+
+    plt.hist(true_protons.loc[df.label == 0].B_Tr_T_P, range=ranges['B_Tr_T_P'], bins=100, density=True, label='True protons wrong tag')
+    plt.hist(true_protons.loc[df.label == 1].B_Tr_T_P, range=ranges['B_Tr_T_P'], bins=100, density=True, label='True protons correct tag', alpha=0.8)
+    plt.xlabel(r'$p(tag)~[\mathrm{MeV}/c^2]$')
+    plt.legend(title=f'OSKaon {type} set')
+    plt.savefig(f'{savepath}/{type}_p_labels.pdf')
+    plt.close()
+
+    plt.hist(true_kaons.loc[df.label == 0].B_Tr_T_P, range=ranges['B_Tr_T_P'], bins=100, density=True, label='True kaons wrong tag')
+    plt.hist(true_kaons.loc[df.label == 1].B_Tr_T_P, range=ranges['B_Tr_T_P'], bins=100, density=True, label='True kaons correct tag', alpha=0.8)
+    plt.xlabel(r'$p(tag)~[\mathrm{MeV}/c^2]$')
+    plt.legend(title=f'OSKaon {type} set')
+    plt.savefig(f'{savepath}/{type}_k_labels.pdf')
+    plt.close()
+    plt.show()
+
+    df_grouped = df.groupby("B_Tr_T_TRUEID")
+    ids = []
+    counts = []
+    for key, group in df_grouped:
+        ids.append(int(key))
+        counts.append(len(group))
+    plt.bar(np.arange(len(ids)) + 3.5, counts)
+    plt.xticks(np.arange(len(ids)) + 3.5, ids, rotation=45, fontsize=15)
+    plt.xlabel(r'TRUEID$(tag)$')
+    plt.minorticks_off()
+    plt.legend(title=f'OSKaon {type} set')
+    plt.savefig(f'{savepath}/{type}_TRUEIDtag.pdf')
+    plt.close()
+    plt.show()
+
+
+    # plot_mothers(true_protons, 'B_Tr_T_MC_MOTHER_ID', savepath, type)
+    # plot_mothers(true_protons, 'B_Tr_T_MC_GD_MOTHER_ID', savepath, type)
+
+
+def plot_mistag_for_torch(df, savepath):
+    df_mistag = df.query('Eta>0.5')
+    df_grouped = df_mistag.groupby(['B_Tr_T_TRUEID'])
+    ids = []
+    counts = []
+    for key, group in df_grouped:
+        ids.append(int(key))
+        counts.append(len(group))
+    plt.bar(np.arange(len(ids)) + 2.5, counts, label=r'TRUEID for tracks with $\eta>0.5$')
+    plt.xticks(np.arange(len(ids)) + 2.5, ids, rotation=45, fontsize=15)
+    # plt.hist(df['B_Tr_T_TRUEID'], bins=20, label='Tag TRUE ID', range=(0,5000))
+    plt.xlabel(r'TRUEID$(tag)$')
+    plt.legend(title=f'OSKaon')
+    plt.minorticks_off()
+    plt.savefig(f'{savepath}/mistag_tagtrueid.pdf')
+    plt.close()
+    plt.show()
+
+    true_kaons = df_mistag.query('B_Tr_T_TRUEID==321 or B_Tr_T_TRUEID==-321')
+    true_protons = df_mistag.query('B_Tr_T_TRUEID==2212 or B_Tr_T_TRUEID==-2212')
+    plt.hist(true_kaons['B_Tr_T_P'], range=ranges['B_Tr_T_P'], bins=50, density=True, label=r'True kaons with $\eta>0.5$')
+    plt.hist(true_protons['B_Tr_T_P'], range=ranges['B_Tr_T_P'], bins=50, density=True, label=r'True protons with $\eta>0.5$', alpha=0.8)
+    plt.xlabel(r'$p(tag)~[\mathrm{MeV}/c^2]$')
+    plt.legend(title=f'OSKaon')
+    plt.savefig(f'{savepath}/pk_mistag.pdf')
+    plt.close()
 
 def stats_printout(df, train_df, val_df, test_df):
     '''
@@ -68,35 +160,6 @@ def filter_rows(group):
 # Decay must be one among Bd2JpsiKst,  Bs2DsPi,  Bu2JpsiK 
 # Taggers must be one among OSKaon, OSMuon, OSElectron, SSPion, SSProton, SSKaon
 
-def stats_printout(df, train_df, val_df, test_df):
-    tot_evts = len(df['entry'].unique())
-    sel_evts = len(df[df.selected==1]['entry'].unique())
-    train_evts =  len(train_df[train_df.selected==1]['entry'].unique())
-    val_evts =  len(val_df[val_df.selected==1]['entry'].unique())
-    test_evts =  len(test_df[test_df.selected==1]['entry'].unique())
-    test_evts_tot =  len(test_df['entry'].unique())
-
-    print("\n Statistics used in the pipeline\n")
-
-    console = Console()
-
-    table = Table(show_header=True)
-    table.add_column("Sets", justify="left", style='cyan')
-    table.add_column("Events", justify="right", style="green")
-    table.add_column("Tracks", justify="right", style="magenta")
-
-    table.add_row("Before selection", f"{tot_evts}", f"{df.shape[0]}")
-    table.add_row("After selection", f"{sel_evts}", f"{df[df.selected==1].shape[0]}")
-    table.add_row("Train", f"{train_evts}", f"{train_df.shape[0]}")
-    table.add_row("Validation", f"{val_evts}", f"{val_df.shape[0]}",)
-    table.add_row("Calibration only selected", f"{test_evts}", f"{test_df[test_df.selected==1].shape[0]}")
-    table.add_row("Calibration tot", f"{test_evts_tot}", f"{test_df.shape[0]}")
-
-    console.print(table)
-
-    print("\nThe train and the validation sets are made of tracks passing the preselection.")
-    print("The calibration set contains both selected and not selected events. \n")
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Apply a preselection for the tagging particles',
@@ -127,13 +190,15 @@ if __name__ == '__main__':
     scalerPath = f"{cfg.target_path}/scaler.pkl"
     # Path to where the test set will be saved
     testSetPath = f"{cfg.target_path}/testSet.csv"
+    torchPath = f"{cfg.target_path}/torchPath"
+    os.makedirs(torchPath, exist_ok=True)
 
     start = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
 
     # Reading datasets
-    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER']
+    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER', "B_Tr_T_TRUEID"]
     
     df = pd.DataFrame(columns=vars)
     for f in selected_files:
@@ -142,16 +207,17 @@ if __name__ == '__main__':
             _df = _f[cfg.treename].arrays(vars, library="pd")
         _df.dropna(inplace = True)
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
+    # df = df.query("(B_Tr_T_TRUEID !=2212 | B_Tr_T_P>10000) & (B_Tr_T_TRUEID !=-2212 | B_Tr_T_P>10000)")
     df.sample(frac=1, random_state=pyTrain.config.seed).reset_index(drop=True)
     print("Removing multicandidates")
     removal_time1 = time.time()
     df_grouped = df.groupby(['RUNNUMBER', 'EVENTNUMBER'])
-    df = df_grouped.apply(filter_rows).drop(columns = ['RUNNUMBER', 'EVENTNUMBER']) #Drop multicandidates
+    # df = df_grouped.apply(filter_rows).drop(columns = ['RUNNUMBER', 'EVENTNUMBER']) #Drop multicandidates
     df.reset_index(inplace=True)
     removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
     print(f"Removing multicandidates required {removal_time2}s")
     df['event_entry'] = df.groupby(['RUNNUMBER', 'EVENTNUMBER']).ngroup() # in the concatenation the entries are the same among different files, needed to look at evt and run number to identify them
-    df.drop(columns=['entry', 'level_2'], inplace=True)
+    # df.drop(columns=['entry', 'level_2'], inplace=True)
     
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
@@ -187,14 +253,19 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']])
+    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'label']])
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
+    plot_kp_for_torch(train_df, type="train", savepath=torchPath)
+    plot_kp_for_torch(val_df, type="validation", savepath=torchPath)
+    plot_kp_for_torch(test_df, type="test", savepath=torchPath)
     stats_printout(df, train_df, val_df, test_df)
+
+
     # Save test dataframe for calibration
-    test_df.to_csv(f"{testSetPath}", index = False)
-    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
+    # test_df.to_csv(f"{testSetPath}", index = False)
+    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID']
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
@@ -227,20 +298,18 @@ if __name__ == '__main__':
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop), scalerPath, test = True)
     test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
+    print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
     yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
     pyTrain.plot_ROC(bestModel.modelName, yPredTest, yTrueTest, cfg.target_path)
     pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest, yTrueTest, cfg.target_path, type = 'Test')
- 
-     #
-    test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
-    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
-    # pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest_kmean, yTrueTest_kmean, cfg.target_path, type = 'Test')
 
     #
+    test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
+    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
     test_df['Eta'] = 1- bestModel.evaluate_model(test_dl)[0]
-    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID']]
+    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID', 'B_Tr_T_TRUEID', 'B_Tr_T_P']]
 
     #print(test_df.loc[test_df.selected == 1].Eta)    
     plt.figure()
@@ -248,11 +317,14 @@ if __name__ == '__main__':
     plt.xlabel(r"$\eta$ Normalised")
     plt.savefig(f"{cfg.target_path}/etaNotnormalized.pdf")
 
+    plot_mistag_for_torch(test_df, torchPath)
+
     test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1
     test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1
     test_df.loc[test_df.Eta < 0, "Eta"] += 1
     test_df.loc[test_df.selected == 0, "TagDec"] = 0  # classic
     test_df.loc[test_df.selected == 0, "Eta"] = 0.5  # classic
+
 
     df_TagParticles = test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first()
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")

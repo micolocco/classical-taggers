@@ -6,6 +6,17 @@ from scripts.pyTorchTraining import features
 import argparse
 import os
 
+vars_to_save = [
+    'entry',
+    'RUNNUMBER',
+    'EVENTNUMBER',
+    'B_TRUEID',
+    'B_Tr_T_Charge',
+    'B_Tr_T_TRUEID',
+    # 'B_Tr_T_MC_MOTHER_ID',
+    # 'B_Tr_T_MC_GD_MOTHER_ID',
+    # 'B_Tr_T_MC_GD_GD_MOTHER_ID',
+]
 
 def extract_selection_var(cut_file):
     '''
@@ -54,7 +65,7 @@ if __name__ == '__main__':
     from pprint import pprint
     pprint(cfg)
 
-    selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID']
+    selection_variables = extract_selection_var(cfg.cut_file) + vars_to_save
     loading_variables = features + selection_variables
     loading_variables = np.unique(loading_variables).tolist()
     '''
@@ -64,7 +75,7 @@ if __name__ == '__main__':
         if particle in ("Proton", "Pion"):
             loading_variables += ["B_Tr_T_PIDP"]
     '''
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
+    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + vars_to_save + ['selected']]
 
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)

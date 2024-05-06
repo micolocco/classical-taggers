@@ -59,7 +59,7 @@ def splitByEvent (df):
     return train_df.query('selected==1'), val_df.query('selected==1'), test_df
     
 
-def prepare_data(train_df, val_df, train_val_df, savePlot_path, scalerPath, train_batch_size = 1024, test_batch_size = 1024):
+def prepare_data(train_df, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
     train_dataset = inputDataset(train_df, scalerPath, test = False)
     val_dataset = inputDataset(val_df, scalerPath, test = True)
@@ -96,6 +96,7 @@ def plot_features(data, target_path, name, flag, nbins=100):
             plt.tight_layout()
             pos+=1
     plt.savefig(f"{target_path}/{name}.pdf")
+    plt.close()
     
 
 def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epochs = 500):
@@ -198,6 +199,7 @@ def plot_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.savefig(f"{target_path}/Loss.pdf")
+    plt.close()
    
 def plot_ROC(name, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = None):
     
@@ -222,6 +224,7 @@ def plot_ROC(name, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = No
         plt.savefig(f"{target_path}/ROC_TRAIN_VAL.pdf")
     else:
         plt.savefig(f"{target_path}/ROC_TEST.pdf")
+    plt.close()
 
 def logistic_regression(yPredTrain, yTrueTrain, target_path, name):
     
@@ -299,6 +302,7 @@ def plot_mistag(name, clf, yPred, yTrue, target_path, type, nbins=100):
    # folder = 'plots'
    # saveName = name_formatter.assign_name(folder, name)
     plt.savefig(f"{target_path}/mistag_{type}.pdf")
+    plt.close()
 
 def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
     # Get the particle with the lowest mistag for each event
