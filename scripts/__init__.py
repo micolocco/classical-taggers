@@ -78,11 +78,11 @@ def matplotlib_lhcb_style(plt):
 
 ranges = {
         "B_nTracks": (0,600),
-        "B_Tr_T_P": (0,100000),
+        "B_Tr_T_P": (0,60000),
         "B_Tr_T_PT": (0,10000),
         'B_nPVs': (0,18),
         'B_PT': (0,60000),
-        "B_Tr_T_BVIPSig": (0, 60),
+        "B_Tr_T_BVIPSig": (0, 10),
         "B_Tr_T_CHI2DOF": (0, 5),
         'B_Tr_T_PIDK': (-150, 150),
         'B_Tr_T_PIDP': (-150, 150),
@@ -101,9 +101,11 @@ nice_names = {
         'B_nPVs': r'$\mathrm{nPVs}$',
         'B_PT': r'$p_{T}(B)$',
         "B_Tr_T_BVIPSig": r'$\sqrt{\chi^{2}_{\rm{IP}}(tag)~\rm{wrt}~\rm{PV}(B)}$',
-        "B_Tr_T_CHI2DOF": r'$\chi^2_{\rm{vtx}}/\mathrm{ndof}~\left(tag\right)$',
+        "B_Tr_T_CHI2DOF": r'$\chi^2/\mathrm{ndof}~$',
         'B_Tr_T_PIDK': r'$\mathrm{PID}_{K}(tag)$',
         'B_Tr_T_PIDP': r'$\mathrm{PID}_{p}(tag)$',
+        'B_Tr_T_PIDe': r'$\mathrm{PID}_{e}(tag)$',
+        'B_Tr_T_PIDmu': r'$\mathrm{PID}_{mu}(tag)$',
         "B_Tr_T_GHOSTPROB": r'$P_{\mathrm{ghost}}(tag)$',
         "B_Tr_T_absIP": r'$|\mathrm{IP}|(tag)$'
     }
