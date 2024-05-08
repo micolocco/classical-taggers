@@ -27,23 +27,18 @@ def stats_printout(df, train_df, val_df, test_df):
     '''
     from rich.console import Console
     from rich.table import Table
-
+    
     tot_evts = len(df['event_entry'].unique())
     sel_evts = len(df[df.selected==1]['event_entry'].unique())
     train_evts =  len(train_df['event_entry'].unique())
     val_evts =  len(val_df['event_entry'].unique())
     test_evts_sel =  len(test_df[test_df.selected==1]['event_entry'].unique())
     test_evts =  len(test_df['event_entry'].unique())
-
+    
     print("\n Statistics used in the pipeline\n")
 
     console = Console()
-
     table = Table(show_header=True)
-    table.add_column("Sets", justify="left", style='cyan')
-    table.add_column("Events", justify="right", style="green")
-    table.add_column("Tracks", justify="right", style="magenta")
-
     table.add_row("Before selection", f"{tot_evts}", f"{df.shape[0]}")
     table.add_row("After selection", f"{sel_evts}", f"{df[df.selected==1].shape[0]}")
     table.add_row("Train", f"{train_evts}", f"{train_df.shape[0]}")
@@ -72,16 +67,13 @@ if __name__ == '__main__':
     parser.add_argument('--selected', help='File with preselection applied', nargs='+')
     parser.add_argument('--target_path', help='Name of the output dir', type=str)
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
-    parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon')) # add all the possible taggers
+    parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
+    parser.add_argument('--seed', help='Random seed', default=6) 
     parser.add_argument('--config', help='Config json', type=str) # add all the possible taggers
-    parser.add_argument('--decayType', help='Config json', type=str) # add all the possible taggers
+    parser.add_argument('--decayType', help='Event decay', type=str) # add all the possible taggers
 
     cfg = parser.parse_args()
     pprint(cfg)
-
-    if "OS" in cfg.tagger:
-        if pyTrain.config.optimized:
-            features = pyTrain.features +["B_Tr_T_absIP"]
 
     # Make sure no feature is doubled
     features = np.unique(pyTrain.features).tolist()
@@ -109,7 +101,7 @@ if __name__ == '__main__':
             _df = _f[cfg.treename].arrays(vars, library="pd")
         _df.dropna(inplace = True)
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
-    df.sample(frac=1, random_state=pyTrain.config.seed).reset_index(drop=True)
+    df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
     print("Removing multicandidates")
     removal_time1 = time.time()
     df_grouped = df.groupby(['RUNNUMBER', 'EVENTNUMBER'])
@@ -151,6 +143,7 @@ if __name__ == '__main__':
     plt.savefig(f"{cfg.target_path}/preSelect_variables.pdf")'''
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Device used: {device}")
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
@@ -165,7 +158,7 @@ if __name__ == '__main__':
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
-    model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, train_batch_size = pyTrain.config.train_batch_size, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
+    model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, seed=cfg.seed, train_batch_size = pyTrain.config.train_batch_size, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
     pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)

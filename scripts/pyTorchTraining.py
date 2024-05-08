@@ -19,30 +19,69 @@ from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 
 # Definition of the features for the NN and the selection variables
-features = [
-        # # "B_Tr_T_cos_PhiDistance",
-        # "B_Tr_T_PhiDistance",
-        # "B_Tr_T_PT",
-        # "B_Tr_T_CHI2DOF",
-        # "B_Tr_T_BPVIP",
-        # # "B_Tr_T_GHOSTPROB",
-        # "B_Tr_T_BVIPSig",
-        # "diff_P",
-        # "B_Tr_T_EtaDistance",
-        # "P_proj",
-        # "EVIP",
-        "B_nTracks",
-        "B_Tr_T_P",
+if tagger=='OSKaon': # from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/OSKaonTaggerConf.py
+    features = [
+            "B_nTracks",
+            "B_Tr_T_P",
+            "B_Tr_T_PT",
+            'B_nPVs',
+            'B_PT',
+            "B_Tr_T_BVIPSig",
+            "B_Tr_T_CHI2DOF",
+            'B_Tr_T_PIDK',
+            'B_Tr_T_PIDP',
+            "B_Tr_T_GHOSTPROB",
+            "B_Tr_T_absIP"
+            ]
+
+if tagger=='OSElectron': # from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/OSElectronTaggerConf.py v2run2
+    features = [
         "B_Tr_T_PT",
-        'B_nPVs',
+        "B_nTracks",
         'B_PT',
-        "B_Tr_T_BVIPSig",
-        "B_Tr_T_CHI2DOF",
+        'B_Tr_T_eoverP',
+        'B_Tr_T_absIP',
+        'B_Tr_T_BVIPSig',
+        'B_Tr_T_GHOSTPROB',
+        'B_Tr_T_DeltaQ_Electron',
+        'B_Tr_T_EtaDistance',
+        'B_Tr_T_DeltaR',
+    ]
+        
+if tagger=='OSMuon': # from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/OSMuonTaggerConf.py v2run2
+    features = [
+        "B_Tr_T_PT",
+        "B_nTracks",
+        'B_PT',
+        'B_Tr_T_P',
+        'B_Tr_T_absIP',
+        'B_Tr_T_BVIPSig',
+        'B_Tr_T_GHOSTPROB'
+    ]
+  
+if tagger=='SSKaon':
+    features = [
+    ]
+if tagger=='SSProton':
+    features = [
+    ]
+if tagger=='SSPion': # from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/SSPionTaggerConf.py
+    features = [
+        'B_Tr_T_P',
+        'B_Tr_T_PT',
+        'B_Tr_T_BVIPSig',
+        'B_Tr_T_GHOSTPROB',
+        'B_Tr_T_PhiDistance'
+        'B_Tr_T_EtaDistance',
+        'B_Tr_T_DeltaR',
+        'B_Tr_T_DeltaQ_Pion',
+        'B_PT',
         'B_Tr_T_PIDK',
-        'B_Tr_T_PIDP',
-        "B_Tr_T_GHOSTPROB",
-        "B_Tr_T_absIP"
-        ]
+        'B_Tr_T_CHI2DOF', #lcs in run2
+        'B_Tr_T_Signal_TagPart_PT'
+    ]
+
+
 
 
 def splitByEvent (df):
@@ -50,7 +89,7 @@ def splitByEvent (df):
     Use random.Random(2) to reproduce same shuffling''' 
     import random
     events_list = np.unique(df.event_entry)
-    random.Random(config.seed).shuffle(events_list)
+    random.Random(3).shuffle(events_list) # cfg.seed
     n_train_val = int(config.train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
     train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
@@ -155,7 +194,6 @@ def save_hyperparameters(model, target_path):
                 'activation_function' : config.activation_function,
                 'n_epochs' : config.n_epochs,
                 'train_val_split' : config.train_val_split,
-                'randomSeed' : config.seed,
                 'train_batch_size': config.train_batch_size
                 }
     with open(f"{target_path}/hyperparameters.json", "w") as f:
@@ -310,7 +348,7 @@ def calibration(modelName, tagger, df_tag, eventType, target_path):
     import lhcb_ftcalib as ft
 
     taggers = ft.TaggerCollection()
-    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = eventType[:2])
+    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu') # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
     taggers.set_calibration(ft.PolynomialCalibration(npar = 2,link =  ft.link.mistag))
     taggers.calibrate()
 

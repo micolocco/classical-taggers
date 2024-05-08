@@ -152,6 +152,7 @@ if __name__ == '__main__':
     df.eval('EVIP = log(EVIP)', inplace = True)
     df.eval('B_Tr_T_BVIPSig = sqrt(B_Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval('P_proj = log(P_proj)', inplace = True)
+    df.eval('B_Tr_T_atanPT_PZ = arctan2(B_Tr_T_PT, B_Tr_T_PZ)', engine='python', inplace=True)
 
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(cfg.output) as f:
