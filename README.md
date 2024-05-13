@@ -6,6 +6,12 @@ conda env create -f ft_env.yml
 conda activate ft_env
 
 ```
+Export the `classical-taggers` path in your `.bash_profile`. Example of `.bash_profile` file:
+```
+# .bash_profile
+export PYTHONPATH=/home/molocco/classical-taggers:$PYTHONPATH
+```
+
 ## Getting data
 - As first step, since we can have several NTuples for different decays it's better to have a folder structure. You can run the following command to create it. Replace `<sample_type>` with the desired name (ex: `withUT` or `noUT` )
 ```
