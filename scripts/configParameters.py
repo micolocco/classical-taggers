@@ -1,5 +1,5 @@
 # path to the workspace folder and to the ROOT NTuple input
-repoPath = "/work/celani/flavour_tagging/classical-taggers/"
+#repoPath = "/work/celani/flavour_tagging/classical-taggers/"
 
 # sample type: openVELO or closedVELO, MC2024_withUT
 sample_type = 'withUT_MC_2024'
