@@ -74,12 +74,10 @@ if __name__ == '__main__':
 
     cfg = parser.parse_args()
     pprint(cfg)
-
-    # Make sure no feature is doubled
-    features = np.unique(pyTrain.features).tolist()
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file='scripts/tagger_features.yaml')
     # Path to the ROOT input file
     selected_files = cfg.selected
-
+    print(f"The features used are: {features}")
     # Check and eventually make output directory where training info will be saved
     os.makedirs(cfg.target_path, exist_ok=True)
     # Path to where the scaler parameters will be saved
@@ -157,7 +155,7 @@ if __name__ == '__main__':
     columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
-    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
+    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
     model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, seed=cfg.seed, train_batch_size = pyTrain.config.train_batch_size, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
     pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
@@ -170,7 +168,7 @@ if __name__ == '__main__':
     pyTrain.plot_ROC(model.modelName, yPredVal, yTrueVal, cfg.target_path, yPredTrain, yTrueTrain)
     # Fit with logistic regression and save it
     clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, cfg.target_path, model.modelName)
-    #pyTrain.plot_NNoutput(pyTrain.config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, target_path)
+    #pyTrain.plot_NNoutput(pyTrain.config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, cfg.target_path)
     pyTrain.plot_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
 
 

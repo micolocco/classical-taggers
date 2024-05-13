@@ -9,7 +9,8 @@ from sklearn.metrics import auc, roc_curve
 from sklearn.linear_model import LogisticRegression
 import pickle
 from scipy.special import expit
-import json 
+import json
+import pipeline
 
 # Local imports
 from scripts.NNModel import EarlyStopper
@@ -17,72 +18,19 @@ from scripts.inputDataset import inputDataset
 import scripts.configParameters as config
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
+import yaml
 
-# Definition of the features for the NN and the selection variables
-if tagger=='OSKaon': # from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/OSKaonTaggerConf.py
-    features = [
-            "B_nTracks",
-            "B_Tr_T_P",
-            "B_Tr_T_PT",
-            'B_nPVs',
-            'B_PT',
-            "B_Tr_T_BVIPSig",
-            "B_Tr_T_CHI2DOF",
-            'B_Tr_T_PIDK',
-            'B_Tr_T_PIDP',
-            "B_Tr_T_GHOSTPROB",
-            "B_Tr_T_absIP"
-            ]
-
-if tagger=='OSElectron': # from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/OSElectronTaggerConf.py v2run2
-    features = [
-        "B_Tr_T_PT",
-        "B_nTracks",
-        'B_PT',
-        'B_Tr_T_eoverP',
-        'B_Tr_T_absIP',
-        'B_Tr_T_BVIPSig',
-        'B_Tr_T_GHOSTPROB',
-        'B_Tr_T_DeltaQ_Electron',
-        'B_Tr_T_EtaDistance',
-        'B_Tr_T_DeltaR',
-    ]
-        
-if tagger=='OSMuon': # from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/OSMuonTaggerConf.py v2run2
-    features = [
-        "B_Tr_T_PT",
-        "B_nTracks",
-        'B_PT',
-        'B_Tr_T_P',
-        'B_Tr_T_absIP',
-        'B_Tr_T_BVIPSig',
-        'B_Tr_T_GHOSTPROB'
-    ]
-  
-if tagger=='SSKaon':
-    features = [
-    ]
-if tagger=='SSProton':
-    features = [
-    ]
-if tagger=='SSPion': # from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/SSPionTaggerConf.py
-    features = [
-        'B_Tr_T_P',
-        'B_Tr_T_PT',
-        'B_Tr_T_BVIPSig',
-        'B_Tr_T_GHOSTPROB',
-        'B_Tr_T_PhiDistance'
-        'B_Tr_T_EtaDistance',
-        'B_Tr_T_DeltaR',
-        'B_Tr_T_DeltaQ_Pion',
-        'B_PT',
-        'B_Tr_T_PIDK',
-        'B_Tr_T_CHI2DOF', #lcs in run2
-        'B_Tr_T_Signal_TagPart_PT'
-    ]
-
-
-
+def get_features(tagger, yaml_file):
+    '''Function for assigning the input features corresponding to each tagger.
+    The input features will be used for the training of the NN
+    yaml_file: Configuration file for getting the input features'''
+    with open(yaml_file, 'r') as file:
+        config = yaml.safe_load(file)
+        if tagger in config:
+            return config[tagger]['features']
+        else:
+            print(f"Error: Tagger {tagger} not found in configuration.\n Please check {yaml_file} file ")
+            return []
 
 def splitByEvent (df):
     '''Function to random split by events (not by index) the dataset into training and test set
@@ -98,29 +46,35 @@ def splitByEvent (df):
     return train_df.query('selected==1'), val_df.query('selected==1'), test_df
     
 
-def prepare_data(train_df, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
+def prepare_data(train_df, features, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
     train_dataset = inputDataset(train_df, scalerPath, test = False)
     val_dataset = inputDataset(val_df, scalerPath, test = True)
-    plot_features(train_df, target_path=savePlot_path, flag='label', name=f'{config.model_name}_inputFeatures')
+    plot_features(data=train_df, features_list=features, target_path=savePlot_path, flag='label', name=f'training_inputFeatures')
     # Prepare data loaders
     train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
     validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
     return train_dl, validation_dl 
 
 
-def plot_features(data, target_path, name, flag, nbins=100):
+def plot_features(data, features_list, target_path, name, flag, nbins=100):
 
     # Plot input features 
     plt.figure(figsize=(24,25))
     pos=0
     for i, col in enumerate(data.columns.to_list()):
-        if col in features:
+        if col in features_list:
             plt.subplot(4, 3, pos + 1)
-            plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
-            plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
+            if col in nice_names.keys():
+                plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
+                plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
+                plt.xlabel(nice_names[col])
+            else:
+                plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, )
+                plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, )
+                plt.xlabel(col)
+
             plt.legend()
-            plt.xlabel(nice_names[col])
             plt.tight_layout()
             pos+=1
     plt.savefig(f"{target_path}/{name}.pdf")
