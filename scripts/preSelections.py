@@ -2,7 +2,7 @@ import numpy as np
 import uproot
 import re
 from scripts.adding_features import loading_variables
-from scripts.pyTorchTraining import features
+import pyTorchTraining as pyTrain
 import argparse
 import os
 
@@ -33,11 +33,6 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
     df.selected = df.selected.astype(int, copy = False) 
     return df
 
-Run2_preselectionVariables = [ 'B_Tr_T_P' , 'B_Tr_T_TRACKISLONG' , 'B_Tr_T_CHI2DOF' , 'B_Tr_T_minPhiDistance' , 'B_Tr_T_ISMUON' , 'B_Tr_T_GHOSTPROB' , 'B_Tr_T_PIDK' , 'B_Tr_T_absIP' , 
-    'B_Tr_T_BVIPSig',
-
-]
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Apply a preselection for the tagging particles',
@@ -55,6 +50,7 @@ if __name__ == '__main__':
     pprint(cfg)
 
     selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID']
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file='scripts/tagger_features.yaml')
     loading_variables = features + selection_variables
     loading_variables = np.unique(loading_variables).tolist()
     '''
