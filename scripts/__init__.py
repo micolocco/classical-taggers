@@ -90,7 +90,16 @@ ranges = {
         "B_Tr_T_absIP": (0,1.5),
         "B_Tr_T_PIDe": (-30, 30),
         "B_Tr_T_PIDmu": (-40, 40),
-        "B_Tr_T_ISMUON": (0,1)
+        "B_Tr_T_ISMUON": (0,1),
+        #"B_Tr_T_eoverP": (),
+        #"B_Tr_T_DeltaQ_Electron": r'$\Delta\mathrm{Q}_{e}$',
+        "B_Tr_T_DeltaQ_Pion": (0, 1000),
+        "B_Tr_T_DeltaR": (0, 20),
+        "B_Tr_T_Signal_TagPart_PT": (0, 100000),
+        "B_Tr_T_PhiDistance": (-3.14, 3.14),
+        "B_Tr_T_EtaDistance": (0, 4)
+
+
 
     }
 
@@ -107,5 +116,16 @@ nice_names = {
         'B_Tr_T_PIDe': r'$\mathrm{PID}_{e}(tag)$',
         'B_Tr_T_PIDmu': r'$\mathrm{PID}_{mu}(tag)$',
         "B_Tr_T_GHOSTPROB": r'$P_{\mathrm{ghost}}(tag)$',
-        "B_Tr_T_absIP": r'$|\mathrm{IP}|(tag)$'
+        "B_Tr_T_absIP": r'$|\mathrm{IP}|(tag)$',
+        "B_Tr_T_PhiDistance": r'$\mathrm{\Delta}\mathrm{\Phi}(tag, signal)$' ,
+        "B_Tr_T_EtaDistance": r'$\mathrm{\Delta}\mathrm{\eta}(tag, signal)$' ,
+        #"B_Tr_T_eoverP": r'$E/p(tag)$',
+        #"B_Tr_T_DeltaQ_Electron": r'$\Delta\mathrm{Q}_{e}$',
+        "B_Tr_T_DeltaQ_Pion": r'$\mathrm{\Delta}\mathrm{Q}_{pi}$',
+        "B_Tr_T_DeltaR": r'$\mathrm{\Delta}\mathrm{R}$',
+        "B_Tr_T_Signal_TagPart_PT": r'$p_{T}(tag+signal)$',
+
+        
+
+
     }
