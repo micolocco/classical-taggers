@@ -18,11 +18,11 @@ train_val_split = 0.6 # test set percentage of dataset
 learning_rate = 0.001 #0.001
 train_batch_size = 1024
 n_epochs = 500 #500
-patience = 500 #75 #100
+patience = 25 #75 #100
 min_delta = 0.00
 seed = 45 #11 Need to change see?
 activation_function= 'ELU' #ReLU, ELU
-model_name = f'test'
+model_name = f'model'
 
 # Change to False if no training is needed
 training = True
