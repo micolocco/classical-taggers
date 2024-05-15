@@ -210,7 +210,7 @@ def logistic_regression(yPredTrain, yTrueTrain, target_path, name):
     #prePath = target_path.assign_name(folder, name)
     pickle.dump(clf , open(f"{target_path}/LogReg.pck" , "wb"))
     return clf
-
+'''
 def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, target_path, nbins=100):
     
     plt.figure()
@@ -222,7 +222,6 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
     plt.plot(yPredTest[yTrueTest == 1][0:500], np.ones(500) ,  "r.",alpha = 0.5, label = "Label = 1")
     plt.plot(LR_test, loss ,color = "k")
     plt.legend(loc = "best")
-    folder = 'plots'
    # saveName = name_formatter.assign_name(folder, name)
     plt.savefig(f"{target_path}/LogReg.pdf")
     
@@ -253,7 +252,7 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
     axs[1].set_title("LogReg Output")
     axs[1].set_yscale("log")
     axs[1].set_ylabel("Normalized number of tracks")
-    axs[1].set_xlabel(r"Mistag rate $\eta$")
+    axs[1].set_xlabel(r"Logistic(NN ouput)")
     axs[1].hist(y_test_predict_LR[yTrueTest.ravel() == 0],bins = nbins,density = True,histtype="stepfilled",color = "b", alpha = 0.5, label = "Test (Label = 0)")
     axs[1].hist(y_test_predict_LR[yTrueTest.ravel() == 1],bins = nbins,density = True,histtype="stepfilled",color = "r", alpha = 0.5, label = "Test (Label = 1)")
     axs[1].plot(prob_train_0_bin_edges_LR ,prob_train_0_height_LR, "b.", label = "Train (Label = 0)")
@@ -263,16 +262,23 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
 
     #folder = 'plots'
     #saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{target_path}/NNoutput_mistag.pdf")
+    plt.savefig(f"{target_path}/NNoutput_sigmoid.pdf")
     plt.close()
+'''
 
-def plot_mistag(name, clf, yPred, yTrue, target_path, type, nbins=100):
+def plot_mistag(name, yPred, yTrue, target_path, type,  clf = None, nbins=100):
     plt.figure()
     # plt.title("Mistag rate")
     plt.yscale("log")
-    y_predict_LR = clf.predict_proba(yPred)[:,0]
-    plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} (Label = 0)")
-    plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} (Label = 1)")
+    if clf:
+        y_predict_LR = clf.predict_proba(yPred)[:,0]
+        plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} wrong tagging decision")
+        plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} correct tagging decision")
+        plt.title('Mistag after Logistic Regression')
+    else:
+        plt.hist(1-yPred[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} wrong tagging decision")
+        plt.hist(1-yPred[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} correct tagging decision")
+        plt.title('Mistag ')
     plt.xlabel(r"$\eta$")
     plt.grid()
     plt.ylabel("Normalized number of tracks")
@@ -285,15 +291,15 @@ def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.yscale("log")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "blue" , alpha = 0.5, label = f"(TagDec = -1)")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "red" ,  alpha = 0.5,label = f"(TagDec = 1)")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha = 0.5, label = f"(TagDec = -1) -> anti-b")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"(TagDec = 1) -> b")
     plt.grid()
-    plt.xlabel(r"$\eta$ TagParticle")
+    plt.xlabel(r"$\eta$")
     plt.ylabel("Normalized number of tracks")
     plt.legend(loc = "best")
     #folder = 'plots'
     #aveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{target_path}/mistag_TagDec.pdf")
+    plt.savefig(f"{target_path}/mistag_VS_TagDec.pdf")
     plt.close()
 
 def calibration(modelName, tagger, df_tag, eventType, target_path):
