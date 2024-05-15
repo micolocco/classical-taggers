@@ -49,6 +49,14 @@ def stats_printout(df, train_df, val_df, test_df):
     print("\nThe train and the validation sets are made of tracks passing the preselection.")
     print("The calibration set contains both selected and not selected events. \n")
 
+    table = Table(show_header=True)
+    table.add_column("", justify="left")
+    table.add_column("correct tagging decision: 1", justify="left", style='cyan')
+    table.add_column("wrong tagging decision: 0", justify="left", style='green')
+    table.add_row("Training set", f"{train_df[train_df.label==1].shape[0]}", f"{train_df[train_df.label==0].shape[0]}")
+    table.add_row("Test set", f"{test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]}", f"{test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]}")
+    console.print(table)
+
 def filter_rows(group):
     '''
     Function to avoid duplication of events due to multicandidates
@@ -68,9 +76,9 @@ if __name__ == '__main__':
     parser.add_argument('--target_path', help='Name of the output dir', type=str)
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
-    parser.add_argument('--seed', help='Random seed', default=6) 
-    parser.add_argument('--config', help='Config json', type=str) # add all the possible taggers
-    parser.add_argument('--decayType', help='Event decay', type=str) # add all the possible taggers
+    parser.add_argument('--seed', help='Random seed', default=2) 
+    parser.add_argument('--config', help='Config json', type=str) 
+    parser.add_argument('--decayType', help='Event decay', type=str) 
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -160,16 +168,25 @@ if __name__ == '__main__':
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
     pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
-    
+    print(f"Training set has {train_df[train_df.label==0].shape[0]} wrong tagged tracks, {train_df[train_df.label==1].shape[0]} correctly tagged tracks")
     # Plot ROC curves for validation and train test
     bestModel.eval()
     yPredVal, yTrueVal = bestModel.evaluate_model(validation_dl)
     yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
     pyTrain.plot_ROC(model.modelName, yPredVal, yTrueVal, cfg.target_path, yPredTrain, yTrueTrain)
-    # Fit with logistic regression and save it
+    # Fit with logistic regression and save it (non needed for the moment)
     clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, cfg.target_path, model.modelName)
-    #pyTrain.plot_NNoutput(pyTrain.config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, cfg.target_path)
-    pyTrain.plot_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
+    #pyTrain.plot_NNoutput_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, yPredTrain, yTrueTrain, cfg.target_path)
+    #pyTrain.plot_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
+    pyTrain.plot_mistag(name=bestModel.modelName, yPred=yPredTrain, yTrue=yTrueTrain, target_path=cfg.target_path, type = 'Training')
+    plt.figure()
+    plt.hist(1-yPredTrain ,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Training set: Probability of label 0, only selected")
+    plt.savefig(f"{cfg.target_path}/trainingSet_prob0distrib.pdf")
+    plt.figure()
+    plt.hist(yPredTrain ,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Training set: Probability of label 1, only selected")
+    plt.savefig(f"{cfg.target_path}/trainingSet_prob1distrib.pdf")
 
 
     # else:
@@ -186,24 +203,32 @@ if __name__ == '__main__':
     test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop), scalerPath, test = True)
     test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
     print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
+    print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
+    
     yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
     pyTrain.plot_ROC(bestModel.modelName, yPredTest, yTrueTest, cfg.target_path)
-    pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest, yTrueTest, cfg.target_path, type = 'Test')
-
+    pyTrain.plot_mistag(name=bestModel.modelName, yPred=yPredTest, yTrue=yTrueTest, target_path=cfg.target_path, type = 'Test')
+    plt.figure()
+    plt.hist(1-yPredTest,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Test set: Probability of label 0, only selected")
+    plt.savefig(f"{cfg.target_path}/testSet_prob0distrib.pdf")
+    plt.figure()
+    plt.hist(yPredTest,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Test set: Probability of label 1")
+    plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
     #
     test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-    test_df['Eta'] = 1- bestModel.evaluate_model(test_dl)[0]
+    test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true
+    test_df['Eta'] = 1 - test_df['predictedProb']
+
     test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID']]
 
-    #print(test_df.loc[test_df.selected == 1].Eta)    
-    plt.figure()
-    plt.hist(test_df.loc[test_df.selected == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
-    plt.xlabel(r"$\eta$ Normalised")
-    plt.savefig(f"{cfg.target_path}/etaNotnormalized.pdf")
+    #print(test_df.loc[test_df.selected == 1].Eta) 
 
+    # 
     test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1
     test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1
     test_df.loc[test_df.Eta < 0, "Eta"] += 1
