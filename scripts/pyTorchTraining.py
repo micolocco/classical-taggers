@@ -9,7 +9,8 @@ from sklearn.metrics import auc, roc_curve
 from sklearn.linear_model import LogisticRegression
 import pickle
 from scipy.special import expit
-import json 
+import json
+import pipeline
 
 # Local imports
 from scripts.NNModel import EarlyStopper
@@ -17,40 +18,26 @@ from scripts.inputDataset import inputDataset
 import scripts.configParameters as config
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
+import yaml
 
-# Definition of the features for the NN and the selection variables
-features = [
-        # # "B_Tr_T_cos_PhiDistance",
-        # "B_Tr_T_PhiDistance",
-        # "B_Tr_T_PT",
-        # "B_Tr_T_CHI2DOF",
-        # "B_Tr_T_BPVIP",
-        # # "B_Tr_T_GHOSTPROB",
-        # "B_Tr_T_BVIPSig",
-        # "diff_P",
-        # "B_Tr_T_EtaDistance",
-        # "P_proj",
-        # "EVIP",
-        "B_nTracks",
-        "B_Tr_T_P",
-        "B_Tr_T_PT",
-        'B_nPVs',
-        'B_PT',
-        "B_Tr_T_BVIPSig",
-        "B_Tr_T_CHI2DOF",
-        'B_Tr_T_PIDK',
-        'B_Tr_T_PIDP',
-        "B_Tr_T_GHOSTPROB",
-        "B_Tr_T_absIP"
-        ]
-
+def get_features(tagger, yaml_file):
+    '''Function for assigning the input features corresponding to each tagger.
+    The input features will be used for the training of the NN
+    yaml_file: Configuration file for getting the input features'''
+    with open(yaml_file, 'r') as file:
+        config = yaml.safe_load(file)
+        if tagger in config:
+            return config[tagger]['features']
+        else:
+            print(f"Error: Tagger {tagger} not found in configuration.\n Please check {yaml_file} file ")
+            return []
 
 def splitByEvent (df):
     '''Function to random split by events (not by index) the dataset into training and test set
     Use random.Random(2) to reproduce same shuffling''' 
     import random
     events_list = np.unique(df.event_entry)
-    random.Random(config.seed).shuffle(events_list)
+    random.Random(3).shuffle(events_list) # cfg.seed
     n_train_val = int(config.train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
     train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
@@ -59,11 +46,11 @@ def splitByEvent (df):
     return train_df.query('selected==1'), val_df.query('selected==1'), test_df
     
 
-def prepare_data(train_df, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
+def prepare_data(train_df, features, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
     train_dataset = inputDataset(train_df, scalerPath, test = False)
     val_dataset = inputDataset(val_df, scalerPath, test = True)
-    plot_features(train_df, target_path=savePlot_path, flag='label', name=f'{config.model_name}_inputFeatures')
+    plot_features(data=train_df, features_list=features, target_path=savePlot_path, flag='label', name=f'training_inputFeatures')
     # Prepare data loaders
     train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
     validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
@@ -81,18 +68,24 @@ def prepare_kfolded_data(df, entry_values, train_entries, val_entries, columns_t
     # val_loader_subset = DataLoader(val_subset_df, batch_size = 1024, shuffle=False)
     return train_loader_subset, val_data_subset
 
-def plot_features(data, target_path, name, flag, nbins=100):
+def plot_features(data, features_list, target_path, name, flag, nbins=100):
 
     # Plot input features 
     plt.figure(figsize=(24,25))
     pos=0
     for i, col in enumerate(data.columns.to_list()):
-        if col in features:
+        if col in features_list:
             plt.subplot(4, 3, pos + 1)
-            plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
-            plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
+            if col in nice_names.keys():
+                plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
+                plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
+                plt.xlabel(nice_names[col])
+            else:
+                plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, )
+                plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, )
+                plt.xlabel(col)
+
             plt.legend()
-            plt.xlabel(nice_names[col])
             plt.tight_layout()
             pos+=1
     plt.savefig(f"{target_path}/{name}.pdf")
@@ -167,7 +160,6 @@ def save_hyperparameters(model, target_path):
                 'activation_function' : config.activation_function,
                 'n_epochs' : config.n_epochs,
                 'train_val_split' : config.train_val_split,
-                'randomSeed' : config.seed,
                 'train_batch_size': config.train_batch_size
                 }
     with open(f"{target_path}/hyperparameters.json", "w") as f:
@@ -232,7 +224,7 @@ def logistic_regression(yPredTrain, yTrueTrain, target_path, name):
     #prePath = target_path.assign_name(folder, name)
     pickle.dump(clf , open(f"{target_path}/LogReg.pck" , "wb"))
     return clf
-
+'''
 def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrain, target_path, nbins=100):
     
     plt.figure()
@@ -244,7 +236,6 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
     plt.plot(yPredTest[yTrueTest == 1][0:500], np.ones(500) ,  "r.",alpha = 0.5, label = "Label = 1")
     plt.plot(LR_test, loss ,color = "k")
     plt.legend(loc = "best")
-    folder = 'plots'
    # saveName = name_formatter.assign_name(folder, name)
     plt.savefig(f"{target_path}/LogReg.pdf")
     
@@ -275,7 +266,7 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
     axs[1].set_title("LogReg Output")
     axs[1].set_yscale("log")
     axs[1].set_ylabel("Normalized number of tracks")
-    axs[1].set_xlabel(r"Mistag rate $\eta$")
+    axs[1].set_xlabel(r"Logistic(NN ouput)")
     axs[1].hist(y_test_predict_LR[yTrueTest.ravel() == 0],bins = nbins,density = True,histtype="stepfilled",color = "b", alpha = 0.5, label = "Test (Label = 0)")
     axs[1].hist(y_test_predict_LR[yTrueTest.ravel() == 1],bins = nbins,density = True,histtype="stepfilled",color = "r", alpha = 0.5, label = "Test (Label = 1)")
     axs[1].plot(prob_train_0_bin_edges_LR ,prob_train_0_height_LR, "b.", label = "Train (Label = 0)")
@@ -285,16 +276,23 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
 
     #folder = 'plots'
     #saveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{target_path}/NNoutput_mistag.pdf")
+    plt.savefig(f"{target_path}/NNoutput_sigmoid.pdf")
     plt.close()
+'''
 
-def plot_mistag(name, clf, yPred, yTrue, target_path, type, nbins=100):
+def plot_mistag(name, yPred, yTrue, target_path, type,  clf = None, nbins=100):
     plt.figure()
     # plt.title("Mistag rate")
     plt.yscale("log")
-    y_predict_LR = clf.predict_proba(yPred)[:,0]
-    plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} (Label = 0)")
-    plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} (Label = 1)")
+    if clf:
+        y_predict_LR = clf.predict_proba(yPred)[:,0]
+        plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} wrong tagging decision")
+        plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} correct tagging decision")
+        plt.title('Mistag after Logistic Regression')
+    else:
+        plt.hist(1-yPred[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} wrong tagging decision")
+        plt.hist(1-yPred[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} correct tagging decision")
+        plt.title('Mistag ')
     plt.xlabel(r"$\eta$")
     plt.grid()
     plt.ylabel("Normalized number of tracks")
@@ -308,15 +306,15 @@ def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.yscale("log")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "blue" , alpha = 0.5, label = f"(TagDec = -1)")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "red" ,  alpha = 0.5,label = f"(TagDec = 1)")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha = 0.5, label = f"(TagDec = -1) -> anti-b")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"(TagDec = 1) -> b")
     plt.grid()
-    plt.xlabel(r"$\eta$ TagParticle")
+    plt.xlabel(r"$\eta$")
     plt.ylabel("Normalized number of tracks")
     plt.legend(loc = "best")
     #folder = 'plots'
     #aveName = name_formatter.assign_name(folder, name)
-    plt.savefig(f"{target_path}/mistag_TagDec.pdf")
+    plt.savefig(f"{target_path}/mistag_VS_TagDec.pdf")
     plt.close()
 
 def calibration(modelName, tagger, df_tag, eventType, target_path):
@@ -325,7 +323,7 @@ def calibration(modelName, tagger, df_tag, eventType, target_path):
     import lhcb_ftcalib as ft
 
     taggers = ft.TaggerCollection()
-    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = eventType[:2])
+    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu') # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
     taggers.set_calibration(ft.PolynomialCalibration(npar = 2,link =  ft.link.mistag))
     taggers.calibrate()
 

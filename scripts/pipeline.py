@@ -123,23 +123,18 @@ def stats_printout(df, train_df, val_df, test_df):
     '''
     from rich.console import Console
     from rich.table import Table
-
+    
     tot_evts = len(df['event_entry'].unique())
     sel_evts = len(df[df.selected==1]['event_entry'].unique())
     train_evts =  len(train_df['event_entry'].unique())
     val_evts =  len(val_df['event_entry'].unique())
     test_evts_sel =  len(test_df[test_df.selected==1]['event_entry'].unique())
     test_evts =  len(test_df['event_entry'].unique())
-
+    
     print("\n Statistics used in the pipeline\n")
 
     console = Console()
-
     table = Table(show_header=True)
-    table.add_column("Sets", justify="left", style='cyan')
-    table.add_column("Events", justify="right", style="green")
-    table.add_column("Tracks", justify="right", style="magenta")
-
     table.add_row("Before selection", f"{tot_evts}", f"{df.shape[0]}")
     table.add_row("After selection", f"{sel_evts}", f"{df[df.selected==1].shape[0]}")
     table.add_row("Train", f"{train_evts}", f"{train_df.shape[0]}")
@@ -149,6 +144,14 @@ def stats_printout(df, train_df, val_df, test_df):
     console.print(table)
     print("\nThe train and the validation sets are made of tracks passing the preselection.")
     print("The calibration set contains both selected and not selected events. \n")
+
+    table = Table(show_header=True)
+    table.add_column("", justify="left")
+    table.add_column("correct tagging decision: 1", justify="left", style='cyan')
+    table.add_column("wrong tagging decision: 0", justify="left", style='green')
+    table.add_row("Training set", f"{train_df[train_df.label==1].shape[0]}", f"{train_df[train_df.label==0].shape[0]}")
+    table.add_row("Test set", f"{test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]}", f"{test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]}")
+    console.print(table)
 
 def filter_rows(group):
     '''
@@ -168,22 +171,17 @@ if __name__ == '__main__':
     parser.add_argument('--selected', help='File with preselection applied', nargs='+')
     parser.add_argument('--target_path', help='Name of the output dir', type=str)
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
-    parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon')) # add all the possible taggers
-    parser.add_argument('--config', help='Config json', type=str) # add all the possible taggers
-    parser.add_argument('--decayType', help='Config json', type=str) # add all the possible taggers
+    parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
+    parser.add_argument('--seed', help='Random seed', default=2) 
+    parser.add_argument('--config', help='Config json', type=str) 
+    parser.add_argument('--decayType', help='Event decay', type=str) 
 
     cfg = parser.parse_args()
     pprint(cfg)
-
-    if "OS" in cfg.tagger:
-        if pyTrain.config.optimized:
-            features = pyTrain.features +["B_Tr_T_absIP"]
-
-    # Make sure no feature is doubled
-    features = np.unique(pyTrain.features).tolist()
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file='scripts/tagger_features.yaml')
     # Path to the ROOT input file
     selected_files = cfg.selected
-
+    print(f"The features used are: {features}")
     # Check and eventually make output directory where training info will be saved
     os.makedirs(cfg.target_path, exist_ok=True)
     # Path to where the scaler parameters will be saved
@@ -250,6 +248,7 @@ if __name__ == '__main__':
     plt.savefig(f"{cfg.target_path}/preSelect_variables.pdf")'''
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Device used: {device}")
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
@@ -268,21 +267,30 @@ if __name__ == '__main__':
     columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID']
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
-    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
-    model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, train_batch_size = pyTrain.config.train_batch_size, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
+    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
+    model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, seed=cfg.seed, train_batch_size = pyTrain.config.train_batch_size, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
     pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
-    
+    print(f"Training set has {train_df[train_df.label==0].shape[0]} wrong tagged tracks, {train_df[train_df.label==1].shape[0]} correctly tagged tracks")
     # Plot ROC curves for validation and train test
     bestModel.eval()
     yPredVal, yTrueVal = bestModel.evaluate_model(validation_dl)
     yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
     pyTrain.plot_ROC(model.modelName, yPredVal, yTrueVal, cfg.target_path, yPredTrain, yTrueTrain)
-    # Fit with logistic regression and save it
+    # Fit with logistic regression and save it (non needed for the moment)
     clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, cfg.target_path, model.modelName)
-    #pyTrain.plot_NNoutput(pyTrain.config.model_name, yPredVal, yTrueVal, yPredTrain, yTrueTrain, target_path)
-    pyTrain.plot_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
+    #pyTrain.plot_NNoutput_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, yPredTrain, yTrueTrain, cfg.target_path)
+    #pyTrain.plot_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
+    pyTrain.plot_mistag(name=bestModel.modelName, yPred=yPredTrain, yTrue=yTrueTrain, target_path=cfg.target_path, type = 'Training')
+    plt.figure()
+    plt.hist(1-yPredTrain ,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Training set: Probability of label 0, only selected")
+    plt.savefig(f"{cfg.target_path}/trainingSet_prob0distrib.pdf")
+    plt.figure()
+    plt.hist(yPredTrain ,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Training set: Probability of label 1, only selected")
+    plt.savefig(f"{cfg.target_path}/trainingSet_prob1distrib.pdf")
 
 
     # else:
@@ -299,23 +307,30 @@ if __name__ == '__main__':
     test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop), scalerPath, test = True)
     test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
     print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
+    print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
+    
     yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
     pyTrain.plot_ROC(bestModel.modelName, yPredTest, yTrueTest, cfg.target_path)
-    pyTrain.plot_mistag(bestModel.modelName, clf, yPredTest, yTrueTest, cfg.target_path, type = 'Test')
-
+    pyTrain.plot_mistag(name=bestModel.modelName, yPred=yPredTest, yTrue=yTrueTest, target_path=cfg.target_path, type = 'Test')
+    plt.figure()
+    plt.hist(1-yPredTest,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Test set: Probability of label 0, only selected")
+    plt.savefig(f"{cfg.target_path}/testSet_prob0distrib.pdf")
+    plt.figure()
+    plt.hist(yPredTest,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Test set: Probability of label 1")
+    plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
     #
     test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-    test_df['Eta'] = 1- bestModel.evaluate_model(test_dl)[0]
-    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID', 'B_Tr_T_TRUEID', 'B_Tr_T_P']]
+    test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true
+    test_df['Eta'] = 1 - test_df['predictedProb']
 
-    #print(test_df.loc[test_df.selected == 1].Eta)    
-    plt.figure()
-    plt.hist(test_df.loc[test_df.selected == 1].Eta ,bins = 100 , density = True , histtype = "stepfilled" )
-    plt.xlabel(r"$\eta$ Normalised")
-    plt.savefig(f"{cfg.target_path}/etaNotnormalized.pdf")
+    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID', 'B_Tr_T_TRUEID']]
+
+    #print(test_df.loc[test_df.selected == 1].Eta) 
 
     plot_mistag_for_torch(test_df, torchPath)
 
