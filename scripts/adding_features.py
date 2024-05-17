@@ -142,7 +142,7 @@ if __name__ == '__main__':
     df.B_Tr_T_Origin_Flag.astype(int)
     df.eval('B_Tr_T_EtaDistance = abs(B_ETA - B_Tr_T_Eta)', inplace = True)
     df['B_Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706)
-    df['B_Tr_T_DeltaQ_Mu'] = DeltaQ(df,105.65837)
+    df['B_Tr_T_DeltaQ_Muon'] = DeltaQ(df,105.65837)
     df['B_Tr_T_DeltaQ_Electron'] = DeltaQ(df,0.51100)
     df['B_Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208)
     df['B_Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677)
