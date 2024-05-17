@@ -23,7 +23,6 @@ min_delta = 0.00
 seed = 45 #11 Need to change see?
 activation_function= 'ELU' #ReLU, ELU
 model_name = f'model'
-
 # Change to False if no training is needed
 training = True
 # To be changed to the specific date-folder for the input model in case no training is needed.
