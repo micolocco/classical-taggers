@@ -12,7 +12,7 @@ from IPython import embed
 import os
 import argparse
 from pprint import pprint
-
+import datetime
 # Local import
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
@@ -39,6 +39,9 @@ def stats_printout(df, train_df, val_df, test_df):
 
     console = Console()
     table = Table(show_header=True)
+    table.add_column("", justify="left")
+    table.add_column("Events", justify="left", style='cyan')
+    table.add_column("Tracks", justify="left", style='green')
     table.add_row("Before selection", f"{tot_evts}", f"{df.shape[0]}")
     table.add_row("After selection", f"{sel_evts}", f"{df[df.selected==1].shape[0]}")
     table.add_row("Train", f"{train_evts}", f"{train_df.shape[0]}")
@@ -73,13 +76,13 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--selected', help='File with preselection applied', nargs='+')
-    parser.add_argument('--target_path', help='Name of the output dir', type=str)
+    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='../test')
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--seed', help='Random seed', default=2) 
-    parser.add_argument('--config', help='Config json', type=str) 
-    parser.add_argument('--decayType', help='Event decay', type=str) 
-
+    parser.add_argument('--config', help='Config json', type=str, default='configParameters.py') 
+    parser.add_argument('--decayType', help='Event decay', type=str)
+    print(f'Pipeline started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg)
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file='scripts/tagger_features.yaml')
@@ -89,7 +92,9 @@ if __name__ == '__main__':
     # Check and eventually make output directory where training info will be saved
     os.makedirs(cfg.target_path, exist_ok=True)
     # Path to where the scaler parameters will be saved
-    scalerPath = f"{cfg.target_path}/scaler.pkl"
+    scalerPath = f"{cfg.target_path}/st_scaler.pkl"
+    transformerPath = f"{cfg.target_path}/powerTransformer.pkl"
+
     # Path to where the test set will be saved
     testSetPath = f"{cfg.target_path}/testSet.csv"
 
@@ -163,7 +168,7 @@ if __name__ == '__main__':
     columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
-    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
+    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath, transformerPath=transformerPath)
     model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, seed=cfg.seed, train_batch_size = pyTrain.config.train_batch_size, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
     pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
@@ -200,7 +205,8 @@ if __name__ == '__main__':
     bestModel.eval()
     '''
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
-    test_dataset_sel1 = inputDataset(test_df[test_df['selected']==1].drop(columns = columns_to_drop), scalerPath, test = True)
+    test_dataset_sel1 = inputDataset(df=test_df[test_df['selected']==1].drop(columns = columns_to_drop))
+    test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
     print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
@@ -217,7 +223,8 @@ if __name__ == '__main__':
     plt.title(r"Test set: Probability of label 1")
     plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
     #
-    test_dataset = inputDataset(test_df.drop(columns = columns_to_drop), scalerPath, test = True)
+    test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
+    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
@@ -240,3 +247,4 @@ if __name__ == '__main__':
     pyTrain.plot_tagDec(df_TagParticles, pyTrain.config.model_name, cfg.target_path)
     # Calibrating the tagger and saving parameters
     pyTrain.calibration(pyTrain.config.model_name, cfg.tagger, df_TagParticles, cfg.decayType, cfg.target_path)
+    print(f'Pipeline finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')

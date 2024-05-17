@@ -32,6 +32,14 @@ def get_features(tagger, yaml_file):
             print(f"Error: Tagger {tagger} not found in configuration.\n Please check {yaml_file} file ")
             return []
 
+# def apply_log(df, features):
+#     log_features = ['Column1']
+#     for feature in features:
+#         if 'log' in feature:
+#             df.eval(f'log({feature}) = log({feature})', inplace = True)
+#     return features
+
+
 def splitByEvent (df):
     '''Function to random split by events (not by index) the dataset into training and test set
     Use random.Random(2) to reproduce same shuffling''' 
@@ -46,10 +54,12 @@ def splitByEvent (df):
     return train_df.query('selected==1'), val_df.query('selected==1'), test_df
     
 
-def prepare_data(train_df, features, val_df, savePlot_path, scalerPath, train_batch_size = 32, test_batch_size = 1024):
+def prepare_data(train_df, features, val_df, savePlot_path, scalerPath, transformerPath, train_batch_size = 32, test_batch_size = 1024):
     # Load the dataset
-    train_dataset = inputDataset(train_df, scalerPath, test = False)
-    val_dataset = inputDataset(val_df, scalerPath, test = True)
+    train_dataset = inputDataset(df=train_df) #scaler=PowerTransformer() 
+    train_dataset.scale(test=False, scalerPath=scalerPath, transformerPath=transformerPath)
+    val_dataset = inputDataset(df=val_df)
+    val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     plot_features(data=train_df, features_list=features, target_path=savePlot_path, flag='label', name=f'training_inputFeatures')
     # Prepare data loaders
     train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
@@ -64,7 +74,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     pos=0
     for i, col in enumerate(data.columns.to_list()):
         if col in features_list:
-            plt.subplot(4, 3, pos + 1)
+            plt.subplot(4, 4 , pos + 1) # hardcoded according to the number of features
             if col in nice_names.keys():
                 plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
                 plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
@@ -148,7 +158,7 @@ def save_hyperparameters(model, target_path):
                 'activation_function' : config.activation_function,
                 'n_epochs' : config.n_epochs,
                 'train_val_split' : config.train_val_split,
-                'train_batch_size': config.train_batch_size
+                'train_batch_size': config.train_batch_size,
                 }
     with open(f"{target_path}/hyperparameters.json", "w") as f:
         json.dump(info_dict, f)
@@ -272,17 +282,17 @@ def plot_mistag(name, yPred, yTrue, target_path, type,  clf = None, nbins=100):
     plt.yscale("log")
     if clf:
         y_predict_LR = clf.predict_proba(yPred)[:,0]
-        plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} wrong tagging decision")
-        plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} correct tagging decision")
+        plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
+        plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
         plt.title('Mistag after Logistic Regression')
     else:
-        plt.hist(1-yPred[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"{type} wrong tagging decision")
-        plt.hist(1-yPred[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"{type} correct tagging decision")
-        plt.title('Mistag ')
+        plt.hist(1-yPred[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
+        plt.hist(1-yPred[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
+        plt.title(f'Mistag')
     plt.xlabel(r"$\eta$")
     plt.grid()
     plt.ylabel("Normalized number of tracks")
-    plt.legend(loc = "best")
+    plt.legend(loc = "best", title=type)
    # folder = 'plots'
    # saveName = name_formatter.assign_name(folder, name)
     plt.savefig(f"{target_path}/mistag_{type}.pdf")
@@ -291,8 +301,8 @@ def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.yscale("log")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha = 0.5, label = f"(TagDec = -1) -> anti-b")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"(TagDec = 1) -> b")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha = 0.5, label = f"TagDec = -1, anti-b")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"(TagDec = 1,b")
     plt.grid()
     plt.xlabel(r"$\eta$")
     plt.ylabel("Normalized number of tracks")
