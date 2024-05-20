@@ -302,7 +302,7 @@ def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
     plt.figure()
     plt.yscale("log")
     plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha = 0.5, label = f"TagDec = -1, anti-b")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"(TagDec = 1,b")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"TagDec = 1, b")
     plt.grid()
     plt.xlabel(r"$\eta$")
     plt.ylabel("Normalized number of tracks")
@@ -337,5 +337,50 @@ def calibration(modelName, tagger, df_tag, eventType, target_path):
     "EffectiveMistag_Cali" : taggers[tagger].stats.effective_mistag(calibrated = True) , "EffectiveMistag" : taggers[tagger].stats.effective_mistag(calibrated = False) }
     with open(f"{target_path}/taggingInfo.json", "w") as f:
         json.dump(info_dict, f)
-    print(f"Tagger parameters saved at {target_path}")
+    print(f"Tagger parameters saved at {target_path}\n")
+    print(f"Tagging information in a presentation-friendly format:\n")
+    # Process the data
+    processed_data = {key: propagate_and_round(value) for key, value in info_dict.items()}
+    # Format the output
+    formatted_data = {key: f"{values[0]} +- {values[1]}" for key, values in processed_data.items()}
+    # Print the formatted data
+    for key, value in formatted_data.items():
+        print(f"{key}: {value}")
+
+# Function to propagate and round the errors and values
+def propagate_and_round(values):
+    values = np.array(values) * 100  # Multiply all values by 100
+
+    if len(values) > 2:  # For TaggingPower_Cali and EffectiveMistag_Cali
+        combined_error = np.sqrt(np.sum(np.square(values[1:])))
+        rounded_error = round(combined_error, -int(np.floor(np.log10(combined_error))))
+        
+        significant_digit = int(np.floor(np.log10(rounded_error)))
+        rounded_value = round(values[0], -significant_digit)
+        
+        return [rounded_value, rounded_error]
+    else:  # For other data
+        max_error = max(values[1:])
+        rounded_errors = [round(err, -int(np.floor(np.log10(max_error)))) for err in values[1:]]
+        
+        significant_digit = int(np.floor(np.log10(max_error)))
+        rounded_value = round(values[0], -significant_digit)
+        
+        return [rounded_value] + rounded_errors
+
+def print_taggingInfo(tag_file='taggingInfo.json'):
+    # Read the data from the JSON file
+    import json
+    with open(tag_file, 'r') as file:
+        info_dict = json.load(file)
+    processed_data = {key: propagate_and_round(value) for key, value in info_dict.items()}
+    # Format the output
+    formatted_data = {key: f"{values[0]} +- {values[1]}" for key, values in processed_data.items()}
+    # Print the formatted data
+    for key, value in formatted_data.items():
+        print(f"{key}: {value}")
+
+
+
+
 
