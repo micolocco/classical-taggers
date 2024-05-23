@@ -5,19 +5,16 @@ import pandas as pd
 import time
 from numpy import vstack
 from sklearn.metrics import accuracy_score
-import configParameters as config
 
 class NeuralNetwork(nn.Module):
 
-    def __init__(self, modelName, features, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024 ): #originally 75, for testing purpose changed to 200
+    def __init__(self, features, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024 ): #originally 75, for testing purpose changed to 200
         super().__init__()
         torch.manual_seed(seed) # needed to be sure the result is reproducible
-        self.modelName = modelName
         self.features = features
         self.criterion = loss
         self.NN = nn.Sequential(
             nn.Linear(len(self.features), 3),
-           # nn.Dropout(0.5),
             nn.ELU(), 
             nn.Linear(3, 3),
             nn.ELU(),
