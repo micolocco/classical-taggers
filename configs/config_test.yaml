@@ -3,8 +3,9 @@ train_val_split : 0.6 # test set percentage of dataset
 learning_rate : 0.001 #0.001
 train_batch_size : 1024
 n_epochs : 5 #500
-patience : 25 #75 #100
-min_delta : 0.00
-seed : 45 #11 Need to change see?
-activation_function: 'ELU' #ReLU, ELU
-model_name : f'model'
+architecture: 'complex'
+min_delta: 0.0
+activation_function: ELU
+patience: 25
+
+

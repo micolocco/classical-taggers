@@ -17,3 +17,4 @@ os_commands.py
 scaler_old
 **/*.pdf
 */DT_outputs
+configs/*.yaml

@@ -11,7 +11,11 @@ Export the `classical-taggers` path in your `.bash_profile`. Example of `.bash_p
 # .bash_profile
 export PYTHONPATH=/home/molocco/classical-taggers:$PYTHONPATH
 ```
-
+## Hyperparameter search
+If you want to explore different hyperparameters combination you can do so by:
+- modify/run `scripts/generate_configFiles.py`: it will create all the possible combinations of the specified hyperparameters as `yaml` files in teh folder `configs`.
+- modify/run `configs/replace_path.py`. It will create a file `generated_paths.txt` with all the paths that will be used in the `Snakefile` to request the output. Be aware that there is an `append` when writing the `txt` file: if you're not happy with it you'll need to recreate it (feel free to propose suggestions about how to modify this behaviour).
+- the `Snakefile` will create the ouputs specified in the `generated_paths`
 ## Getting data
 - As first step, since we can have several NTuples for different decays it's better to have a folder structure. You can run the following command to create it. Replace `<sample_type>` with the desired name (ex: `withUT` or `noUT` )
 ```
