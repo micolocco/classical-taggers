@@ -101,19 +101,19 @@ rule all:
         #ntuples_added_features_withUT['Bd2JpsiKst']
         #join(data, 'withUT_MC_2024/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf')
        #
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/only_TRUE/2/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/only_TRUE/2/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/only_TRUE/2/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/only_TRUE/2/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/only_TRUE/2/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/only_TRUE/2/mistag_Training.pdf'),
-#
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_Training.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_Training.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_Training.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_Training.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/only_TRUE/2/withTransformer/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/only_TRUE/2/withTransformer/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/only_TRUE/2/withTransformer/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/only_TRUE/2/withTransformer/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/only_TRUE/2/withTransformer/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/only_TRUE/2/withTransformer/mistag_Training.pdf'),
+##
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/config_test/mistag_Training.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/config_test/mistag_Training.pdf'),
         
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/10/mistag_Training.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/200/mistag_Training.pdf'),
@@ -191,16 +191,16 @@ rule train_tagger:
         selected = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']],
         script = join(repo, 'scripts/pipeline.py'),
     output:
-        pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/mistag_Training.pdf'),
-    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/log.log')
+        pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/{config}/mistag_Training.pdf'),
+    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/{config}/log.log')
     resources:
-        mem_mb = 60000, # Specify memory requirement in megabytes 
+        mem_mb = 128000, # Specify memory requirement in megabytes 
         gpus = 1,
         MaxRunHours = 4,
         #request_disk = 1024000
     params:
-        config = lambda wildcards: join(repo, f'configs/config_{wildcards.tagger}.json'),
-        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.seed}/')
+        config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),
+        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.seed}/{wildcards.config}/')
     run:
         cmd = [
             'python', input.script,
