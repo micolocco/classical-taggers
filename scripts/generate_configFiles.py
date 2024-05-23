@@ -1,10 +1,11 @@
 import yaml
 import os
 
-def generate_yaml_file(learning_rate, train_batch_size):
+def generate_yaml_file(learning_rate, train_batch_size, architecture):
     config = {
         'learning_rate': learning_rate,
         'train_batch_size': train_batch_size,
+        'architecture': architecture,
         # Hardcoded values. If grid search is needed, move them belove and set them as function arguments
         'train_val_split': 0.6,
         'n_epochs': 500,
@@ -17,7 +18,7 @@ def generate_yaml_file(learning_rate, train_batch_size):
     if not os.path.exists('../configs'):
         os.makedirs('../configs')
 
-    file_name = f'configs/lr{learning_rate}_bs{train_batch_size}.yaml'
+    file_name = f'configs/lr{learning_rate}_bs{train_batch_size}_{architecture}.yaml'
     with open(file_name, 'w') as file:
         yaml.dump(config, file)
     print(f"Generated {file_name}")
@@ -25,6 +26,7 @@ def generate_yaml_file(learning_rate, train_batch_size):
 # Define array of hyperparameters to iterate over
 learning_rates = [0.001, 0.01, 0.1]
 train_batch_sizes = [32, 128, 1024]
+architectures = ['simple', 'complex']
 #train_val_split = 0.6
 #n_epochs = 500
 #patience = 25 #75 #100
@@ -35,6 +37,7 @@ train_batch_sizes = [32, 128, 1024]
 i = 0
 for lr in learning_rates:
     for bs in train_batch_sizes:
-        generate_yaml_file(learning_rate=lr, train_batch_size=bs)
-        i+=1
+        for ar in architectures:
+            generate_yaml_file(learning_rate=lr, train_batch_size=bs, architecture=ar)
+            i+=1
 print(f'Generated config {i} files')
