@@ -103,6 +103,9 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
         
         i = 1
+        initial_validation_loss = model.validate_model(validation_dl)
+        print("Initial Validation Loss:", initial_validation_loss)
+
         for epoch in range(config['n_epochs']):
             epoch_start = time.time()
             print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}-------------")
