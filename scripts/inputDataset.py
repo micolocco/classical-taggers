@@ -32,11 +32,14 @@ class inputDataset(Dataset):
             scaler = load(open(scalerPath, 'rb'))
             transformer =load(open(transformerPath, 'rb'))
             self.X = transformer.transform(scaler.transform(self.X))
+            #self.X = scaler.transform(self.X)
+
         
         else:
             scaler = StandardScaler()
             transformer = PowerTransformer()
             self.X = transformer.fit_transform(scaler.fit_transform(self.X))
+            #self.X = scaler.fit_transform(self.X)
             dump(scaler, open(scalerPath, 'wb'))
             dump(transformer, open(transformerPath, 'wb'))
         
