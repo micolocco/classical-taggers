@@ -5,39 +5,41 @@ import pandas as pd
 import time
 from numpy import vstack
 from sklearn.metrics import accuracy_score
+import yaml
 
 class NeuralNetwork(nn.Module):
 
-    def __init__(self, features, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024 ): #originally 75, for testing purpose changed to 200
+    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024 ): #originally 75, for testing purpose changed to 200
         super().__init__()
         torch.manual_seed(seed) # needed to be sure the result is reproducible
         self.features = features
         self.criterion = loss
-        self.NN = nn.Sequential(
-            nn.Linear(len(self.features), 3),
-            nn.ELU(), 
-            nn.Linear(3, 3),
-            nn.ELU(),
-            nn.Linear(3, 1),
-            nn.Sigmoid()
-           # nn.Linear(len(self.features), 32),
-           # nn.Dropout(0.5),
-           # nn.ELU(), #ELU, ReLU #=nn.ELU()
-           # nn.Linear(32, 64),
-           # nn.Dropout(0.5),
-           # nn.ELU(),
-           # nn.Linear(64, 32),
-           # nn.Dropout(0.5),
-           # nn.ELU(),
-           # nn.Linear(32, 1),
-           # nn.Sigmoid()
-        )
+        self.NN = self.create_network(architecture)
         self.optimizer = optimizer(self.parameters(), **optimizer_kwargs)
         self.train_batch_size = train_batch_size
         self.test_batch_size = test_batch_size
 
+    def create_network(self, architecture):
+        with open(f'NNarchitectures/{architecture}.yaml', 'r') as file:
+            architecture_config = yaml.safe_load(file)['architecture']
+        # Set in_features for the first layer dynamically
+        architecture_config[0]['params']['in_features'] = len(self.features)
+        layers = []
+        for layer in architecture_config:
+            layer_type = layer['type']
+            layer_params = layer['params']
+            layer_class = getattr(nn, layer_type)
+            layers.append(layer_class(**layer_params))
+        return nn.Sequential(*layers)
+
     def forward(self, x): # from the input tensor x it gives the output tensor of the NN
         return self.NN(x)
+
+    def __str__(self):
+        '''
+        Print NN structure
+        '''
+        return str(self.NN)
 
     # train the model
     def train_model(self, train_dl, epoch,n_epochs):
