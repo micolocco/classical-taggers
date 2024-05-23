@@ -15,7 +15,6 @@ import pipeline
 # Local imports
 from scripts.NNModel import EarlyStopper
 from scripts.inputDataset import inputDataset
-import scripts.configParameters as config
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 import yaml
@@ -40,13 +39,13 @@ def get_features(tagger, yaml_file):
 #     return features
 
 
-def splitByEvent (df):
+def splitByEvent (df, config):
     '''Function to random split by events (not by index) the dataset into training and test set
     Use random.Random(2) to reproduce same shuffling''' 
     import random
     events_list = np.unique(df.event_entry)
     random.Random(3).shuffle(events_list) # cfg.seed
-    n_train_val = int(config.train_val_split*len(events_list)) # Divide
+    n_train_val = int(config['train_val_split']*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
     train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
     val_df = df[df.event_entry.isin(events_list[n_train:n_train_val])].copy()
@@ -90,7 +89,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     plt.savefig(f"{target_path}/{name}.pdf")
     
 
-def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epochs = 500):
+def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config, n_epochs = 500):
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
@@ -101,13 +100,13 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epo
         bestEpoch = 0
 
         training_start = time.time()
-        early_stopper = EarlyStopper(patience=config.patience, min_delta=config.min_delta)
-
+        early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
+        
         i = 1
         for epoch in range(n_epochs):
             epoch_start = time.time()
-            print(f"--------------Epoch:{epoch+1}/{n_epochs}-------------")
-            stepLoss = model.train_model(train_dl, epoch, n_epochs)
+            print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}-------------")
+            stepLoss = model.train_model(train_dl, epoch, config['n_epochs'])
             # Train over mini-batches
             trainingEpoch_loss.append(np.array(stepLoss).mean())
             # Compute validation loss
@@ -146,8 +145,8 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epo
 
 def save_model(model, target_path):
     # target_path = name_formatter.assign_name(folder, target_path)
-    torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/{model.modelName}_model.pth")
-    save_hyperparameters(model, target_path)
+    torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/model.pth")
+    #save_hyperparameters(model, target_path)
 
 def save_hyperparameters(model, target_path):
     info_dict = {
@@ -167,19 +166,18 @@ def save_hyperparameters(model, target_path):
 def load_model(model, target_path):
    # target_path = name_formatter.assign_name(folder, target_path)    
     # saveName = name_formatter.assign_name(target_path, model.modelName)
-    model.load_state_dict(torch.load(f"{target_path}/{model.modelName}_model.pth"))
+    model.load_state_dict(torch.load(f"{target_path}/model.pth"))
     
 
-def save_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
+def save_losses(trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     
     folder = f'{target_path}/losses'
     os.makedirs(f'{folder}', exist_ok=True)
-    #saveName = name_formatter.assign_name(folder, name)
     np.savetxt(f"{folder}/test.csv", valLoss, delimiter=",")
     np.savetxt(f"{folder}/train.csv", trainLoss, delimiter=",")
     np.savetxt(f"{folder}/best.csv", [bestEpoch,bestLosses[0],bestLosses[1]], delimiter=",")
 
-def plot_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
+def plot_losses(tagger, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     
     plt.figure()
     plt.plot(trainLoss, label='Training', c = 'orange')
@@ -188,9 +186,10 @@ def plot_losses(name, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     plt.legend(loc = "best")
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
+    plt.title(f"{tagger}")
     plt.savefig(f"{target_path}/Loss.pdf")
    
-def plot_ROC(name, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = None):
+def plot_ROC(tagger, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = None):
     
     plt.figure()
     lw  = 2
@@ -202,9 +201,8 @@ def plot_ROC(name, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = No
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    folder = 'plots'
     plt.legend(loc="lower right")
-    #.assign_name(folder, name)
+    plt.title(f"{tagger}")
     if yPredTrain is not None:
         fpr, tpr,_ = roc_curve(yTrueTrain, yPredTrain)
         roc_auc = round(auc(fpr, tpr),5)
@@ -214,10 +212,9 @@ def plot_ROC(name, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = No
     else:
         plt.savefig(f"{target_path}/ROC_TEST.pdf")
 
-def logistic_regression(yPredTrain, yTrueTrain, target_path, name):
+def logistic_regression(yPredTrain, yTrueTrain, target_path):
     
     clf = LogisticRegression().fit(yPredTrain, yTrueTrain.ravel())  
-    #prePath = target_path.assign_name(folder, name)
     pickle.dump(clf , open(f"{target_path}/LogReg.pck" , "wb"))
     return clf
 '''
@@ -276,7 +273,7 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, yPredTrain, yTrueTrai
     plt.close()
 '''
 
-def plot_mistag(name, yPred, yTrue, target_path, type,  clf = None, nbins=100):
+def plot_mistag(tagger, yPred, yTrue, target_path, type,  clf = None, nbins=100):
     plt.figure()
     # plt.title("Mistag rate")
     plt.yscale("log")
@@ -284,20 +281,21 @@ def plot_mistag(name, yPred, yTrue, target_path, type,  clf = None, nbins=100):
         y_predict_LR = clf.predict_proba(yPred)[:,0]
         plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
         plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
-        plt.title('Mistag after Logistic Regression')
+        plt.title(f'{tagger} mistag after Logistic Regression')
     else:
         plt.hist(1-yPred[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
         plt.hist(1-yPred[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
-        plt.title(f'Mistag')
-    plt.xlabel(r"$\eta$")
+        plt.title(f"{tagger}")
+
+    plt.xlabel(r"NN output")
+    plt.annotate(f'{len(yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
     plt.grid()
     plt.ylabel("Normalized number of tracks")
     plt.legend(loc = "best", title=type)
-   # folder = 'plots'
-   # saveName = name_formatter.assign_name(folder, name)
     plt.savefig(f"{target_path}/mistag_{type}.pdf")
+    
 
-def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
+def plot_tagDec(df_TagParticles, target_path, nbins=100):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.yscale("log")
@@ -307,35 +305,54 @@ def plot_tagDec(df_TagParticles, name, target_path, nbins=100):
     plt.xlabel(r"$\eta$")
     plt.ylabel("Normalized number of tracks")
     plt.legend(loc = "best")
-    #folder = 'plots'
-    #aveName = name_formatter.assign_name(folder, name)
+    plt.title(f"{tagger}")
     plt.savefig(f"{target_path}/mistag_VS_TagDec.pdf")
     plt.close()
 
-def calibration(modelName, tagger, df_tag, eventType, target_path):
+def plot_tagDec_mistag(tagger, df_TagParticles, target_path, nbins=100):
+    # Get the particle with the lowest mistag for each event
+    plt.figure()
+    plt.yscale("log")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha = 0.5, label = f"TagDec = -1, anti-b")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"TagDec = 1, b")
+    plt.grid()
+    plt.xlabel(r"$\eta$")
+    plt.ylabel("Normalized number of tracks")
+    plt.legend(loc = "best")
+    plt.title(f"{tagger}")
+    plt.savefig(f"{target_path}/mistag_VS_TagDec.pdf")
+    plt.close()
+
+
+def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag'):
 
     #Calibration of the taggers and parameters saving
     import lhcb_ftcalib as ft
 
     taggers = ft.TaggerCollection()
+    
     taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu') # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
-    taggers.set_calibration(ft.PolynomialCalibration(npar = 2,link =  ft.link.mistag))
+    
+    if calibration_option=='logit':
+        taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
+    elif calibration_option=='mistag':
+        taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.mistag)) 
+    else:
+        print('Not a valid calibration function')
     taggers.calibrate()
 
     # Plotting of calibration curves
-   # folder = 'calibrationPlots'
-   # saveName = name_formatter.assign_name(folder, modelName)
-  #  if os.path.isdir(saveName) == False:
-       #     os.system(f"mkdir {saveName}")
-    taggers.plot_calibration_curves(savepath = target_path, omega_range="minimal", nbins=10)
+    target_path = f'{target_path}/{calibration_option}'
+    if os.path.isdir(f'{target_path}') == False:
+        os.system(f"mkdir {target_path}")
 
-    #folder = 'results'
-   # saveName = name_formatter.assign_name(folder, modelName)
+    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins=10)
+   
     info_dict = {"TaggingEfficiency" : taggers[tagger].stats.tagging_efficiency(calibrated = False),
     "TaggingPower" : taggers[tagger].stats.tagging_power(calibrated = False) ,
     "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True), "TaggingPower_Cali" : taggers[tagger].stats.tagging_power(calibrated = True),
     "EffectiveMistag_Cali" : taggers[tagger].stats.effective_mistag(calibrated = True) , "EffectiveMistag" : taggers[tagger].stats.effective_mistag(calibrated = False) }
-    with open(f"{target_path}/taggingInfo.json", "w") as f:
+    with open(f"{target_path}/taggingInfo_{calibration_option}.json", "w") as f:
         json.dump(info_dict, f)
     print(f"Tagger parameters saved at {target_path}\n")
     print(f"Tagging information in a presentation-friendly format:\n")

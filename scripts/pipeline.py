@@ -13,6 +13,7 @@ import os
 import argparse
 from pprint import pprint
 import datetime
+import yaml
 # Local import
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
@@ -21,7 +22,7 @@ matplotlib_lhcb_style(plt)
 
 
 
-def stats_printout(df, train_df, val_df, test_df):
+def stats_printout(df, tagger, train_df, val_df, test_df):
     '''
     Function to print statistics about the dataset composition
     '''
@@ -35,7 +36,7 @@ def stats_printout(df, train_df, val_df, test_df):
     test_evts_sel =  len(test_df[test_df.selected==1]['event_entry'].unique())
     test_evts =  len(test_df['event_entry'].unique())
     
-    print("\n Statistics used in the pipeline\n")
+    print(f"\n Statistics used in the {tagger} pipeline\n")
 
     console = Console()
     table = Table(show_header=True)
@@ -80,11 +81,14 @@ if __name__ == '__main__':
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--seed', help='Random seed', default=2) 
-    parser.add_argument('--config', help='Config json', type=str, default='configParameters.py') 
+    parser.add_argument('--config', help='Config yaml', type=str, default='configs/config_test') 
     parser.add_argument('--decayType', help='Event decay', type=str)
     print(f'Pipeline started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg)
+    # Load YAML configuration file
+    with open(f'{cfg.config}.yaml', 'r') as file:
+        config = yaml.safe_load(file)
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file='scripts/tagger_features.yaml')
     # Path to the ROOT input file
     selected_files = cfg.selected
@@ -158,32 +162,32 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']])
+    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']], config=config)
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
-    stats_printout(df, train_df, val_df, test_df)
+    stats_printout(df=df, tagger=cfg.tagger, train_df=train_df, val_df=val_df, test_df=test_df)
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
     columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath, transformerPath=transformerPath)
-    model = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, seed=cfg.seed, train_batch_size = pyTrain.config.train_batch_size, test_batch_size = 1024, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, n_epochs = pyTrain.config.n_epochs)
-    pyTrain.plot_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
-    pyTrain.save_losses(pyTrain.config.model_name, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
+    model = NeuralNetwork(features=features, seed=cfg.seed, train_batch_size = config['train_batch_size'], test_batch_size = 1024, optimizer_kwargs={"lr" : config['learning_rate']}).to(device)
+    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
+    pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
+    pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     print(f"Training set has {train_df[train_df.label==0].shape[0]} wrong tagged tracks, {train_df[train_df.label==1].shape[0]} correctly tagged tracks")
     # Plot ROC curves for validation and train test
     bestModel.eval()
     yPredVal, yTrueVal = bestModel.evaluate_model(validation_dl)
     yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
-    pyTrain.plot_ROC(model.modelName, yPredVal, yTrueVal, cfg.target_path, yPredTrain, yTrueTrain)
+    pyTrain.plot_ROC(tagger=cfg.tagger, yPred=yPredVal, yTrue=yTrueVal, target_path =cfg.target_path, yPredTrain=yPredTrain, yTrueTrain=yTrueTrain)
     # Fit with logistic regression and save it (non needed for the moment)
-    clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, cfg.target_path, model.modelName)
-    #pyTrain.plot_NNoutput_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, yPredTrain, yTrueTrain, cfg.target_path)
-    #pyTrain.plot_mistag(pyTrain.config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
-    pyTrain.plot_mistag(name=bestModel.modelName, yPred=yPredTrain, yTrue=yTrueTrain, target_path=cfg.target_path, type = 'Training')
+    clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, cfg.target_path)
+    #pyTrain.plot_NNoutput_mistag(config.model_name, clf, yPredVal, yTrueVal, yPredTrain, yTrueTrain, cfg.target_path)
+    #pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
+    pyTrain.plot_mistag(tagger=cfg.tagger, yPred=yPredTrain, yTrue=yTrueTrain, target_path=cfg.target_path, type = 'Training')
     plt.figure()
     plt.hist(1-yPredTrain ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 0, only selected")
@@ -200,7 +204,7 @@ if __name__ == '__main__':
 
     clf = pickle.load(open(f"{cfg.target_path}/LogReg.pck", 'rb'))   
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
-    bestModel = NeuralNetwork(modelName = pyTrain.config.model_name, features=features, optimizer_kwargs={"lr" : pyTrain.config.learning_rate}).to(device)
+    bestModel = NeuralNetwork(features=features, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
     pyTrain.load_model(bestModel, cfg.target_path)
     bestModel.eval()
     '''
@@ -212,8 +216,8 @@ if __name__ == '__main__':
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
     
     yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
-    pyTrain.plot_ROC(bestModel.modelName, yPredTest, yTrueTest, cfg.target_path)
-    pyTrain.plot_mistag(name=bestModel.modelName, yPred=yPredTest, yTrue=yTrueTest, target_path=cfg.target_path, type = 'Test')
+    pyTrain.plot_ROC(tagger=cfg.tagger, yPred =yPredTest, yTrue =yTrueTest, target_path =cfg.target_path)
+    pyTrain.plot_mistag(tagger=cfg.tagger, yPred=yPredTest, yTrue=yTrueTest, target_path=cfg.target_path, type = 'Test')
     plt.figure()
     plt.hist(1-yPredTest,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 0, only selected")
@@ -244,7 +248,9 @@ if __name__ == '__main__':
 
     df_TagParticles = test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first()
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
-    pyTrain.plot_tagDec(df_TagParticles, pyTrain.config.model_name, cfg.target_path)
+    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
     # Calibrating the tagger and saving parameters
-    pyTrain.calibration(pyTrain.config.model_name, cfg.tagger, df_TagParticles, cfg.decayType, cfg.target_path)
+    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path)
+    # Try both calibration functions
+    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, calibration_option='logit')
     print(f'Pipeline finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
