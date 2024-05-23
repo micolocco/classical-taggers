@@ -1,7 +1,0 @@
-activation_function: ELU
-learning_rate: 0.1
-min_delta: 0.0
-n_epochs: 500
-patience: 25
-train_batch_size: 1024
-train_val_split: 0.6

@@ -173,7 +173,8 @@ if __name__ == '__main__':
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath, transformerPath=transformerPath)
-    model = NeuralNetwork(features=features, seed=cfg.seed, train_batch_size = config['train_batch_size'], test_batch_size = 1024, optimizer_kwargs={"lr" : config['learning_rate']}).to(device)
+    model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, train_batch_size = config['train_batch_size'], test_batch_size = 1024, optimizer_kwargs={"lr" : config['learning_rate']}).to(device)
+    print(f"\nThe NN architecture is: \n{model}\n")
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
@@ -217,7 +218,6 @@ if __name__ == '__main__':
     
     yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
     pyTrain.plot_ROC(tagger=cfg.tagger, yPred =yPredTest, yTrue =yTrueTest, target_path =cfg.target_path)
-    pyTrain.plot_mistag(tagger=cfg.tagger, yPred=yPredTest, yTrue=yTrueTest, target_path=cfg.target_path, type = 'Test')
     plt.figure()
     plt.hist(1-yPredTest,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 0, only selected")
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true
     test_df['Eta'] = 1 - test_df['predictedProb']
 
-    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID']]
+    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec', 'label','B_TRUEID']]
 
     #print(test_df.loc[test_df.selected == 1].Eta) 
 
@@ -247,8 +247,11 @@ if __name__ == '__main__':
     test_df.loc[test_df.selected == 0, "Eta"] = 0.5  # classic
 
     df_TagParticles = test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first()
+
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
     pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
+    pyTrain.plot_tagDec_mistag(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
+    pyTrain.plot_mistag(tagger=cfg.tagger, yPred=yPredTest, yTrue=yTrueTest, target_path=cfg.target_path, type = 'Test')
     # Calibrating the tagger and saving parameters
     pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path)
     # Try both calibration functions

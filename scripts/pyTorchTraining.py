@@ -89,7 +89,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     plt.savefig(f"{target_path}/{name}.pdf")
     
 
-def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config, n_epochs = 500):
+def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config):
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
@@ -103,7 +103,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
         
         i = 1
-        for epoch in range(n_epochs):
+        for epoch in range(config['n_epochs']):
             epoch_start = time.time()
             print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}-------------")
             stepLoss = model.train_model(train_dl, epoch, config['n_epochs'])
@@ -124,7 +124,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
                 bestModel = copy.deepcopy(model)
             i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
-        print(f"Training finished in {training_time} min, {i} epochs, early stopping: {stopped}")
+        print(f"Training finished in {training_time} min, {i-1} epochs, early stopping: {stopped}")
         return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
             #if epoch > earlyStop:  # check the termination condition
             #    rollingAverageNew = np.mean(validationEpoch_loss[-earlyStop:])
@@ -186,7 +186,7 @@ def plot_losses(tagger, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     plt.legend(loc = "best")
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
-    plt.title(f"{tagger}")
+    plt.title(f"{tagger}", fontsize=24)
     plt.savefig(f"{target_path}/Loss.pdf")
    
 def plot_ROC(tagger, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = None):
@@ -202,7 +202,7 @@ def plot_ROC(tagger, yPred, yTrue, target_path, yPredTrain = None, yTrueTrain = 
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.legend(loc="lower right")
-    plt.title(f"{tagger}")
+    plt.title(f"{tagger}", fontsize=24)
     if yPredTrain is not None:
         fpr, tpr,_ = roc_curve(yTrueTrain, yPredTrain)
         roc_auc = round(auc(fpr, tpr),5)
@@ -281,46 +281,57 @@ def plot_mistag(tagger, yPred, yTrue, target_path, type,  clf = None, nbins=100)
         y_predict_LR = clf.predict_proba(yPred)[:,0]
         plt.hist(y_predict_LR[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
         plt.hist(y_predict_LR[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
-        plt.title(f'{tagger} mistag after Logistic Regression')
+        plt.title(f'{tagger} mistag after Logistic Regression', fontsize=24)
     else:
         plt.hist(1-yPred[yTrue.ravel() == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
         plt.hist(1-yPred[yTrue.ravel() == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
-        plt.title(f"{tagger}")
+        plt.title(f"{tagger}", fontsize=24)
 
-    plt.xlabel(r"NN output")
-    plt.annotate(f'{len(yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
+    plt.xlabel(r"NN output", fontsize=24)
+    #plt.annotate(f'{len(yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
     plt.grid()
-    plt.ylabel("Normalized number of tracks")
-    plt.legend(loc = "best", title=type)
+    plt.ylabel("Normalized number of tracks", fontsize=24)
+    plt.legend(loc = "best", title=f'{type}:{len(yPred)} total tracks')
     plt.savefig(f"{target_path}/mistag_{type}.pdf")
     
 
-def plot_tagDec(df_TagParticles, target_path, nbins=100):
+def plot_tagDec(tagger,df_TagParticles, target_path, nbins=100):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.yscale("log")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha = 0.5, label = f"TagDec = -1, anti-b")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"TagDec = 1, b")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" , alpha = 0.5, label = f"Tag. dec: b")
+    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" ,  alpha = 0.5,label = f"Tag. dec: anti-b")
     plt.grid()
-    plt.xlabel(r"$\eta$")
-    plt.ylabel("Normalized number of tracks")
-    plt.legend(loc = "best")
-    plt.title(f"{tagger}")
+    plt.xlabel(r"$\eta$", fontsize=24)
+    plt.ylabel("Normalized number of tracks", fontsize=24)
+    #plt.annotate(f'{len(df_TagParticles)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
+    plt.legend(loc = "best", title = f'{len(df_TagParticles)} total tracks')
+    plt.title(f"{tagger}", fontsize=24)
     plt.savefig(f"{target_path}/mistag_VS_TagDec.pdf")
     plt.close()
 
-def plot_tagDec_mistag(tagger, df_TagParticles, target_path, nbins=100):
+def plot_tagDec_mistag(tagger, df_TagParticles, target_path, nbins=50):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.yscale("log")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == -1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha = 0.5, label = f"TagDec = -1, anti-b")
-    plt.hist(df_TagParticles.loc[df_TagParticles.TagDec == 1].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" ,  alpha = 0.5,label = f"TagDec = 1, b")
+    #plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == -1)&(df_TagParticles.label==0)].Eta ,bins = nbins , density = True , histtype = "step" ,range=(df_TagParticles.Eta.min(),0.5), edgecolor = "green" , linewidth=2, linestyle='--', label = f"Tag. dec: b, wrong")
+    #plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == -1)&(df_TagParticles.label==1)].Eta ,bins = nbins , density = True , histtype = "step" ,range=(df_TagParticles.Eta.min(),0.5), edgecolor = "green" , linewidth=2, label = f"Tag. dec: b, correct")
+    #plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == 1)&(df_TagParticles.label==0)].Eta ,bins = nbins , density = True , histtype = "step" ,range=(df_TagParticles.Eta.min(),0.5), edgecolor = "orange" , linewidth=2, linestyle='--', label = f"Tag. dec: anti-b, wrong")
+    #plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == 1)&(df_TagParticles.label==1)].Eta ,bins = nbins , density = True , histtype = "step" ,range=(df_TagParticles.Eta.min(),0.5), edgecolor = "orange" , linewidth=2, label = f"Tag. dec: anti-b, correct")
+    #plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == -1)&(df_TagParticles.label==0)].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" , alpha=0.5,  label = f"Tag. dec: b, wrong")
+    plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == -1)&(df_TagParticles.label==0)].Eta ,bins = nbins , density = True , histtype = "step" ,range=(df_TagParticles.Eta.min(),0.5), edgecolor = "green" , linewidth=1, label = f"Tag. dec: b, wrong")
+    
+    plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == -1)&(df_TagParticles.label==1)].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" , alpha=0.5, label = f"Tag. dec: b, correct")
+    #plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == 1)&(df_TagParticles.label==0)].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha=0.5,  label = f"Tag. dec: anti-b, wrong")
+    plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == 1)&(df_TagParticles.label==0)].Eta ,bins = nbins , density = True , histtype = "step" ,range=(df_TagParticles.Eta.min(),0.5), edgecolor = "orange" , linewidth=1, label = f"Tag. dec: anti-b, wrong")
+    plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == 1)&(df_TagParticles.label==1)].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha=0.5, label = f"Tag. dec: anti-b, correct")
+
     plt.grid()
-    plt.xlabel(r"$\eta$")
-    plt.ylabel("Normalized number of tracks")
-    plt.legend(loc = "best")
-    plt.title(f"{tagger}")
-    plt.savefig(f"{target_path}/mistag_VS_TagDec.pdf")
+    plt.xlabel(r"$\eta$",fontsize=24)
+    plt.ylabel("Normalized number of tracks", fontsize=24)
+    plt.legend(loc = "best", title = f'{len(df_TagParticles)} total tracks')
+    plt.title(f"{tagger} mistag", fontsize=24)
+    plt.savefig(f"{target_path}/TagDec_label.pdf")
     plt.close()
 
 

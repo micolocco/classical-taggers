@@ -35,8 +35,8 @@ def matplotlib_lhcb_style(plt):
     mplLHCb["legend.handletextpad"] = 0.3
     mplLHCb["legend.numpoints"] = 1
     mplLHCb["legend.labelspacing"] = 0.2
-    mplLHCb["legend.fontsize"] = 22
-    mplLHCb["legend.title_fontsize"] = 22
+    mplLHCb["legend.fontsize"] = 18
+    mplLHCb["legend.title_fontsize"] = 18
 
     mplLHCb["lines.linewidth"] = 2
     mplLHCb["lines.markeredgewidth"] = 0
