@@ -88,8 +88,18 @@ for decay, path_list in ntuples_raw_withUT.items():
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{taggers_conf[decay][i]}/{k}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in v]})
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/only_OSKaon') for f in v]})
 
+# Function to read paths from the generated file
+def read_generated_paths(data, file):
+    with open(file, 'r') as f:
+        paths = [join(data,line.strip()) for line in f]
+    return paths
+
+# Read the generated paths
+generated_paths = read_generated_paths(data,join(repo,'generated_paths.txt'))
+
 rule all:
     input:
+        generated_paths
         #ntuples_selected_withUT['Bs2DsPi'],
         #ntuples_selected_withUT['Bd2DmPi'],
         #ntuples_selected_withUT['Bd2JpsiKst'],
@@ -100,32 +110,13 @@ rule all:
         #ntuples_added_features_withUT['Bd2DmPi'],
         #ntuples_added_features_withUT['Bd2JpsiKst']
         #join(data, 'withUT_MC_2024/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf')
-       #
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/only_TRUE/2/withTransformer/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/only_TRUE/2/withTransformer/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/only_TRUE/2/withTransformer/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/only_TRUE/2/withTransformer/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/only_TRUE/2/withTransformer/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/only_TRUE/2/withTransformer/mistag_Training.pdf'),
+
 ##
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/config_test/mistag_Training.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/config_test/mistag_Training.pdf'),
-        
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/10/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/200/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/345/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/11/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/104/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/95/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/45/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/72/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/58/mistag_Training.pdf')
-
-        
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/config_test/mistag_Training.pdf'),     
 
 rule add_features:
     input:
