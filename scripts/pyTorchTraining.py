@@ -104,7 +104,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
         
         i = 1
         initial_validation_loss = model.validate_model(validation_dl)
-        print("Initial Validation Loss:", initial_validation_loss)
+        print(f"The initial Validation Loss: {np.array(np.array(initial_validation_loss).mean()).mean():.6f}")
 
         for epoch in range(config['n_epochs']):
             epoch_start = time.time()
