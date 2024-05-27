@@ -345,7 +345,7 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
     taggers = ft.TaggerCollection()
     
-    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu') # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
+    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu' ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
     
     if calibration_option=='logit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
@@ -353,8 +353,8 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.mistag)) 
     else:
         print('Not a valid calibration function')
+    taggers.retry_on_error(use_link_alternative=ft.link.logit) # use logit link function if minimization did not converge the first time
     taggers.calibrate()
-
     # Plotting of calibration curves
     target_path = f'{target_path}/{calibration_option}'
     if os.path.isdir(f'{target_path}') == False:
