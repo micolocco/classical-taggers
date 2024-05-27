@@ -96,10 +96,10 @@ def read_generated_paths(data, file):
 
 # Read the generated paths
 generated_paths = read_generated_paths(data,join(repo,'generated_paths.txt'))
-
+outp=join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/lr0.001_bs128_simple/mistag_Training.pdf')
 rule all:
     input:
-        generated_paths
+        #generated_paths
         #ntuples_selected_withUT['Bs2DsPi'],
         #ntuples_selected_withUT['Bd2DmPi'],
         #ntuples_selected_withUT['Bd2JpsiKst'],
@@ -110,7 +110,8 @@ rule all:
         #ntuples_added_features_withUT['Bd2DmPi'],
         #ntuples_added_features_withUT['Bd2JpsiKst']
         #join(data, 'withUT_MC_2024/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf')
-
+        generated_paths
+        
 ##
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
@@ -186,7 +187,7 @@ rule train_tagger:
     log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/{config}/log.log')
     resources:
         mem_mb = 128000, # Specify memory requirement in megabytes 
-        gpus = 1,
+        #gpus = 1,
         MaxRunHours = 4,
         #request_disk = 1024000
     params:
