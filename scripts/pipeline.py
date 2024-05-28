@@ -19,7 +19,8 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-
+# For testing purposes:
+# python scripts/pipeline.py --selected NTuple_test.root --tagger OSKaon --decayType Bu2JpsiK where NTuple_test.root is whatever NTuple with this name
 
 
 def stats_printout(df, tagger, train_df, val_df, test_df):
@@ -52,13 +53,25 @@ def stats_printout(df, tagger, train_df, val_df, test_df):
     console.print(table)
     print("\nThe train and the validation sets are made of tracks passing the preselection.")
     print("The calibration set contains both selected and not selected events. \n")
-
+    print("Correct tagging decision l=1, wrong tagging decision l=0")
+    B_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==-521)].shape[0]
+    antiB_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==521)].shape[0]
+    B_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==-521)].shape[0]
+    antiB_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==521)].shape[0]
+    B_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==-521)].shape[0]
+    antiB_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==521)].shape[0]
+    B_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==-521)].shape[0]
+    antiB_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==521)].shape[0]
     table = Table(show_header=True)
     table.add_column("", justify="left")
-    table.add_column("correct tagging decision: 1", justify="left", style='cyan')
-    table.add_column("wrong tagging decision: 0", justify="left", style='green')
-    table.add_row("Training set", f"{train_df[train_df.label==1].shape[0]}", f"{train_df[train_df.label==0].shape[0]}")
-    table.add_row("Test set", f"{test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]}", f"{test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]}")
+    table.add_column("l=1, B", justify="left", style='cyan')
+    table.add_column("l=1, anti-B", justify="left", style='cyan')
+    table.add_column("(N\[l=1,B]-N\[l=1,anti-B])/N\[l=1]", justify="left", style='cyan')
+    table.add_column("l=0, B", justify="left", style='green')
+    table.add_column("l=0, anti-B", justify="left", style='green')
+    table.add_column("(N\[l=0,B\]-N\[l=0,anti-B\])/N\[l=0\]", justify="left", style='cyan')
+    table.add_row("Training set", f"{B_correct_train}", f"{antiB_correct_train}",f"{(100*(B_correct_train-antiB_correct_train)/(B_correct_train+antiB_correct_train)):.2f}", f"{B_wrong_train}", f"{antiB_wrong_train}",f"{(100*(B_wrong_train-antiB_wrong_train)/(B_wrong_train+antiB_wrong_train)):.2f}")
+    table.add_row("Test set", f"{B_correct_test}", f"{antiB_correct_test}",f"{(100*(B_correct_test-antiB_correct_test)/(B_correct_test+antiB_correct_test)):.2f}", f"{B_wrong_test}", f"{antiB_wrong_test}",f"{(100*(B_wrong_test-antiB_wrong_test)/(B_wrong_test+antiB_wrong_test)):.2f}")
     console.print(table)
 
 def filter_rows(group):
@@ -104,7 +117,6 @@ if __name__ == '__main__':
 
     start = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
 
     # Reading datasets
     vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER']
@@ -138,7 +150,10 @@ if __name__ == '__main__':
     # The label is given by the product of the tagging decision and the flavour charge of the B.
     # It indicates if the tagging decision is wrong or correct.
     # -1 == wrong tag  1 == correct tag
-    df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"])
+    # When using data:
+    #   - tagging decision: the B_TRUEID must be replaced with B_ID 
+    #   - calibration: B_ID = reconstructed ID when moving to data!
+    df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) 
     df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
     '''
     plt.figure(figsize=(24,25))
@@ -167,6 +182,7 @@ if __name__ == '__main__':
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
     stats_printout(df=df, tagger=cfg.tagger, train_df=train_df, val_df=val_df, test_df=test_df)
+    print(f"Training set has {train_df[train_df.label==0].shape[0]} wrong tagged tracks, {train_df[train_df.label==1].shape[0]} correctly tagged tracks")
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
     columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
@@ -178,7 +194,6 @@ if __name__ == '__main__':
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
-    print(f"Training set has {train_df[train_df.label==0].shape[0]} wrong tagged tracks, {train_df[train_df.label==1].shape[0]} correctly tagged tracks")
     # Plot ROC curves for validation and train test
     bestModel.eval()
     yPredVal, yTrueVal = bestModel.evaluate_model(validation_dl)
@@ -250,7 +265,6 @@ if __name__ == '__main__':
 
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
     pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
-    pyTrain.plot_tagDec_mistag(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
     pyTrain.plot_mistag(tagger=cfg.tagger, yPred=yPredTest, yTrue=yTrueTest, target_path=cfg.target_path, type = 'Test')
     # Calibrating the tagger and saving parameters
     pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path)
