@@ -13,8 +13,8 @@ vars_to_save = [
     'B_TRUEID',
     'B_Tr_T_Charge',
     'B_Tr_T_TRUEID',
-    # 'B_Tr_T_MC_MOTHER_ID',
-    # 'B_Tr_T_MC_GD_MOTHER_ID',
+    'B_Tr_T_MC_MOTHER_ID',
+    'B_Tr_T_MC_GD_MOTHER_ID',
     # 'B_Tr_T_MC_GD_GD_MOTHER_ID',
 ]
 

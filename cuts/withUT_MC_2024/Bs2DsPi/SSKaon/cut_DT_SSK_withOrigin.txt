@@ -1,0 +1,1 @@
+(B_Tr_T_PIDK>5.904) & (B_Tr_T_BVIPSig<2.805) & (B_Tr_T_Origin_Flag!=0) & (B_ETA<4.8) & (B_Tr_T_Eta<4.8)

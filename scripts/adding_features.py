@@ -14,7 +14,7 @@ loading_variables =[
     'B_ENERGY',
     'B_ETA',
     'B_M',
-    'B_OLD_SSPionBDT_Mistag',
+    # 'B_OLD_SSPionBDT_Mistag',
     'B_P',
     'B_PHI',
     'B_PT',
@@ -36,9 +36,9 @@ loading_variables =[
     'B_Tr_T_M',
     #'B_Tr_T_MC_GD_GD_MOTHER_ID',
     #'B_Tr_T_MC_GD_GD_MOTHER_KEY',
-    #'B_Tr_T_MC_GD_MOTHER_ID',
+    'B_Tr_T_MC_GD_MOTHER_ID',
     #'B_Tr_T_MC_GD_MOTHER_KEY',
-    #'B_Tr_T_MC_MOTHER_ID',
+    'B_Tr_T_MC_MOTHER_ID',
     #'B_Tr_T_MC_MOTHER_KEY',
     'B_Tr_T_MINIP',
     'B_Tr_T_MINIPChi2',
@@ -100,6 +100,7 @@ def min_dPhi(df):
 
 B_abs_id_dic = {
     'Bs2DsPi': 531,
+    'Bs2JpsiPhi': 531,
     'Bd2JpsiKst': 511,
     'Bu2JpsiK': 521,
     'Bd2DmPi': 511,
@@ -112,7 +113,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('--raw', help='Raw file', type=str)
     parser.add_argument('--output', help='Name of the output file', type=str)
-    parser.add_argument('--evtType', help='Decay which is being useed', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi'))
+    parser.add_argument('--evtType', help='Decay which is being useed', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
 
     cfg = parser.parse_args()
@@ -120,9 +121,12 @@ if __name__ == '__main__':
     from pprint import pprint
     pprint(cfg)
 
+    input_treename = 'Tuple/DecayTree'
+    if cfg.evtType == 'Bs2JpsiPhi': input_treename = 'BsToJpsiPhi_Detached/DecayTree'
+
     print('Started reading')
     with uproot.open("{}".format(cfg.raw)) as f:
-        df = f[cfg.treename].arrays(loading_variables, library="pd")
+        df = f[input_treename].arrays(loading_variables, library="pd")
 
     # drop the B mesons or other particles that are not of interest
     abs_id = B_abs_id_dic[cfg.evtType]

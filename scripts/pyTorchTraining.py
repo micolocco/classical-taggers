@@ -75,7 +75,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     pos=0
     for i, col in enumerate(data.columns.to_list()):
         if col in features_list:
-            plt.subplot(4, 3, pos + 1)
+            plt.subplot(5, 3, pos + 1)
             if col in nice_names.keys():
                 plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
                 plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
@@ -116,15 +116,15 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, n_epo
             validationStep_loss = model.validate_model(validation_dl)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
             print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s") 
-            if early_stopper.early_stop(validationEpoch_loss[-1]): 
-                stopped = True 
-                break
-            if early_stopper.counter == 0:
-                lossValBest = validationEpoch_loss[-1]
-                lossTrainBest = trainingEpoch_loss[-1]
-                bestEpoch = epoch
-                save_model(model, target_path)
-                bestModel = copy.deepcopy(model)
+            # if early_stopper.early_stop(validationEpoch_loss[-1]): 
+            #     stopped = True 
+            #     break
+            # if early_stopper.counter == 0:
+            lossValBest = validationEpoch_loss[-1]
+            lossTrainBest = trainingEpoch_loss[-1]
+            bestEpoch = epoch
+            save_model(model, target_path)
+            bestModel = copy.deepcopy(model)
             i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
         print(f"Training finished in {training_time} min, {i} epochs, early stopping: {stopped}")

@@ -16,8 +16,8 @@ cut_file = 'test_cut'
 # NN parameters
 train_val_split = 0.6 # test set percentage of dataset
 learning_rate = 0.001 #0.001
-train_batch_size = 1024
-n_epochs = 500 #500
+train_batch_size = 32
+n_epochs = 100 #500
 patience = 25 #75 #100
 min_delta = 0.00
 seed = 45 #11 Need to change see?

@@ -77,6 +77,14 @@ def matplotlib_lhcb_style(plt):
 
 
 ranges = {
+        "log(B_nTracks)": (2,7),
+        "log(B_Tr_T_P)": (7.5,12.0),
+        "log(B_Tr_T_PT)": (4.0,8.5),
+        "log(B_PT)": (8,11),
+        "log(B_Tr_T_CHI2DOF)": (0, 1.2),
+        "log(B_Tr_T_BVIPSig)": (0, 3),
+        "log(B_Tr_T_absIP)": (-1, 0.),
+        "log(B_Tr_T_PhiDistance)": (0,1.2),
         "B_nTracks": (0,600),
         "B_Tr_T_P": (0,60000),
         "B_Tr_T_PT": (0,10000),
@@ -86,7 +94,7 @@ ranges = {
         "B_Tr_T_CHI2DOF": (0, 5),
         'B_Tr_T_PIDK': (-150, 150),
         'B_Tr_T_PIDP': (-150, 150),
-        "B_Tr_T_GHOSTPROB": (0, 1),
+        "B_Tr_T_GHOSTPROB": (0, 0.5),
         "B_Tr_T_absIP": (0,1.5),
         "B_Tr_T_PIDe": (-30, 30),
         "B_Tr_T_PIDmu": (-40, 40),
@@ -98,12 +106,17 @@ ranges = {
         "B_Tr_T_Signal_TagPart_PT": (0, 100000),
         "B_Tr_T_PhiDistance": (-3.14, 3.14),
         "B_Tr_T_EtaDistance": (0, 4)
-
-
-
     }
 
 nice_names = {
+        "log(B_nTracks)": r'$\log{\mathrm{nTracks}}$',
+        "log(B_Tr_T_P)": r'$\log{p(tag)}$',
+        "log(B_Tr_T_PT)": r'$\log{p_{T}(tag)}$',
+        "log(B_PT)": r'$\log{p_{T}(B)}$',
+        "log(B_Tr_T_CHI2DOF)":  r'$\log{\chi^2/\mathrm{ndof}}~$',
+        "log(B_Tr_T_BVIPSig)": r'$\log{\sqrt{\chi^{2}_{\rm{IP}}(tag)~\rm{wrt}~\rm{PV}(B)}}$',
+        "log(B_Tr_T_absIP)": r'$\log{|\mathrm{IP}|(tag)}$',
+        "log(B_Tr_T_PhiDistance)": r'$\log{\mathrm{\Delta}\mathrm{\Phi}(tag, signal)}$',
         "B_nTracks": r'$\mathrm{nTracks}$',
         "B_Tr_T_P": r'$p(tag)$',
         "B_Tr_T_PT": r'$p_{T}(tag)$',
@@ -124,8 +137,4 @@ nice_names = {
         "B_Tr_T_DeltaQ_Pion": r'$\mathrm{\Delta}\mathrm{Q}_{pi}$',
         "B_Tr_T_DeltaR": r'$\mathrm{\Delta}\mathrm{R}$',
         "B_Tr_T_Signal_TagPart_PT": r'$p_{T}(tag+signal)$',
-
-        
-
-
     }

@@ -16,10 +16,9 @@ def in_data(data_path, list_of_files):
 taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
     'Bd2JpsiKst': ['SSPion', 'SSProton'],
-    'Bs2DsPi': ['SSKaon'],
-    'Bd2DmPi': ['SSPion', 'SSProton']
-
-    
+    'Bs2DsPi': ['bla'],
+    'Bd2DmPi': ['SSPion', 'SSProton'],
+    'Bs2JpsiPhi': ['SSKaon']
 }#'Bu2JpsiK': 'OSElectron'
 
 # TO DO create a rules that copy the files from eos to the cluster
@@ -64,6 +63,16 @@ ntuples_eos_withUT = {
     'Bs2DsPi': in_data(data, '''
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214057/0000/00214057_00000001_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214055/0000/00214055_00000001_1.mc.root
+'''.split('\n')),
+    'Bs2JpsiPhi': in_data(data, '''
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000003_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226271/0000/00226271_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226273/0000/00226273_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000003_1.mc.root
 '''.split('\n'))
 }
 
@@ -82,43 +91,24 @@ for decay, path_list in ntuples_raw_withUT.items():
     #print(decay, path_list)
     #print('-------')
     for tagger in taggers_conf[decay] :
-       
         ntuples_selected_withUT[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/cutName') for f in path_list]})
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN_IPSig') for f in v]})
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{taggers_conf[decay][i]}/{k}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in v]})
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/only_OSKaon') for f in v]})
 
+torch_files = [f"{data}/Scoping/8-by-128-true-{i+1}ev.root" for i in range(7)]
+
+ntuples_added_TORCH_DLLs = {}
+for k,v in ntuples_added_features_withUT.items():
+    ntuples_added_TORCH_DLLs.update({k: [f.replace(k, f'{k}/TORCH_DLLS') for f in v]})
+
 rule all:
     input:
-        ntuples_selected_withUT['Bs2DsPi'],
-        #ntuples_selected_withUT['Bd2DmPi'],
-        #ntuples_selected_withUT['Bd2JpsiKst'],
-        #ntuples_selected_withUT['Bu2JpsiK']['OSMuon'],
-        #ntuples_selected_withUT['Bu2JpsiK']['OSKaon'],
-        #ntuples_added_features_withUT['Bs2DsPi'],
-        #ntuples_selected_withUT['Bu2JpsiK']['OSElectron'],
-        #ntuples_added_features_withUT['Bd2DmPi'],
-        #ntuples_added_features_withUT['Bd2JpsiKst']
-        #join(data, 'withUT_MC_2024/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf')
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/only_TRUE/2/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/only_TRUE/2/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/only_TRUE/2/mistag_validation.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_validation.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_validation.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/mistag_validation.pdf'),
-        
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/10/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/200/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/345/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/11/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/104/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/95/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/45/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/72/mistag_validation.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig/58/mistag_validation.pdf')
+        # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/run2_lowpt/2/mistag_validation.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bs2JpsiPhi/SSKaon/run2_lowpt/2/mistag_validation.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/run2_lowpt_noplowp/2/mistag_validation.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/run2_lowpt_nop/2/mistag_validation.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_SSK_withOrigin/2/mistag_validation.pdf'),
 
         
 
@@ -126,8 +116,8 @@ rule add_features:
     input:
         script = join(repo, 'scripts/adding_features.py'),
         raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root')
-    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root')
+    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     run:
         cmd = [
             'python', input.script,
@@ -161,8 +151,8 @@ rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
         added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{id,.*}.root'),
-    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/.{id,.*}.log')
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{id,.*}.root'),
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/.{id,.*}.log')
     run:
         cmd = [
             'python', input.script,
@@ -180,8 +170,8 @@ rule train_tagger:
         #selected = lambda wildcards: [f.replace('cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
         selected = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']],
         script = join(repo, 'scripts/pipeline.py'),
-    output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/mistag_validation.pdf'),
-    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/log.log')
+    output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/mistag_validation.pdf'),
+    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/log.log')
     resources:
         mem_mb = 60000, # Specify memory requirement in megabytes 
         gpus = 1
@@ -201,3 +191,23 @@ rule train_tagger:
         ]
         shell(' '.join(cmd))
 
+
+rule TORCH_DLLs:
+    input: ntuples_added_TORCH_DLLs['Bu2JpsiK']
+
+rule add_TORCH_DLLs:
+    input:
+        script = join(repo, 'scripts/add_torch_DLL.py'),
+        torch_dlls = torch_files,
+        added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/TORCH_DLLS/{id,.*}.root')
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/TORCH_DLLS/.{id,.*}.log')
+    run:
+        cmd = [
+            'python', input.script,
+            '--file {input.added_features}',
+            '--torch_dlls {input.torch_dlls}',
+            '--output {output}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))

@@ -22,7 +22,7 @@ hep.style.use("LHCb2")
 # matplotlib_lhcb_style(plt)
 
 
-def plot_mothers(df, mother, savepath, type):
+def plot_mothers(df, mother, savepath, type, tagger):
     names = {
         'B_Tr_T_MC_MOTHER_ID': r'TRUEID Mother$(tag)$',
         'B_Tr_T_MC_GD_MOTHER_ID': r'TRUEID GDMother$(tag)$',
@@ -39,33 +39,33 @@ def plot_mothers(df, mother, savepath, type):
     plt.xlim(0, len(ids)*3+3)
     plt.xlabel(names[mother])
     plt.minorticks_off()
-    plt.legend(title=f'OSKaon {type} set protons')
+    plt.legend(title=f'{tagger} {type} set protons')
     plt.savefig(f'{savepath}/{type}_tagProtons_{mother}.pdf')
     plt.close()
     plt.show()
 
-def plot_kp_for_torch(df, type, savepath):
+def plot_kp_for_torch(df, type, savepath, tagger):
     true_kaons = df.query('B_Tr_T_TRUEID==321 or B_Tr_T_TRUEID==-321')
     true_protons = df.query('B_Tr_T_TRUEID==2212 or B_Tr_T_TRUEID==-2212')
     print(f'In the {type} samples there are {len(true_kaons)} true kaons and {len(true_protons)} true protons, out of a total {len(df)} tracks\n')
     plt.hist(true_kaons['B_Tr_T_P'], range=ranges['B_Tr_T_P'], bins=100, density=True, label='True kaons')
     plt.hist(true_protons['B_Tr_T_P'], range=ranges['B_Tr_T_P'], bins=100, density=True, label='True protons', alpha=0.8)
     plt.xlabel(r'$p(tag)~[\mathrm{MeV}/c^2]$')
-    plt.legend(title=f'OSKaon {type} set')
+    plt.legend(title=f'{tagger} {type} set')
     plt.savefig(f'{savepath}/{type}_pk.pdf')
     plt.close()
 
     plt.hist(true_protons.loc[df.label == 0].B_Tr_T_P, range=ranges['B_Tr_T_P'], bins=100, density=True, label='True protons wrong tag')
     plt.hist(true_protons.loc[df.label == 1].B_Tr_T_P, range=ranges['B_Tr_T_P'], bins=100, density=True, label='True protons correct tag', alpha=0.8)
     plt.xlabel(r'$p(tag)~[\mathrm{MeV}/c^2]$')
-    plt.legend(title=f'OSKaon {type} set')
+    plt.legend(title=f'{tagger} {type} set')
     plt.savefig(f'{savepath}/{type}_p_labels.pdf')
     plt.close()
 
     plt.hist(true_kaons.loc[df.label == 0].B_Tr_T_P, range=ranges['B_Tr_T_P'], bins=100, density=True, label='True kaons wrong tag')
     plt.hist(true_kaons.loc[df.label == 1].B_Tr_T_P, range=ranges['B_Tr_T_P'], bins=100, density=True, label='True kaons correct tag', alpha=0.8)
     plt.xlabel(r'$p(tag)~[\mathrm{MeV}/c^2]$')
-    plt.legend(title=f'OSKaon {type} set')
+    plt.legend(title=f'{tagger} {type} set')
     plt.savefig(f'{savepath}/{type}_k_labels.pdf')
     plt.close()
     plt.show()
@@ -80,17 +80,17 @@ def plot_kp_for_torch(df, type, savepath):
     plt.xticks(np.arange(len(ids)) + 3.5, ids, rotation=45, fontsize=15)
     plt.xlabel(r'TRUEID$(tag)$')
     plt.minorticks_off()
-    plt.legend(title=f'OSKaon {type} set')
+    plt.legend(title=f'{tagger} {type} set')
     plt.savefig(f'{savepath}/{type}_TRUEIDtag.pdf')
     plt.close()
     plt.show()
 
 
-    # plot_mothers(true_protons, 'B_Tr_T_MC_MOTHER_ID', savepath, type)
-    # plot_mothers(true_protons, 'B_Tr_T_MC_GD_MOTHER_ID', savepath, type)
+    # plot_mothers(true_protons, 'B_Tr_T_MC_MOTHER_ID', savepath, type, tagger=cfg.tagger)
+    # plot_mothers(true_protons, 'B_Tr_T_MC_GD_MOTHER_ID', savepath, type, tagger=cfg.tagger)
 
 
-def plot_mistag_for_torch(df, savepath):
+def plot_mistag_for_torch(df, savepath, tagger):
     df_mistag = df.query('Eta>0.5')
     df_grouped = df_mistag.groupby(['B_Tr_T_TRUEID'])
     ids = []
@@ -102,7 +102,7 @@ def plot_mistag_for_torch(df, savepath):
     plt.xticks(np.arange(len(ids)) + 2.5, ids, rotation=45, fontsize=15)
     # plt.hist(df['B_Tr_T_TRUEID'], bins=20, label='Tag TRUE ID', range=(0,5000))
     plt.xlabel(r'TRUEID$(tag)$')
-    plt.legend(title=f'OSKaon')
+    plt.legend(title=f'{tagger}')
     plt.minorticks_off()
     plt.savefig(f'{savepath}/mistag_tagtrueid.pdf')
     plt.close()
@@ -113,7 +113,7 @@ def plot_mistag_for_torch(df, savepath):
     plt.hist(true_kaons['B_Tr_T_P'], range=ranges['B_Tr_T_P'], bins=50, density=True, label=r'True kaons with $\eta>0.5$')
     plt.hist(true_protons['B_Tr_T_P'], range=ranges['B_Tr_T_P'], bins=50, density=True, label=r'True protons with $\eta>0.5$', alpha=0.8)
     plt.xlabel(r'$p(tag)~[\mathrm{MeV}/c^2]$')
-    plt.legend(title=f'OSKaon')
+    plt.legend(title=f'{tagger}')
     plt.savefig(f'{savepath}/pk_mistag.pdf')
     plt.close()
 
@@ -135,6 +135,11 @@ def stats_printout(df, train_df, val_df, test_df):
 
     console = Console()
     table = Table(show_header=True)
+
+    table.add_column("Sets", justify="left", style='cyan')
+    table.add_column("Events", justify="right", style="green")
+    table.add_column("Tracks", justify="right", style="magenta")
+
     table.add_row("Before selection", f"{tot_evts}", f"{df.shape[0]}")
     table.add_row("After selection", f"{sel_evts}", f"{df[df.selected==1].shape[0]}")
     table.add_row("Train", f"{train_evts}", f"{train_df.shape[0]}")
@@ -205,7 +210,19 @@ if __name__ == '__main__':
             _df = _f[cfg.treename].arrays(vars, library="pd")
         _df.dropna(inplace = True)
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
-    # df = df.query("(B_Tr_T_TRUEID !=2212 | B_Tr_T_P>10000) & (B_Tr_T_TRUEID !=-2212 | B_Tr_T_P>10000)")
+    if 'SS' in cfg.tagger:
+        _features = []
+        to_drop = []
+        for f in features:
+            if 'PID' in f or 'GHOST' in f or 'EtaDist' in f or 'nPV' in f:
+                _features.append(f)
+            else:
+                _features.append('log('+f+')')
+                if f != 'B_Tr_T_P': to_drop.append(f)
+                df['log('+f+')'] = np.log(np.abs(df[f]))
+        print(to_drop)
+        df.drop(columns=to_drop, inplace=True)
+        features = _features
     df.sample(frac=1, random_state=pyTrain.config.seed).reset_index(drop=True)
     print("Removing multicandidates")
     removal_time1 = time.time()
@@ -252,19 +269,19 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'label']])
+    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'B_Tr_T_P', 'label']])
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
-    plot_kp_for_torch(train_df, type="train", savepath=torchPath)
-    plot_kp_for_torch(val_df, type="validation", savepath=torchPath)
-    plot_kp_for_torch(test_df, type="test", savepath=torchPath)
+    plot_kp_for_torch(train_df, type="train", savepath=torchPath, tagger=cfg.tagger)
+    plot_kp_for_torch(val_df, type="validation", savepath=torchPath, tagger=cfg.tagger)
+    plot_kp_for_torch(test_df, type="test", savepath=torchPath, tagger=cfg.tagger)
     stats_printout(df, train_df, val_df, test_df)
 
 
     # Save test dataframe for calibration
     # test_df.to_csv(f"{testSetPath}", index = False)
-    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID']
+    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'B_Tr_T_P']
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
@@ -328,11 +345,11 @@ if __name__ == '__main__':
     test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true
     test_df['Eta'] = 1 - test_df['predictedProb']
 
-    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID', 'B_Tr_T_TRUEID']]
+    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec','B_TRUEID', 'B_Tr_T_TRUEID', 'B_Tr_T_P']]
 
     #print(test_df.loc[test_df.selected == 1].Eta) 
 
-    plot_mistag_for_torch(test_df, torchPath)
+    plot_mistag_for_torch(test_df, torchPath, cfg.tagger)
 
     test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1
     test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1
