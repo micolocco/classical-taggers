@@ -9,15 +9,15 @@ import yaml
 
 class NeuralNetwork(nn.Module):
 
-    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(), train_batch_size = 32, test_batch_size = 1024 ): #originally 75, for testing purpose changed to 200
+    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss()): 
         super().__init__()
         torch.manual_seed(seed) # needed to be sure the result is reproducible
         self.features = features
         self.criterion = loss
         self.NN = self.create_network(architecture)
         self.optimizer = optimizer(self.parameters(), **optimizer_kwargs)
-        self.train_batch_size = train_batch_size
-        self.test_batch_size = test_batch_size
+       # self.train_batch_size = train_batch_size
+        #self.test_batch_size = test_batch_size
 
     def create_network(self, architecture):
         with open(f'NNarchitectures/{architecture}.yaml', 'r') as file:
