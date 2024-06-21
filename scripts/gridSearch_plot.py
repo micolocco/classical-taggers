@@ -5,12 +5,44 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from itertools import product
-import os
 import argparse
-from pprint import pprint
-'''
-python gridSearch_Plot.py --tagger <tagger> --decayType <decay>
-'''
+
+# Function to propagate and round the errors and values
+def propagate_and_round(values):
+    values = np.array(values) * 100  # Multiply all values by 100
+
+    if np.any(np.isnan(values)) or np.any(np.isinf(values)):
+        return [np.nan, np.nan]
+
+    if len(values) > 2:  # For TaggingPower_Cali and EffectiveMistag_Cali
+        combined_error = np.sqrt(np.sum(np.square(values[1:])))
+        if np.isnan(combined_error) or np.isinf(combined_error):
+            return [np.nan, np.nan]
+        
+        rounded_error = round(combined_error, -int(np.floor(np.log10(combined_error))))
+        significant_digit = int(np.floor(np.log10(rounded_error)))
+        rounded_value = round(values[0], -significant_digit)
+        
+        return [rounded_value, rounded_error]
+    else:  # For other data
+        max_error = max(values[1:])
+        if np.isnan(max_error) or np.isinf(max_error):
+            return [np.nan, np.nan]
+        
+        rounded_errors = [round(err, -int(np.floor(np.log10(max_error)))) for err in values[1:]]
+        significant_digit = int(np.floor(np.log10(max_error)))
+        rounded_value = round(values[0], -significant_digit)
+        
+        return [rounded_value] + rounded_errors
+
+# Function to format the annotations
+def format_annotation(value_with_error):
+    if np.isnan(value_with_error[0]):
+        return "NaN"
+    elif len(value_with_error) == 2:
+        return f"{value_with_error[0]} ± {value_with_error[1]}"
+    else:
+        return f"{value_with_error[0]}"
 
 # Define a function to plot heatmaps for each architecture
 def plot_heatmaps(architecture, ax_before, ax_after, ax_logit):
@@ -22,9 +54,13 @@ def plot_heatmaps(architecture, ax_before, ax_after, ax_logit):
     heatmap_data_after = data_after.pivot("Learning Rate", "Batch Size", "Tagging Power")
     heatmap_data_logit = data_logit.pivot("Learning Rate", "Batch Size", "Tagging Power")
 
-    sns.heatmap(heatmap_data_before, ax=ax_before, cmap="YlGnBu", annot=True, fmt=".3f", cbar=False, vmin=vmin, vmax=vmax)
-    sns.heatmap(heatmap_data_after, ax=ax_after, cmap="YlGnBu", annot=True, fmt=".3f", cbar=False, vmin=vmin, vmax=vmax)
-    sns.heatmap(heatmap_data_logit, ax=ax_logit, cmap="YlGnBu", annot=True, fmt=".3f", cbar=True, vmin=vmin, vmax=vmax)
+    annot_before = data_before.pivot("Learning Rate", "Batch Size", "Annotation")
+    annot_after = data_after.pivot("Learning Rate", "Batch Size", "Annotation")
+    annot_logit = data_logit.pivot("Learning Rate", "Batch Size", "Annotation")
+
+    sns.heatmap(heatmap_data_before, ax=ax_before, cmap="YlGnBu", annot=annot_before, fmt="", cbar=False, vmin=vmin, vmax=vmax)
+    sns.heatmap(heatmap_data_after, ax=ax_after, cmap="YlGnBu", annot=annot_after, fmt="", cbar=False, vmin=vmin, vmax=vmax)
+    sns.heatmap(heatmap_data_logit, ax=ax_logit, cmap="YlGnBu", annot=annot_logit, fmt="", cbar=True, vmin=vmin, vmax=vmax)
 
     ax_before.set_title(f'Tagging Power Before Calibration ({architecture})', fontsize=10)
     ax_after.set_title(f'Calibrated Tagging Power with mistag ({architecture})', fontsize=10)
@@ -35,7 +71,6 @@ def plot_heatmaps(architecture, ax_before, ax_after, ax_logit):
     ax_before.set_xlabel('Batch Size')
     ax_after.set_xlabel('Batch Size')
     ax_logit.set_xlabel('Batch Size')
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -70,38 +105,35 @@ if __name__ == '__main__':
         if os.path.exists(file_before):
             with open(file_before, 'r') as f:
                 data_before = json.load(f)
-                tagging_power_before = data_before['TaggingPower']
+                tagging_power_before = propagate_and_round(data_before['TaggingPower'])
                 results_before.loc[(results_before['Learning Rate'] == lr) & 
                                 (results_before['Batch Size'] == bs) & 
                                 (results_before['Architecture'] == arch), 'Tagging Power'] = tagging_power_before[0]
+                results_before.loc[(results_before['Learning Rate'] == lr) & 
+                                (results_before['Batch Size'] == bs) & 
+                                (results_before['Architecture'] == arch), 'Annotation'] = format_annotation(tagging_power_before)
 
         if os.path.exists(file_mistag):
             with open(file_mistag, 'r') as f:
                 data_after = json.load(f)
-                tagging_power_after = data_after['TaggingPower_Cali']
+                tagging_power_after = propagate_and_round(data_after['TaggingPower_Cali'])
                 results_mistag.loc[(results_mistag['Learning Rate'] == lr) & 
                                 (results_mistag['Batch Size'] == bs) & 
                                 (results_mistag['Architecture'] == arch), 'Tagging Power'] = tagging_power_after[0]
+                results_mistag.loc[(results_mistag['Learning Rate'] == lr) & 
+                                (results_mistag['Batch Size'] == bs) & 
+                                (results_mistag['Architecture'] == arch), 'Annotation'] = format_annotation(tagging_power_after)
 
         if os.path.exists(file_logit):
             with open(file_logit, 'r') as f:
                 data_logit = json.load(f)
-                tagging_power_logit = data_logit['TaggingPower_Cali']
+                tagging_power_logit = propagate_and_round(data_logit['TaggingPower_Cali'])
                 results_logit.loc[(results_logit['Learning Rate'] == lr) & 
                                 (results_logit['Batch Size'] == bs) & 
                                 (results_logit['Architecture'] == arch), 'Tagging Power'] = tagging_power_logit[0]
-        else:
-            results_logit.loc[(results_logit['Learning Rate'] == lr) & 
-                            (results_logit['Batch Size'] == bs) & 
-                            (results_logit['Architecture'] == arch), 'Tagging Power'] = np.nan
-
-    # Convert tagging power to percentage and round to 3 decimal places
-    results_before['Tagging Power'] *= 100
-    results_before['Tagging Power'] = results_before['Tagging Power'].round(3)
-    results_mistag['Tagging Power'] *= 100
-    results_mistag['Tagging Power'] = results_mistag['Tagging Power'].round(3)
-    results_logit['Tagging Power'] *= 100
-    results_logit['Tagging Power'] = results_logit['Tagging Power'].round(3)
+                results_logit.loc[(results_logit['Learning Rate'] == lr) & 
+                                (results_logit['Batch Size'] == bs) & 
+                                (results_logit['Architecture'] == arch), 'Annotation'] = format_annotation(tagging_power_logit)
 
     # Determine the range for the color bar scale
     vmin = min(results_before['Tagging Power'].min(), results_mistag['Tagging Power'].min(), results_logit['Tagging Power'].min())
@@ -122,7 +154,7 @@ if __name__ == '__main__':
     # Adjust spacing between subplots
     plt.subplots_adjust(hspace=0.3) 
     # Save the plot to a file
-    output_file = f"/ceph/users/molocco/Data/savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}_GridSearch_table.pdf"
+    output_file = f"/home/molocco/classical-taggers/tagging_power_tables/{cfg.tagger}_GridSearch_table.pdf"
     plt.savefig(output_file)
     print(f"Plot saved at {output_file}")
     #plt.show()
