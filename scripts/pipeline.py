@@ -23,7 +23,7 @@ matplotlib_lhcb_style(plt)
 # python scripts/pipeline.py --selected NTuple_test.root --tagger OSKaon --decayType Bu2JpsiK where NTuple_test.root is whatever NTuple with this name
 
 
-def stats_printout(df, tagger, train_df, val_df, test_df):
+def stats_printout(df, tagger, decayType, train_df, val_df, test_df):
     '''
     Function to print statistics about the dataset composition
     '''
@@ -53,25 +53,32 @@ def stats_printout(df, tagger, train_df, val_df, test_df):
     console.print(table)
     print("\nThe train and the validation sets are made of tracks passing the preselection.")
     print("The calibration set contains both selected and not selected events. \n")
+
     print("Correct tagging decision l=1, wrong tagging decision l=0")
-    B_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==-521)].shape[0]
-    antiB_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==521)].shape[0]
-    B_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==-521)].shape[0]
-    antiB_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==521)].shape[0]
-    B_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==-521)].shape[0]
-    antiB_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==521)].shape[0]
-    B_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==-521)].shape[0]
-    antiB_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==521)].shape[0]
+    if decayType[:2]=='Bu':
+        ID=521
+    if decayType[:2]=='Bd':
+        ID=511
+    if decayType[:2]=='Bs':
+        ID=531
+    B_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==-ID)].shape[0]
+    antiB_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==ID)].shape[0]
+    B_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==-ID)].shape[0]
+    antiB_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==ID)].shape[0]
+    B_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==-ID)].shape[0]
+    antiB_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==ID)].shape[0]
+    B_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==-ID)].shape[0]
+    antiB_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==ID)].shape[0]
     table = Table(show_header=True)
     table.add_column("", justify="left")
-    table.add_column("l=1, B", justify="left", style='cyan')
-    table.add_column("l=1, anti-B", justify="left", style='cyan')
-    table.add_column("(N\[l=1,B]-N\[l=1,anti-B])/N\[l=1]", justify="left", style='cyan')
-    table.add_column("l=0, B", justify="left", style='green')
-    table.add_column("l=0, anti-B", justify="left", style='green')
-    table.add_column("(N\[l=0,B\]-N\[l=0,anti-B\])/N\[l=0\]", justify="left", style='cyan')
-    table.add_row("Training set", f"{B_correct_train}", f"{antiB_correct_train}",f"{(100*(B_correct_train-antiB_correct_train)/(B_correct_train+antiB_correct_train)):.2f}", f"{B_wrong_train}", f"{antiB_wrong_train}",f"{(100*(B_wrong_train-antiB_wrong_train)/(B_wrong_train+antiB_wrong_train)):.2f}")
-    table.add_row("Test set", f"{B_correct_test}", f"{antiB_correct_test}",f"{(100*(B_correct_test-antiB_correct_test)/(B_correct_test+antiB_correct_test)):.2f}", f"{B_wrong_test}", f"{antiB_wrong_test}",f"{(100*(B_wrong_test-antiB_wrong_test)/(B_wrong_test+antiB_wrong_test)):.2f}")
+    table.add_column("l=1, B", justify="left", style='cyan', overflow="fold")
+    table.add_column("l=1, antiB", justify="left", style='cyan', overflow="fold")
+    table.add_column("(N\[l=1,B]-N\[l=1,antiB])/N\[l=1]", justify="left", style='cyan', overflow="fold")
+    table.add_column("l=0, B", justify="left", style='green', overflow="fold")
+    table.add_column("l=0, antiB", justify="left", style='green', overflow="fold")
+    table.add_column("(N\[l=0,B]-N\[l=0,antiB])/N\[l=0]", justify="left", style='green', overflow="fold")
+    table.add_row("Training set", f"{B_correct_train}", f"{antiB_correct_train}",f"{(100*(B_correct_train-antiB_correct_train)/(B_correct_train+antiB_correct_train)):.2f}%", f"{B_wrong_train}", f"{antiB_wrong_train}",f"{(100*(B_wrong_train-antiB_wrong_train)/(B_wrong_train+antiB_wrong_train)):.2f}%")
+    table.add_row("Test set", f"{B_correct_test}", f"{antiB_correct_test}",f"{(100*(B_correct_test-antiB_correct_test)/(B_correct_test+antiB_correct_test)):.2f}%", f"{B_wrong_test}", f"{antiB_wrong_test}",f"{(100*(B_wrong_test-antiB_wrong_test)/(B_wrong_test+antiB_wrong_test)):.2f}%")
     console.print(table)
 
 def filter_rows(group):
@@ -177,39 +184,41 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']], config=config)
+    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']], seed=cfg.seed, train_val_split=config['train_val_split'])
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
-    stats_printout(df=df, tagger=cfg.tagger, train_df=train_df, val_df=val_df, test_df=test_df)
-    print(f"Training set has {train_df[train_df.label==0].shape[0]} wrong tagged tracks, {train_df[train_df.label==1].shape[0]} correctly tagged tracks")
+    stats_printout(df=df, tagger=cfg.tagger, decayType=cfg.decayType,train_df=train_df, val_df=val_df, test_df=test_df)
+    print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
     columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
-    train_df.drop(columns = columns_to_drop, inplace = True)
-    val_df.drop(columns = columns_to_drop, inplace = True)
-    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath, transformerPath=transformerPath)
-    model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, train_batch_size = config['train_batch_size'], test_batch_size = 1024, optimizer_kwargs={"lr" : config['learning_rate']}).to(device)
+    #train_df.drop(columns = columns_to_drop, inplace = True)
+    #val_df.drop(columns = columns_to_drop, inplace = True)
+    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=config['train_batch_size'], seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath)
+    if cfg.config!='configs/config_test':
+        pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
+    model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     # Plot ROC curves for validation and train test
     bestModel.eval()
-    yPredVal, yTrueVal = bestModel.evaluate_model(validation_dl)
-    yPredTrain, yTrueTrain = bestModel.evaluate_model(train_dl)
-    pyTrain.plot_ROC(tagger=cfg.tagger, yPred=yPredVal, yTrue=yTrueVal, target_path =cfg.target_path, yPredTrain=yPredTrain, yTrueTrain=yTrueTrain)
+    val_df['yPred'], val_df['yTrue'] = bestModel.evaluate_model(validation_dl)
+    train_df['yPred'], train_df['yTrue'] = bestModel.evaluate_model(train_dl)
+    pyTrain.plot_ROC(tagger=cfg.tagger, val_df=val_df, train_df=train_df, target_path =cfg.target_path)
     # Fit with logistic regression and save it (non needed for the moment)
-    clf = pyTrain.logistic_regression(yPredTrain, yTrueTrain, cfg.target_path)
-    #pyTrain.plot_NNoutput_mistag(config.model_name, clf, yPredVal, yTrueVal, yPredTrain, yTrueTrain, cfg.target_path)
+    #clf = pyTrain.logistic_regression(df=train_df, target_path=cfg.target_path)
+    #pyTrain.plot_NNoutput_mistag(config.model_name, clf, yPredVal, yTrueVal, train_df['yPred'], train_df['yTrue'], cfg.target_path)
     #pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
-    pyTrain.plot_mistag(tagger=cfg.tagger, yPred=yPredTrain, yTrue=yTrueTrain, target_path=cfg.target_path, type = 'Training')
+    pyTrain.plot_mistag(tagger=cfg.tagger, df=train_df, target_path=cfg.target_path, type = 'Training', show_trueB=False)
     plt.figure()
-    plt.hist(1-yPredTrain ,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.hist(1-train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 0, only selected")
     plt.savefig(f"{cfg.target_path}/trainingSet_prob0distrib.pdf")
     plt.figure()
-    plt.hist(yPredTrain ,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.hist(train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 1, only selected")
     plt.savefig(f"{cfg.target_path}/trainingSet_prob1distrib.pdf")
 
@@ -225,47 +234,51 @@ if __name__ == '__main__':
     bestModel.eval()
     '''
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
-    test_dataset_sel1 = inputDataset(df=test_df[test_df['selected']==1].drop(columns = columns_to_drop))
+    test_df_sel1 = test_df.query('selected==1').copy()
+    test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
     test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
     print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
     
-    yPredTest, yTrueTest = bestModel.evaluate_model(test_dl_sel1)
-    pyTrain.plot_ROC(tagger=cfg.tagger, yPred =yPredTest, yTrue =yTrueTest, target_path =cfg.target_path)
+    test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
+    pyTrain.plot_ROC(tagger=cfg.tagger, val_df=test_df_sel1, target_path =cfg.target_path)
     plt.figure()
-    plt.hist(1-yPredTest,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 0, only selected")
     plt.savefig(f"{cfg.target_path}/testSet_prob0distrib.pdf")
     plt.figure()
-    plt.hist(yPredTest,bins = 100 , density = True , histtype = "stepfilled" )
+    plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 1")
     plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
-    #
+    pyTrain.plot_mistag(tagger=cfg.tagger, df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
+    
+
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-    test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true
+    test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
     test_df['Eta'] = 1 - test_df['predictedProb']
 
     test_df = test_df[['event_entry','selected', 'Eta', 'TagDec', 'label','B_TRUEID']]
 
     #print(test_df.loc[test_df.selected == 1].Eta) 
 
-    # 
+    test_df.loc[test_df.selected == 0, "TagDec"] = 0  # classic
+    test_df.loc[test_df.selected == 0, "Eta"] = 0.5  # classic
+    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first(), output_file='Not_Normalized_TagDec.pdf', target_path=cfg.target_path)
+
+    # Eta Normalization [0, 0.5]
     test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1
     test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1
     test_df.loc[test_df.Eta < 0, "Eta"] += 1
-    test_df.loc[test_df.selected == 0, "TagDec"] = 0  # classic
-    test_df.loc[test_df.selected == 0, "Eta"] = 0.5  # classic
 
     df_TagParticles = test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first()
 
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
     pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
-    pyTrain.plot_mistag(tagger=cfg.tagger, yPred=yPredTest, yTrue=yTrueTest, target_path=cfg.target_path, type = 'Test')
     # Calibrating the tagger and saving parameters
     pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path)
     # Try both calibration functions
