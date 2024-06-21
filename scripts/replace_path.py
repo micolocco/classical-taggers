@@ -2,7 +2,7 @@ import os
 import argparse
 from pprint import pprint
 '''
-python replace_path.py
+python replace_path.py --tagger <tagger> --decayType <decay>
 '''
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
