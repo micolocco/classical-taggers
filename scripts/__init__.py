@@ -105,7 +105,8 @@ ranges = {
         "B_Tr_T_DeltaR": (0, 20),
         "B_Tr_T_Signal_TagPart_PT": (0, 100000),
         "B_Tr_T_PhiDistance": (-3.14, 3.14),
-        "B_Tr_T_EtaDistance": (0, 4)
+        "B_Tr_T_EtaDistance": (0, 4),
+        "logSumProtonMinusKaon": (-50, 50),
     }
 
 nice_names = {
@@ -137,4 +138,5 @@ nice_names = {
         "B_Tr_T_DeltaQ_Pion": r'$\mathrm{\Delta}\mathrm{Q}_{pi}$',
         "B_Tr_T_DeltaR": r'$\mathrm{\Delta}\mathrm{R}$',
         "B_Tr_T_Signal_TagPart_PT": r'$p_{T}(tag+signal)$',
+        "logSumProtonMinusKaon": r'$\mathrm{DLL}(p-K)_\mathrm{TORCH}$',
     }

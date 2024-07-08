@@ -83,7 +83,6 @@ def plot_kp_for_torch(df, type, savepath, tagger):
     plt.legend(title=f'{tagger} {type} set')
     plt.savefig(f'{savepath}/{type}_TRUEIDtag.pdf')
     plt.close()
-    plt.show()
 
 
     # plot_mothers(true_protons, 'B_Tr_T_MC_MOTHER_ID', savepath, type, tagger=cfg.tagger)
@@ -269,7 +268,7 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'B_Tr_T_P', 'label']])
+    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'label']])
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
@@ -281,7 +280,7 @@ if __name__ == '__main__':
 
     # Save test dataframe for calibration
     # test_df.to_csv(f"{testSetPath}", index = False)
-    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'B_Tr_T_P']
+    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID']
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)

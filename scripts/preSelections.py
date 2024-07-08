@@ -5,6 +5,7 @@ from scripts.adding_features import loading_variables
 import pyTorchTraining as pyTrain
 import argparse
 import os
+import pandas as pd
 
 vars_to_save = [
     'entry',
@@ -34,10 +35,16 @@ def extract_selection_var(cut_file):
     result_array = np.unique(result_array).tolist()
     return result_array
 
-def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables):
+def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, add_torch_pid=False):
+    # loading_variables.remove('logSumProtonMinusKaon')
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
     with uproot.open("{}".format(notSelected_rootPath)) as f:
         df = f[treename].arrays(loading_variables, library="pd")
+        if add_torch_pid:
+            with uproot.open("{}".format(notSelected_rootPath.replace('Bu2JpsiK', 'Bu2JpsiK/TORCH_DLLS'))) as _f:
+                df_torch = _f['Tuple/DecayTree'].arrays(['logSumProtonMinusKaon', 'B_Tr_T_P'], library="pd")
+            assert(len(df_torch) == len(df))
+            df['logSumProtonMinusKaon'] = df_torch['logSumProtonMinusKaon']
     cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
     print(f"The applied cut is: {cuts}")
     df.eval(f"selected = {cuts}", inplace = True)
@@ -54,6 +61,7 @@ if __name__ == '__main__':
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
     parser.add_argument('--cut_file', help='File where the cut is stored', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
+    parser.add_argument('--add_torch_pid', action="store_true") # add all the possible taggers
 
     cfg = parser.parse_args()
 
@@ -71,8 +79,7 @@ if __name__ == '__main__':
         if particle in ("Proton", "Pion"):
             loading_variables += ["B_Tr_T_PIDP"]
     '''
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + vars_to_save + ['selected']]
-
+    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.add_torch_pid)[features + vars_to_save + ['selected']]
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(f"{cfg.output}") as file:
