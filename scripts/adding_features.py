@@ -14,7 +14,7 @@ loading_variables =[
     'B_ENERGY',
     'B_ETA',
     'B_M',
-    'B_OLD_SSPionBDT_Mistag',
+    #'B_OLD_SSPionBDT_Mistag',
     'B_P',
     'B_PHI',
     'B_PT',
@@ -103,6 +103,7 @@ B_abs_id_dic = {
     'Bd2JpsiKst': 511,
     'Bu2JpsiK': 521,
     'Bd2DmPi': 511,
+    'Bs2JpsiPhi': 531,
     }
 
 if __name__ == '__main__':
@@ -112,7 +113,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('--raw', help='Raw file', type=str)
     parser.add_argument('--output', help='Name of the output file', type=str)
-    parser.add_argument('--evtType', help='Decay which is being useed', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi'))
+    parser.add_argument('--evtType', help='Decay which is being useed', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
 
     cfg = parser.parse_args()
