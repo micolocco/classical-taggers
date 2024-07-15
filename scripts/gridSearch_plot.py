@@ -6,6 +6,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from itertools import product
 import argparse
+from IPython import embed
+
+'''
+python gridSearch_plot.py --tagger <tagger> --decayType <decay> --seed <seed> 
+'''
 
 # Function to propagate and round the errors and values
 def propagate_and_round(values):
@@ -29,8 +34,13 @@ def propagate_and_round(values):
         if np.isnan(max_error) or np.isinf(max_error):
             return [np.nan, np.nan]
         
-        rounded_errors = [round(err, -int(np.floor(np.log10(max_error)))) for err in values[1:]]
-        significant_digit = int(np.floor(np.log10(max_error)))
+        if max_error == 0:
+            # If the maximum error is zero, no need to round it further
+            significant_digit = 0
+        else:
+            significant_digit = int(np.floor(np.log10(max_error)))
+        
+        rounded_errors = [round(err, -significant_digit) if err != 0 else 0 for err in values[1:]]
         rounded_value = round(values[0], -significant_digit)
         
         return [rounded_value] + rounded_errors
@@ -78,7 +88,9 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
-    parser.add_argument('--decayType', help='Event decay', type=str)
+    parser.add_argument('--decayType', help='Event decay', type=str, choices=('Bu2JpsiK, Bd2JpsiKst, Bs2DsPi, Bd2DPi'))
+    parser.add_argument('--seed', help='Random seed', type=str,)
+
     cfg = parser.parse_args()
     # Define the hyperparameter values
     learning_rates = [0.1, 0.01, 0.001]
@@ -94,7 +106,7 @@ if __name__ == '__main__':
     results_logit = pd.DataFrame(combinations, columns=['Learning Rate', 'Batch Size', 'Architecture'])
 
     # Read tagging power values from JSON files
-    results_folder = f"/ceph/users/molocco/Data/savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2"
+    results_folder = f"/ceph/users/molocco/Data/savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/{cfg.seed}"
 
     for lr, bs, arch in combinations:
         folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{arch}")
@@ -134,7 +146,6 @@ if __name__ == '__main__':
                 results_logit.loc[(results_logit['Learning Rate'] == lr) & 
                                 (results_logit['Batch Size'] == bs) & 
                                 (results_logit['Architecture'] == arch), 'Annotation'] = format_annotation(tagging_power_logit)
-
     # Determine the range for the color bar scale
     vmin = min(results_before['Tagging Power'].min(), results_mistag['Tagging Power'].min(), results_logit['Tagging Power'].min())
     vmax = max(results_before['Tagging Power'].max(), results_mistag['Tagging Power'].max(), results_logit['Tagging Power'].max())
@@ -154,7 +165,10 @@ if __name__ == '__main__':
     # Adjust spacing between subplots
     plt.subplots_adjust(hspace=0.3) 
     # Save the plot to a file
-    output_file = f"/home/molocco/classical-taggers/tagging_power_tables/{cfg.tagger}_GridSearch_table.pdf"
+    output_path = f"/home/molocco/classical-taggers/tagging_power_tables/"
+    if not os.path.exists(f"{output_path}/{cfg.seed}"):
+        os.makedirs(f"{output_path}/{cfg.seed}")
+    output_file = f"{output_path}/{cfg.seed}/{cfg.tagger}_GridSearch_table.pdf"    
     plt.savefig(output_file)
     print(f"Plot saved at {output_file}")
     #plt.show()
