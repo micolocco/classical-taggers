@@ -17,6 +17,6 @@ os_commands.py
 scaler_old
 **/*.pdf
 # Except for PDFs in the tagging_power_tables directory
-!tagging_power_tables/*.pdf
+!tagging_power_tables/**/*.pdf
 */DT_outputs
 configs/*.yaml
