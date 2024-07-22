@@ -21,8 +21,7 @@ taggers_conf = {
     'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
 
     
-}#'Bu2JpsiK': 'OSElectron'
-
+}
 # TO DO create a rules that copy the files from eos to the cluster
 ntuples_eos_withUT = {
     'Bu2JpsiK': in_data(data, '''
@@ -63,8 +62,6 @@ ntuples_eos_withUT = {
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214043/0000/00214043_00000003_1.mc.root
 '''.split('\n')),
     'Bs2DsPi': in_data(data, '''
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214057/0000/00214057_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214055/0000/00214055_00000001_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000002_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000003_1.mc.root
@@ -126,8 +123,13 @@ def find_tree_name(decay):
         return 'Tuple/DecayTree'
 
 # Read the generated paths
-generated_paths_SSPion = read_generated_paths(data,join(repo,'generated_paths_SSPion.txt'))
-generated_paths_SSKaon = read_generated_paths(data,join(repo,'generated_paths_SSKaon.txt'))
+generated_paths_SSPion = read_generated_paths(data,join(repo,'paths_for_snakemake/generated_paths_SSPion.txt'))
+generated_paths_SSKaon = read_generated_paths(data,join(repo,'paths_for_snakemake/generated_paths_SSKaon.txt'))
+generated_paths_SSProton = read_generated_paths(data,join(repo,'paths_for_snakemake/generated_paths_SSProton.txt'))
+generated_paths_OSKaon = read_generated_paths(data,join(repo,'paths_for_snakemake/generated_paths_OSKaon.txt'))
+generated_paths_OSElectron = read_generated_paths(data,join(repo,'paths_for_snakemake/generated_paths_OSElectron.txt'))
+generated_paths_OSMuon = read_generated_paths(data,join(repo,'paths_for_snakemake/generated_paths_OSMuon.txt'))
+
 
 rule all:
     input:
@@ -147,19 +149,25 @@ rule all:
         #ntuples_added_features_withUT['Bd2DmPi'],
         #ntuples_added_features_withUT['Bd2JpsiKst']
         #join(data, 'withUT_MC_2024/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf')
-       # generated_paths_SSKaon
-        generated_paths_SSPion
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/45/lr0.1_bs1024_simple/ROC_TRAIN_VAL.pdf')
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/lr0.001_bs1024_simple/mistag_Training.pdf')
+        #generated_paths_SSKaon,
+        #generated_paths_SSPion,
+        #generated_paths_SSProton,
+        #generated_paths_OSKaon,
+        #generated_paths_OSElectron,
+        #generated_paths_OSMuon,
+        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/14/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/10/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/12/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/45/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
 
-        
-##
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/lr0.001_bs1024_simple/mistag_Training.pdf')
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/3/lr0.01_bs1024_complex/ROC_TRAIN_VAL.pdf')
         #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/config_test/mistag_Training.pdf'),     
-'''
+
 rule add_features:
     input:
         script = join(repo, 'scripts/adding_features.py'),
@@ -178,7 +186,7 @@ rule add_features:
             '&> {log}',
         ]
         shell(' '.join(cmd))
-
+'''
 rule train_DT:
     input:
         script = join(repo, 'scripts/origin_DT_cut.py'),
@@ -197,7 +205,7 @@ rule train_DT:
             '&> {log}',
         ]
         shell(' '.join(cmd))
-
+'''
 
 rule add_selection:
     input:
@@ -217,10 +225,11 @@ rule add_selection:
             '--treename', tree,
             '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
             '--tagger {wildcards.tagger}',
+            #'--features {wildcards.features}',
             '&> {log}',
         ]
         shell(' '.join(cmd))
-'''
+
 rule train_tagger:
     input:
         #selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN_IPSig', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
@@ -228,16 +237,17 @@ rule train_tagger:
         selected = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']],
         script = join(repo, 'scripts/pipeline.py'),
     output:
-        pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
-    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/{config}/training_log.log')
+        pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
+    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training_log.log')
     resources:
-        mem_mb = 128000, # Specify memory requirement in megabytes 
+        mem_mb = 20000, # Specify memory requirement in megabytes 
         #gpus = 1,
-        MaxRunHours = 4,
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 24, # long queue
         #request_disk = 1024000
     params:
         config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),
-        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.seed}/{wildcards.config}/')
+        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.seed}/{wildcards.config}/')
     run:
         cmd = [
             'python', input.script,
@@ -245,8 +255,10 @@ rule train_tagger:
             '--target_path {params.target_path}',
             '--tagger {wildcards.tagger}',
             '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
             '--config {params.config}',
             '--decayType {wildcards.decay}',
+            #'--clean',
             '&> {log}',
         ]
         shell(' '.join(cmd))
