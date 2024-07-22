@@ -1,0 +1,122 @@
+OSKaon:
+  features:
+    - B_nTracks
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_BVIPSig
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_absIP
+    - B_Tr_T_eoverP
+    - B_Tr_T_DeltaR
+    - B_Tr_T_DeltaQ_Kaon
+
+
+OSElectron:
+  features:    
+    - B_nTracks
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_BVIPSig
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_absIP
+    - B_Tr_T_eoverP
+    - B_Tr_T_DeltaR
+    - B_Tr_T_DeltaQ_Electron
+
+  
+OSMuon:
+  features:
+    - B_nTracks
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_BVIPSig
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_absIP
+    - B_Tr_T_eoverP
+    - B_Tr_T_DeltaR
+    - B_Tr_T_DeltaQ_Muon
+
+
+ 
+SSPion:
+  features:
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_BVIPSig
+    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_DeltaQ_Pion
+    - B_PT
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_Signal_TagPart_PT
+    - B_nPVs
+    - B_nTracks
+
+
+
+SSProton:
+  features:    
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_BVIPSig
+    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_DeltaQ_Proton
+    - B_PT
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_Signal_TagPart_PT
+    - B_nPVs
+    - B_nTracks
+
+SSKaon:
+  features:   
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_BVIPSig
+    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_DeltaQ_Kaon
+    - B_PT
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_Signal_TagPart_PT
+    - B_nPVs
+    - B_nTracks
