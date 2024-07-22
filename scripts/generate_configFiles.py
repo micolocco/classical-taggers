@@ -25,7 +25,7 @@ def generate_yaml_file(learning_rate, train_batch_size, architecture):
 
 # Define array of hyperparameters to iterate over
 learning_rates = [0.001, 0.01, 0.1]
-train_batch_sizes = [32, 128, 1024]
+train_batch_sizes = [32, 128, 1024, 2048]
 architectures = ['simple', 'complex']
 #train_val_split = 0.6
 #n_epochs = 500
