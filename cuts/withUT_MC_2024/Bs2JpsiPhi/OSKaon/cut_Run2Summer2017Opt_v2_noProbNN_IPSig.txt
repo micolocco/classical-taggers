@@ -1,0 +1,1 @@
+(B_Tr_T_P>5000) & (B_Tr_T_TRACKISLONG==1) & (B_Tr_T_CHI2DOF<=3) & (B_Tr_T_minPhiDistance>=0.0025) & (B_Tr_T_ISMUON==0) & (B_Tr_T_GHOSTPROB<0.52) & (B_Tr_T_PIDK>5) & (B_Tr_T_absIP<0.85) & (B_Tr_T_Origin_Flag !=0) & (B_Tr_T_BVIPSig>3.77)
