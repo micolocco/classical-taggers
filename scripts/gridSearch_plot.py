@@ -7,43 +7,11 @@ import matplotlib.pyplot as plt
 from itertools import product
 import argparse
 from IPython import embed
+import plottingUtils
 
 '''
 python gridSearch_plot.py --tagger <tagger> --decayType <decay> --seed <seed> 
 '''
-
-# Function to propagate and round the errors and values
-def propagate_and_round(values):
-    values = np.array(values) * 100  # Multiply all values by 100
-
-    if np.any(np.isnan(values)) or np.any(np.isinf(values)):
-        return [np.nan, np.nan]
-
-    if len(values) > 2:  # For TaggingPower_Cali and EffectiveMistag_Cali
-        combined_error = np.sqrt(np.sum(np.square(values[1:])))
-        if np.isnan(combined_error) or np.isinf(combined_error):
-            return [np.nan, np.nan]
-        
-        rounded_error = round(combined_error, -int(np.floor(np.log10(combined_error))))
-        significant_digit = int(np.floor(np.log10(rounded_error)))
-        rounded_value = round(values[0], -significant_digit)
-        
-        return [rounded_value, rounded_error]
-    else:  # For other data
-        max_error = max(values[1:])
-        if np.isnan(max_error) or np.isinf(max_error):
-            return [np.nan, np.nan]
-        
-        if max_error == 0:
-            # If the maximum error is zero, no need to round it further
-            significant_digit = 0
-        else:
-            significant_digit = int(np.floor(np.log10(max_error)))
-        
-        rounded_errors = [round(err, -significant_digit) if err != 0 else 0 for err in values[1:]]
-        rounded_value = round(values[0], -significant_digit)
-        
-        return [rounded_value] + rounded_errors
 
 # Function to format the annotations
 def format_annotation(value_with_error):
@@ -118,7 +86,7 @@ if __name__ == '__main__':
             if os.path.exists(file_before):
                 with open(file_before, 'r') as f:
                     data_before = json.load(f)
-                    tagging_power_before = propagate_and_round(data_before['TaggingPower'])
+                    tagging_power_before = plottingUtils.propagate_and_round(data_before['TaggingPower'])
                     results_before.loc[(results_before['Learning Rate'] == lr) & 
                                     (results_before['Batch Size'] == bs) & 
                                     (results_before['Architecture'] == arch), 'Tagging Power'] = tagging_power_before[0]
@@ -136,7 +104,7 @@ if __name__ == '__main__':
             if os.path.exists(file_mistag):
                 with open(file_mistag, 'r') as f:
                     data_after = json.load(f)
-                    tagging_power_after = propagate_and_round(data_after['TaggingPower_Cali'])
+                    tagging_power_after = plottingUtils.propagate_and_round(data_after['TaggingPower_Cali'])
                     results_mistag.loc[(results_mistag['Learning Rate'] == lr) & 
                                     (results_mistag['Batch Size'] == bs) & 
                                     (results_mistag['Architecture'] == arch), 'Tagging Power'] = tagging_power_after[0]
@@ -154,7 +122,7 @@ if __name__ == '__main__':
             if os.path.exists(file_logit):
                 with open(file_logit, 'r') as f:
                     data_logit = json.load(f)
-                    tagging_power_logit = propagate_and_round(data_logit['TaggingPower_Cali'])
+                    tagging_power_logit = plottingUtils.propagate_and_round(data_logit['TaggingPower_Cali'])
                     results_logit.loc[(results_logit['Learning Rate'] == lr) & 
                                     (results_logit['Batch Size'] == bs) & 
                                     (results_logit['Architecture'] == arch), 'Tagging Power'] = tagging_power_logit[0]
