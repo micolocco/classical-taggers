@@ -19,9 +19,12 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-# For testing purposes:
-# python scripts/pipeline.py --selected NTuple_test.root --tagger OSKaon --decayType Bu2JpsiK where NTuple_test.root is whatever NTuple with this name
-
+'''
+For testing purposes:
+python scripts/pipeline.py --selected NTuple_test_<tagger>.root --tagger <tagger> --decayType <decayType> where NTuple_test_tagger.root is whatever NTuple with this name
+example:
+python scripts/pipeline.py --selected NTuple_test_OSKaon.root --tagger OSKaon --decayType Bu2JpsiK 
+'''
 
 def stats_printout(df, tagger, decayType, train_df, val_df, test_df):
     '''
@@ -93,28 +96,31 @@ def filter_rows(group):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Apply a preselection for the tagging particles',
+        description='Train the tagger on the specified decay',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--selected', help='File with preselection applied', nargs='+')
     parser.add_argument('--target_path', help='Name of the output dir', type=str, default='../test')
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
-    parser.add_argument('--seed', help='Random seed', default=2) 
+    parser.add_argument('--seed', help='Random seed', default=45) 
+    parser.add_argument('--features', help='Input features for NN training', default='union') 
     parser.add_argument('--config', help='Config yaml', type=str, default='configs/config_test') 
     parser.add_argument('--decayType', help='Event decay', type=str)
+    parser.add_argument('--clean', help='Decide whatever cleaning the directories before running, w=False, a=True', action='store_true')
+
     print(f'Pipeline started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg)
     # Load YAML configuration file
     with open(f'{cfg.config}.yaml', 'r') as file:
         config = yaml.safe_load(file)
-    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file='scripts/tagger_features.yaml')
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
     # Path to the ROOT input file
     selected_files = cfg.selected
     print(f"The features used are: {features}")
     # Check and eventually make output directory where training info will be saved
-    os.makedirs(cfg.target_path, exist_ok=True)
+    pyTrain.recreate_directory(cfg.target_path, clean=cfg.clean)
     # Path to where the scaler parameters will be saved
     scalerPath = f"{cfg.target_path}/st_scaler.pkl"
     transformerPath = f"{cfg.target_path}/powerTransformer.pkl"

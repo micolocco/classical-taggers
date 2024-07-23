@@ -19,11 +19,34 @@ from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 import yaml
 
+
+def recreate_directory(target_path, clean=False):
+    '''Function to make sure that the ouptut directory exists and it's empty to 
+    avoid possible issues with previous versions. The directory presistency can be regulated 
+    through the clean parameter that by default is False
+    '''
+    import shutil
+    import os
+    if clean:
+        # Check if the directory exists
+        if os.path.exists(target_path):
+            # Remove the entire directory and its contents
+            try:
+                shutil.rmtree(target_path)
+            except Exception as e:
+                print(f'Failed to delete {target_path}. Reason: {e}')
+    # Create the directory
+    try:
+        os.makedirs(target_path, exist_ok=True)
+        print(f'Output will be saved at {target_path}')
+    except Exception as e:
+        print(f'Failed to create {target_path}. Reason: {e}')
+
 def get_features(tagger, yaml_file):
     '''Function for assigning the input features corresponding to each tagger.
     The input features will be used for the training of the NN
     yaml_file: Configuration file for getting the input features'''
-    with open(yaml_file, 'r') as file:
+    with open(f'tagger_inputFeatures/{yaml_file}.yaml', 'r') as file:
         config = yaml.safe_load(file)
         if tagger in config:
             return config[tagger]['features']
@@ -44,7 +67,7 @@ def splitByEvent (df, seed, train_val_split):
     Use random.Random(2) to reproduce same shuffling''' 
     import random
     events_list = np.unique(df.event_entry)
-    random.Random(seed).shuffle(events_list) # cfg.seed
+    random.Random(3).shuffle(events_list) # cfg.seed
     n_train_val = int(train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
     train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
@@ -60,8 +83,8 @@ def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size
     val_dataset = inputDataset(df=val_df)
     val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # Prepare data loaders
-    torch.manual_seed(seed) # to ensure reproducibility
-    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
+    #torch.manual_seed(seed) # to ensure reproducibility
+    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False)
     validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
     return train_dl, validation_dl 
 
@@ -72,7 +95,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     pos=0
     for i, col in enumerate(data.columns.to_list()):
         if col in features_list:
-            plt.subplot(4, 4 , pos + 1) # hardcoded according to the number of features
+            plt.subplot(4, 5 , pos + 1) # hardcoded according to the number of features
             if col in nice_names.keys():
                 plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
                 plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])
@@ -275,7 +298,7 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, df['yPred'], df['yTru
     plt.close()
 '''
 
-def plot_mistag(tagger, df, target_path, type, show_trueB=True, clf = None, nbins=100):
+def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbins=100):
     plt.figure()
     # plt.title("Mistag rate")
     plt.yscale("log")
