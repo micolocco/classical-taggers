@@ -84,12 +84,6 @@ def stats_printout(df, tagger, decayType, train_df, val_df, test_df):
     table.add_row("Test set", f"{B_correct_test}", f"{antiB_correct_test}",f"{(100*(B_correct_test-antiB_correct_test)/(B_correct_test+antiB_correct_test)):.2f}%", f"{B_wrong_test}", f"{antiB_wrong_test}",f"{(100*(B_wrong_test-antiB_wrong_test)/(B_wrong_test+antiB_wrong_test)):.2f}%")
     console.print(table)
 
-def filter_rows(group):
-    '''
-    Function to avoid duplication of events due to multicandidates
-    '''
-    return group[group['entry']==group['entry'].unique()[0]]
-
 # Decay and tagger type are given as inputs by the user
 # Decay must be one among Bd2JpsiKst,  Bs2DsPi,  Bu2JpsiK 
 # Taggers must be one among OSKaon, OSMuon, OSElectron, SSPion, SSProton, SSKaon
@@ -132,7 +126,7 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Reading datasets
-    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER']
+    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
     
     df = pd.DataFrame(columns=vars)
     for f in selected_files:
@@ -142,16 +136,11 @@ if __name__ == '__main__':
         _df.dropna(inplace = True)
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
-    print("Removing multicandidates")
     removal_time1 = time.time()
-    df_grouped = df.groupby(['RUNNUMBER', 'EVENTNUMBER'])
-    df = df_grouped.apply(filter_rows).drop(columns = ['RUNNUMBER', 'EVENTNUMBER']) #Drop multicandidates
-    df.reset_index(inplace=True)
+    #df = utils.remove_multicandidates(df)
+    df = utils.remove_multicandidates(df)
     removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
     print(f"Removing multicandidates required {removal_time2}s")
-    df['event_entry'] = df.groupby(['RUNNUMBER', 'EVENTNUMBER']).ngroup() # in the concatenation the entries are the same among different files, needed to look at evt and run number to identify them
-    df.drop(columns=['entry', 'level_2'], inplace=True)
-    
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
     if ("Bd" or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
@@ -274,15 +263,16 @@ if __name__ == '__main__':
 
     test_df.loc[test_df.selected == 0, "TagDec"] = 0  # classic
     test_df.loc[test_df.selected == 0, "Eta"] = 0.5  # classic
-    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first(), output_file='Not_Normalized_TagDec.pdf', target_path=cfg.target_path)
-
+    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected","Eta"] , ascending = [False,True]).groupby("event_entry").first(), output_file='Not_Normalized_TagDec.pdf', target_path=cfg.target_path)
+ 
     # Eta Normalization [0, 0.5]
     test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1
     test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1
     test_df.loc[test_df.Eta < 0, "Eta"] += 1
 
-    df_TagParticles = test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first()
-
+    df_TagParticles = test_df.sort_values(by = ["selected","Eta"] , ascending = [False,True]).groupby("event_entry").first()
+    #df_TagParticles = test_df.sort_values(by = ["selected","Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
+    
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
     pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
     # Calibrating the tagger and saving parameters
