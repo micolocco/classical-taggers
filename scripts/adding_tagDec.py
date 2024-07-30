@@ -1,0 +1,110 @@
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+import uproot
+import pandas as pd
+from inputDataset import inputDataset
+import pickle
+from IPython import embed
+import os
+import argparse
+from pprint import pprint
+import datetime
+import yaml
+import json
+from os.path import join
+# Local import
+import scripts.pyTorchTraining as pyTrain
+from scripts.NNModel import NeuralNetwork
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Add tagging decision and mistag',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
+    parser.add_argument('--output', help='Name of the output file', type=str)
+    parser.add_argument('--decayType', help='Event decay', type=str)
+    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
+    parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
+    parser.add_argument('--features', help='Input features used for NN training', default='tagger_inputFeatures/union') 
+    parser.add_argument('--prePath', help='Path to where the best model is saved up to cut type', type=str)
+    cfg = parser.parse_args()
+
+    from pprint import pprint
+    pprint(cfg)
+
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
+    loading_variables = features + ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
+    loading_variables = np.unique(loading_variables).tolist()
+    print(f"The features used are: {features}")
+
+    #Load the best model (ie with the lowest training loss) and evaluate it on the test set
+    link = 'logit'
+    json_file=f'candidatedTaggers_{link}.json'
+    #Read the best tagger candidate config from json file with the best hyperparameter combination
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+    seed = int(data[cfg.tagger]['seed'])
+    lr = float(data[cfg.tagger]['learning_rate'])
+    bs = int(data[cfg.tagger]['batch_size'])
+    arch = data[cfg.tagger]['architecture']
+    config = f'lr{lr}_bs{bs}_{arch}'
+    model_path = join(cfg.prePath, f"{seed}/{config}/")
+     # Load YAML configuration file
+    with open(f'configs/{config}.yaml', 'r') as file:
+        config = yaml.safe_load(file)
+    bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr})
+    pyTrain.load_model(model=bestModel, target_path=model_path)
+    bestModel.eval()
+
+    ## Data loading
+    with uproot.open("{}".format(cfg.selected)) as f:
+        test_df = f[cfg.treename].arrays(loading_variables, library="pd")
+
+    # Assignation of the tagging decision (d)
+    # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
+    if ("Bd" or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
+        test_df[f"{cfg.tagger}_TagDec"] = test_df[f"B_Tr_T_Charge"]
+    else:
+        test_df[f"{cfg.tagger}_TagDec"] = test_df[f"B_Tr_T_Charge"] * (-1)
+    # Assignation of the label (it will be used as NN output)
+    # The label is given by the product of the tagging decision and the flavour charge of the B.
+    # It indicates if the tagging decision is wrong or correct.
+    # -1 == wrong tag  1 == correct tag
+    # When using data:
+    #   - tagging decision: the B_TRUEID must be replaced with B_ID 
+    #   - calibration: B_ID = reconstructed ID when moving to data!
+    test_df["label"] = test_df[f"{cfg.tagger}_TagDec"] * test_df[f"B_TRUEID"]/abs(test_df[f"B_TRUEID"]) 
+    test_df.loc[test_df.label == -1, "label"] = 0 # shifting the label from -1 to 0
+
+    # Data pre-processing 
+    scalerPath = f"{model_path}/st_scaler.pkl"
+    transformerPath = f"{model_path}/powerTransformer.pkl"
+    columns_to_drop = ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
+    test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
+    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
+
+    #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
+    test_df[f'{cfg.tagger}_Eta'] = 1 - bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
+
+    # Assign taggind decision = 0 for tracks that don't pass the pre-selection
+    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
+    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
+
+    # Eta Normalization [0, 0.5]
+    test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
+    test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
+    test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1
+    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
+
+    # Save the selected tracks into NTuplesdef
+    os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
+    with uproot.recreate(f"{cfg.output}") as file:
+        file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER', 'entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
+
+    # To be done at the end! when reading all files!!
+    #df_TagParticles = test_df.sort_values(by = ["selected", f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("entry").first()
+ 
