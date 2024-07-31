@@ -97,8 +97,10 @@ if __name__ == '__main__':
     # Eta Normalization [0, 0.5]
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
-    test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1
-    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
+    test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
+    # rivedi group by per la storia su multicandidates: da fare prima?
+
+    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry','RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
     embed()
     # Save the selected tracks into NTuplesdef
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)

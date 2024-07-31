@@ -25,7 +25,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('--tagged_prePath', help='Folder where the files with tagging decision are saved')
     parser.add_argument('--tagger', help='List of taggers', nargs='+', required=True)
-    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='../test')
+    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='.')
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--decayType', help='Event decay for calibration', type=str)
 
@@ -54,8 +54,7 @@ if __name__ == '__main__':
         # Merge all DataFrames on the common columns
     df = taggers_dataframes[0]
     for single_df in taggers_dataframes[1:]:
-        df = pd.merge(df, single_df, on=['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID'], how='outer')   
-    embed() 
+        df = pd.merge(df, single_df, on=['RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID'], how='outer')   
     print(f"Number of events: {df.shape[0]}")
 
     #removal_time1 = time.time()
@@ -80,9 +79,9 @@ if __name__ == '__main__':
 
     # Now we could combine the taggers into one. If we would use "calibrated=False" here we
     # would combine the raw single tagger statistics, which is not usually what we want.
-    tagger_combination = taggers.combine_taggers("MyCombination", calibrated=True)
+    #tagger_combination = taggers.combine_taggers("MyCombination", calibrated=True)
 
     # And calibrate this tagger again
-    tagger_combination.calibrate()
-    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins=10)
+   # tagger_combination.calibrate()
+    taggers.plot_calibration_curves(savepath = f'{cfg.target_path}', omega_range="minimal", nbins=10)
 
