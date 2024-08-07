@@ -77,16 +77,14 @@ loading_variables =[
     'EVENTNUMBER',
     'RUNNUMBER']
 
-def read_data(file, treename, loading_variables, max_events=None, batch_size=100):
+def read_data(file, treename, loading_variables, max_events=None, batch_size=1000):
     df = pd.DataFrame()
-    with uproot.open("{}".format(cfg.raw)) as f:
-        tree = f[cfg.treename]
+    with uproot.open(file) as f:
+        tree = f[treename]
         num_events = tree.num_entries
-        max_events = None
         if max_events and max_events < num_events:
             num_events = max_events
         print(f'Reading {num_events} entries...')
-        batch_size = 100
         num_batches = (num_events + batch_size) // batch_size
         for i in tqdm(range(num_batches)):
             start = i * batch_size

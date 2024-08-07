@@ -1,14 +1,9 @@
-import sys
-import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import time
 import pandas as pd
 from inputDataset import inputDataset
-import pickle
 from matplotlib import pyplot as plt
-from IPython import embed
-import os
 import argparse
 from pprint import pprint
 import datetime
@@ -18,6 +13,7 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts.adding_features import read_data
 from scripts import ranges, nice_names, matplotlib_lhcb_style
+from utils import remove_multicandidates
 matplotlib_lhcb_style(plt)
 '''
 For testing purposes:
@@ -136,8 +132,7 @@ if __name__ == '__main__':
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
     removal_time1 = time.time()
-    #df = utils.remove_multicandidates(df)
-    df = utils.remove_multicandidates(df)
+    df = remove_multicandidates(df)
     removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
     print(f"Removing multicandidates required {removal_time2}s")
     # Assignation of the tagging decision (d)

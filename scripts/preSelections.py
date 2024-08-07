@@ -1,4 +1,5 @@
 import numpy as np
+import uproot
 import re
 from scripts.adding_features import loading_variables, read_data
 import pyTorchTraining as pyTrain
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     pprint(cfg)
 
     selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID']
-    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file='scripts/tagger_features.yaml')
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file='union') # make this configurable via command line
     loading_variables = features + selection_variables
     loading_variables = np.unique(loading_variables).tolist()
     '''

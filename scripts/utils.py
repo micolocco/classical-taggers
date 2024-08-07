@@ -3,9 +3,7 @@ import numpy as np
 from uncertainties import ufloat
 '''
 def filter_rows(group):
-    '''
-    Function to avoid duplication of events due to multicandidates
-    '''
+    # Function to avoid duplication of events due to multicandidates
     return group[group['entry']==group['entry'].unique()[0]]
 
 def remove_multicandidates(df):
@@ -31,11 +29,13 @@ def remove_multicandidates(test_df):
     The entry alone doesn't unqiuely identify different events as it started again from 0 when reading a new ROOT file.
     """
     print("Removing multicandidates")
-    entry_list = test_df.drop_duplicates(subset=['RUNNUMBER', 'EVENTNUMBER'], keep='first')['entry'].tolist()
-    filtered_df = test_df[test_df['entry'].isin(entry_list)]
-    filtered_df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
-    filtered_df.rename(columns={'entry': 'event_entry'}, inplace=True)
-    test_df = filtered_df
+    # entry_list = test_df.drop_duplicates(subset=['RUNNUMBER', 'EVENTNUMBER'], keep='first').index.tolist()
+    # filtered_df = test_df[test_df.index.isin(entry_list)]
+    # filtered_df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
+    # filtered_df.rename(columns={'entry': 'event_entry'}, inplace=True)
+    test_df = test_df.drop_duplicates(subset=['RUNNUMBER', 'EVENTNUMBER'], keep='first')
+    test_df.reset_index(inplace=True)
+    test_df['event_entry'] = test_df.index
     return test_df
 
 def format_and_propagate(values):
