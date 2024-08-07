@@ -3,6 +3,7 @@ import uproot
 import numpy as np
 import os
 import argparse
+from tqdm import tqdm
 
 loading_variables =[
     'B_BPVX',
@@ -76,6 +77,25 @@ loading_variables =[
     'EVENTNUMBER',
     'RUNNUMBER']
 
+def read_data(file, treename, loading_variables, max_events=None, batch_size=100):
+    df = pd.DataFrame()
+    with uproot.open("{}".format(cfg.raw)) as f:
+        tree = f[cfg.treename]
+        num_events = tree.num_entries
+        max_events = None
+        if max_events and max_events < num_events:
+            num_events = max_events
+        print(f'Reading {num_events} entries...')
+        batch_size = 100
+        num_batches = (num_events + batch_size) // batch_size
+        for i in tqdm(range(num_batches)):
+            start = i * batch_size
+            stop = min((i + 1) * batch_size, num_events)
+            batch_data = tree.arrays(
+                expressions=loading_variables, library="pd", entry_start=start, entry_stop=stop)
+            df = pd.concat([df, batch_data])
+    return df
+
 df_save = pd.DataFrame(columns=loading_variables)
 
 def DeltaQ(df,Mass):
@@ -122,8 +142,7 @@ if __name__ == '__main__':
     pprint(cfg)
 
     print('Started reading')
-    with uproot.open("{}".format(cfg.raw)) as f:
-        df = f[cfg.treename].arrays(loading_variables, library="pd")
+    df = read_data(cfg.raw, cfg.treename, loading_variables)
 
     # drop the B mesons or other particles that are not of interest
     abs_id = B_abs_id_dic[cfg.evtType]

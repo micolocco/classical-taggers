@@ -1,7 +1,6 @@
 import numpy as np
-import uproot
 import re
-from scripts.adding_features import loading_variables
+from scripts.adding_features import loading_variables, read_data
 import pyTorchTraining as pyTrain
 import argparse
 import os
@@ -25,8 +24,7 @@ def extract_selection_var(cut_file):
 
 def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables):
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
-    with uproot.open("{}".format(notSelected_rootPath)) as f:
-        df = f[treename].arrays(loading_variables, library="pd")
+    df = read_data(notSelected_rootPath, treename, loading_variables)
     cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
     print(f"The applied cut is: {cuts}")
     df.eval(f"selected = {cuts}", inplace = True)

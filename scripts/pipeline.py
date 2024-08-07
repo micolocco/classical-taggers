@@ -3,7 +3,6 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import time
-import uproot
 import pandas as pd
 from inputDataset import inputDataset
 import pickle
@@ -17,6 +16,7 @@ import yaml
 # Local import
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
+from scripts.adding_features import read_data
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 '''
@@ -131,8 +131,7 @@ if __name__ == '__main__':
     df = pd.DataFrame(columns=vars)
     for f in selected_files:
         print(f"Reading input file: {f}")
-        with uproot.open("{}".format(f)) as _f:
-            _df = _f[cfg.treename].arrays(vars, library="pd")
+        _df = read_data(f, cfg.treename, vars)
         _df.dropna(inplace = True)
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
