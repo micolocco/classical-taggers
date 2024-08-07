@@ -177,15 +177,16 @@ rule add_features:
         root =join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'),
     run:
         tree = find_tree_name(wildcards.decay)
-        cmd = [
+        cmd = ' '.join([
             'python', input.script,
             '--raw {input.raw}',
             '--output {output}',
             '--evtType {wildcards.decay}',
             '--treename', tree,
             '&> {log}',
-        ]
-        shell(' '.join(cmd))
+        ])
+        print(cmd)
+        shell(cmd)
 '''
 rule train_DT:
     input:
@@ -199,12 +200,13 @@ rule train_DT:
     resources:
         mem_mb = 40000, # Specify memory requirement in megabytes 
     run:
-        cmd = [
+        cmd = ' '.join([
             'python', input.script,
             '--target_path {params.target_path}',
             '&> {log}',
-        ]
-        shell(' '.join(cmd))
+        ])
+        print(cmd)
+        shell(cmd)
 '''
 
 rule add_selection:
@@ -218,7 +220,7 @@ rule add_selection:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
     run:
         tree = find_tree_name(wildcards.decay)
-        cmd = [
+        cmd = ' '.join([
             'python', input.script,
             '--added_features {input.added_features}',
             '--output {output}',
@@ -227,8 +229,9 @@ rule add_selection:
             '--tagger {wildcards.tagger}',
             #'--features {wildcards.features}',
             '&> {log}',
-        ]
-        shell(' '.join(cmd))
+        ])
+        print(cmd)
+        shell(cmd)
 
 rule train_tagger:
     input:
@@ -249,7 +252,7 @@ rule train_tagger:
         config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),
         target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.seed}/{wildcards.config}/')
     run:
-        cmd = [
+        cmd = ' '.join([
             'python', input.script,
             '--selected {input.selected}',
             '--target_path {params.target_path}',
@@ -260,8 +263,9 @@ rule train_tagger:
             '--decayType {wildcards.decay}',
             #'--clean',
             '&> {log}',
-        ]
-        shell(' '.join(cmd))
+        ])
+        print(cmd)
+        shell(cmd)
 
 #  rule calibrate_tagger:
 #     input:
@@ -281,7 +285,7 @@ rule train_tagger:
 #         config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),
 #         target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.seed}/{wildcards.config}/')
 #     run:
-#         cmd = [
+#         cmd = ' '.join([
 #             'python', input.script,
 #             '--target_path {params.target_path}',
 #             '--tagger {wildcards.tagger}',
@@ -289,6 +293,6 @@ rule train_tagger:
 #             '--config {params.config}',
 #             '--decayType {wildcards.decay}',
 #             '&> {log}',
-#         ]
-#         shell(' '.join(cmd))
- 
+#         ])
+#         print(cmd)
+#         shell(cmd)
