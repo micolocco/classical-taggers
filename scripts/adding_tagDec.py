@@ -13,9 +13,27 @@ import datetime
 import yaml
 import json
 from os.path import join
+from matplotlib import pyplot as plt
+from scripts import ranges, nice_names, matplotlib_lhcb_style
 # Local import
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
+matplotlib_lhcb_style(plt)
+
+def plot_tagDec(tagger, df_TagParticles, target_path):
+    plt.figure()
+    plt.yscale("log")
+    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == -1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),0.5), color = "green" , alpha=0.5, label = f"Tag. dec: b")
+    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == 1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),0.5), color = "orange" , alpha=0.5, label = f"Tag. dec: anti-b")
+
+    plt.grid()
+    plt.xlabel(r"$\eta$",fontsize=24)
+    plt.ylabel("Normalized number of tracks", fontsize=24)
+    plt.legend(loc = "best", title = f'{len(df_TagParticles[(df_TagParticles[f"{tagger}_TagDec"] == -1)|(df_TagParticles[f"{tagger}_TagDec"] == 1)])} total tracks')
+    plt.title(f"{tagger} mistag", fontsize=24)
+    print(f'Tagging decision plot saved at {target_path}')
+    plt.savefig(f"{target_path}/{tagger}_TagDec.pdf")
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -23,13 +41,15 @@ if __name__ == '__main__':
         description='Add tagging decision and mistag',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
+    #parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
     parser.add_argument('--output', help='Name of the output file', type=str)
     parser.add_argument('--decayType', help='Event decay', type=str)
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features used for NN training', default='tagger_inputFeatures/union') 
-    parser.add_argument('--prePath', help='Path to where the best model is saved up to cut type', type=str)
+    parser.add_argument('--prePath', help='Path to where the models are saved up to cut type', type=str)
+    parser.add_argument('--target_path', help='Path to where the models are saved up to cut type', type=str)
+    
     cfg = parser.parse_args()
 
     from pprint import pprint
@@ -51,17 +71,28 @@ if __name__ == '__main__':
     bs = int(data[cfg.tagger]['batch_size'])
     arch = data[cfg.tagger]['architecture']
     config = f'lr{lr}_bs{bs}_{arch}'
-    model_path = join(cfg.prePath, f"{seed}/{config}/")
-     # Load YAML configuration file
+    model_path = join(cfg.prePath, f"{seed}/{config}")
+    # Load YAML configuration file
     with open(f'configs/{config}.yaml', 'r') as file:
         config = yaml.safe_load(file)
     bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr})
     pyTrain.load_model(model=bestModel, target_path=model_path)
     bestModel.eval()
 
+    ## To be removed
+    testSetPath = f"{model_path}/testSet.csv"
+    test_df = pd.read_csv(f"{testSetPath}")
+    test_df.rename(columns={'TagDec': f"{cfg.tagger}_TagDec"}, inplace=True)
+
+
+    '''
     ## Data loading
+    cfg.selected = '/home/molocco/classical-taggers/OSKaon.root'
     with uproot.open("{}".format(cfg.selected)) as f:
         test_df = f[cfg.treename].arrays(loading_variables, library="pd")
+
+    RIPRISTINA OVUNUQUE DOVE C'E' RUNNUMBER E EVENTNUMBER
+    
 
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
@@ -78,15 +109,18 @@ if __name__ == '__main__':
     #   - calibration: B_ID = reconstructed ID when moving to data!
     test_df["label"] = test_df[f"{cfg.tagger}_TagDec"] * test_df[f"B_TRUEID"]/abs(test_df[f"B_TRUEID"]) 
     test_df.loc[test_df.label == -1, "label"] = 0 # shifting the label from -1 to 0
-
+    '''
     # Data pre-processing 
     scalerPath = f"{model_path}/st_scaler.pkl"
     transformerPath = f"{model_path}/powerTransformer.pkl"
-    columns_to_drop = ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
+    #columns_to_drop = ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
+    columns_to_drop = ['event_entry','B_TRUEID', 'selected', 'event_entry', f'{cfg.tagger}_TagDec']
+
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
+    print('Adding tagging decision')
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
     test_df[f'{cfg.tagger}_Eta'] = 1 - bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
 
@@ -100,13 +134,18 @@ if __name__ == '__main__':
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
     # rivedi group by per la storia su multicandidates: da fare prima?
 
-    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry','RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
-    embed()
+    #df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry','RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
+    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['event_entry']).first().reset_index()
+    
+    plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
+
     # Save the selected tracks into NTuplesdef
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(f"{cfg.output}") as file:
-        file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER', 'entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
-
+        #file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER', 'entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
+        file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
+        
+    print(f'File created at {cfg.output}')
     # To be done at the end! when reading all files!!
     #df_TagParticles = test_df.sort_values(by = ["selected", f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("entry").first()
  
