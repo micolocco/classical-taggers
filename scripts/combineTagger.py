@@ -37,10 +37,12 @@ if __name__ == '__main__':
     cut ='cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin'
     # Loop over all taggers
     for tagger in cfg.tagger:
-        vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', 'B_TRUEID']
-        input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cut, '*.mc.root')
-        input_files = glob.glob(input_path)
-        
+        #vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', 'B_TRUEID']
+        vars = ['event_entry', f'{tagger}_TagDec', f'{tagger}_Eta', 'B_TRUEID']
+        #input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cut, '*.root')
+        #input_files = glob.glob(input_path)
+        input_files = [f'{cfg.tagged_prePath}/test.root'] 
+
         # Loop over all files
         singleTagger_dataframes = []
         for f in input_files:
@@ -52,7 +54,9 @@ if __name__ == '__main__':
         print(f'{pd.concat(singleTagger_dataframes).shape[0]}')
         taggers_dataframes.append(pd.concat(singleTagger_dataframes, ignore_index=True))
         # Merge all DataFrames on the common columns
+    
     df = taggers_dataframes[0]
+    '''
     for single_df in taggers_dataframes[1:]:
         df = pd.merge(df, single_df, on=['RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID'], how='outer')   
     print(f"Number of events: {df.shape[0]}")
@@ -62,7 +66,7 @@ if __name__ == '__main__':
     #removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
     #print(f"Removing multicandidates required {removal_time2}s")
     print(f"Number of events: {df.shape[0]}")
-    print(df)
+    '''
     taggers = ft.TaggerCollection()
 
     for tagger in cfg.tagger:
