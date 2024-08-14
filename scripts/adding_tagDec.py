@@ -80,12 +80,10 @@ if __name__ == '__main__':
     bestModel.eval()
 
     ## To be removed
-    testSetPath = f"{model_path}/testSet.csv"
-    test_df = pd.read_csv(f"{testSetPath}")
-    test_df.rename(columns={'TagDec': f"{cfg.tagger}_TagDec"}, inplace=True)
-
-
-    '''
+    #testSetPath = f"{model_path}/testSet.csv"
+    #test_df = pd.read_csv(f"{testSetPath}")
+    #test_df.rename(columns={'TagDec': f"{cfg.tagger}_TagDec"}, inplace=True)
+    
     ## Data loading
     cfg.selected = '/home/molocco/classical-taggers/OSKaon.root'
     with uproot.open("{}".format(cfg.selected)) as f:
@@ -107,14 +105,15 @@ if __name__ == '__main__':
     # When using data:
     #   - tagging decision: the B_TRUEID must be replaced with B_ID 
     #   - calibration: B_ID = reconstructed ID when moving to data!
+
+    # Now the label is needed for the scaling, but in the future must be removed before scaling in the training so that it'ds not necessary here 
     test_df["label"] = test_df[f"{cfg.tagger}_TagDec"] * test_df[f"B_TRUEID"]/abs(test_df[f"B_TRUEID"]) 
     test_df.loc[test_df.label == -1, "label"] = 0 # shifting the label from -1 to 0
-    '''
+    
     # Data pre-processing 
     scalerPath = f"{model_path}/st_scaler.pkl"
     transformerPath = f"{model_path}/powerTransformer.pkl"
-    #columns_to_drop = ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
-    columns_to_drop = ['event_entry','B_TRUEID', 'selected', 'event_entry', f'{cfg.tagger}_TagDec']
+    columns_to_drop = ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
@@ -134,16 +133,15 @@ if __name__ == '__main__':
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
     # rivedi group by per la storia su multicandidates: da fare prima?
 
-    #df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry','RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
-    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['event_entry']).first().reset_index()
+    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry','RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
     
     plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
 
     # Save the selected tracks into NTuplesdef
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(f"{cfg.output}") as file:
-        #file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER', 'entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
-        file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
+        file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER', 'entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
+        #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
         
     print(f'File created at {cfg.output}')
     # To be done at the end! when reading all files!!
