@@ -114,13 +114,7 @@ def read_generated_paths(data, file):
         paths = [join(data,line.strip()) for line in f]
     return paths
 
-def find_tree_name(decay):
-    if decay == 'Bs2JpsiPhi':
-        return 'BsToJpsiPhi_Detached/DecayTree'
-    if decay == 'Bs2DsPi':
-        return 'Hlt2B2OC_BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
-    else:
-        return 'Tuple/DecayTree'
+from scripts.utils import find_tree_name
 
 # Read the generated paths
 generated_paths_SSPion = read_generated_paths(data,join(repo,'paths_for_snakemake/generated_paths_SSPion.txt'))
@@ -156,17 +150,34 @@ rule all:
         #generated_paths_OSElectron,
         #generated_paths_OSMuon,
         join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/14/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/10/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/12/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/45/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/14/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/10/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/12/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/45/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
 
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/lr0.001_bs1024_simple/mistag_Training.pdf')
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/noTransformer_run2Feat/mistag_Training.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/3/lr0.01_bs1024_complex/ROC_TRAIN_VAL.pdf')
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/config_test/mistag_Training.pdf'),     
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin/ROC_TRAIN_VAL.pdf'),
+
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin_2/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin_2/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin_2/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin_2/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin_2/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin_2/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/config_quentin_2/ROC_TRAIN_VAL.pdf'),
+
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.01_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.01_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.01_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.01_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.01_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.01_bs32_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/union/2/lr0.001_bs32_simple/ROC_TRAIN_VAL.pdf'),
 
 rule add_features:
     input:
@@ -175,6 +186,9 @@ rule add_features:
     log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     output: 
         root =join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'),
+    resources:
+        mem_mb = 20000,
+        MaxRunHours = 4,
     run:
         tree = find_tree_name(wildcards.decay)
         cmd = ' '.join([
@@ -183,7 +197,7 @@ rule add_features:
             '--output {output}',
             '--evtType {wildcards.decay}',
             '--treename', tree,
-            '&> {log}',
+            '| tee {log}',
         ])
         print(cmd)
         shell(cmd)
@@ -203,7 +217,7 @@ rule train_DT:
         cmd = ' '.join([
             'python', input.script,
             '--target_path {params.target_path}',
-            '&> {log}',
+            '| tee {log}',
         ])
         print(cmd)
         shell(cmd)
@@ -218,6 +232,9 @@ rule add_selection:
     log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/.{id,.*}.log')
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
+    resources:
+        mem_mb = 20000,
+        MaxRunHours = 4,
     run:
         tree = find_tree_name(wildcards.decay)
         cmd = ' '.join([
@@ -228,7 +245,7 @@ rule add_selection:
             '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
             '--tagger {wildcards.tagger}',
             #'--features {wildcards.features}',
-            '&> {log}',
+            '| tee {log}',
         ])
         print(cmd)
         shell(cmd)
@@ -262,7 +279,7 @@ rule train_tagger:
             '--config {params.config}',
             '--decayType {wildcards.decay}',
             #'--clean',
-            '&> {log}',
+            '| tee {log}',
         ])
         print(cmd)
         shell(cmd)
@@ -292,7 +309,7 @@ rule train_tagger:
 #             #'--seed {wildcards.seed}',
 #             '--config {params.config}',
 #             '--decayType {wildcards.decay}',
-#             '&> {log}',
+#             '| tee {log}',
 #         ])
 #         print(cmd)
 #         shell(cmd)
