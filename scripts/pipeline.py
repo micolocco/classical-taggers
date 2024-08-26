@@ -127,12 +127,14 @@ if __name__ == '__main__':
     df = pd.DataFrame(columns=vars)
     for f in selected_files:
         print(f"Reading input file: {f}")
-        _df = read_data(f, cfg.treename, vars)
+        _df = read_data(f, cfg.treename, vars, batch_size=500000)
         _df.dropna(inplace = True)
+        print(f"Entries read from file: {len(_df)}")
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
+        # break # for debugging only
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
     removal_time1 = time.time()
-    df = remove_multicandidates(df)
+    df = remove_multicandidates(df) # Why!?
     removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
     print(f"Removing multicandidates required {removal_time2}s")
     # Assignation of the tagging decision (d)

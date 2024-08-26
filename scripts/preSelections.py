@@ -25,11 +25,12 @@ def extract_selection_var(cut_file):
 
 def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables):
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
-    df = read_data(notSelected_rootPath, treename, loading_variables)
+    df = read_data(notSelected_rootPath, treename, loading_variables, batch_size=500000)
     cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
     print(f"The applied cut is: {cuts}")
     df.eval(f"selected = {cuts}", inplace = True)
     df.selected = df.selected.astype(int, copy = False) 
+    print(f"Tracks before (after) selection: {len(df)} ({len(df.query('selected==1'))})")
     return df
 
 if __name__ == '__main__':

@@ -33,9 +33,9 @@ def remove_multicandidates(test_df):
     # filtered_df = test_df[test_df.index.isin(entry_list)]
     # filtered_df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
     # filtered_df.rename(columns={'entry': 'event_entry'}, inplace=True)
-    test_df = test_df.drop_duplicates(subset=['RUNNUMBER', 'EVENTNUMBER'], keep='first')
+    # test_df = test_df.drop_duplicates(subset=['RUNNUMBER', 'EVENTNUMBER'], keep='first')
     test_df.reset_index(inplace=True)
-    test_df['event_entry'] = test_df.index
+    test_df['event_entry'] = test_df["RUNNUMBER"].astype(str) + "/" + test_df["EVENTNUMBER"].astype(str)
     return test_df
 
 def format_and_propagate(values):
@@ -83,3 +83,12 @@ class UFloatEncoder(json.JSONEncoder):
                 "std_dev": obj.std_dev
             }
         return super(UFloatEncoder, self).default(obj)
+    
+
+def find_tree_name(decay):
+    if decay == 'Bs2JpsiPhi':
+        return 'BsToJpsiPhi_Detached/DecayTree'
+    if decay == 'Bs2DsPi':
+        return 'Hlt2B2OC_BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
+    else:
+        return 'Tuple/DecayTree'
