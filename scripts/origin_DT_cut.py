@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score, roc_curve ,auc
 import time
 import uproot
 import os
-import configParameters as config
+# import configParameters as config
 import glob
 import argparse
 # Local import
@@ -19,6 +19,7 @@ matplotlib_lhcb_style(plt)
 plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
 plt.rcParams.update({'axes.unicode_minus' : False})
 import DT_utils
+from utils import find_tree_name
 
 
 '''
@@ -34,6 +35,20 @@ Origin Flag IDs:
 -1 == No associated MC particle (probably ghost)
 
 '''
+def add_PID_diffs(df):
+    ids = ["e", "mu", "K", "P"]
+    l = []
+    for i, t in enumerate(ids[:-1]):
+        for j in ids[i+1:]:
+            df[f"B_Tr_T_PID_{t}-{j}"] = df[f"B_Tr_T_PID{t}"] - df[f"B_Tr_T_PID{j}"]
+            df[f"B_Tr_T_PID_{t}+{j}"] = df[f"B_Tr_T_PID{t}"] + df[f"B_Tr_T_PID{j}"]
+            # df[f"B_Tr_T_PID_{t}*{j}"] = df[f"B_Tr_T_PID{t}"] * df[f"B_Tr_T_PID{j}"]
+            # df[f"B_Tr_T_PID_{t}/{j}"] = df[f"B_Tr_T_PID{t}"] / df[f"B_Tr_T_PID{j}"]
+            l += [f"B_Tr_T_PID_{t}-{j}", f"B_Tr_T_PID_{t}+{j}",]# f"B_Tr_T_PID_{t}*{j}", f"B_Tr_T_PID_{t}/{j}"]
+    # print(l)
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.fillna(0, inplace=True)
+    return df, l
 
 def plot_features_byOrigin(data, features, particle_type, nbins=100):
     # Plot input features 
@@ -95,6 +110,39 @@ def plot_features_byParticle(data, features, nbins=100):
         plt.tight_layout()
     plt.savefig(f"{cfg.target_path}/newPres_DT_features_byParticle.pdf")
 
+# from https://stackoverflow.com/questions/51397109/prune-unnecessary-leaves-in-sklearn-decisiontreeclassifier
+from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
+
+def is_leaf(inner_tree, index):
+    # Check whether node is leaf node
+    return (inner_tree.children_left[index] == TREE_LEAF and 
+            inner_tree.children_right[index] == TREE_LEAF)
+
+def prune_index(inner_tree, decisions, index=0):
+    # Start pruning from the bottom - if we start from the top, we might miss
+    # nodes that become leaves during pruning.
+    # Do not use this directly - use prune_duplicate_leaves instead.
+    if not is_leaf(inner_tree, inner_tree.children_left[index]):
+        prune_index(inner_tree, decisions, inner_tree.children_left[index])
+    if not is_leaf(inner_tree, inner_tree.children_right[index]):
+        prune_index(inner_tree, decisions, inner_tree.children_right[index])
+
+    # Prune children if both children are leaves now and make the same decision:     
+    if (is_leaf(inner_tree, inner_tree.children_left[index]) and
+        is_leaf(inner_tree, inner_tree.children_right[index]) and
+        (decisions[index] == decisions[inner_tree.children_left[index]]) and 
+        (decisions[index] == decisions[inner_tree.children_right[index]])):
+        # turn node into a leaf by "unlinking" its children
+        inner_tree.children_left[index] = TREE_LEAF
+        inner_tree.children_right[index] = TREE_LEAF
+        inner_tree.feature[index] = TREE_UNDEFINED
+        ##print("Pruned {}".format(index))
+
+def prune_duplicate_leaves(mdl):
+    # Remove leaves if both 
+    decisions = mdl.tree_.value.argmax(axis=2).flatten().tolist() # Decision for each node
+    prune_index(mdl.tree_, decisions)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
@@ -102,7 +150,7 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--target_path', help='Name of the output dir', type=str, default='/ceph/users/molocco/classical-taggers/Data/withUT_MC_2024/DT_outputs')
-    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
+    # parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
 
     cfg = parser.parse_args()
 
@@ -117,8 +165,8 @@ if __name__ == '__main__':
     # set1 --> only uses PIDs and IP significance of the B primary vertex
     # set2 --> collects the pre-selections features used in run2 (except SSKaon). See https://gitlab.cern.ch/lhcb/Phys/-/tree/run2-patches/Phys/FlavourTagging/python/FlavourTagging
     features_set1 = ['B_Tr_T_PIDK', 'B_Tr_T_PIDe', 'B_Tr_T_PIDmu', 'B_Tr_T_PIDP', 'B_Tr_T_BVIPSig'] 
-    features_set2 = ['B_Tr_T_P' , 'B_Tr_T_TRACKISLONG', 'B_Tr_T_CHI2DOF', 'B_Tr_T_minPhiDistance', 'B_Tr_T_ISMUON', 'B_Tr_T_GHOSTPROB', 'B_Tr_T_absIP', \
-                    'B_Tr_T_eoverP', 'B_Tr_T_BPVIPCHI2', 'B_Tr_T_PT', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Mu', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_EtaDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_DeltaR', 'B_Tr_T_Charge'] 
+    features_set2 = ['B_Tr_T_P' , 'B_Tr_T_TRACKISLONG', 'B_Tr_T_minPhiDistance', 'B_Tr_T_ISMUON', 'B_Tr_T_absIP',
+                    'B_Tr_T_eoverP', 'B_Tr_T_BPVIPCHI2', 'B_Tr_T_PT', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_EtaDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_DeltaR', 'B_Tr_T_Charge'] # , 'B_Tr_T_CHI2DOF', 'B_Tr_T_GHOSTPROB']
     # set3 --> on the top of set1 and set2 adds other variables from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/DevelopmentTaggerConf.py
     features_set3 = ['B_Tr_T_cos_PhiDistance', 'P_proj', 'B_Tr_T_diff_z', 'B_Tr_T_PX', 'B_Tr_T_PY', 'B_Tr_T_PZ', 'B_Tr_T_ENERGY', 'B_Tr_T_Eta', 'B_Tr_T_Phi', 'B_Tr_T_BPVIP', 'B_PT', 'B_nTracks', 'B_Tr_T_MINIP', 'B_Tr_T_MINIPChi2', 'B_nPVs', 'B_Tr_T_atanPT_PZ'] 
     # Missing PROBNN for all the particles (not usable yet)
@@ -134,25 +182,37 @@ if __name__ == '__main__':
     # PVndof not clear
     # TRGHP alias for TRACKGHOSTPROB
     features = features_set1+features_set2+features_set3
-    loading_variables = features +["B_Tr_T_absID", "B_Tr_T_Origin_Flag"]
+    loading_variables = features +["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID"]
     # Path to input root files
-    file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
-    input_paths = glob.glob(file_pattern)
+    input_paths = {}
+    # file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
+    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/*/*.root'
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2DsPi/*1_1.mc.root'#.root'
+    input_paths.update({"Bs2DsPi":glob.glob(file_pattern)})
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/*1_1.mc.root'#.root'
+    input_paths.update({"Bu2JpsiK":glob.glob(file_pattern)})
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/*1_1.mc.root'#.root'
+    input_paths.update({"Bd2JpsiKst":glob.glob(file_pattern)})
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2JpsiPhi/*1_1.mc.root'#.root'
+    input_paths.update({"Bs2JpsiPhi":glob.glob(file_pattern)})
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2DmPi/*1_1.mc.root'#.root'
+    input_paths.update({"Bd2DmPi":glob.glob(file_pattern)})
     #input_paths=['/ceph/users/molocco//classical-taggers/Data/withUT_MC_2024/2_added_features/Bu2JpsiK/00214053_00000002_1.mc.root',]
 
     print(f"Loading data: Start \n")
     df = pd.DataFrame(columns=loading_variables)
-    for f in input_paths:
-        print(f"Reading input file: {f}")
-        with uproot.open("{}".format(f)) as _f:
-            _df = _f[cfg.treename].arrays(loading_variables, library="pd")
-        df = pd.concat([df, _df], ignore_index = True)
+    for mode, files in input_paths.items():
+        for f in files:
+            print(f"Reading input file: {f}")
+            with uproot.open("{}".format(f)) as _f:
+                _df = _f[find_tree_name(mode)].arrays(loading_variables, library="pd")
+                # _df = _df.query("B_BKGCAT==0")
+            df = pd.concat([df, _df], ignore_index = True)
 
     print(f"Loading data finished in {round(-start+ time.time() , 2)}s")
-
-    # with uproot.recreate(f'{outputPath}') as f:
-    #     f['DecayTree'] = df
-    # print(f'NTuple for Decision Tree saved at {outputPath}')
+    
+    df, new_features = add_PID_diffs(df)
+    features += new_features
 
     df.B_Tr_T_Origin_Flag.astype(int)
 
@@ -160,19 +220,26 @@ if __name__ == '__main__':
     conditions = [
     (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2), # OSKaon
     (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2), # OSMuon
-    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2), # OSElectron
-    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1), # SSPion
-    ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1)) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1)), # SSProton and SSKaon
+    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2),# & (df.index%2==0), # OSElectron
+    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID==511), # SSPion
+    ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID==511)) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID==531)), # SSProton and SSKaon
     #(df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1), # SSProton
     #(df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), # SSKaon
     (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2), # OSProton
+    # ((df.B_Tr_T_Origin_Flag==3) | (df.B_Tr_T_Origin_Flag==4)) & (df.index%16==0), # OSFrag
+    # (df.B_Tr_T_Origin_Flag==100)  & (df.index%400==0), # wrong PV reduced by a factor 400
+    # (df.B_Tr_T_Origin_Flag==5)  & (df.index%150==0), # Prompt reduced by a factor 150
     ]
     particle_type = {"OSKaon":1,
                     "OSMuon":2,
                     "OSElectron":3,
                     "SSPion":4,
-                    "SSProton+SSKaon": 5,}
-                    #"OSProton": 6}
+                    "SSProton+SSKaon": 5,
+                    "OSProton": 6,
+                    # "OSFragmentation": 7,
+                    # "Other PV":8,
+                    # "Prompt":9,
+                    }
                     #"SSProton":5,
                     #"SSKaon":6,
                    # "OSProton":7}
@@ -189,6 +256,7 @@ if __name__ == '__main__':
     #plot_features_byParticle(data=df, features=features)
     
     # Shuffle 
+    print(len(df))
     df = df.sample(frac=1)
     df.dropna(inplace=True)
     x = df.loc[(df.ID_type != 0 )][features + ["ID_type", "particle"]]
@@ -199,12 +267,16 @@ if __name__ == '__main__':
     #x = pd.concat([x, df.loc[df.ID_type == 0][features + ["ID_type"]].head(len(x))])
     y = x.ID_type
     x.drop(columns=["ID_type", "particle"] , inplace = True)
+    print(len(x), len(y))
     x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.3, random_state=42)
     start = time.time()
     print("Start fitting")
-    clf = tree.DecisionTreeClassifier(max_depth = 6,class_weight='balanced', min_impurity_decrease=0.009) #class_weight='balanced',  min_impurity_decrease=0.009
+    # Modify loss/score in https://scikit-learn.org/stable/modules/model_evaluation.html#implementing-your-own-scoring-object< similar to https://github.com/keras-team/keras/issues/2115 to weight misID
+    # clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 4, min_impurity_decrease=0.0005, min_weight_fraction_leaf=0.05, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
+    clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 10, min_impurity_decrease=0.03, min_weight_fraction_leaf=0.01) #class_weight='balanced',  min_impurity_decrease=0.009
 
     clf.fit(x_train, y_train)
+    prune_duplicate_leaves(clf)
 
     print(f"Fit in: {round(-start+ time.time() , 2)}s\n")
     print("\n Metrics for particle type composition: true VS predicted\n")
@@ -254,9 +326,9 @@ if __name__ == '__main__':
     '''
 
     # Visualize the decision tree
-    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True,special_characters=True) 
+    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True) 
     graph = graphviz.Source(dot_data) 
-    graph.render(f"{cfg.target_path}/tree_schema_maxDepth_Balanced_SSKSSP_noOSP")
+    graph.render(f"{cfg.target_path}/tree_schema_maxDepth_unBalanced_SSKSSP_Quentin")
     
     #print(f"Accuracy:{clf.score(x_test,y_test)}")
 
