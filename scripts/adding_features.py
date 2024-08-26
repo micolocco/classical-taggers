@@ -23,6 +23,7 @@ loading_variables =[
     'B_PY',
     'B_PZ',
     'B_TRUEID',
+    'B_BKGCAT',
     'B_Tr_T_BPVIP',
     'B_Tr_T_BPVIPCHI2',
     #'B_Tr_T_BPVX',
@@ -77,8 +78,7 @@ loading_variables =[
     'EVENTNUMBER',
     'RUNNUMBER']
 
-def read_data(file, treename, loading_variables, max_events=None, batch_size=1000):
-    df = pd.DataFrame()
+def read_data(file, treename, loading_variables, max_events=None, batch_size=10000):
     with uproot.open(file) as f:
         tree = f[treename]
         num_events = tree.num_entries
@@ -86,13 +86,12 @@ def read_data(file, treename, loading_variables, max_events=None, batch_size=100
             num_events = max_events
         print(f'Reading {num_events} entries...')
         num_batches = (num_events + batch_size) // batch_size
+        df_list = []
         for i in tqdm(range(num_batches)):
             start = i * batch_size
             stop = min((i + 1) * batch_size, num_events)
-            batch_data = tree.arrays(
-                expressions=loading_variables, library="pd", entry_start=start, entry_stop=stop)
-            df = pd.concat([df, batch_data])
-    return df
+            df_list.append(tree.arrays(loading_variables, library="pd", entry_start=start, entry_stop=stop))
+    return pd.concat(df_list)
 
 df_save = pd.DataFrame(columns=loading_variables)
 
