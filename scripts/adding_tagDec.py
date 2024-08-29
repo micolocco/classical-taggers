@@ -20,19 +20,21 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 matplotlib_lhcb_style(plt)
 
-def plot_tagDec(tagger, df_TagParticles, target_path):
+def plot_tagDec(tagger, df_TagParticles, plotPath):
     plt.figure()
     plt.yscale("log")
-    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == -1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),0.5), color = "green" , alpha=0.5, label = f"Tag. dec: b")
-    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == 1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),0.5), color = "orange" , alpha=0.5, label = f"Tag. dec: anti-b")
+    print(f'Eta range is [{df_TagParticles[f"{tagger}_Eta"].min(), df_TagParticles[f"{tagger}_Eta"].max()}]')
+    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == -1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),df_TagParticles[f"{tagger}_Eta"].max()), color = "green" , alpha=0.5, label = f"Tag. dec: b")
+    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == 1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),df_TagParticles[f"{tagger}_Eta"].max()), color = "orange" , alpha=0.5, label = f"Tag. dec: anti-b")
 
     plt.grid()
     plt.xlabel(r"$\eta$",fontsize=24)
     plt.ylabel("Normalized number of tracks", fontsize=24)
-    plt.legend(loc = "best", title = f'{len(df_TagParticles[(df_TagParticles[f"{tagger}_TagDec"] == -1)|(df_TagParticles[f"{tagger}_TagDec"] == 1)])} total tracks')
+    plt.legend(loc = "best", title = f'{len(df_TagParticles[(df_TagParticles[f"{tagger}_TagDec"] == -1)|(df_TagParticles[f"{tagger}_TagDec"] == 1)])} tagged events')
     plt.title(f"{tagger} mistag", fontsize=24)
-    print(f'Tagging decision plot saved at {target_path}')
-    plt.savefig(f"{target_path}/{tagger}_TagDec.pdf")
+    plot_name = f'{plotPath}/tagDec.pdf'
+    print(f'Tagging decision plot saved at {plot_name}')
+    plt.savefig(f"{plot_name}")
     plt.close()
 
 
@@ -41,18 +43,16 @@ if __name__ == '__main__':
         description='Add tagging decision and mistag',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    #parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
+    parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
     parser.add_argument('--output', help='Name of the output file', type=str)
-    parser.add_argument('--decayType', help='Event decay', type=str)
-    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
+    parser.add_argument('--modelPrePath', help='Path to where the NN models are saved up to cut type', type=str)
+    parser.add_argument('--decayType', help='Event decay for calibration', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
+    parser.add_argument('--outputPath', help='Path for output', type=str)
+    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--features', help='Input features used for NN training', default='tagger_inputFeatures/union') 
-    parser.add_argument('--prePath', help='Path to where the models are saved up to cut type', type=str)
-    parser.add_argument('--target_path', help='Path to where the models are saved up to cut type', type=str)
     
     cfg = parser.parse_args()
-
-    from pprint import pprint
     pprint(cfg)
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     bs = int(data[cfg.tagger]['batch_size'])
     arch = data[cfg.tagger]['architecture']
     config = f'lr{lr}_bs{bs}_{arch}'
-    model_path = join(cfg.prePath, f"{seed}/{config}")
+    model_path = join(cfg.modelPrePath, f"{seed}/{config}")
     # Load YAML configuration file
     with open(f'configs/{config}.yaml', 'r') as file:
         config = yaml.safe_load(file)
@@ -85,12 +85,8 @@ if __name__ == '__main__':
     #test_df.rename(columns={'TagDec': f"{cfg.tagger}_TagDec"}, inplace=True)
     
     ## Data loading
-    cfg.selected = '/home/molocco/classical-taggers/OSKaon.root'
     with uproot.open("{}".format(cfg.selected)) as f:
-        test_df = f[cfg.treename].arrays(loading_variables, library="pd")
-
-    RIPRISTINA OVUNUQUE DOVE C'E' RUNNUMBER E EVENTNUMBER
-    
+        test_df = f[cfg.treename].arrays(loading_variables, library="pd")    
 
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
@@ -114,8 +110,10 @@ if __name__ == '__main__':
     scalerPath = f"{model_path}/st_scaler.pkl"
     transformerPath = f"{model_path}/powerTransformer.pkl"
     columns_to_drop = ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
+    pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path=cfg.outputPath, flag='label', name=f'training_inputFeatures')
 
-    test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
+    #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
+    test_dataset = inputDataset(df=test_df[features+['label']])
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
@@ -123,20 +121,18 @@ if __name__ == '__main__':
     #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
     test_df[f'{cfg.tagger}_Eta'] = 1 - bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
 
-    # Assign taggind decision = 0 for tracks that don't pass the pre-selection
+    # Assign tagging decision = 0 for tracks that don't pass the pre-selection
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
-
+    
     # Eta Normalization [0, 0.5]
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
-    # rivedi group by per la storia su multicandidates: da fare prima?
 
     df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry','RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
+    plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, plotPath=f'{cfg.outputPath}')
     
-    plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
-
     # Save the selected tracks into NTuplesdef
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(f"{cfg.output}") as file:
