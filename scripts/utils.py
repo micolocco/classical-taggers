@@ -88,6 +88,10 @@ class UFloatEncoder(json.JSONEncoder):
 def find_tree_name(decay):
     if decay == 'Bs2JpsiPhi':
         return 'BsToJpsiPhi_Detached/DecayTree'
+    if decay == 'Bd2JpsiKst':
+        return 'BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree'
+    if decay == 'Bu2JpsiK':
+        return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
     if decay == 'Bs2DsPi':
         return 'Hlt2B2OC_BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
     else:
