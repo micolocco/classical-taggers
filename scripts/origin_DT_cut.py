@@ -9,6 +9,7 @@ from sklearn.metrics import accuracy_score, roc_curve ,auc
 import time
 import uproot
 import os
+import copy
 # import configParameters as config
 import glob
 import argparse
@@ -35,7 +36,7 @@ Origin Flag IDs:
 -1 == No associated MC particle (probably ghost)
 
 '''
-def add_PID_diffs(df):
+def add_PID_diffs(df):# consider sum or product of multiple (>2) Probnn
     ids = ["e", "mu", "K", "P"]
     l = []
     for i, t in enumerate(ids[:-1]):
@@ -45,6 +46,15 @@ def add_PID_diffs(df):
             # df[f"B_Tr_T_PID_{t}*{j}"] = df[f"B_Tr_T_PID{t}"] * df[f"B_Tr_T_PID{j}"]
             # df[f"B_Tr_T_PID_{t}/{j}"] = df[f"B_Tr_T_PID{t}"] / df[f"B_Tr_T_PID{j}"]
             l += [f"B_Tr_T_PID_{t}-{j}", f"B_Tr_T_PID_{t}+{j}",]# f"B_Tr_T_PID_{t}*{j}", f"B_Tr_T_PID_{t}/{j}"]
+    ids = ["E", "MU", "K", "P", "PI"]
+    l = []
+    for i, t in enumerate(ids[:-1]):
+        for j in ids[i+1:]:
+            df[f"B_Tr_T_PROBNN_{t}-{j}"] = df[f"B_Tr_T_PROBNN_{t}"] - df[f"B_Tr_T_PROBNN_{j}"]
+            df[f"B_Tr_T_PROBNN_{t}+{j}"] = df[f"B_Tr_T_PROBNN_{t}"] + df[f"B_Tr_T_PROBNN_{j}"]
+            df[f"B_Tr_T_PROBNN_{t}*{j}"] = df[f"B_Tr_T_PROBNN_{t}"] * df[f"B_Tr_T_PROBNN_{j}"]
+            df[f"B_Tr_T_PROBNN_{t}/{j}"] = df[f"B_Tr_T_PROBNN_{t}"] / df[f"B_Tr_T_PROBNN_{j}"]
+            l += [f"B_Tr_T_PROBNN_{t}-{j}", f"B_Tr_T_PROBNN_{t}+{j}", f"B_Tr_T_PROBNN_{t}*{j}", f"B_Tr_T_PROBNN_{t}/{j}"]
     # print(l)
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.fillna(0, inplace=True)
@@ -130,8 +140,7 @@ def prune_index(inner_tree, decisions, index=0):
     # Prune children if both children are leaves now and make the same decision:     
     if (is_leaf(inner_tree, inner_tree.children_left[index]) and
         is_leaf(inner_tree, inner_tree.children_right[index]) and
-        (decisions[index] == decisions[inner_tree.children_left[index]]) and 
-        (decisions[index] == decisions[inner_tree.children_right[index]])):
+        (decisions[inner_tree.children_left[index]] == decisions[inner_tree.children_right[index]])):
         # turn node into a leaf by "unlinking" its children
         inner_tree.children_left[index] = TREE_LEAF
         inner_tree.children_right[index] = TREE_LEAF
@@ -142,6 +151,81 @@ def prune_duplicate_leaves(mdl):
     # Remove leaves if both 
     decisions = mdl.tree_.value.argmax(axis=2).flatten().tolist() # Decision for each node
     prune_index(mdl.tree_, decisions)
+    
+def prune_unclassified_leaves(mdl, unclassfied_entry=6):
+    inner_tree = mdl.tree_
+    prune_unclassified(inner_tree, unclassfied_entry=unclassfied_entry)
+    
+def prune_unclassified(inner_tree, index=0, unclassfied_entry=6):
+    if (is_leaf(inner_tree, inner_tree[index]) and
+        (inner_tree.value[index, 0].argmax() == inner_tree.value[index, unclassfied_entry])):
+        # turn node into a leaf by "unlinking" its children
+        inner_tree.children_left[index] = TREE_LEAF
+        inner_tree.children_right[index] = TREE_LEAF
+        inner_tree.feature[index] = TREE_UNDEFINED
+        ##print("Pruned {}".format(index))
+    # Start pruning from the bottom - if we start from the top, we might miss
+    # nodes that become leaves during pruning.
+    # Do not use this directly - use prune_duplicate_leaves instead.
+    if not is_leaf(inner_tree, inner_tree.children_left[index]):
+        prune_unclassified(inner_tree, inner_tree.children_left[index], unclassfied_entry=unclassfied_entry)
+    if not is_leaf(inner_tree, inner_tree.children_right[index]):
+        prune_unclassified(inner_tree, inner_tree.children_right[index], unclassfied_entry=unclassfied_entry)
+
+def get_depths(inner_tree):
+    depths = {}
+    indices = [0]
+    depth = 0
+    while len(indices) > 0:
+        depths.update({index:depth for index in indices})
+        new_indices = []
+        for index in indices:
+            if index >= 0:
+                new_indices += [inner_tree.children_left[index], inner_tree.children_right[index]]
+        indices = new_indices
+        depth += 1
+    # print(depths)
+    return depths
+
+def apply_increasing_node_threshold(mdl, min_threshold=0.5, threshold_per_depth=0.1, n_tagger=6, min_samples=0):
+    inner_tree = mdl.tree_
+    summarise_bkg_classes(mdl, n_tagger)
+    depths = get_depths(inner_tree)
+    for index in range(len(inner_tree.value)):
+        depth = depths.get(index, 0)
+        threshold = np.max([min_threshold, threshold_per_depth * depth])
+        if inner_tree.value[index, 0, :n_tagger].max() < np.max([threshold, inner_tree.value[index, 0, n_tagger]]) or (inner_tree.weighted_n_node_samples[index] / inner_tree.weighted_n_node_samples[0] < min_samples):
+            # inner_tree.value[index] *= 0
+            # inner_tree.value[index, 0, n_tagger] = 1
+            inner_tree.value[index, 0, n_tagger] = 4 / (3*n_tagger + 4)
+            inner_tree.value[index, 0, :n_tagger] = 3 / (3*n_tagger + 4)
+            # inner_tree.class = "Unclassified"
+            
+            
+def apply_node_threshold(mdl, threshold=0.5, n_tagger=6, min_samples=0):
+    inner_tree = mdl.tree_
+    summarise_bkg_classes(mdl, n_tagger)
+    for index in range(len(inner_tree.value)):
+        if inner_tree.value[index, 0, :n_tagger].max() < np.max([threshold, inner_tree.value[index, 0, n_tagger]]) or (inner_tree.weighted_n_node_samples[index] / inner_tree.weighted_n_node_samples[0] < min_samples):
+            # inner_tree.value[index] *= 0
+            # inner_tree.value[index, 0, n_tagger] = 1
+            inner_tree.value[index, 0, n_tagger] = 4 / (3*n_tagger + 4)
+            inner_tree.value[index, 0, :n_tagger] = 3 / (3*n_tagger + 4)
+            # inner_tree.class = "Unclassified"
+
+def reset_nodes(mdl, old_tree):
+    inner_tree = mdl.tree_
+    for index in range(len(inner_tree.value)):
+        if not inner_tree.feature[index] == TREE_UNDEFINED:
+            inner_tree.value[index] = old_tree.value[index]
+
+def summarise_bkg_classes(mdl, n_tagger=6):
+    inner_tree = mdl.tree_
+    for index in range(len(inner_tree.value)):
+        # inner_tree.value[index, 0] = np.append(inner_tree.value[index, 0], 0)
+        inner_tree.value[index, 0, n_tagger] = np.sum(inner_tree.value[index, 0, n_tagger:])
+        inner_tree.value[index, 0, (n_tagger+1):] = 0
+    
 
 if __name__ == '__main__':
 
@@ -149,7 +233,7 @@ if __name__ == '__main__':
         description='Apply a preselection for the tagging particles',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='/ceph/users/molocco/classical-taggers/Data/withUT_MC_2024/DT_outputs')
+    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='./build/')
     # parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
 
     cfg = parser.parse_args()
@@ -164,7 +248,7 @@ if __name__ == '__main__':
 
     # set1 --> only uses PIDs and IP significance of the B primary vertex
     # set2 --> collects the pre-selections features used in run2 (except SSKaon). See https://gitlab.cern.ch/lhcb/Phys/-/tree/run2-patches/Phys/FlavourTagging/python/FlavourTagging
-    features_set1 = ['B_Tr_T_PIDK', 'B_Tr_T_PIDe', 'B_Tr_T_PIDmu', 'B_Tr_T_PIDP', 'B_Tr_T_BVIPSig'] 
+    features_set1 = ['B_Tr_T_PROBNN_PI', 'B_Tr_T_PROBNN_K', 'B_Tr_T_PROBNN_E', 'B_Tr_T_PROBNN_MU', 'B_Tr_T_PROBNN_P', 'B_Tr_T_PIDK', 'B_Tr_T_PIDe', 'B_Tr_T_PIDmu', 'B_Tr_T_PIDP', 'B_Tr_T_BVIPSig'] 
     features_set2 = ['B_Tr_T_P' , 'B_Tr_T_TRACKISLONG', 'B_Tr_T_minPhiDistance', 'B_Tr_T_ISMUON', 'B_Tr_T_absIP',
                     'B_Tr_T_eoverP', 'B_Tr_T_BPVIPCHI2', 'B_Tr_T_PT', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_EtaDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_DeltaR', 'B_Tr_T_Charge'] # , 'B_Tr_T_CHI2DOF', 'B_Tr_T_GHOSTPROB']
     # set3 --> on the top of set1 and set2 adds other variables from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/DevelopmentTaggerConf.py
@@ -182,32 +266,46 @@ if __name__ == '__main__':
     # PVndof not clear
     # TRGHP alias for TRACKGHOSTPROB
     features = features_set1+features_set2+features_set3
-    loading_variables = features +["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID"]
+    loading_variables = features +["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID"]
     # Path to input root files
     input_paths = {}
     # file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
     # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/*/*.root'
-    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2DsPi/*1_1.mc.root'#.root'
-    input_paths.update({"Bs2DsPi":glob.glob(file_pattern)})
-    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/*1_1.mc.root'#.root'
+    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2DsPi/*1_1.mc.root'#.root'
+    # input_paths.update({"Bs2DsPi":glob.glob(file_pattern)})
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/0023756*2_1.mc.root'#.root'
+    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/0023756*_1.mc.root'#.root'
     input_paths.update({"Bu2JpsiK":glob.glob(file_pattern)})
-    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/*1_1.mc.root'#.root'
-    input_paths.update({"Bd2JpsiKst":glob.glob(file_pattern)})
-    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2JpsiPhi/*1_1.mc.root'#.root'
-    input_paths.update({"Bs2JpsiPhi":glob.glob(file_pattern)})
-    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2DmPi/*1_1.mc.root'#.root'
-    input_paths.update({"Bd2DmPi":glob.glob(file_pattern)})
+    # # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*2_1.mc.root'#.root'
+    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*_1.mc.root'#.root'
+    # input_paths.update({"Bd2JpsiKst":glob.glob(file_pattern)})
+    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2JpsiPhi/*1_1.mc.root'#.root'
+    # input_paths.update({"Bs2JpsiPhi":glob.glob(file_pattern)})
+    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2DmPi/*1_1.mc.root'#.root'
+    # input_paths.update({"Bd2DmPi":glob.glob(file_pattern)})
     #input_paths=['/ceph/users/molocco//classical-taggers/Data/withUT_MC_2024/2_added_features/Bu2JpsiK/00214053_00000002_1.mc.root',]
 
     print(f"Loading data: Start \n")
     df = pd.DataFrame(columns=loading_variables)
     for mode, files in input_paths.items():
-        for f in files:
+        for f in sorted(files):
             print(f"Reading input file: {f}")
             with uproot.open("{}".format(f)) as _f:
-                _df = _f[find_tree_name(mode)].arrays(loading_variables, library="pd")
+                # print(_f[find_tree_name(mode)].keys())
+                if mode.startswith("Bu"):
+                    loading_variables_temp = [var.replace("B_", "Bu_") for var in loading_variables]
+                elif mode.startswith("Bs"):
+                    loading_variables_temp = [var.replace("B_", "Bs_") for var in loading_variables]
+                elif mode.startswith("Bd"):
+                    loading_variables_temp = [var.replace("B_", "Bd_") for var in loading_variables]
+                else:
+                    loading_variables_temp = loading_variables
+                _df = _f[find_tree_name(mode)].arrays(loading_variables_temp, library="pd")
+                _df = _df.rename(columns={a:b for a, b in zip(loading_variables_temp, loading_variables)})
                 # _df = _df.query("B_BKGCAT==0")
+                _df = _df.query("B_Tr_T_PT > 500")
             df = pd.concat([df, _df], ignore_index = True)
+            print(df.shape, _df.shape)
 
     print(f"Loading data finished in {round(-start+ time.time() , 2)}s")
     
@@ -219,31 +317,43 @@ if __name__ == '__main__':
     # Define labels for multiclassification
     conditions = [
     (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2), # OSKaon
-    (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2), # OSMuon
-    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2),# & (df.index%2==0), # OSElectron
-    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID==511), # SSPion
-    ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID==511)) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID==531)), # SSProton and SSKaon
-    #(df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1), # SSProton
-    #(df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), # SSKaon
     (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2), # OSProton
-    # ((df.B_Tr_T_Origin_Flag==3) | (df.B_Tr_T_Origin_Flag==4)) & (df.index%16==0), # OSFrag
-    # (df.B_Tr_T_Origin_Flag==100)  & (df.index%400==0), # wrong PV reduced by a factor 400
-    # (df.B_Tr_T_Origin_Flag==5)  & (df.index%150==0), # Prompt reduced by a factor 150
+    (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2),# & (df.B_Tr_T_ISMUON == 1), # OSMuon
+    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2) & (df.B_Tr_T_MC_MOTHER_ID!=22),# & (df.index%2==0), # OSElectron
+    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# & (df.B_Tr_T_DeltaR < 2.5), # SSPion
+    ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0)),# & (df.B_Tr_T_DeltaR < 2.5), # SSProton and SSKaon
+    # (((df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | (df.B_TRUEID.abs()==531))) | ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0)) | (df.B_TRUEID.abs()!=531))) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | (df.B_TRUEID.abs()!=531)))) & (df.index%4==0), # wrongSS
+    # ((df.B_Tr_T_Origin_Flag==3) | (df.B_Tr_T_Origin_Flag==4)) & (df.index%16==0), # OSFrag reduced by a factor 16
+    (df.B_Tr_T_Origin_Flag==100) & (df.index%400==0), # wrong PV reduced by a factor 400
+    (df.B_Tr_T_absID==11) & (df.B_Tr_T_MC_MOTHER_ID==22) & (df.index%10==0),# & (df.index%2==0), # photon conversion
+    (df.B_Tr_T_Origin_Flag==5) & (df.index%150==0), # Prompt reduced by a factor 150
+    # ((df.B_Tr_T_Origin_Flag==5) & (df.index%250==0)) | (((df.B_Tr_T_Origin_Flag==3) | (df.B_Tr_T_Origin_Flag==4)) & (df.index%25==0)) | ((((df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | (df.B_TRUEID.abs()==531))) | ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0)) | (df.B_TRUEID.abs()!=531))) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | (df.B_TRUEID.abs()!=531)))) & (df.index%8==0)) | ((df.B_Tr_T_absID==11) & (df.B_Tr_T_MC_MOTHER_ID==22)), # Other
+    # False,# unclassified
     ]
-    particle_type = {"OSKaon":1,
-                    "OSMuon":2,
-                    "OSElectron":3,
-                    "SSPion":4,
-                    "SSProton+SSKaon": 5,
-                    "OSProton": 6,
-                    # "OSFragmentation": 7,
-                    # "Other PV":8,
-                    # "Prompt":9,
-                    }
-                    #"SSProton":5,
-                    #"SSKaon":6,
-                   # "OSProton":7}
+    # conditions.append(exec("("+"|".join([f'!({c.replace(" ", "").split("&(df.index%)")[0]})' for c in conditions])+") & df.index%400==0")) # "other" all tracks which do not belong to one of the defined classes
+    particle_type = { t:i+1 for i, t in enumerate([
+        "OSKaon",
+        "OSProton",
+        "OSMuon",
+        "OSElectron",
+        "SSPion",
+        "SSProton+SSKaon",
+        # "wrongSS",
+        # "OSFragemntation",
+        "wrongPV",
+        "photon conversion",
+        "Prompt",
+        # "Other",
+        # "Unclassified",
+        ])
+    }
+    
+    print(particle_type)
     df['ID_type'] = np.select(conditions, particle_type.values())
+    
+    # ids = df['ID_type'].unique()
+    # particle_type = {k:v for k, v in particle_type.items() if v in ids}
+    
     df.loc[~df['ID_type'].isin(particle_type.values()), 'ID_type'] = 0
     # Assign the corresponding particle type
     df['particle'] = df['ID_type'].map({v: k for k, v in particle_type.items()})
@@ -268,68 +378,52 @@ if __name__ == '__main__':
     y = x.ID_type
     x.drop(columns=["ID_type", "particle"] , inplace = True)
     print(len(x), len(y))
-    x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.3, random_state=42)
-    start = time.time()
-    print("Start fitting")
-    # Modify loss/score in https://scikit-learn.org/stable/modules/model_evaluation.html#implementing-your-own-scoring-object< similar to https://github.com/keras-team/keras/issues/2115 to weight misID
-    # clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 4, min_impurity_decrease=0.0005, min_weight_fraction_leaf=0.05, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
-    clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 10, min_impurity_decrease=0.03, min_weight_fraction_leaf=0.01) #class_weight='balanced',  min_impurity_decrease=0.009
+    x_train, y_train = x, y
+    # x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.3, random_state=42)
+    for setting in ["balanced", "unbalanced"]:
+        print(setting)
+        start = time.time()
+        print("Start fitting")
+        # Modify loss/score in https://scikit-learn.org/stable/modules/model_evaluation.html#implementing-your-own-scoring-object< similar to https://github.com/keras-team/keras/issues/2115 to weight misID
+        # clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 8, min_weight_fraction_leaf=0.01, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
+        # clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 12, min_samples_leaf=0.01, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
+        if setting == "balanced":
+            clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 10, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
+        else:
+            clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 10, min_samples_leaf=0.002)
 
-    clf.fit(x_train, y_train)
-    prune_duplicate_leaves(clf)
+        clf.fit(x_train, y_train)
+        prune_duplicate_leaves(clf)
 
-    print(f"Fit in: {round(-start+ time.time() , 2)}s\n")
-    print("\n Metrics for particle type composition: true VS predicted\n")
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type)
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted')
-    # Compute feature importance
-    
-    '''
-    print(f"Feature importance:\n")
-    feat_import = clf.tree_.compute_feature_importances(normalize=True)
-    feat_import.sort()
-    for i in range(len(feat_import)):
-        print(features[i],round(100*feat_import[i],2))
-    print('-----------------------------------------')
-    print(f"Permutation importance:\n")
-    perm_import = clf.tree_.compute_feature_importances(normalize=True)
-    perm_import.sort()
-    for i in range(len(perm_import)):
-        print(features[i],round(100*perm_import[i],2))
-    print('-----------------------------------------')
-    '''
-
-    '''   
-    #Plot the ROC Curve
-    y_test_predict = clf.predict_proba(x_test)[:,1]
-    y_train_predict = clf.predict_proba(x_train)[:,1]
-    plt.figure()
-    fpr_test, tpr_test,_ = roc_curve(y_test,y_test_predict)
-    roc_auc_test = round(auc(fpr_test, tpr_test),2)
-    fpr_train, tpr_train,_ = roc_curve(y_train,y_train_predict)
-    roc_auc_train = round(auc(fpr_train, tpr_train),2)
-    lw  = 2
-    plt.plot(fpr_test, tpr_test, color='darkorange',
-        lw=lw, label=f'Test(area = {roc_auc_test})' )
-    plt.plot(fpr_train, tpr_train, color='darkblue',
-        lw=lw, label=f'Train(area = {roc_auc_train})' )
-    plt.plot([0, 1], [0, 1], color='gray', lw=lw, linestyle='--')
-    plt.xlim([-0.02, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(f'ROC curve ')
-    plt.legend(loc="lower right")
-    plt.savefig(f"{output_dir}/ ROC_AUC.pdf")
-    #plt.show()
-    plt.close()
-    '''
-
-    # Visualize the decision tree
-    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True) 
-    graph = graphviz.Source(dot_data) 
-    graph.render(f"{cfg.target_path}/tree_schema_maxDepth_unBalanced_SSKSSP_Quentin")
-    
-    #print(f"Accuracy:{clf.score(x_test,y_test)}")
-
-   
+        print(f"Fit in: {round(-start+ time.time() , 2)}s\n")
+        
+        # Visualize the decision tree
+        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True) 
+        graph = graphviz.Source(dot_data) 
+        graph.render(f"{cfg.target_path}/{setting}/tree_schema")
+        
+        n_tagger = 6
+        old_tree = copy.deepcopy(clf.tree_)
+        old_tree.value[0] *= 0
+        while np.any(old_tree.value != clf.tree_.value):
+            old_tree = copy.deepcopy(clf.tree_)
+            apply_node_threshold(clf, threshold=0.60, n_tagger=n_tagger, min_samples=0 if setting == "unbalanced" else 0.01) # try to implement sample size dependent thresholds
+            # apply_increasing_node_threshold(clf, min_threshold=0.50, threshold_per_depth=0.13, n_tagger=n_tagger, min_samples=0 if setting == "unbalanced" else 0.01) 
+            prune_duplicate_leaves(clf)
+            reset_nodes(clf, old_tree)
+            prune_duplicate_leaves(clf)
+        
+        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True) 
+        graph = graphviz.Source(dot_data) 
+        graph.render(f"{cfg.target_path}/{setting}/tree_schema_pruned")
+        
+        summarise_bkg_classes(clf, n_tagger)
+        particle_type = {k:v for k, v in particle_type.items() if v <= n_tagger}
+        particle_type.update({"Rejected":n_tagger+1})
+        print(particle_type)
+        
+        print("\n Metrics for particle type composition: true VS predicted\n")
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, savepath=f"{cfg.target_path}/{setting}/confusion_normalised_by_truth.txt")
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted', savepath=f"{cfg.target_path}/{setting}/confusion_normalised_by_prediction.txt")
+        # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, balanced=True, title='Versus True (balanced)')
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/balanced_confusion_normalised_by_prediction.txt")
