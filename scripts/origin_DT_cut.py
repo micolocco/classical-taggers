@@ -22,6 +22,7 @@ plt.rcParams.update({'axes.unicode_minus' : False})
 import DT_utils
 from utils import find_tree_name
 
+np.random.seed(42)
 
 '''
 Origin Flag IDs:
@@ -260,7 +261,28 @@ if __name__ == '__main__':
     ]
 
 
-    loading_variables = features + features_pid + ["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID", "B_Tr_T_MC_GD_MOTHER_ID", "B_Tr_T_MC_GD_GD_MOTHER_ID", "B_Tr_T_MC_MOTHER_KEY", "B_Tr_T_MC_GD_MOTHER_KEY", "B_Tr_T_MC_GD_GD_MOTHER_KEY", "B_MC_MOTHER_ID", "B_MC_GD_MOTHER_ID", "B_MC_GD_GD_MOTHER_ID", "B_MC_MOTHER_KEY", "B_MC_GD_MOTHER_KEY", "B_MC_GD_GD_MOTHER_KEY", "EVENTNUMBER", "RUNNUMBER", "B_nPVs", "B_BKGCAT"]
+    loading_variables = features + features_pid + [
+        "B_Tr_T_absID",
+        "B_Tr_T_Origin_Flag",
+        "B_TRUEID",
+        "B_Tr_T_MC_MOTHER_ID",
+        "B_Tr_T_MC_GD_MOTHER_ID",
+        "B_Tr_T_MC_GD_GD_MOTHER_ID",
+        "B_Tr_T_MC_MOTHER_KEY",
+        "B_Tr_T_MC_GD_MOTHER_KEY",
+        "B_Tr_T_MC_GD_GD_MOTHER_KEY",
+        "B_MC_MOTHER_ID",
+        "B_MC_GD_MOTHER_ID",
+        "B_MC_GD_GD_MOTHER_ID",
+        "B_MC_MOTHER_KEY",
+        "B_MC_GD_MOTHER_KEY",
+        "B_MC_GD_GD_MOTHER_KEY",
+        "EVENTNUMBER",
+        "RUNNUMBER",
+        "B_nPVs",
+        "B_BKGCAT",
+    ]
+
     # Path to input root files
     input_paths = {}
     # file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
@@ -312,7 +334,19 @@ if __name__ == '__main__':
             print(df.shape, _df.shape)
 
     print(f"Loading data finished in {round(-start+ time.time() , 2)}s")
-    #todo: bkgcat cut!
+    
+    
+    
+    # df = df.query("B_BKGCAT==0 & B_Tr_T_Origin_Flag==1 & B_Tr_T_absID==211").reset_index()
+    # for n in range(10):
+    #     first_run = df.loc[0, "RUNNUMBER"]
+    #     first_event = df["EVENTNUMBER"].unique()[n]
+    #     print(first_event, first_run)
+    #     _df = df.query(f"sample==0 & RUNNUMBER == {first_run} & EVENTNUMBER == {first_event}").reset_index()
+    #     print([(_df.loc[0, f"B_MC{anc}_MOTHER_ID"], _df.loc[0, f"B_MC{anc}_MOTHER_KEY"]) for anc in ["", "_GD", "_GD_GD"]])
+    #     for i in range(len(_df)):
+    #         print(i, [(_df.loc[i, f"B_Tr_T_MC{anc}_MOTHER_ID"], _df.loc[i, f"B_Tr_T_MC{anc}_MOTHER_KEY"]) for anc in ["", "_GD", "_GD_GD"]])
+    # exit(0)
     
     print(df.shape)
     # print(df.groupby(["EVENTNUMBER", "RUNNUMBER", "sample"]).first().shape)
@@ -323,7 +357,7 @@ if __name__ == '__main__':
     
     print(len(df))
     # Shuffle 
-    df = df.sample(frac=0.01)
+    df = df.sample(frac=1, random_state=42)
     df.dropna(inplace=True)
 
     df.B_Tr_T_Origin_Flag.astype(int)
@@ -331,7 +365,7 @@ if __name__ == '__main__':
     # Define labels for multiclassification
     conditions = [
     (df.B_Tr_T_Origin_Flag==2),
-    (df.B_Tr_T_Origin_Flag==1),
+    (df.B_Tr_T_Origin_Flag==1) & (df.B_Tr_T_MC_MOTHER_ID.abs() == 5),
     (df.B_Tr_T_Origin_Flag==100), # wrong PV
     # (df.B_Tr_T_Origin_Flag==5), # Prompt 
     ]
@@ -356,7 +390,7 @@ if __name__ == '__main__':
     
     start = time.time()
     print("Start fitting")
-    clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 2, min_samples_leaf=0.01, class_weight='balanced')
+    clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 3, min_samples_split=0.1, class_weight='balanced')
     x_train = df[features]
     y_train = df.ID_type
     clf.fit(x_train, y_train)
@@ -449,7 +483,7 @@ if __name__ == '__main__':
         print("Start fitting")
         # Modify loss/score in https://scikit-learn.org/stable/modules/model_evaluation.html#implementing-your-own-scoring-object< similar to https://github.com/keras-team/keras/issues/2115 to weight misID
         if setting == "balanced":
-            clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 4, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
+            clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 3, class_weight='balanced',) #class_weight='balanced',  min_impurity_decrease=0.009
         else:
             clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 10, min_samples_leaf=0.002)
 
@@ -470,9 +504,9 @@ if __name__ == '__main__':
         (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2) , # OSProton
         (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2),# , # OSMuon
         (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2)  & (df.B_Tr_T_MC_MOTHER_ID!=22), # OSElectron
-        (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) ,# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
-        (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) ,# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
-        (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) ,# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
+        (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (df.B_Tr_T_MC_MOTHER_ID.abs() == 5),# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
+        (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (df.B_Tr_T_MC_MOTHER_ID.abs() == 5),# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
+        (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (df.B_Tr_T_MC_MOTHER_ID.abs() == 5),# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
         # (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
         # (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
         # (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
@@ -496,6 +530,8 @@ if __name__ == '__main__':
         }
         
         df['ID_type'] = np.select(conditions, particle_type.values(), len(particle_type))
+        particle_type.update({"Other":len(particle_type)})
+        
         x_train = df[features]
         y_train = df.ID_type
         
@@ -511,8 +547,13 @@ if __name__ == '__main__':
         # try implement pruning threshold based on class confusion
         
         summarise_classes(clf, [5, 6], at=5, balanced=False) # summarise ssk/p classes #todo:fix balancing
+        y_train[y_train==6] = 5
         summarise_classes(clf, [8, 9, 10], at=6, balanced=False) # bkg #todo:fix balancing
+        y_train[y_train==8] = 6
+        y_train[y_train==9] = 6
+        y_train[y_train==10] = 6
         summarise_classes(clf, [6, 7], at=6, balanced=False) # sanity #todo:fix balancing
+        y_train[y_train==7] = 6
         
         particle_type = {k:v for k, v in particle_type.items() if v not in [5, 6]}
         particle_type.update({"SSKaon / SSProton":5, "Other":6})
@@ -532,3 +573,8 @@ if __name__ == '__main__':
         DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_prediction.txt")
         # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, balanced=True, title='Versus True (balanced)')
         DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/pruned_balanced_confusion_normalised_by_prediction.txt")
+
+# maybe consider 3 stage classifier
+# 1. OS SS PV, other
+# 2. SSpi, OSe, OSmu, K+P, Bkg
+# 3. K+P -> OSK, OSP, SSK+P
