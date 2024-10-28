@@ -60,66 +60,6 @@ def add_PID_diffs(df):# consider sum or product of multiple (>2) Probnn
     df.fillna(0, inplace=True)
     return df, l
 
-def plot_features_byOrigin(data, features, particle_type, nbins=100):
-    # Plot input features 
-    plt.figure(figsize=(100,100))
-    for i, col in enumerate(data.columns.to_list()[:len(features)]):
-        plt.subplot(10, 5, i + 1)
-        # Ranges and names must be adapted
-        #plt.hist(data[col][data['ID_type']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=)
-        #plt.hist(data[col][data['ID_type']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['ID_type']==particle_type['OSElectron']], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['ID_type']==particle_type['SSPion']], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['ID_type']==particle_type['SSProton']], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['ID_type']==particle_type['SSKaon']], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
-       
-
-        #plt.hist(data[col][data['ID_type']==6], density = True, bins=nbins, label = f"{particle_type[6]}", histtype='step', color='r', )
-        if col in nice_names.keys():
-            plt.xlabel(nice_names[col])
-            plt.hist(data[col][data['ID_type']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['OSElectron']], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['SSPion']], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['SSProton']], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['SSKaon']], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
-        else:
-            plt.xlabel(col)
-            plt.hist(data[col][data['ID_type']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['OSElectron']], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['SSPion']], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['SSProton']], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['SSKaon']], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['OSProton']], density = True, bins=nbins, label = f"OSProton", histtype='step', color='orange', lw=2, )
-        plt.legend() 
-        plt.tight_layout()
-    plt.savefig(f"{cfg.target_path}/newPres_DT_features_byOrigin.pdf")
-
-def plot_features_byParticle(data, features, nbins=100):
-   
-    plt.figure(figsize=(100,100))
-    for i, col in enumerate(data.columns.to_list()[:len(features)]):
-        plt.subplot(10, 5, i + 1)
-        #plt.hist(data[col][data.B_Tr_T_absID==321], density = True, bins=nbins, label = f"Kaon", histtype='step', color='m', lw=2, range=ranges[col])
-        #plt.hist(data[col][data.B_Tr_T_absID==13], density = True, bins=nbins, label = f"Muon", histtype='step', color='b', lw=2, range=ranges[col])
-        #plt.hist(data[col][data.B_Tr_T_absID==11], density = True, bins=nbins, label = f"Electron", histtype='step', color='c', lw=2, range=ranges[col])
-        #plt.hist(data[col][data.B_Tr_T_absID==211], density = True, bins=nbins, label = f"Pion", histtype='step', color='g', lw=2, range=ranges[col])
-        #plt.hist(data[col][data.B_Tr_T_absID==2212], density = True, bins=nbins, label = f"Proton", histtype='step', color='y', lw=2, range=ranges[col])
-        plt.hist(data[col][data.B_Tr_T_absID==321], density = True, bins=nbins, label = f"Kaon", histtype='step', color='m', lw=2, )
-        plt.hist(data[col][data.B_Tr_T_absID==13], density = True, bins=nbins, label = f"Muon", histtype='step', color='b', lw=2, )
-        plt.hist(data[col][data.B_Tr_T_absID==11], density = True, bins=nbins, label = f"Electron", histtype='step', color='c', lw=2, )
-        plt.hist(data[col][data.B_Tr_T_absID==211], density = True, bins=nbins, label = f"Pion", histtype='step', color='g', lw=2, )
-        plt.hist(data[col][data.B_Tr_T_absID==2212], density = True, bins=nbins, label = f"Proton", histtype='step', color='y', lw=2, )
-        #plt.hist(data[col][data['ID_type']==6], density = True, bins=nbins, label = f"{particle_type[6]}", histtype='step', color='r', )
-        if col in nice_names.keys():
-            plt.xlabel(nice_names[col])
-        else:
-            plt.xlabel(col)
-        plt.legend() 
-        plt.tight_layout()
-    plt.savefig(f"{cfg.target_path}/newPres_DT_features_byParticle.pdf")
-
 # from https://stackoverflow.com/questions/51397109/prune-unnecessary-leaves-in-sklearn-decisiontreeclassifier
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 
@@ -189,42 +129,65 @@ def get_depths(inner_tree):
 
 def apply_increasing_node_threshold(mdl, min_threshold=0.5, threshold_per_depth=0.1, n_tagger=6, min_samples=0):
     inner_tree = mdl.tree_
-    summarise_bkg_classes(mdl, n_tagger)
     depths = get_depths(inner_tree)
     for index in range(len(inner_tree.value)):
         depth = depths.get(index, 0)
         threshold = np.max([min_threshold, threshold_per_depth * depth])
-        if inner_tree.value[index, 0, :n_tagger].max() < np.max([threshold, inner_tree.value[index, 0, n_tagger]]) or (inner_tree.weighted_n_node_samples[index] / inner_tree.weighted_n_node_samples[0] < min_samples):
-            # inner_tree.value[index] *= 0
-            # inner_tree.value[index, 0, n_tagger] = 1
-            inner_tree.value[index, 0, n_tagger] = 4 / (3*n_tagger + 4)
-            inner_tree.value[index, 0, :n_tagger] = 3 / (3*n_tagger + 4)
-            # inner_tree.class = "Unclassified"
+        if inner_tree.value[index, 0, :8].max() < np.max([threshold, inner_tree.value[index, 0, 8]]) or (inner_tree.weighted_n_node_samples[index] / inner_tree.weighted_n_node_samples[0] < min_samples):
+            inner_tree.value[index] *= 0
+            inner_tree.value[index, 0, 8] = 1
             
             
 def apply_node_threshold(mdl, threshold=0.5, n_tagger=6, min_samples=0):
     inner_tree = mdl.tree_
-    summarise_bkg_classes(mdl, n_tagger)
     for index in range(len(inner_tree.value)):
-        if inner_tree.value[index, 0, :n_tagger].max() < np.max([threshold, inner_tree.value[index, 0, n_tagger]]) or (inner_tree.weighted_n_node_samples[index] / inner_tree.weighted_n_node_samples[0] < min_samples):
-            # inner_tree.value[index] *= 0
-            # inner_tree.value[index, 0, n_tagger] = 1
-            inner_tree.value[index, 0, n_tagger] = 4 / (3*n_tagger + 4)
-            inner_tree.value[index, 0, :n_tagger] = 3 / (3*n_tagger + 4)
-            # inner_tree.class = "Unclassified"
+        if inner_tree.value[index, 0, :8].max() < np.max([threshold, inner_tree.value[index, 0, 8]]) or (inner_tree.weighted_n_node_samples[index] / inner_tree.weighted_n_node_samples[0] < min_samples):
+            inner_tree.value[index] *= 0
+            inner_tree.value[index, 0, 8] = 1
 
 def reset_nodes(mdl, old_tree):
     inner_tree = mdl.tree_
     for index in range(len(inner_tree.value)):
         if not inner_tree.feature[index] == TREE_UNDEFINED:
             inner_tree.value[index] = old_tree.value[index]
-
-def summarise_bkg_classes(mdl, n_tagger=6):
+            
+def prune_small_leaves(mdl, index=0, min_samples=0.01, bkg_class=-1):
     inner_tree = mdl.tree_
-    for index in range(len(inner_tree.value)):
-        # inner_tree.value[index, 0] = np.append(inner_tree.value[index, 0], 0)
-        inner_tree.value[index, 0, n_tagger] = np.sum(inner_tree.value[index, 0, n_tagger:])
-        inner_tree.value[index, 0, (n_tagger+1):] = 0
+    # if (inner_tree.weighted_n_node_samples[index] / inner_tree.weighted_n_node_samples[0] < min_samples):
+    if (inner_tree.n_node_samples[index] / inner_tree.n_node_samples[0] < min_samples):
+        inner_tree.value[index, 0, :] *= 0
+        inner_tree.value[index, 0, bkg_class] = 1
+        inner_tree.children_left[index] = TREE_LEAF
+        inner_tree.children_right[index] = TREE_LEAF
+        inner_tree.feature[index] = TREE_UNDEFINED
+    if not is_leaf(inner_tree, index):
+        prune_small_leaves(mdl, inner_tree.children_left[index])
+        prune_small_leaves(mdl, inner_tree.children_right[index])
+    if index == 0:
+        prune_duplicate_leaves(mdl)
+
+    
+def check_ambigious_leaves(mdl, index=0, threshold=0.5, bkg_class=-1):
+    inner_tree = mdl.tree_
+    if (inner_tree.value[index, 0, :].max() < threshold):
+        inner_tree.value[index, 0, :] *= 0
+        inner_tree.value[index, 0, bkg_class] = 1
+    if not is_leaf(inner_tree, index):
+        prune_small_leaves(mdl, inner_tree.children_left[index])
+        prune_small_leaves(mdl, inner_tree.children_right[index])
+    if index == 0:
+        prune_duplicate_leaves(mdl)
+
+def summarise_classes(mdl, classes=[], balanced=False, at=None):
+    if len(classes) > 1:
+        if not at:
+            at = classes[0]
+        inner_tree = mdl.tree_
+        for index in range(len(inner_tree.value)):
+            # inner_tree.value[index, 0] = np.append(inner_tree.value[index, 0], 0)
+            inner_tree.value[index, 0, at] = np.sum(inner_tree.value[index, 0, classes]) / (1 if not balanced else len(classes))
+            inner_tree.value[index, 0, [c for c in classes if c != at]] = 0
+        prune_duplicate_leaves(mdl)
     
 
 if __name__ == '__main__':
@@ -248,25 +211,53 @@ if __name__ == '__main__':
 
     # set1 --> only uses PIDs and IP significance of the B primary vertex
     # set2 --> collects the pre-selections features used in run2 (except SSKaon). See https://gitlab.cern.ch/lhcb/Phys/-/tree/run2-patches/Phys/FlavourTagging/python/FlavourTagging
-    features_set1 = ['B_Tr_T_PROBNN_PI', 'B_Tr_T_PROBNN_K', 'B_Tr_T_PROBNN_E', 'B_Tr_T_PROBNN_MU', 'B_Tr_T_PROBNN_P', 'B_Tr_T_PIDK', 'B_Tr_T_PIDe', 'B_Tr_T_PIDmu', 'B_Tr_T_PIDP', 'B_Tr_T_BVIPSig'] 
-    features_set2 = ['B_Tr_T_P' , 'B_Tr_T_TRACKISLONG', 'B_Tr_T_minPhiDistance', 'B_Tr_T_ISMUON', 'B_Tr_T_absIP',
-                    'B_Tr_T_eoverP', 'B_Tr_T_BPVIPCHI2', 'B_Tr_T_PT', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_EtaDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_DeltaR', 'B_Tr_T_Charge'] # , 'B_Tr_T_CHI2DOF', 'B_Tr_T_GHOSTPROB']
-    # set3 --> on the top of set1 and set2 adds other variables from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/DevelopmentTaggerConf.py
-    features_set3 = ['B_Tr_T_cos_PhiDistance', 'P_proj', 'B_Tr_T_diff_z', 'B_Tr_T_PX', 'B_Tr_T_PY', 'B_Tr_T_PZ', 'B_Tr_T_ENERGY', 'B_Tr_T_Eta', 'B_Tr_T_Phi', 'B_Tr_T_BPVIP', 'B_PT', 'B_nTracks', 'B_Tr_T_MINIP', 'B_Tr_T_MINIPChi2', 'B_nPVs', 'B_Tr_T_atanPT_PZ'] 
-    # Missing PROBNN for all the particles (not usable yet)
-    # atan ((PT/PZ)) possible to implement as function
-    # TRPCHI2 dropped (CHI2 probability)
-    # CLONEDIST could be replaced with TRACKISCLONE functor. Not in our Analysis Production (AP)
-    # PP_InAccHcal could be replaced with INHCAL. Not in our Analysis Production (AP)
-    # PP_VeloCharge not available functor. It can be replaced with HASVELO. Not in our Analysis Production (AP)
-    # IPPUSig not available functor
-    # Signal_TagPart_CHI2DOF not available functor
-    # TRLH = track likelihood. Dropped
-    # SumBDT_ult don't know what is
-    # PVndof not clear
-    # TRGHP alias for TRACKGHOSTPROB
-    features = features_set1+features_set2+features_set3
-    loading_variables = features +["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID"]
+    features = [
+        'B_Tr_T_PROBNN_PI',
+        'B_Tr_T_PROBNN_K',
+        'B_Tr_T_PROBNN_E',
+        'B_Tr_T_PROBNN_MU',
+        'B_Tr_T_PROBNN_P',
+        'B_Tr_T_PIDK',
+        'B_Tr_T_PIDe',
+        'B_Tr_T_PIDmu',
+        'B_Tr_T_PIDP',
+        'B_Tr_T_BVIPSig',
+        'B_Tr_T_P',
+        'B_Tr_T_TRACKISLONG',
+        'B_Tr_T_minPhiDistance',
+        'B_Tr_T_ISMUON',
+        'B_Tr_T_absIP',
+        'B_Tr_T_eoverP',
+        'B_Tr_T_BPVIPCHI2',
+        'B_Tr_T_PT',
+        'B_Tr_T_DeltaQ_Pion',
+        # 'B_Tr_T_DeltaQ_Proton',
+        # 'B_Tr_T_DeltaQ_Kaon',
+        'B_Tr_T_Signal_TagPart_PT',
+        'B_Tr_T_EtaDistance',
+        'B_Tr_T_PhiDistance',
+        'B_Tr_T_DeltaR',
+        # 'B_Tr_T_Charge',
+        'B_Tr_T_cos_PhiDistance',
+        'P_proj',
+        # 'B_Tr_T_diff_z',
+        # 'B_Tr_T_PX',
+        # 'B_Tr_T_PY',
+        # 'B_Tr_T_PZ',
+        'B_Tr_T_ENERGY',
+        'B_Tr_T_Eta',
+        'B_Tr_T_Phi',
+        'B_Tr_T_BPVIP',
+        # 'B_PT',
+        # 'B_nTracks',
+        'B_Tr_T_MINIP',
+        'B_Tr_T_MINIPChi2',
+        # 'B_nPVs',
+        'B_Tr_T_atanPT_PZ'
+    ]
+
+
+    loading_variables = features +["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID", "EVENTNUMBER", "RUNNUMBER", "B_nPVs", "B_BKGCAT"]
     # Path to input root files
     input_paths = {}
     # file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
@@ -276,9 +267,9 @@ if __name__ == '__main__':
     file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/0023756*2_1.mc.root'#.root'
     # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/0023756*_1.mc.root'#.root'
     input_paths.update({"Bu2JpsiK":glob.glob(file_pattern)})
-    # # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*2_1.mc.root'#.root'
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*2_1.mc.root'#.root'
     # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*_1.mc.root'#.root'
-    # input_paths.update({"Bd2JpsiKst":glob.glob(file_pattern)})
+    input_paths.update({"Bd2JpsiKst":glob.glob(file_pattern)})
     # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2JpsiPhi/*1_1.mc.root'#.root'
     # input_paths.update({"Bs2JpsiPhi":glob.glob(file_pattern)})
     # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2DmPi/*1_1.mc.root'#.root'
@@ -287,6 +278,7 @@ if __name__ == '__main__':
 
     print(f"Loading data: Start \n")
     df = pd.DataFrame(columns=loading_variables)
+    n = 0
     for mode, files in input_paths.items():
         for f in sorted(files):
             print(f"Reading input file: {f}")
@@ -302,15 +294,45 @@ if __name__ == '__main__':
                     loading_variables_temp = loading_variables
                 _df = _f[find_tree_name(mode)].arrays(loading_variables_temp, library="pd")
                 _df = _df.rename(columns={a:b for a, b in zip(loading_variables_temp, loading_variables)})
+                _df["sample"] = n
+                n += 1
+                # if mode.startswith("Bu"):
+                #     _df = _df.query("B_TRUEID==521")
+                # elif mode.startswith("Bs"):
+                #     _df = _df.query("B_TRUEID==531")
+                # elif mode.startswith("Bd"):
+                #     _df = _df.query("B_TRUEID==511")
                 # _df = _df.query("B_BKGCAT==0")
-                _df = _df.query("B_Tr_T_PT > 500")
+                # _df = _df.query("B_Tr_T_PT > 500")
+                # _df = _df.query("B_nPVs == 1")
             df = pd.concat([df, _df], ignore_index = True)
             print(df.shape, _df.shape)
 
     print(f"Loading data finished in {round(-start+ time.time() , 2)}s")
+    #todo: bkgcat cut!
+    
+    # plt.figure()
+    # runnumber = df.loc[0, 'RUNNUMBER']
+    # samplenumber = df.loc[0, 'sample']
+    # df_run = df.query(f"RUNNUMBER == {runnumber} & sample == {samplenumber} & B_BKGCAT==0")
+    # print("test", len(df_run["EVENTNUMBER"].unique()), len(df_run["EVENTNUMBER"]))
+    # plt.hist(df_run["EVENTNUMBER"], bins=len(df_run["EVENTNUMBER"].unique()))
+    # plt.savefig("build/test.pdf")
+    # plt.clf()
+    
+    print(df.shape)
+    # print(df.groupby(["EVENTNUMBER", "RUNNUMBER", "sample"]).first().shape)
+    print(df.query("B_BKGCAT==0").shape[0] / df.shape[0])
+    # print(df.groupby(["EVENTNUMBER", "RUNNUMBER", "sample"]).first().shape[0] / df.shape[0])
+    df = df.query("B_BKGCAT==0")#.groupby(["EVENTNUMBER", "RUNNUMBER", "sample"]).first()
+    print(df.shape)
     
     df, new_features = add_PID_diffs(df)
     features += new_features
+    
+    print(len(df))
+    df = df.sample(frac=1)
+    df.dropna(inplace=True)
 
     df.B_Tr_T_Origin_Flag.astype(int)
 
@@ -318,77 +340,60 @@ if __name__ == '__main__':
     conditions = [
     (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2), # OSKaon
     (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2), # OSProton
-    (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2),# & (df.B_Tr_T_ISMUON == 1), # OSMuon
-    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2) & (df.B_Tr_T_MC_MOTHER_ID!=22),# & (df.index%2==0), # OSElectron
-    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# & (df.B_Tr_T_DeltaR < 2.5), # SSPion
-    ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0)),# & (df.B_Tr_T_DeltaR < 2.5), # SSProton and SSKaon
-    # (((df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | (df.B_TRUEID.abs()==531))) | ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0)) | (df.B_TRUEID.abs()!=531))) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | (df.B_TRUEID.abs()!=531)))) & (df.index%4==0), # wrongSS
-    # ((df.B_Tr_T_Origin_Flag==3) | (df.B_Tr_T_Origin_Flag==4)) & (df.index%16==0), # OSFrag reduced by a factor 16
-    (df.B_Tr_T_Origin_Flag==100) & (df.index%400==0), # wrong PV reduced by a factor 400
-    (df.B_Tr_T_absID==11) & (df.B_Tr_T_MC_MOTHER_ID==22) & (df.index%10==0),# & (df.index%2==0), # photon conversion
-    (df.B_Tr_T_Origin_Flag==5) & (df.index%150==0), # Prompt reduced by a factor 150
-    # ((df.B_Tr_T_Origin_Flag==5) & (df.index%250==0)) | (((df.B_Tr_T_Origin_Flag==3) | (df.B_Tr_T_Origin_Flag==4)) & (df.index%25==0)) | ((((df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | (df.B_TRUEID.abs()==531))) | ((df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0)) | (df.B_TRUEID.abs()!=531))) | ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (((df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge < 0)) | (df.B_TRUEID.abs()!=531)))) & (df.index%8==0)) | ((df.B_Tr_T_absID==11) & (df.B_Tr_T_MC_MOTHER_ID==22)), # Other
-    # False,# unclassified
+    (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2),# , # OSMuon
+    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2) & (df.B_Tr_T_MC_MOTHER_ID!=22), # OSElectron
+    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
+    (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
+    (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
+    # (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
+    # (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
+    # (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
+    (df.B_Tr_T_Origin_Flag==100), # wrong PV
+    (df.B_Tr_T_absID==11) & (df.B_Tr_T_MC_MOTHER_ID==22),# photon conversion electrons
+    (df.B_Tr_T_Origin_Flag==5), # Prompt 
     ]
-    # conditions.append(exec("("+"|".join([f'!({c.replace(" ", "").split("&(df.index%)")[0]})' for c in conditions])+") & df.index%400==0")) # "other" all tracks which do not belong to one of the defined classes
-    particle_type = { t:i+1 for i, t in enumerate([
+    particle_type = { t:i for i, t in enumerate([
         "OSKaon",
         "OSProton",
         "OSMuon",
         "OSElectron",
         "SSPion",
-        "SSProton+SSKaon",
-        # "wrongSS",
-        # "OSFragemntation",
+        "SSProton",
+        "SSKaon",
+        # "SSProton+SSKaon",
         "wrongPV",
         "photon conversion",
         "Prompt",
-        # "Other",
-        # "Unclassified",
         ])
     }
     
-    print(particle_type)
-    df['ID_type'] = np.select(conditions, particle_type.values())
-    
+    df['ID_type'] = np.select(conditions, particle_type.values(), len(particle_type))
     # ids = df['ID_type'].unique()
     # particle_type = {k:v for k, v in particle_type.items() if v in ids}
     
-    df.loc[~df['ID_type'].isin(particle_type.values()), 'ID_type'] = 0
+    particle_type.update({"Other":len(particle_type)})
     # Assign the corresponding particle type
     df['particle'] = df['ID_type'].map({v: k for k, v in particle_type.items()})
     # If ID_type is not in particle_type values, set 'particle' to None
-    df.loc[~df['ID_type'].isin(particle_type.values()), 'particle'] = 'not_taggingPart'
+    df.loc[~df['ID_type'].isin(particle_type.values()), 'particle'] = 'unknown'
     
-    # Plot features
-    output_dir = 'DT_outputs'
-    #plot_features_byOrigin(data=df, features=features, particle_type=particle_type,)
-    #plot_features_byParticle(data=df, features=features)
+    print(particle_type)
+    
     
     # Shuffle 
-    print(len(df))
-    df = df.sample(frac=1)
-    df.dropna(inplace=True)
-    x = df.loc[(df.ID_type != 0 )][features + ["ID_type", "particle"]]
+    x_train = df[features]
+    y_train = df.ID_type
     print(f'The features used are {len(features)}: {features}')
-    print(f"\nComposition:\n{round(x.particle.value_counts()/x.shape[0],4)*100}")
+    print(f"\nComposition:\n{round(df.particle.value_counts()/df.shape[0],4)*100}")
     print('-----------------------------------------')
-    # To get same amount of not_taggingPart
-    #x = pd.concat([x, df.loc[df.ID_type == 0][features + ["ID_type"]].head(len(x))])
-    y = x.ID_type
-    x.drop(columns=["ID_type", "particle"] , inplace = True)
-    print(len(x), len(y))
-    x_train, y_train = x, y
-    # x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.3, random_state=42)
-    for setting in ["balanced", "unbalanced"]:
+    print(len(y_train))
+    for setting in ["balanced"]:#, "unbalanced"]:
         print(setting)
         start = time.time()
         print("Start fitting")
         # Modify loss/score in https://scikit-learn.org/stable/modules/model_evaluation.html#implementing-your-own-scoring-object< similar to https://github.com/keras-team/keras/issues/2115 to weight misID
-        # clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 8, min_weight_fraction_leaf=0.01, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
-        # clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 12, min_samples_leaf=0.01, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
         if setting == "balanced":
-            clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 10, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
+            clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 6, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
         else:
             clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 10, min_samples_leaf=0.002)
 
@@ -402,28 +407,36 @@ if __name__ == '__main__':
         graph = graphviz.Source(dot_data) 
         graph.render(f"{cfg.target_path}/{setting}/tree_schema")
         
-        n_tagger = 6
-        old_tree = copy.deepcopy(clf.tree_)
-        old_tree.value[0] *= 0
-        while np.any(old_tree.value != clf.tree_.value):
-            old_tree = copy.deepcopy(clf.tree_)
-            apply_node_threshold(clf, threshold=0.60, n_tagger=n_tagger, min_samples=0 if setting == "unbalanced" else 0.01) # try to implement sample size dependent thresholds
-            # apply_increasing_node_threshold(clf, min_threshold=0.50, threshold_per_depth=0.13, n_tagger=n_tagger, min_samples=0 if setting == "unbalanced" else 0.01) 
-            prune_duplicate_leaves(clf)
-            reset_nodes(clf, old_tree)
-            prune_duplicate_leaves(clf)
-        
-        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True) 
-        graph = graphviz.Source(dot_data) 
-        graph.render(f"{cfg.target_path}/{setting}/tree_schema_pruned")
-        
-        summarise_bkg_classes(clf, n_tagger)
-        particle_type = {k:v for k, v in particle_type.items() if v <= n_tagger}
-        particle_type.update({"Rejected":n_tagger+1})
-        print(particle_type)
-        
-        print("\n Metrics for particle type composition: true VS predicted\n")
         DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, savepath=f"{cfg.target_path}/{setting}/confusion_normalised_by_truth.txt")
         DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted', savepath=f"{cfg.target_path}/{setting}/confusion_normalised_by_prediction.txt")
         # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, balanced=True, title='Versus True (balanced)')
         DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/balanced_confusion_normalised_by_prediction.txt")
+        
+        n_tagger = 7
+        prune_small_leaves(clf, min_samples=0.005)
+        check_ambigious_leaves(clf, threshold=0.5, bkg_class=-1) # tdod different thresholds depending on depth or class
+        # try implement pruning based on improvement (purity vs size)
+        # try implement pruning threshold based on class confusion
+        
+        summarise_classes(clf, [5, 6], at=5, balanced=False) # summarise ssk/p classes #todo:fix balancing
+        summarise_classes(clf, [8, 9, 10], at=6, balanced=False) # bkg #todo:fix balancing
+        summarise_classes(clf, [6, 7], at=6, balanced=False) # sanity #todo:fix balancing
+        
+        particle_type = {k:v for k, v in particle_type.items() if v not in [5, 6]}
+        particle_type.update({"SSKaon / SSProton":5, "Other":6})
+        particle_type = dict(sorted(particle_type.items(), key=lambda x: x[1]))
+        print(particle_type)
+        
+        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True, node_ids=True) 
+        graph = graphviz.Source(dot_data) 
+        graph.render(f"{cfg.target_path}/{setting}/tree_schema_pruned")
+        
+        particle_type = {k:v for k, v in particle_type.items() if v < 6}
+        particle_type.update({"Other":6})
+        particle_type = dict(sorted(particle_type.items(), key=lambda x: x[1]))
+        print(particle_type)
+        print("\n Metrics for particle type composition: true VS predicted\n")
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, title='Versus True (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_truth.txt")
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_prediction.txt")
+        # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, balanced=True, title='Versus True (balanced)')
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/pruned_balanced_confusion_normalised_by_prediction.txt")
