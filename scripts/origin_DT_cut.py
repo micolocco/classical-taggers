@@ -331,11 +331,53 @@ if __name__ == '__main__':
     features += new_features
     
     print(len(df))
+    # Shuffle 
     df = df.sample(frac=1)
     df.dropna(inplace=True)
 
     df.B_Tr_T_Origin_Flag.astype(int)
 
+    # Define labels for multiclassification
+    conditions = [
+    (df.B_Tr_T_Origin_Flag==2),
+    (df.B_Tr_T_Origin_Flag==1),
+    ]
+    particle_type = { t:i for i, t in enumerate([
+        "OS",
+        "SS",
+        ])
+    }
+    
+    df['ID_type'] = np.select(conditions, particle_type.values(), len(particle_type))
+    # ids = df['ID_type'].unique()
+    # particle_type = {k:v for k, v in particle_type.items() if v in ids}
+    
+    particle_type.update({"Other":len(particle_type)})
+    # Assign the corresponding particle type
+    df['particle'] = df['ID_type'].map({v: k for k, v in particle_type.items()})
+    # If ID_type is not in particle_type values, set 'particle' to None
+    df.loc[~df['ID_type'].isin(particle_type.values()), 'particle'] = 'unknown'
+    clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 3, class_weight='balanced')
+    x_train = df[features]
+    y_train = df.ID_type
+    clf.fit(x_train, y_train)
+    prune_duplicate_leaves(clf)
+    
+    setting = "category"
+    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True, node_ids=True, impurity=True) 
+    graph = graphviz.Source(dot_data) 
+    graph.render(f"{cfg.target_path}/{setting}/tree_schema")
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, title='Versus True (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_truth.txt")
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_prediction.txt")
+    # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, balanced=True, title='Versus True (balanced)')
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/pruned_balanced_confusion_normalised_by_prediction.txt")
+    
+    df["OS"] = clf.predict(df[features])[0]
+    df["SS"] = clf.predict(df[features])[1]
+    df["BKG"] = clf.predict(df[features])[2]
+    
+    
+    
     # Define labels for multiclassification
     conditions = [
     (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2), # OSKaon
@@ -380,7 +422,6 @@ if __name__ == '__main__':
     print(particle_type)
     
     
-    # Shuffle 
     x_train = df[features]
     y_train = df.ID_type
     print(f'The features used are {len(features)}: {features}')
@@ -403,7 +444,7 @@ if __name__ == '__main__':
         print(f"Fit in: {round(-start+ time.time() , 2)}s\n")
         
         # Visualize the decision tree
-        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True) 
+        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True, node_ids=True, impurity=True) 
         graph = graphviz.Source(dot_data) 
         graph.render(f"{cfg.target_path}/{setting}/tree_schema")
         
@@ -427,7 +468,7 @@ if __name__ == '__main__':
         particle_type = dict(sorted(particle_type.items(), key=lambda x: x[1]))
         print(particle_type)
         
-        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True, node_ids=True) 
+        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True, node_ids=True, impurity=True) 
         graph = graphviz.Source(dot_data) 
         graph.render(f"{cfg.target_path}/{setting}/tree_schema_pruned")
         
