@@ -212,15 +212,6 @@ if __name__ == '__main__':
     # set1 --> only uses PIDs and IP significance of the B primary vertex
     # set2 --> collects the pre-selections features used in run2 (except SSKaon). See https://gitlab.cern.ch/lhcb/Phys/-/tree/run2-patches/Phys/FlavourTagging/python/FlavourTagging
     features = [
-        'B_Tr_T_PROBNN_PI',
-        'B_Tr_T_PROBNN_K',
-        'B_Tr_T_PROBNN_E',
-        'B_Tr_T_PROBNN_MU',
-        'B_Tr_T_PROBNN_P',
-        'B_Tr_T_PIDK',
-        'B_Tr_T_PIDe',
-        'B_Tr_T_PIDmu',
-        'B_Tr_T_PIDP',
         'B_Tr_T_BVIPSig',
         'B_Tr_T_P',
         'B_Tr_T_TRACKISLONG',
@@ -240,7 +231,7 @@ if __name__ == '__main__':
         # 'B_Tr_T_Charge',
         'B_Tr_T_cos_PhiDistance',
         'P_proj',
-        # 'B_Tr_T_diff_z',
+        'B_Tr_T_diff_z',
         # 'B_Tr_T_PX',
         # 'B_Tr_T_PY',
         # 'B_Tr_T_PZ',
@@ -255,9 +246,21 @@ if __name__ == '__main__':
         # 'B_nPVs',
         'B_Tr_T_atanPT_PZ'
     ]
+    
+    features_pid = [
+        'B_Tr_T_PROBNN_PI',
+        'B_Tr_T_PROBNN_K',
+        'B_Tr_T_PROBNN_E',
+        'B_Tr_T_PROBNN_MU',
+        'B_Tr_T_PROBNN_P',
+        'B_Tr_T_PIDK',
+        'B_Tr_T_PIDe',
+        'B_Tr_T_PIDmu',
+        'B_Tr_T_PIDP',
+    ]
 
 
-    loading_variables = features +["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID", "EVENTNUMBER", "RUNNUMBER", "B_nPVs", "B_BKGCAT"]
+    loading_variables = features + features_pid + ["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID", "EVENTNUMBER", "RUNNUMBER", "B_nPVs", "B_BKGCAT"]
     # Path to input root files
     input_paths = {}
     # file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
@@ -327,12 +330,9 @@ if __name__ == '__main__':
     df = df.query("B_BKGCAT==0")#.groupby(["EVENTNUMBER", "RUNNUMBER", "sample"]).first()
     print(df.shape)
     
-    df, new_features = add_PID_diffs(df)
-    features += new_features
-    
     print(len(df))
     # Shuffle 
-    df = df.sample(frac=1)
+    df = df.sample(frac=0.01)
     df.dropna(inplace=True)
 
     df.B_Tr_T_Origin_Flag.astype(int)
@@ -341,10 +341,14 @@ if __name__ == '__main__':
     conditions = [
     (df.B_Tr_T_Origin_Flag==2),
     (df.B_Tr_T_Origin_Flag==1),
+    (df.B_Tr_T_Origin_Flag==100), # wrong PV
+    # (df.B_Tr_T_Origin_Flag==5), # Prompt 
     ]
     particle_type = { t:i for i, t in enumerate([
         "OS",
         "SS",
+        "wrongPV",
+        # "Prompt",
         ])
     }
     
@@ -357,36 +361,56 @@ if __name__ == '__main__':
     df['particle'] = df['ID_type'].map({v: k for k, v in particle_type.items()})
     # If ID_type is not in particle_type values, set 'particle' to None
     df.loc[~df['ID_type'].isin(particle_type.values()), 'particle'] = 'unknown'
-    clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 3, class_weight='balanced')
+    
+    
+    start = time.time()
+    print("Start fitting")
+    clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 2, min_samples_leaf=0.01, class_weight='balanced')
     x_train = df[features]
     y_train = df.ID_type
     clf.fit(x_train, y_train)
-    prune_duplicate_leaves(clf)
     
     setting = "category"
     dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True, node_ids=True, impurity=True) 
     graph = graphviz.Source(dot_data) 
     graph.render(f"{cfg.target_path}/{setting}/tree_schema")
+    
+    
+    prune_duplicate_leaves(clf)
+    prune_small_leaves(clf, min_samples=0.05)
+    check_ambigious_leaves(clf, threshold=0.5, bkg_class=-1) # tdod different thresholds depending on depth or class
+    prune_duplicate_leaves(clf)
+    print(f"Fit in: {round(-start+ time.time() , 2)}s\n")
+    
+    setting = "category"
+    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True, node_ids=True, impurity=True) 
+    graph = graphviz.Source(dot_data) 
+    graph.render(f"{cfg.target_path}/{setting}/tree_schema_pruned")
     DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, title='Versus True (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_truth.txt")
     DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_prediction.txt")
     # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, balanced=True, title='Versus True (balanced)')
     DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/pruned_balanced_confusion_normalised_by_prediction.txt")
     
-    df["OS"] = clf.predict(df[features])[0]
-    df["SS"] = clf.predict(df[features])[1]
-    df["BKG"] = clf.predict(df[features])[2]
+    df["OS"] = clf.predict(df[features]) == 0
+    df["SS"] = clf.predict(df[features]) == 1
+    df["wrongPV"] = clf.predict(df[features]) == 2
+    df["BKG"] = clf.predict(df[features]) == 3
     
+    features += ["OS", "SS", "wrongPV", "BKG"] + features_pid
+    df, new_features = add_PID_diffs(df)
+    features += new_features
+        
     
     
     # Define labels for multiclassification
     conditions = [
-    (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2), # OSKaon
-    (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2), # OSProton
-    (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2),# , # OSMuon
-    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2) & (df.B_Tr_T_MC_MOTHER_ID!=22), # OSElectron
-    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
-    (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
-    (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
+    (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2) & (df.OS==1), # OSKaon
+    (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2) & (df.OS==1), # OSProton
+    (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2) & (df.OS==1),# , # OSMuon
+    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2) & (df.OS==1) & (df.B_Tr_T_MC_MOTHER_ID!=22), # OSElectron
+    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) & (df.SS==1),# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
+    (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) & (df.SS==1),# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
+    (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) & (df.SS==1),# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
     # (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
     # (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
     # (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
@@ -434,7 +458,7 @@ if __name__ == '__main__':
         print("Start fitting")
         # Modify loss/score in https://scikit-learn.org/stable/modules/model_evaluation.html#implementing-your-own-scoring-object< similar to https://github.com/keras-team/keras/issues/2115 to weight misID
         if setting == "balanced":
-            clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 6, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
+            clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 4, class_weight='balanced') #class_weight='balanced',  min_impurity_decrease=0.009
         else:
             clf = tree.DecisionTreeClassifier(criterion="log_loss", max_depth = 10, min_samples_leaf=0.002)
 
@@ -448,14 +472,50 @@ if __name__ == '__main__':
         graph = graphviz.Source(dot_data) 
         graph.render(f"{cfg.target_path}/{setting}/tree_schema")
         
+        
+        # Define labels for multiclassification
+        conditions = [
+        (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2) , # OSKaon
+        (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2) , # OSProton
+        (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2),# , # OSMuon
+        (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2)  & (df.B_Tr_T_MC_MOTHER_ID!=22), # OSElectron
+        (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1) ,# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
+        (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1) ,# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
+        (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1) ,# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
+        # (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# # SSPion
+        # (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==511)  & (df.B_TRUEID * df.B_Tr_T_Charge < 0), # SSproton
+        # (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1),# & (df.B_TRUEID.abs()==531) & (df.B_TRUEID * df.B_Tr_T_Charge > 0),# SSKaon
+        (df.B_Tr_T_Origin_Flag==100), # wrong PV
+        (df.B_Tr_T_absID==11) & (df.B_Tr_T_MC_MOTHER_ID==22),# photon conversion electrons
+        (df.B_Tr_T_Origin_Flag==5), # Prompt 
+        ]
+        particle_type = { t:i for i, t in enumerate([
+            "OSKaon",
+            "OSProton",
+            "OSMuon",
+            "OSElectron",
+            "SSPion",
+            "SSProton",
+            "SSKaon",
+            # "SSProton+SSKaon",
+            "wrongPV",
+            "photon conversion",
+            "Prompt",
+            ])
+        }
+        
+        df['ID_type'] = np.select(conditions, particle_type.values(), len(particle_type))
+        x_train = df[features]
+        y_train = df.ID_type
+        
         DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, savepath=f"{cfg.target_path}/{setting}/confusion_normalised_by_truth.txt")
         DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted', savepath=f"{cfg.target_path}/{setting}/confusion_normalised_by_prediction.txt")
         # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, balanced=True, title='Versus True (balanced)')
         DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/balanced_confusion_normalised_by_prediction.txt")
         
         n_tagger = 7
-        prune_small_leaves(clf, min_samples=0.005)
-        check_ambigious_leaves(clf, threshold=0.5, bkg_class=-1) # tdod different thresholds depending on depth or class
+        # prune_small_leaves(clf, min_samples=0.005)
+        # check_ambigious_leaves(clf, threshold=0.33, bkg_class=-1) # tdod different thresholds depending on depth or class
         # try implement pruning based on improvement (purity vs size)
         # try implement pruning threshold based on class confusion
         
