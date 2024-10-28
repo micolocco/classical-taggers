@@ -260,7 +260,7 @@ if __name__ == '__main__':
     ]
 
 
-    loading_variables = features + features_pid + ["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID", "EVENTNUMBER", "RUNNUMBER", "B_nPVs", "B_BKGCAT"]
+    loading_variables = features + features_pid + ["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID", "B_Tr_T_MC_GD_MOTHER_ID", "B_Tr_T_MC_GD_GD_MOTHER_ID", "B_Tr_T_MC_MOTHER_KEY", "B_Tr_T_MC_GD_MOTHER_KEY", "B_Tr_T_MC_GD_GD_MOTHER_KEY", "B_MC_MOTHER_ID", "B_MC_GD_MOTHER_ID", "B_MC_GD_GD_MOTHER_ID", "B_MC_MOTHER_KEY", "B_MC_GD_MOTHER_KEY", "B_MC_GD_GD_MOTHER_KEY", "EVENTNUMBER", "RUNNUMBER", "B_nPVs", "B_BKGCAT"]
     # Path to input root files
     input_paths = {}
     # file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
@@ -313,15 +313,6 @@ if __name__ == '__main__':
 
     print(f"Loading data finished in {round(-start+ time.time() , 2)}s")
     #todo: bkgcat cut!
-    
-    # plt.figure()
-    # runnumber = df.loc[0, 'RUNNUMBER']
-    # samplenumber = df.loc[0, 'sample']
-    # df_run = df.query(f"RUNNUMBER == {runnumber} & sample == {samplenumber} & B_BKGCAT==0")
-    # print("test", len(df_run["EVENTNUMBER"].unique()), len(df_run["EVENTNUMBER"]))
-    # plt.hist(df_run["EVENTNUMBER"], bins=len(df_run["EVENTNUMBER"].unique()))
-    # plt.savefig("build/test.pdf")
-    # plt.clf()
     
     print(df.shape)
     # print(df.groupby(["EVENTNUMBER", "RUNNUMBER", "sample"]).first().shape)
