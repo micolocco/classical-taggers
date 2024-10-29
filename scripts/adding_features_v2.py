@@ -295,7 +295,48 @@ if __name__ == '__main__':
 
     print(f'{loading_variables_withPrefix}')
     print('Started processing')
-    process_file_in_batches(cfg.raw, loading_variables_withPrefix, cfg.treename, prefix, abs_id, cfg.evtType, cfg.batch_size, cfg.output)
+    #process_file_in_batches(cfg.raw, loading_variables_withPrefix, cfg.treename, prefix, abs_id, cfg.evtType, cfg.batch_size, cfg.output)
+    #print('Started reading')
+    with uproot.open("{}".format(cfg.raw)) as f:
+        df = f[cfg.treename].arrays(loading_variables_withPrefix, library="pd")
+
+    # drop the B mesons or other particles that are not of interest
+    abs_id = B_abs_id_dic[cfg.evtType]
+    df.drop(df[abs(df[f'{prefix}TRUEID']) != abs_id ].index , inplace = True)
+    df.reset_index(inplace=True, drop = False)
+    # Add some needed features
+    # A bit of a hack to add the minimum distance
+    df = min_dPhi(df, prefix)
+    df.eval(f'{prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)', inplace=True)
+    df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}BPVZ - {prefix}Tr_T_BPVZ)' , inplace = True)
+    df.eval(f'{prefix}Tr_T_DeltaR= ({prefix}ETA - {prefix}Tr_T_Eta)**2 + {prefix}Tr_T_PhiDistance**2', inplace = True)
+    df.eval(f'diff_P = abs({prefix}P - {prefix}Tr_T_P)', inplace = True)
+    df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
+    df.eval(f't = ({prefix}END_VX**2 + {prefix}END_VY**2 + {prefix}END_VZ**2 - {prefix}END_VX*{prefix}Tr_T_X - {prefix}END_VY*{prefix}Tr_T_Y - {prefix}END_VZ*{prefix}Tr_T_Z) / ({prefix}END_VX * {prefix}Tr_T_PX + {prefix}END_VY * {prefix}Tr_T_PY + {prefix}END_VZ * {prefix}Tr_T_PZ)' , inplace = True)
+    df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
+    df.eval(f'{prefix}Tr_T_absIP = abs({prefix}Tr_T_BPVIP)', inplace = True)
+    df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
+    df.eval(f'{prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)', inplace = True)
+    df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
+    df[f'{prefix}Tr_T_DeltaQ_Muon'] = DeltaQ(df,105.65837, prefix)
+    df[f'{prefix}Tr_T_DeltaQ_Electron'] = DeltaQ(df,0.51100, prefix)
+    df[f'{prefix}Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208, prefix)
+    df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
+    df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
+    df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
+    df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUEID)', inplace = True)
+    df.eval('EVIP = log(EVIP)', inplace = True)
+    df.eval(f'{prefix}Tr_T_BVIPSig = sqrt({prefix}Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
+    df.eval('P_proj = log(P_proj)', inplace = True)
+    df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
+
+    df.columns = df.columns.str.replace(f'{prefix}', 'B_', regex=False)
+    print(f'Total shape should be {df.shape[0]}')
+
+    os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
+    with uproot.recreate(cfg.output) as f:
+        f['Tuple/DecayTree'] = df
+
     print(f'Modified NTuple processed and saved to {cfg.output}')
     print(f'Creation time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 

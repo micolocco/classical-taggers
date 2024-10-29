@@ -145,12 +145,14 @@ generated_paths_OSMuon = read_generated_paths(data,join(repo,'paths_for_snakemak
 rule all:
     input:
         join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/14/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/45/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/14/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/45/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
         ##join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
        # ntuples_selected_withUT['Bu2JpsiK']['OSMuon'],
+       #         ntuples_selected_withUT['Bd2JpsiKst']['SSProton'],
+
        # ntuples_selected_withUT['Bu2JpsiK']['OSKaon'],
        # ntuples_selected_withUT['Bu2JpsiK']['OSElectron'],
        # ntuples_selected_withUT['Bd2JpsiKst']['SSPion'],
