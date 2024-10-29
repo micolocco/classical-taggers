@@ -1,6 +1,6 @@
 
 
-def metric_table(y_true, y_predicted, particle_type_dict, true_type_dict=None, title='Versus True', normalization=None, balanced = False, savepath=None):      
+def metric_table(y_true, y_predicted, particle_type_dict, true_type_dict=None, title='Versus True', normalization=None, balanced = False, savepath=None, uncertainty=False):      
     '''
     Function to get metrics (in form of a table) for the amount of true VS predicted particle types
     Denominator can be the amount of predicted particles or of true partricle for a specific type
@@ -33,12 +33,16 @@ def metric_table(y_true, y_predicted, particle_type_dict, true_type_dict=None, t
         percVector = []
         for prediction_ID in np.arange(list(particle_type_dict.values())[0], list(particle_type_dict.values())[-1]+1):
             if prediction_ID in np.unique(y_predicted):
-                p = np.sum((y_predicted == prediction_ID) * (y_true == value) * weight)
+                k = np.sum((y_predicted == prediction_ID) * (y_true == value) * weight)
                 if normalization=='predicted':
-                    norm = np.sum((y_predicted == prediction_ID) * weight)
+                    n = np.sum((y_predicted == prediction_ID) * weight)
                 else:
-                    norm = np.sum((y_true == value) * weight)
-                percVector.append("{:.2f}".format((p/norm)*100))
+                    n = np.sum((y_true == value) * weight)
+                if uncertainty:
+                    percVector.append("{:.4f} ± {:.4f}".format((k/n)*100, (((k/n)*(1-k/n))/n)*100)) # Binominal variance of the efficiency from https://indico.cern.ch/event/66256/contributions/2071577/attachments/1017176/1447814/EfficiencyErrors.pdf
+                    # percVector.append("{:.4f} ± {:.4f}".format((k/n)*100, ((((k+1)*(k+2))/((n+2)*(n+3)))-(((k+1)**2)/((n+2)**2)))*100)) # Bayesian variance of the efficiency from https://indico.cern.ch/event/66256/contributions/2071577/attachments/1017176/1447814/EfficiencyErrors.pdf
+                else:
+                    percVector.append("{:.2f}".format((k/n)*100))
             else:
                 percVector.append("Not predicted")
         table.add_row(key, *percVector)
