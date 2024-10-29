@@ -27,6 +27,7 @@ def metric_table(y_true, y_predicted, particle_type_dict, title='Versus True', n
     #table.add_column("OSProton", justify="right", style="green")
     for key in particle_type_dict.keys():
         table.add_column(key, justify="right", style="green")
+    '''    
     for key, value in particle_type_dict.items():
         percVector = []
         for prediction_ID in np.arange(list(particle_type_dict.values())[0], list(particle_type_dict.values())[-1]+1):
@@ -35,9 +36,34 @@ def metric_table(y_true, y_predicted, particle_type_dict, title='Versus True', n
                     denom=len(y_predicted[y_predicted==prediction_ID])
                 else:
                     denom=len(y_true[y_true==value])
+                print(np.unique(y_true[y_predicted==prediction_ID]==value,return_counts=True))
+                print(f'{prediction_ID}, {value}')
                 percVector.append("{:.2f}".format(((np.unique(y_true[y_predicted==prediction_ID]==value,return_counts=True)[1][1])/denom)*100))
             else:
                 percVector.append("Not predicted")
+    '''
+    for key, value in particle_type_dict.items():
+        percVector = []
+        for prediction_ID in np.arange(list(particle_type_dict.values())[0], list(particle_type_dict.values())[-1]+1):
+            if prediction_ID in np.unique(y_predicted):
+                if normalization == 'predicted':
+                    denom = len(y_predicted[y_predicted == prediction_ID])
+                else:
+                    denom = len(y_true[y_true == value])
+                
+                unique_values, counts = np.unique(y_true[y_predicted == prediction_ID] == value, return_counts=True)
+
+                # Check if 'True' exists in unique_values before accessing counts[1]
+                if True in unique_values:
+                    true_count_index = np.where(unique_values == True)[0][0]
+                    true_count = counts[true_count_index]
+                    percentage = (true_count / denom) * 100
+                    percVector.append("{:.2f}".format(percentage))
+                else:
+                    percVector.append("0.00")  # No 'True' values, so 0% match
+            else:
+                percVector.append("Not predicted")
+
         table.add_row(key, *percVector)
     console.print(table)
 

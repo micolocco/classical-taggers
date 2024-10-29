@@ -149,7 +149,7 @@ if __name__ == '__main__':
         plot_heatmaps('complex', axes[1, 0], axes[1, 1], axes[1, 2])
 
         # Add the main title
-        fig.suptitle(f'Tagging Power Comparison for {cfg.tagger} in {cfg.decayType}', fontsize=16)
+        fig.suptitle(f'Tagging Power Comparison for {cfg.tagger} in {cfg.decayType}, seed={seed}', fontsize=16)
 
         # Adjust layout to make room for the main title
         plt.tight_layout(rect=[0, 0, .9, 0.95])

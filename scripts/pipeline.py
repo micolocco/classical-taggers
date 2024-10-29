@@ -19,6 +19,7 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
+import utils
 '''
 For testing purposes:
 python scripts/pipeline.py --selected NTuple_test_<tagger>.root --tagger <tagger> --decayType <decayType> where NTuple_test_tagger.root is whatever NTuple with this name
@@ -126,7 +127,7 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Reading datasets
-    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
+    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER']
     
     df = pd.DataFrame(columns=vars)
     for f in selected_files:
@@ -136,17 +137,19 @@ if __name__ == '__main__':
         _df.dropna(inplace = True)
         df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
+
     removal_time1 = time.time()
-    #df = utils.remove_multicandidates(df)
     df = utils.remove_multicandidates(df)
+    #df = utils.remove_multicandidates(df)
     removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
     print(f"Removing multicandidates required {removal_time2}s")
+    
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
     if ("Bd" or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
-        df["TagDec"] = df[f"B_Tr_T_Charge"]
+        df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"]
     else:
-        df["TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
+        df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
 
     # Assignation of the label (it will be used as NN output)
     # The label is given by the product of the tagging decision and the flavour charge of the B.
@@ -155,7 +158,7 @@ if __name__ == '__main__':
     # When using data:
     #   - tagging decision: the B_TRUEID must be replaced with B_ID 
     #   - calibration: B_ID = reconstructed ID when moving to data!
-    df["label"] = df[f"TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) 
+    df["label"] = df[f"{cfg.tagger}_TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) 
     df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
     '''
     plt.figure(figsize=(24,25))
@@ -176,10 +179,10 @@ if __name__ == '__main__':
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device used: {device}")
-    #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
-    #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
+    #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
+    #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']], seed=cfg.seed, train_val_split=config['train_val_split'])
+    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']], seed=cfg.seed, train_val_split=config['train_val_split'])
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
@@ -187,7 +190,7 @@ if __name__ == '__main__':
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
-    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
+    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID',]
     #train_df.drop(columns = columns_to_drop, inplace = True)
     #val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=config['train_batch_size'], seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath)
@@ -211,10 +214,12 @@ if __name__ == '__main__':
     plt.figure()
     plt.hist(1-train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 0, only selected")
+    plt.yscale("log")
     plt.savefig(f"{cfg.target_path}/trainingSet_prob0distrib.pdf")
     plt.figure()
     plt.hist(train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 1, only selected")
+    plt.yscale("log")
     plt.savefig(f"{cfg.target_path}/trainingSet_prob1distrib.pdf")
 
 
@@ -253,28 +258,28 @@ if __name__ == '__main__':
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
-    #test_df['Eta'] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
+    #test_df[f"{cfg.tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
     test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
-    test_df['Eta'] = 1 - test_df['predictedProb']
+    test_df[f"{cfg.tagger}_Eta"] = 1 - test_df['predictedProb']
 
-    test_df = test_df[['event_entry','selected', 'Eta', 'TagDec', 'label','B_TRUEID']]
+    test_df = test_df[['event_entry','selected', f"{cfg.tagger}_Eta", f"{cfg.tagger}_TagDec", 'label','B_TRUEID']]
 
-    #print(test_df.loc[test_df.selected == 1].Eta) 
+    #print(test_df.loc[test_df.selected == 1][f"{cfg.tagger}_Eta"]) 
 
-    test_df.loc[test_df.selected == 0, "TagDec"] = 0  # classic
-    test_df.loc[test_df.selected == 0, "Eta"] = 0.5  # classic
-    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected","Eta"] , ascending = [False,True]).groupby("event_entry").first(), output_file='Not_Normalized_TagDec.pdf', target_path=cfg.target_path)
+    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
+    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
+    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{cfg.target_path}/Not_Normalized_TagDec.pdf')
  
     # Eta Normalization [0, 0.5]
-    test_df.loc[test_df.Eta > 0.5 ,"TagDec"] *= -1
-    test_df.loc[test_df.Eta > 0.5, "Eta"] *= -1
-    test_df.loc[test_df.Eta < 0, "Eta"] += 1
+    test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5 ,f"{cfg.tagger}_TagDec"] *= -1
+    test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5, f"{cfg.tagger}_Eta"] *= -1
+    test_df.loc[test_df[f"{cfg.tagger}_Eta"] < 0, f"{cfg.tagger}_Eta"] += 1
 
-    df_TagParticles = test_df.sort_values(by = ["selected","Eta"] , ascending = [False,True]).groupby("event_entry").first()
-    #df_TagParticles = test_df.sort_values(by = ["selected","Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
+    df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
+    #df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
     
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
-    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, target_path=cfg.target_path)
+    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles,  plot_name=f'{cfg.target_path}/Normalized_TagDec.pdf')
     # Calibrating the tagger and saving parameters
     pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path)
     # Try both calibration functions

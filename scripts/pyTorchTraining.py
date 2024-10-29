@@ -191,8 +191,10 @@ def save_hyperparameters(model, target_path):
 def load_model(model, target_path):
    # target_path = name_formatter.assign_name(folder, target_path)    
     # saveName = name_formatter.assign_name(target_path, model.modelName)
-    model.load_state_dict(torch.load(f"{target_path}/model.pth"))
-    
+    model_name = f"{target_path}/model.pth"
+    model.load_state_dict(torch.load(model_name))
+    print(f"The model used is {model_name}")
+
 
 def save_losses(trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     
@@ -322,7 +324,7 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
     data3=1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==-521)]  
     data4=1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==521)]
     plt.title(f"{tagger}", fontsize=24)
-    plt.xlabel(r"NN output", fontsize=24)
+    plt.xlabel(r"1 - NN output", fontsize=24)
     #plt.annotate(f'{len(df.yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
     plt.grid()
     plt.ylabel("Normalized number of tracks", fontsize=24)
@@ -338,27 +340,26 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
     axs[1].legend()
     for ax in axs.flat:
         ax.set_yscale('log')
-        ax.set_xlabel(f'NN output', fontsize=22)
+        ax.set_xlabel(f'1 - NN output', fontsize=22)
         ax.set_ylabel('Normalized number of tracks', fontsize=22)
 
     plt.tight_layout()
     plt.savefig(f"{target_path}/NNoutput_{type}_byTRUEID.pdf")
 
     
-def plot_tagDec(tagger, df_TagParticles, target_path, output_file='Normalized_TagDec.pdf',nbins=100):
+def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins=100):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.yscale("log")
-   
-    plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == -1)].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "green" , alpha=0.5, label = f"Tag. dec: b")
-    plt.hist(df_TagParticles.loc[(df_TagParticles.TagDec == 1)].Eta ,bins = nbins , density = True , histtype = "stepfilled" ,range=(df_TagParticles.Eta.min(),0.5), color = "orange" , alpha=0.5, label = f"Tag. dec: anti-b")
-
+    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == -1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),df_TagParticles[f"{tagger}_Eta"].max()), color = "green" , alpha=0.5, label = f"Tag. dec: b")
+    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == 1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),df_TagParticles[f"{tagger}_Eta"].max()), color = "orange" , alpha=0.5, label = f"Tag. dec: anti-b")
     plt.grid()
     plt.xlabel(r"$\eta$",fontsize=24)
     plt.ylabel("Normalized number of tracks", fontsize=24)
-    plt.legend(loc = "best", title = f'{len(df_TagParticles[(df_TagParticles.TagDec == -1)|(df_TagParticles.TagDec == 1)])} total tracks')
+    plt.legend(loc = "best", title = f'{len(df_TagParticles[(df_TagParticles[f"{tagger}_TagDec"] == -1)|(df_TagParticles[f"{tagger}_TagDec"] == 1)])} tagged events')
     plt.title(f"{tagger} mistag", fontsize=24)
-    plt.savefig(f"{target_path}/{output_file}")
+    print(f'Tagging decision plot saved at {plot_name}')
+    plt.savefig(f"{plot_name}")
     plt.close()
 
 
@@ -369,7 +370,7 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
     taggers = ft.TaggerCollection()
     
-    taggers.create_tagger(name = tagger, eta_data = df_tag.Eta.tolist(), dec_data = df_tag.TagDec.tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu' ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
+    taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu' ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
     
     if calibration_option=='logit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))

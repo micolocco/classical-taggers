@@ -23,26 +23,29 @@ taggers_conf = {
     
 }
 # TO DO create a rules that copy the files from eos to the cluster
+
+
+
 ntuples_eos_withUT = {
     'Bu2JpsiK': in_data(data, '''
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000004_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000004_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000002_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000003_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000004_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000005_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000001_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000002_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000003_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000004_1.mc.root
 '''.split('\n')),
 
     'Bd2JpsiKst': in_data(data, '''
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000002_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237569/0000/00237569_00000001_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237569/0000/00237569_00000002_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237569/0000/00237569_00000003_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237569/0000/00237569_00000004_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000002_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000003_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000004_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000005_1.mc.root
@@ -99,7 +102,7 @@ for decay, path_list in ntuples_raw_withUT.items():
     #print(decay, path_list)
     #print('-------')
     for tagger in taggers_conf[decay] :
-        ntuples_selected_withUT[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in path_list]})
+        ntuples_selected_withUT[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/cut_DT_PROBNN_unbalanced_round3/union_PROBNN') for f in path_list]})
 
 ntuples_tagged_withUT = {}
 for decay, path_list in ntuples_raw_withUT.items():
@@ -107,7 +110,7 @@ for decay, path_list in ntuples_raw_withUT.items():
     #print(decay, path_list)
     #print('-------')
     for tagger in taggers_conf[decay] :
-        ntuples_tagged_withUT[decay].update({tagger: [f.replace('1_raw', f'4_tagged').replace(decay, f'{decay}/{tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in path_list]})
+        ntuples_tagged_withUT[decay].update({tagger: [f.replace('1_raw', f'4_tagged').replace(decay, f'{decay}/{tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in path_list]}) #cut_DT_PROBNN_unbalanced_round3
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN_IPSig') for f in v]})
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{taggers_conf[decay][i]}/{k}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in v]})
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/only_OSKaon') for f in v]})
@@ -126,7 +129,7 @@ def find_tree_name(decay):
     if decay == 'Bu2JpsiK':
         return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
     if decay == 'Bd2JpsiKst':
-        return 'BdToJpsiKstar_JpsiToMuMu_Detached'
+        return 'BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree'
     else:
         return 'Tuple/DecayTree'
 
@@ -141,11 +144,36 @@ generated_paths_OSMuon = read_generated_paths(data,join(repo,'paths_for_snakemak
 
 rule all:
     input:
-        ntuples_added_features_withUT['Bs2DsPi'],
-        ntuples_added_features_withUT['Bu2JpsiK'],
-        ntuples_added_features_withUT['Bd2JpsiKst']
-        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/round_6/unbalanced_treeSchema.pdf',
-        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/round_6/balanced_treeSchema.pdf'
+        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/14/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/45/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        ##join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+       # ntuples_selected_withUT['Bu2JpsiK']['OSMuon'],
+       # ntuples_selected_withUT['Bu2JpsiK']['OSKaon'],
+       # ntuples_selected_withUT['Bu2JpsiK']['OSElectron'],
+       # ntuples_selected_withUT['Bd2JpsiKst']['SSPion'],
+       # ntuples_selected_withUT['Bd2JpsiKst']['SSProton'],
+
+
+
+
+        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/round_4/unbalanced_treeSchema.pdf',
+        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/round_4/balanced_treeSchema.pdf'
+
+
+        #ntuples_added_features_withUT['Bs2DsPi'],
+       # ntuples_added_features_withUT['Bu2JpsiK'],
+        #ntuples_added_features_withUT['Bd2JpsiKst']
+
+
+        #'/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/Bd2JpsiKst/00237614_00000002_1.mc.root',
+        #'/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/Bu2JpsiK/00237567_00000001_1.mc.root',
+        #'/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/Bu2JpsiK/00237568_00000001_1.mc.root'
+
+       # generated_paths_OSKaon,
+       # generated_paths_SSPion
         #generated_paths
         #ntuples_selected_withUT['Bs2DsPi']['SSKaon'],
         #ntuples_tagged_withUT['Bs2JpsiPhi']['OSMuon'],
@@ -179,10 +207,9 @@ rule add_features:
     output: 
         root =join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
     resources:
-        #mem_mb = 2000, # Specify memory requirement in megabytes
+        mem_mb = 20000, # Specify memory requirement in megabytes
+        MaxRunHours = 4, # medium queue
         #request_disk = 50000
-        
-
     run:
         tree = find_tree_name(wildcards.decay)
         cmd = [
@@ -194,6 +221,7 @@ rule add_features:
             '&> {log}',
         ]
         shell(' '.join(cmd))
+
 '''
 rule train_DT:
     input:
@@ -220,18 +248,18 @@ rule train_DT:
         script = join(repo, 'scripts/origin_DT_cut.py'),
         data = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features'),
     output:
-        pdf = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/round_6/{balanced}_treeSchema.pdf'),
+        pdf = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/round_4/{balanced}_treeSchema.pdf'),
     log:
-        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/round_6/{balanced}_treeSchema.log')
+        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/round_4/{balanced}_treeSchema.log')
     params:
-        target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/round_6')
+        target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/round_4')
     run:
         cmd = (
             f'python {input.script} '
             f'--base_pattern {input.data} '  # Pass input root files
             f'--target_path {params.target_path} '  # Pass the target path
             f'--balanced {wildcards.balanced} '  # Specify if classes are balance dor not
-           # f'--unify_SS '  # Specify if classes are balance dor not
+           # f'--unify_SS '  # Specify if SSKaon and SSProton should be unified in single class
             f'&> {log}'  # Redirect stdout and stderr to log file
         )
         shell(cmd)
@@ -240,21 +268,25 @@ rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
         added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{id,.*}.root'),
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
     # output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root'),
-    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/.{id,.*}.log')
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
+    resources:
+        mem_mb = 20000, # Specify memory requirement in megabytes
+        MaxRunHours = 4, # medium queue
+
     run:
-        tree = find_tree_name(wildcards.decay)
+       # tree = find_tree_name(wildcards.decay)
         cmd = [
             'python', input.script,
             '--added_features {input.added_features}',
             '--output {output}',
-            '--treename', tree,
+            #'--treename', tree,
             '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
             '--tagger {wildcards.tagger}',
-            #'--features {wildcards.features}',
+            '--features {wildcards.features}',
             '&> {log}',
         ]
         shell(' '.join(cmd))
