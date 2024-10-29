@@ -130,19 +130,21 @@ if __name__ == '__main__':
     vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER']
     
     df = pd.DataFrame(columns=vars)
-    for f in selected_files:
+    for i, f in enumerate(selected_files):
         print(f"Reading input file: {f}")
         with uproot.open("{}".format(f)) as _f:
             _df = _f[cfg.treename].arrays(vars, library="pd")
         _df.dropna(inplace = True)
-        df = (_df.copy() if df.empty else pd.concat([df, _df], ignore_index = True))
+        _df["SAMPLENUMBER"] = i
+        _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        df = pd.concat([df, _df], ignore_index = True)
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
 
-    removal_time1 = time.time()
-    df = utils.remove_multicandidates(df)
-    #df = utils.remove_multicandidates(df)
-    removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
-    print(f"Removing multicandidates required {removal_time2}s")
+    # removal_time1 = time.time()
+    # df = utils.remove_multicandidates(df)
+    # #df = utils.remove_multicandidates(df)
+    # removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
+    # print(f"Removing multicandidates required {removal_time2}s")
     
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
