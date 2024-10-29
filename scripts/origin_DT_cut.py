@@ -289,11 +289,11 @@ if __name__ == '__main__':
     # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/*/*.root'
     # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2DsPi/*1_1.mc.root'#.root'
     # input_paths.update({"Bs2DsPi":glob.glob(file_pattern)})
-    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/0023756*2_1.mc.root'#.root'
-    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/0023756*_1.mc.root'#.root'
+    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/0023756*2_1.mc.root'#.root'
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bu2JpsiK/0023756*_1.mc.root'#.root'
     input_paths.update({"Bu2JpsiK":glob.glob(file_pattern)})
-    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*2_1.mc.root'#.root'
-    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*_1.mc.root'#.root'
+    # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*2_1.mc.root'#.root'
+    file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bd2JpsiKst/0023*_1.mc.root'#.root'
     input_paths.update({"Bd2JpsiKst":glob.glob(file_pattern)})
     # file_pattern = '/ceph-kernel/users/qfuehring/ft_training_run3/withUT_MC_2024/2_added_features/Bs2JpsiPhi/*1_1.mc.root'#.root'
     # input_paths.update({"Bs2JpsiPhi":glob.glob(file_pattern)})
@@ -357,7 +357,7 @@ if __name__ == '__main__':
     
     print(len(df))
     # Shuffle 
-    df = df.sample(frac=1, random_state=42)
+    df = df.sample(frac=0.1, random_state=42)
     df.dropna(inplace=True)
 
     df.B_Tr_T_Origin_Flag.astype(int)
@@ -402,8 +402,8 @@ if __name__ == '__main__':
     
     
     prune_duplicate_leaves(clf)
-    prune_small_leaves(clf, min_samples=0.05)
-    check_ambigious_leaves(clf, threshold=0.5, bkg_class=-1) # tdod different thresholds depending on depth or class
+    # prune_small_leaves(clf, min_samples=0.05)
+    # check_ambigious_leaves(clf, threshold=0.5, bkg_class=-1) # tdod different thresholds depending on depth or class
     prune_duplicate_leaves(clf)
     print(f"Fit in: {round(-start+ time.time() , 2)}s\n")
     
@@ -547,14 +547,15 @@ if __name__ == '__main__':
         # try implement pruning threshold based on class confusion
         
         summarise_classes(clf, [5, 6], at=5, balanced=False) # summarise ssk/p classes #todo:fix balancing
-        y_train[y_train==6] = 5
+        # y_train[y_train==6] = 5
         summarise_classes(clf, [8, 9, 10], at=6, balanced=False) # bkg #todo:fix balancing
-        y_train[y_train==8] = 6
-        y_train[y_train==9] = 6
-        y_train[y_train==10] = 6
+        # y_train[y_train==8] = 6
+        # y_train[y_train==9] = 6
+        # y_train[y_train==10] = 6
         summarise_classes(clf, [6, 7], at=6, balanced=False) # sanity #todo:fix balancing
-        y_train[y_train==7] = 6
+        # y_train[y_train==7] = 6
         
+        particle_type_true = particle_type
         particle_type = {k:v for k, v in particle_type.items() if v not in [5, 6]}
         particle_type.update({"SSKaon / SSProton":5, "Other":6})
         particle_type = dict(sorted(particle_type.items(), key=lambda x: x[1]))
@@ -567,12 +568,12 @@ if __name__ == '__main__':
         particle_type = {k:v for k, v in particle_type.items() if v < 6}
         particle_type.update({"Other":6})
         particle_type = dict(sorted(particle_type.items(), key=lambda x: x[1]))
+        print(particle_type_true)
         print(particle_type)
         print("\n Metrics for particle type composition: true VS predicted\n")
-        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, title='Versus True (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_truth.txt")
-        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_prediction.txt")
-        # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, balanced=True, title='Versus True (balanced)')
-        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/pruned_balanced_confusion_normalised_by_prediction.txt")
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, true_type_dict=particle_type_true, title='Versus True (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_truth.txt")
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, true_type_dict=particle_type_true, normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{cfg.target_path}/{setting}/pruned_confusion_normalised_by_prediction.txt")
+        DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, true_type_dict=particle_type_true, normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{cfg.target_path}/{setting}/pruned_balanced_confusion_normalised_by_prediction.txt")
 
 # maybe consider 3 stage classifier
 # 1. OS SS PV, other
