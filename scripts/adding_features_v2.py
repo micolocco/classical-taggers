@@ -108,90 +108,10 @@ def process_file_in_batches(input_path, loading_variables, treename, prefix, abs
         print(f"Total shape should be {total_shape}")   
 
 '''
-#Method 3: single DecayTree without holding in memory. Use extend() to append to the DecayTree without creating a new one
-import uproot
-import awkward as ak
-import os
-
-def process_file_in_batches(input_path, loading_variables, treename, prefix, abs_id, decay, batch_size, output_file):
-    file_exists = os.path.exists(output_file)
-    
-    with uproot.open(input_path) as f:
-        tree = f[treename]
-        batch_counter = 0
-        all_data = []  # Accumulate all data in this list
-        total_shape = 0
-        for batch in tree.iterate(loading_variables, library="pd", step_size=batch_size):
-            batch_counter += 1
-            print(f"Processing batch {batch_counter}...")
-
-            # Process the batch
-            processed_batch = process_chunk(batch, prefix, abs_id)
-            processed_batch.columns = processed_batch.columns.str.replace(f'{prefix}', 'B_', regex=False)
-            total_shape += processed_batch.shape[0]
-
-            # Convert to awkward array
-            awkward_array = dataframe_to_awkward(processed_batch)
-            all_data.append(awkward_array)  # Accumulate the awkward arrays
-
-        # Once all batches are processed, concatenate and write
-        final_data = ak.concatenate(all_data, axis=0)  # Combine all batches
-
-        # Write to a new NTuple or update the existing one
-        with uproot.recreate(output_file) as out_file:
-            out_file['Tuple/DecayTree'] = final_data
-            print("Final NTuple written with all data.")
-
-    print(f"All {batch_counter} batches processed.") 
-    print(f"Total shape should be {total_shape}")     
-
-
-
-
-
-'''
-Method 2: single DecayTree that holds in memory teh batches
-def process_file_in_batches(input_path, loading_variables, treename, prefix, abs_id, decay, batch_size, output_file):
-    
-    file_exists = os.path.exists(output_file)
-    total_shape = 0
-    combined_batches = []  # To accumulate processed batches in memory
-    with uproot.open(input_path) as f:
-        tree = f[treename]
-        batch_counter = 0
-        for batch in tree.iterate(loading_variables, library="pd", step_size=batch_size):
-            batch_counter += 1
-            print(f"Processing batch {batch_counter}...")
-            
-            if len(batch) == 0:
-                break
-            
-            # Process the batch
-            processed_batch = process_chunk(batch, prefix, abs_id)
-            processed_batch.columns = processed_batch.columns.str.replace(f'{prefix}', 'B_', regex=False)
-            total_shape += processed_batch.shape[0]
-            
-            # Append processed batch to the combined list
-            combined_batches.append(processed_batch)
-        
-        # Combine all processed batches into a single DataFrame
-        final_data = pd.concat(combined_batches)
-        
-        # Convert the combined DataFrame to an awkward array
-        awkward_array = dataframe_to_awkward(final_data)
-        
-        # Write the final dataset to the ROOT file (overwriting the existing tree)
-        with uproot.recreate(output_file) as out_file:
-            out_file['Tuple/DecayTree'] = awkward_array
-            print("Created single DecayTree with all batches.")
-
-    print(f"All {batch_counter} batches processed.") 
-    print(f"Total shape should be {total_shape}")     
-'''
         
 loading_variables = [
-        #'B_BPVX',
-        #'B_BPVY',
+        'B_BPVX',
+        'B_BPVY',
         'B_BPVZ',
         'B_END_VX',
         'B_END_VY',
@@ -199,7 +119,6 @@ loading_variables = [
         'B_ENERGY',
         'B_ETA',
         'B_M',
-        #'B_OLD_SSPionBDT_Mistag',
         'B_P',
         'B_PHI',
         'B_PT',
@@ -207,59 +126,82 @@ loading_variables = [
         'B_PY',
         'B_PZ',
         'B_TRUEID',
-        'B_Tr_T_BPVIP',
-        'B_Tr_T_BPVIPCHI2',
-        'B_Tr_T_BPVX',
-        'B_Tr_T_BPVY',
-        'B_Tr_T_BPVZ',
-        'B_Tr_T_CHI2DOF',
-        'B_Tr_T_Charge',
-        'B_Tr_T_ENERGY',
-        'B_Tr_T_Eta',
-        'B_Tr_T_GHOSTPROB',
-        'B_Tr_T_ISMUON',
-        'B_Tr_T_M',
-        'B_Tr_T_MC_GD_GD_MOTHER_ID',
-        #'B_Tr_T_MC_GD_GD_MOTHER_KEY',
-        'B_Tr_T_MC_GD_MOTHER_ID',
-        #'B_Tr_T_MC_GD_MOTHER_KEY',
-        'B_Tr_T_MC_MOTHER_ID',
-        #'B_Tr_T_MC_MOTHER_KEY',
-        'B_Tr_T_MINIP',
-        'B_Tr_T_MINIPChi2',
-        #'B_Tr_T_OBJECT_KEY',
-        'B_Tr_T_Origin_Flag', # tag codes in https://gitlab.cern.ch/lhcb/Rec/-/blob/7a77f1c3ba0e2384c2becbd7f4acf22e79b898f0/Phys/DaVinciMCKernel/include/Kernel/MCTaggingHelper.h#L17
-        'B_Tr_T_P',
-        'B_Tr_T_PIDK',
-        'B_Tr_T_PIDP',
-        'B_Tr_T_PIDe',
-        'B_Tr_T_PIDmu',
-        'B_Tr_T_PROBNN_E',
-        'B_Tr_T_PROBNN_GHOST',
-        'B_Tr_T_PROBNN_K',
-        'B_Tr_T_PROBNN_MU',
-        'B_Tr_T_PROBNN_P',
-        'B_Tr_T_PROBNN_PI',
-        'B_Tr_T_PT',
-        'B_Tr_T_PX',
-        'B_Tr_T_PY',
-        'B_Tr_T_PZ',
-        'B_Tr_T_Phi',
-        'B_Tr_T_TRACKISLONG',
-        'B_Tr_T_TRUEID',
-        #'B_Tr_T_TRUEORIGINVERTEX_X',
-        #'B_Tr_T_TRUEORIGINVERTEX_Y',
-        #'B_Tr_T_TRUEORIGINVERTEX_Z',
-        #'B_Tr_T_TRUEPRIMARYVERTEX_X',
-        #'B_Tr_T_TRUEPRIMARYVERTEX_Y',
-        #'B_Tr_T_TRUEPRIMARYVERTEX_Z',
-        'B_Tr_T_X',
-        'B_Tr_T_Y',
-        'B_Tr_T_Z',
+        'B_BKGCAT',
         'B_nPVs',
         'B_nTracks',
         'EVENTNUMBER',
-        'RUNNUMBER']
+        'RUNNUMBER',
+        'B_Tr_T_TRACKISLONG',
+        'B_Tr_T_OWNPVIP',
+        'B_Tr_T_OWNPVIPCHI2',
+        'B_Tr_T_BPVIP',
+        'B_Tr_T_BPVIPCHI2',
+        'B_Tr_T_Charge',
+        'B_Tr_T_ISMUON',
+        'B_Tr_T_ENERGY',
+        'B_Tr_T_Eta',
+        'B_Tr_T_MINIP',
+        'B_Tr_T_MINIPChi2',
+        'B_Tr_T_P',
+        'B_Tr_T_PT',
+        'B_Tr_T_PIDK',
+        'B_Tr_T_PIDe',
+        'B_Tr_T_PIDmu',
+        'B_Tr_T_PIDP',
+        'B_Tr_T_PROBNN_GHOST',
+        'B_Tr_T_PROBNN_E',
+        'B_Tr_T_PROBNN_K',
+        'B_Tr_T_PROBNN_P',
+        'B_Tr_T_PROBNN_MU',
+        'B_Tr_T_PROBNN_PI',
+        'B_Tr_T_zfirst',
+        'B_Tr_T_BPVX',
+        'B_Tr_T_BPVY',
+        'B_Tr_T_BPVZ',
+        'B_Tr_T_Phi',
+        'B_Tr_T_M',
+        'B_Tr_T_CHI2DOF',
+        'B_Tr_T_GHOSTPROB',
+        'B_Tr_T_PX',
+        'B_Tr_T_PY',
+        'B_Tr_T_PZ',
+        'B_Tr_T_X',
+        'B_Tr_T_Y',
+        'B_Tr_T_Z',
+        'B_Tr_T_OBJECT_KEY',
+        'B_Tr_T_Origin_Flag',
+        'B_Tr_T_TRUEID',
+        'B_Tr_T_TRUEPRIMARYVERTEX_X',
+        'B_Tr_T_TRUEPRIMARYVERTEX_Y',
+        'B_Tr_T_TRUEPRIMARYVERTEX_Z',
+        'B_Tr_T_TRUEORIGINVERTEX_X',
+        'B_Tr_T_TRUEORIGINVERTEX_Y',
+        'B_Tr_T_TRUEORIGINVERTEX_Z',
+        'B_Tr_T_MC_MOTHER_ID',
+        'B_Tr_T_MC_MOTHER_KEY',
+        'B_Tr_T_MC_GD_MOTHER_ID',
+        'B_Tr_T_MC_GD_MOTHER_KEY',
+        'B_Tr_T_MC_GD_GD_MOTHER_ID',
+        'B_Tr_T_MC_GD_GD_MOTHER_KEY',
+        'B_Run2_SSPion_Dec',
+        'B_Run2_SSPion_Omega',
+        'B_Run2_SSPion_MVA',
+        'B_Run2_SSKaon_Dec',
+        'B_Run2_SSKaon_Omega',
+        'B_Run2_SSKaon_MVA',
+        'B_Run2_SSProton_Dec',
+        'B_Run2_SSProton_Omega',
+        'B_Run2_SSProton_MVA',
+        'B_Run2_OSKaon_Dec',
+        'B_Run2_OSKaon_Omega',
+        'B_Run2_OSKaon_MVA',
+        'B_Run2_OSElectron_Dec',
+        'B_Run2_OSElectron_Omega',
+        'B_Run2_OSElectron_MVA',
+        'B_Run2_OSMuon_Dec',
+        'B_Run2_OSMuon_Omega',
+        'B_Run2_OSMuon_MVA',
+        ]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add features used to select tracks and to train', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
