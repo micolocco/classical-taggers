@@ -37,7 +37,7 @@ def plot_features_byOrigin(data, features, particle_type, nbins=100):
     # Plot input features 
     plt.figure(figsize=(100,100))
     for i, col in enumerate(features):
-        plt.subplot(10, 5, i + 1)
+        plt.subplot(10, 6, i + 1)
         # Ranges and names must be adapted
         #plt.hist(data[col][data['ID_type']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=)
         #plt.hist(data[col][data['ID_type']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
@@ -73,7 +73,7 @@ def plot_features_byParticle(data, features, nbins=100):
    
     plt.figure(figsize=(100,100))
     for i, col in enumerate(features):
-        plt.subplot(10, 5, i + 1)
+        plt.subplot(10, 6, i + 1)
         #plt.hist(data[col][data.B_Tr_T_absID==321], density = True, bins=nbins, label = f"Kaon", histtype='step', color='m', lw=2, range=ranges[col])
         #plt.hist(data[col][data.B_Tr_T_absID==13], density = True, bins=nbins, label = f"Muon", histtype='step', color='b', lw=2, range=ranges[col])
         #plt.hist(data[col][data.B_Tr_T_absID==11], density = True, bins=nbins, label = f"Electron", histtype='step', color='c', lw=2, range=ranges[col])
@@ -108,7 +108,7 @@ def plot_features_bySign(data, features, nbins=100):
     for particle in keys_list:
         plt.figure(figsize=(100,100))
         for i, col in enumerate(features):
-            plt.subplot(10, 5, i + 1)
+            plt.subplot(10, 6, i + 1)
             plt.xlabel(col)
             #plt.hist(data[col][(data['particle']==particle) & (abs(data['B_Tr_T_MC_MOTHER_ID'])==5) & (data['sign_tag']==1) & (data['B_Tr_T_Charge']==1)], density = True, bins=nbins, label = f"sign=1", histtype='step', color='m', lw=2)
             #plt.hist(data[col][(data['particle']==particle) & (abs(data['B_Tr_T_MC_MOTHER_ID'])==5) & (data['sign_tag']==-1) &  (data['B_Tr_T_Charge']==1)], density = True, bins=nbins, label = f"sign=-1", histtype='step', color='b', lw=2)  
@@ -153,7 +153,84 @@ if __name__ == '__main__':
     features_set3 = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_PX', 'B_Tr_T_PY', 'B_Tr_T_PZ', 'B_Tr_T_ENERGY', 'B_Tr_T_Eta', 'B_Tr_T_Phi', 'B_Tr_T_BPVIP', 'B_PT', 'B_nTracks', 'B_Tr_T_MINIP', 'B_Tr_T_MINIPChi2', 'B_nPVs', 'B_Tr_T_atanPT_PZ'] 
     features_set4 = ['B_Tr_T_BPVX', 'B_Tr_T_BPVY','B_Tr_T_BPVZ',]
     features_PROBNN = ['B_Tr_T_PROBNN_E', 'B_Tr_T_PROBNN_GHOST', 'B_Tr_T_PROBNN_K','B_Tr_T_PROBNN_MU','B_Tr_T_PROBNN_P', 'B_Tr_T_PROBNN_PI',]
-    # Missing PROBNN for all the particles (not usable yet)
+    features = [
+        'B_BPVX',
+        'B_BPVY',
+        'B_BPVZ',
+        'B_END_VX',
+        'B_END_VY',
+        'B_END_VZ',
+        'B_ENERGY',
+        'B_ETA',
+        'B_M',
+        'B_P',
+        'B_PHI',
+        'B_PT',
+        'B_PX',
+        'B_PY',
+        'B_PZ',
+        'B_nPVs',
+        'B_nTracks',
+        'B_Tr_T_TRACKISLONG',
+        'B_Tr_T_OWNPVIP',
+        'B_Tr_T_OWNPVIPCHI2',
+        'B_Tr_T_BPVIP',
+        'B_Tr_T_BPVIPCHI2',
+        'B_Tr_T_Charge',
+        'B_Tr_T_ISMUON',
+        'B_Tr_T_ENERGY',
+        'B_Tr_T_Eta',
+        'B_Tr_T_MINIP',
+        'B_Tr_T_MINIPChi2',
+        'B_Tr_T_P',
+        'B_Tr_T_PT',
+        'B_Tr_T_PIDK',
+        'B_Tr_T_PIDe',
+        'B_Tr_T_PIDmu',
+        'B_Tr_T_PIDP',
+        'B_Tr_T_PROBNN_GHOST',
+        'B_Tr_T_PROBNN_E',
+        'B_Tr_T_PROBNN_K',
+        'B_Tr_T_PROBNN_P',
+        'B_Tr_T_PROBNN_MU',
+        'B_Tr_T_PROBNN_PI',
+        'B_Tr_T_zfirst',
+        'B_Tr_T_BPVX',
+        'B_Tr_T_BPVY',
+        'B_Tr_T_BPVZ',
+        'B_Tr_T_Phi',
+        'B_Tr_T_M',
+        'B_Tr_T_CHI2DOF',
+        'B_Tr_T_GHOSTPROB',
+        'B_Tr_T_PX',
+        'B_Tr_T_PY',
+        'B_Tr_T_PZ',
+        'B_Tr_T_X',
+        'B_Tr_T_Y',
+        'B_Tr_T_Z',
+         ]
+    '''
+        'B_Run2_SSPion_Dec',
+        'B_Run2_SSPion_Omega',
+        'B_Run2_SSPion_MVA',
+        'B_Run2_SSKaon_Dec',
+        'B_Run2_SSKaon_Omega',
+        'B_Run2_SSKaon_MVA',
+        'B_Run2_SSProton_Dec',
+        'B_Run2_SSProton_Omega',
+        'B_Run2_SSProton_MVA',
+        'B_Run2_OSKaon_Dec',
+        'B_Run2_OSKaon_Omega',
+        'B_Run2_OSKaon_MVA',
+        'B_Run2_OSElectron_Dec',
+        'B_Run2_OSElectron_Omega',
+        'B_Run2_OSElectron_MVA',
+        'B_Run2_OSMuon_Dec',
+        'B_Run2_OSMuon_Omega',
+        'B_Run2_OSMuon_MVA',
+    '''
+        
+    # Missing fetaures wrt Run2
     # atan ((PT/PZ)) possible to implement as function
     # TRPCHI2 dropped (CHI2 probability)
     # CLONEDIST could be replaced with TRACKISCLONE functor. Not in our Analysis Production (AP)
@@ -165,8 +242,7 @@ if __name__ == '__main__':
     # SumBDT_ult don't know what is
     # PVndof not clear
     # TRGHP alias for TRACKGHOSTPROB
-    features = features_set1+features_set2+features_set3 + features_PROBNN
-    loading_variables = features +["B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID"]
+    loading_variables = features +["B_BKGCAT", "B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID"]
     # Path to input root files
     #file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
     
@@ -198,9 +274,12 @@ if __name__ == '__main__':
             with uproot.open("{}".format(f)) as _f:
                 _df = _f[treename].arrays(loading_variables, library="pd")
                 _df['decay'] = decay
+                print(f'Number of tracks per file: {_df.shape[0]}')
                 df = pd.concat([df, _df], ignore_index = True)
+                print(f'Number of tracks in concatenated df {df.shape[0]}')
+
     df.dropna(inplace=True)
-    print(df.shape[0]) 
+    print(f"Total number of tracks: {df.shape[0]}") 
     
     # For SS case if B_Tr_T_Charge has same sign of B_TRUE_ID is a correct tagging particle candidate
     # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
@@ -234,6 +313,8 @@ if __name__ == '__main__':
     (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1), # SSProton
     (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2), # OSProton
     (df.B_Tr_T_Origin_Flag==100),
+   # (df.B_Tr_T_Origin_Flag==0),
+
    # (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), # SSKaon
     ]
     particle_type = {"OSKaon":1,
@@ -244,6 +325,7 @@ if __name__ == '__main__':
                     "SSProton":5,
                     "OSProton":6,
                     "notSamePV":7,
+                    #"prompt": 8,
                    # "SSKaon":8,
                      }
     df['ID_type'] = np.select(conditions, particle_type.values())
@@ -258,7 +340,7 @@ if __name__ == '__main__':
     # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
     # We want to remove all the SSKaon (or SSPion/SSProton) that will return a wrong tagging decision
     df['sign_tag'] = (df['B_TRUEID']/abs(df['B_TRUEID'])) * df['B_Tr_T_Charge']
-    print(df['B_TRUEID'].value_counts())
+    print(f"Total number of tracks for each B candidate (by TRUE_ID): \n {df['B_TRUEID'].value_counts()}")
     #plot_features(df, features, )
 
     removal_conditions = (
@@ -327,12 +409,15 @@ if __name__ == '__main__':
                         "SSPion":4,
                         "SSProton+SSKaon": 5,
                         "OSProton":6,
-                        "notSamePV":7}
+                        "notSamePV":7,
+                       # "prompt": 8
+                        }
 
     plot_features_byOrigin(df_final, features, particle_type, nbins=50)
     x = df_final[features + ["ID_type", "particle"]]
 
     print(f"\nComposition after downsampling:\n{round(x.particle.value_counts()/x.shape[0],4)*100}")
+    print(f"\nComposition by particle and background category:\n{round(df_final[['particle','B_BKGCAT']].value_counts()/df_final.shape[0],4)*100}")
     print(f'The features used are {len(features)}: {features}')
     print('-----------------------------------------')
     # To get same amount of not_taggingPart
