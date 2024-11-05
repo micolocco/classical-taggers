@@ -23,13 +23,16 @@ def extract_selection_var(cut_file):
     result_array = np.unique(result_array).tolist()
     return result_array
 
-def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables):
+def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0):
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
     with uproot.open("{}".format(notSelected_rootPath)) as f:
         df = f[treename].arrays(loading_variables, library="pd")
     cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
     print(f"The applied cut is: {cuts}")
     df.eval(f"selected = {cuts}", inplace = True)
+    if BKG0:
+        print("Tracks with BKGCAT!=0 are removed")
+        df = df[df.B_BKGCAT==0]
     df.selected = df.selected.astype(int, copy = False) 
     return df
 
@@ -44,6 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('--cut_file', help='File where the cut is stored', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
+    parser.add_argument('--BKG0', help='If true, only BGKCAT=0 tracks are used. Default is true',  action='store_true') 
 
     cfg = parser.parse_args()
 
@@ -52,7 +56,7 @@ if __name__ == '__main__':
 
     selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID']
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
-    loading_variables = features + selection_variables
+    loading_variables = features + selection_variables + ['B_BKGCAT']
     loading_variables = np.unique(loading_variables).tolist()
     '''
     if "SS" in cfg.tagger:
@@ -61,7 +65,7 @@ if __name__ == '__main__':
         if particle in ("Proton", "Pion"):
             loading_variables += ["B_Tr_T_PIDP"]
     '''
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables)[features + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
+    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0)[features + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
 
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
