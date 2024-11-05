@@ -20,6 +20,7 @@ plt.rcParams.update({'axes.unicode_minus' : False})
 import DT_utils
 
 '''
+Ref: https://gitlab.cern.ch/lhcb/Rec/-/blob/master/Phys/DaVinciMCKernel/src/Lib/MCTaggingHelper.cpp?ref_type=heads
 Origin Flag IDs:
 
 0 == Signal
@@ -121,6 +122,21 @@ def plot_features_bySign(data, features, nbins=100):
         plt.savefig(f"{cfg.target_path}/DT_features_{particle}.pdf")
         print(f"Saved plot {cfg.target_path}/DT_features_{particle}.pdf")
 
+def count_BKGCAT(df):
+    # Assuming you have a specific particle type in mind, like "OSElectron"
+    particle_list = pd.unique(df['particle']).tolist()
+    for particle in particle_list:
+        # Filter the DataFrame for the specified particle
+        df_particle = df[df['particle'] == particle]
+        # Calculate the percentage of each B_BKGCAT value
+        bkgcat_counts = df_particle['B_BKGCAT'].value_counts(normalize=True) * 100
+        # Print the results
+        print(f"Percentage distribution of B_BKGCAT values for {particle}:")
+        for bkgcat, percentage in bkgcat_counts.items():
+            print(f"B_BKGCAT {bkgcat}: {percentage:.2f}%")
+        print('\n')
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
@@ -143,17 +159,8 @@ if __name__ == '__main__':
     run_time = time.time()
     # Check and eventually make output directory where training info will be saved
     os.makedirs(cfg.target_path, exist_ok=True)
-
-    # set1 --> only uses PIDs and IP significance of the B primary vertex
-    # set2 --> collects the pre-selections features used in run2 (except SSKaon). See https://gitlab.cern.ch/lhcb/Phys/-/tree/run2-patches/Phys/FlavourTagging/python/FlavourTagging
-    features_set1 = ['B_Tr_T_PIDK', 'B_Tr_T_PIDe', 'B_Tr_T_PIDmu', 'B_Tr_T_PIDP', 'B_Tr_T_BVIPSig'] 
-    features_set2 = ['B_Tr_T_P' , 'B_Tr_T_TRACKISLONG', 'B_Tr_T_CHI2DOF', 'B_Tr_T_minPhiDistance', 'B_Tr_T_ISMUON', 'B_Tr_T_GHOSTPROB', 'B_Tr_T_absIP', \
-                    'B_Tr_T_eoverP', 'B_Tr_T_BPVIPCHI2', 'B_Tr_T_PT', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_EtaDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_DeltaR', 'B_Tr_T_Charge'] 
-    # set3 --> on the top of set1 and set2 adds other variables from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/DevelopmentTaggerConf.py
-    features_set3 = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_PX', 'B_Tr_T_PY', 'B_Tr_T_PZ', 'B_Tr_T_ENERGY', 'B_Tr_T_Eta', 'B_Tr_T_Phi', 'B_Tr_T_BPVIP', 'B_PT', 'B_nTracks', 'B_Tr_T_MINIP', 'B_Tr_T_MINIPChi2', 'B_nPVs', 'B_Tr_T_atanPT_PZ'] 
-    features_set4 = ['B_Tr_T_BPVX', 'B_Tr_T_BPVY','B_Tr_T_BPVZ',]
-    features_PROBNN = ['B_Tr_T_PROBNN_E', 'B_Tr_T_PROBNN_GHOST', 'B_Tr_T_PROBNN_K','B_Tr_T_PROBNN_MU','B_Tr_T_PROBNN_P', 'B_Tr_T_PROBNN_PI',]
-    features = [
+    fetaures_added = ['B_Tr_T_minPhiDistance', 'B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absBPVIP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_BPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
+    loading_variables_noMC = [
         'B_BPVX',
         'B_BPVY',
         'B_BPVZ',
@@ -194,7 +201,7 @@ if __name__ == '__main__':
         'B_Tr_T_PROBNN_P',
         'B_Tr_T_PROBNN_MU',
         'B_Tr_T_PROBNN_PI',
-        'B_Tr_T_zfirst',
+        'B_Tr_T_zfirst', # This is the reconstructed z coordinate where a track begins (basically the PV of a track, similar to B_OWNPV_Z but for a track)
         'B_Tr_T_BPVX',
         'B_Tr_T_BPVY',
         'B_Tr_T_BPVZ',
@@ -209,26 +216,6 @@ if __name__ == '__main__':
         'B_Tr_T_Y',
         'B_Tr_T_Z',
          ]
-    '''
-        'B_Run2_SSPion_Dec',
-        'B_Run2_SSPion_Omega',
-        'B_Run2_SSPion_MVA',
-        'B_Run2_SSKaon_Dec',
-        'B_Run2_SSKaon_Omega',
-        'B_Run2_SSKaon_MVA',
-        'B_Run2_SSProton_Dec',
-        'B_Run2_SSProton_Omega',
-        'B_Run2_SSProton_MVA',
-        'B_Run2_OSKaon_Dec',
-        'B_Run2_OSKaon_Omega',
-        'B_Run2_OSKaon_MVA',
-        'B_Run2_OSElectron_Dec',
-        'B_Run2_OSElectron_Omega',
-        'B_Run2_OSElectron_MVA',
-        'B_Run2_OSMuon_Dec',
-        'B_Run2_OSMuon_Omega',
-        'B_Run2_OSMuon_MVA',
-    '''
         
     # Missing fetaures wrt Run2
     # atan ((PT/PZ)) possible to implement as function
@@ -242,30 +229,20 @@ if __name__ == '__main__':
     # SumBDT_ult don't know what is
     # PVndof not clear
     # TRGHP alias for TRACKGHOSTPROB
-    loading_variables = features +["B_BKGCAT", "B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID"]
-    # Path to input root files
-    #file_pattern = f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root'
-    
-    # Define the base pattern and the folders of interest
-    base_pattern = cfg.base_pattern
-    #base_pattern = '/ceph/users/molocco/Data/withUT_MC_2024/2_added_features'
-
-    
+    features = loading_variables_noMC + fetaures_added
+    loading_variables = features +["B_BKGCAT", "B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID"]    
+ 
     #folders = ['Bd2JpsiKst', 'Bs2DsPi', 'Bu2JpsiK']
-    folders = ['Bd2JpsiKst',  'Bu2JpsiK'] # Curiouys to see with PROBNNs
+    folders = ['Bd2JpsiKst',  'Bu2JpsiK'] 
     # NEED TO INCLUDE BS!!!!!!!
 
-
-    # Initialize a list to store the paths of root files
-    
-    
     # Iterate over each folder and collect the root files
     print(f"Loading data: Start \n")
 
     df = pd.DataFrame(columns=loading_variables)
     
     for decay in folders:
-        pattern = f'{base_pattern}/{decay}/*.root'
+        pattern = f'{cfg.base_pattern}/{decay}/*.root'
         root_files = []
         root_files.extend(glob.glob(pattern))
         treename = find_tree_name(decay)
@@ -283,24 +260,6 @@ if __name__ == '__main__':
     
     # For SS case if B_Tr_T_Charge has same sign of B_TRUE_ID is a correct tagging particle candidate
     # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
-    # We want to remove all the SSKaon (or SSPion/SSProton) that will return a wrong tagging decision
-    '''
-    
-    # For test    
-    root_files=[
-            '/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/Bd2JpsiKst/00214047_00000001_1.mc.root',]
-   
-    for f in root_files:
-        print(f"Reading input file: {f}")
-        with uproot.open("{}".format(f)) as _f:
-            _df = _f['Tuple/DecayTree'].arrays(loading_variables, library="pd")
-            _df['decay'] = 'Bd2JpsiKst'
-        df = pd.concat([df, _df], ignore_index = True)
-    
-    
-    print(f"Loading data finished in {round(-start+ time.time() , 2)}s")
-    '''
-    
 
     df.B_Tr_T_Origin_Flag.astype(int)
     df[['B_Tr_T_MC_MOTHER_ID']].astype(int)
@@ -374,7 +333,7 @@ if __name__ == '__main__':
     df_filtered = df[~removal_conditions].copy()
     df_filtered = df_filtered.dropna()
     print(f"\nComposition before downsamling:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}")
-
+    count_BKGCAT(df_filtered)
     
     # Downsample the 'notSamePV' class. 
     # Get the count of the largest class excluding "notSamePV"
@@ -391,10 +350,7 @@ if __name__ == '__main__':
     df_final = df_final.sample(frac=1, random_state=42).reset_index(drop=True)
     
     # Plot features
-    output_dir = 'DT_outputs'
-   # plot_features_byOrigin(data=df, features=features, particle_type=particle_type,)
-   # plot_features_byParticle(data=df, features=features)
-    
+    output_dir = 'DT_outputs'    
     # Unify SSKaon and SSProton into a single class
     if cfg.unify_SS:
         print("Unifying SSProton and SSKoan classes")
@@ -417,14 +373,14 @@ if __name__ == '__main__':
     x = df_final[features + ["ID_type", "particle"]]
 
     print(f"\nComposition after downsampling:\n{round(x.particle.value_counts()/x.shape[0],4)*100}")
-    print(f"\nComposition by particle and background category:\n{round(df_final[['particle','B_BKGCAT']].value_counts()/df_final.shape[0],4)*100}")
+    #print(f"\nComposition by particle and background category:\n{round(df_final[['particle','B_BKGCAT']].value_counts()/df_final.shape[0],4)*100}")
     print(f'The features used are {len(features)}: {features}')
     print('-----------------------------------------')
     # To get same amount of not_taggingPart
     #x = pd.concat([x, df.loc[df.ID_type == 0][features + ["ID_type"]].head(len(x))])
     y = x.ID_type
     x.drop(columns=["ID_type", "particle"] , inplace = True)
-    x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.3, random_state=42)
+    x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.01, random_state=42)
     start = time.time()
     print("Start fitting")
     if cfg.balanced == 'unbalanced':
