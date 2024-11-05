@@ -162,22 +162,6 @@ if __name__ == '__main__':
     #   - calibration: B_ID = reconstructed ID when moving to data!
     df["label"] = df[f"{cfg.tagger}_TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) 
     df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
-    '''
-    plt.figure(figsize=(24,25))
-    pos=0
-    for i, col in enumerate(df.columns.to_list()):
-        if col in features:
-            plt.subplot(4, 3, pos + 1)
-            plt.hist(df[col][df['label']==0][df['selected']==1], density = True, bins=100, label = "post select, label = 0", color='r', alpha=0.5, range=ranges[col])
-            plt.hist(df[col][df['label']==1][df['selected']==1], density = True, bins=100, label = "post select, label = 1", color='r', alpha=0.2, range=ranges[col])
-            plt.hist(df[col][df['label']==0], density = True, bins=100, label = "label = 0",color='b', alpha=0.5, range=ranges[col])
-            plt.hist(df[col][df['label']==1], density = True, bins=100, label = "label = 1",color='b', alpha=0.2, range=ranges[col])
-            #plt.hist(df[col], density = True, bins=100, color='r', alpha=0.5)
-            plt.legend()
-            plt.xlabel(nice_names[col])
-            plt.tight_layout()
-            pos+=1
-    plt.savefig(f"{cfg.target_path}/preSelect_variables.pdf")'''
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device used: {device}")
