@@ -44,11 +44,12 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
-    parser.add_argument('--output', help='Name of the output file', type=str)
+    parser.add_argument('--cut', help='Cut used', type=str)
+    parser.add_argument('--link', help='Link fucntion used for calibration', type=str, default='link', choices=('mistag','link'))
+    parser.add_argument('--taggedData', help='Name of data (tagged data)', type=str)
     parser.add_argument('--modelPrePath', help='Path to where the NN models are saved up to cut type', type=str)
     parser.add_argument('--decayType', help='Event decay for calibration', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
-    parser.add_argument('--outputPath', help='Path for output', type=str)
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--features', help='Input features used for NN training', default='tagger_inputFeatures/union') 
     
@@ -61,8 +62,7 @@ if __name__ == '__main__':
     print(f"The features used are: {features}")
 
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
-    link = 'logit'
-    json_file=f'candidatedTaggers_{link}.json'
+    json_file=f'candidatedTaggers_{cfg.link}_{cfg.cut}.json'
     #Read the best tagger candidate config from json file with the best hyperparameter combination
     with open(json_file, 'r') as f:
         data = json.load(f)
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     scalerPath = f"{model_path}/st_scaler.pkl"
     transformerPath = f"{model_path}/powerTransformer.pkl"
     columns_to_drop = ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
-    pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path=cfg.outputPath, flag='label', name=f'training_inputFeatures')
+    pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path= os.path.dirname(cfg.taggedData), flag='label', name=f'training_inputFeatures')
 
     #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset = inputDataset(df=test_df[features+['label']])
@@ -131,15 +131,15 @@ if __name__ == '__main__':
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
 
     df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry','RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
-    plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, plotPath=f'{cfg.outputPath}')
+    plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, plotPath=f'{os.path.dirname(cfg.taggedData)}')
     
-    # Save the selected tracks into NTuplesdef
-    os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
-    with uproot.recreate(f"{cfg.output}") as file:
+    # Save the selected tracks into NTuples
+    os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
+    with uproot.recreate(f"{cfg.taggedData}") as file:
         file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER', 'entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
         
-    print(f'File created at {cfg.output}')
+    print(f'File created at {cfg.taggedData}')
     # To be done at the end! when reading all files!!
     #df_TagParticles = test_df.sort_values(by = ["selected", f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("entry").first()
  
