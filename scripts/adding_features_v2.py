@@ -40,7 +40,7 @@ def process_chunk(df, prefix, abs_id):
     df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
     df.eval(f't = ({prefix}END_VX**2 + {prefix}END_VY**2 + {prefix}END_VZ**2 - {prefix}END_VX*{prefix}Tr_T_X - {prefix}END_VY*{prefix}Tr_T_Y - {prefix}END_VZ*{prefix}Tr_T_Z) / ({prefix}END_VX * {prefix}Tr_T_PX + {prefix}END_VY * {prefix}Tr_T_PY + {prefix}END_VZ * {prefix}Tr_T_PZ)' , inplace = True)
     df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
-    df.eval(f'{prefix}Tr_T_absIP = abs({prefix}Tr_T_BPVIP)', inplace = True)
+    df.eval(f'{prefix}Tr_T_absBPVIP = abs({prefix}Tr_T_BPVIP)', inplace = True)
     df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
     df.eval(f'{prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)', inplace = True)
     df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
@@ -51,9 +51,9 @@ def process_chunk(df, prefix, abs_id):
     df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
     df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
     df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUEID)', inplace = True)
-    df.eval('EVIP = log(EVIP)', inplace = True)
-    df.eval(f'{prefix}Tr_T_BVIPSig = sqrt({prefix}Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
-    df.eval('P_proj = log(P_proj)', inplace = True)
+    df.eval('logEVIP = log(EVIP)', inplace = True)
+    df.eval(f'{prefix}Tr_T_BPVIPSig = sqrt({prefix}Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
+    df.eval('logP_proj = log(P_proj)', inplace = True)
     df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
     return df
 
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
     df.eval(f't = ({prefix}END_VX**2 + {prefix}END_VY**2 + {prefix}END_VZ**2 - {prefix}END_VX*{prefix}Tr_T_X - {prefix}END_VY*{prefix}Tr_T_Y - {prefix}END_VZ*{prefix}Tr_T_Z) / ({prefix}END_VX * {prefix}Tr_T_PX + {prefix}END_VY * {prefix}Tr_T_PY + {prefix}END_VZ * {prefix}Tr_T_PZ)' , inplace = True)
     df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
-    df.eval(f'{prefix}Tr_T_absIP = abs({prefix}Tr_T_BPVIP)', inplace = True)
+    df.eval(f'{prefix}Tr_T_absBPVIP = abs({prefix}Tr_T_BPVIP)', inplace = True)
     df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
     df.eval(f'{prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)', inplace = True)
     df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
@@ -267,9 +267,9 @@ if __name__ == '__main__':
     df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
     df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
     df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUEID)', inplace = True)
-    df.eval('EVIP = log(EVIP)', inplace = True)
-    df.eval(f'{prefix}Tr_T_BVIPSig = sqrt({prefix}Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
-    df.eval('P_proj = log(P_proj)', inplace = True)
+    df.eval('logEVIP = log(EVIP)', inplace = True)
+    df.eval(f'{prefix}Tr_T_BPVIPSig = sqrt({prefix}Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
+    df.eval('logP_proj = log(P_proj)', inplace = True)
     df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
 
     df.columns = df.columns.str.replace(f'{prefix}', 'B_', regex=False)
