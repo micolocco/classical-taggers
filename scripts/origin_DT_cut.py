@@ -40,32 +40,32 @@ def plot_features_byOrigin(data, features, particle_type, nbins=100):
     for i, col in enumerate(features):
         plt.subplot(10, 8, i + 1)
         # Ranges and names must be adapted
-        #plt.hist(data[col][data['ID_type']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=)
-        #plt.hist(data[col][data['ID_type']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['ID_type']==particle_type['OSElectron']], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['ID_type']==particle_type['SSPion']], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['ID_type']==particle_type['SSProton']], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['ID_type']==particle_type['SSKaon']], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
+        #plt.hist(data[col][data['particle']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=)
+        #plt.hist(data[col][data['particle']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
+        #plt.hist(data[col][data['particle']==particle_type['OSElectron']], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
+        #plt.hist(data[col][data['particle']==particle_type['SSPion']], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
+        #plt.hist(data[col][data['particle']==particle_type['SSProton']], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
+        #plt.hist(data[col][data['particle']==particle_type['SSKaon']], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
        
 
-        #plt.hist(data[col][data['ID_type']==6], density = True, bins=nbins, label = f"{particle_type[6]}", histtype='step', color='r', )
+        #plt.hist(data[col][data['particle']==6], density = True, bins=nbins, label = f"{particle_type[6]}", histtype='step', color='r', )
         if col in nice_names.keys():
             plt.xlabel(nice_names[col])
-            plt.hist(data[col][data['ID_type']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['OSElectron']], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['SSPion']], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
-            plt.hist(data[col][data['ID_type']==particle_type['SSProton']], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-            #plt.hist(data[col][data['ID_type']==particle_type['SSKaon']], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
+            plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=ranges[col])
+            plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
+            plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
+            plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
+            plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
+            #plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
         else:
             plt.xlabel(col)
-            plt.hist(data[col][data['ID_type']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['OSElectron']], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['SSPion']], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['SSProton']], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, )
-            #plt.hist(data[col][data['ID_type']==particle_type['SSKaon']], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, )
-            plt.hist(data[col][data['ID_type']==particle_type['OSProton']], density = True, bins=nbins, label = f"OSProton", histtype='step', color='orange', lw=2, )
+            plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, )
+            plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, )
+            plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, )
+            plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, )
+            plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, )
+            #plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, )
+            plt.hist(data[col][data['particle']=='OSProton'], density = True, bins=nbins, label = f"OSProton", histtype='step', color='orange', lw=2, )
         plt.legend() 
         plt.tight_layout()
     plt.savefig(f"{cfg.target_path}/DT_features_byOrigin.pdf")
@@ -85,7 +85,7 @@ def plot_features_byParticle(data, features, nbins=100):
         plt.hist(data[col][data.B_Tr_T_absID==11], density = True, bins=nbins, label = f"Electron", histtype='step', color='c', lw=2, )
         plt.hist(data[col][data.B_Tr_T_absID==211], density = True, bins=nbins, label = f"Pion", histtype='step', color='g', lw=2, )
         plt.hist(data[col][data.B_Tr_T_absID==2212], density = True, bins=nbins, label = f"Proton", histtype='step', color='y', lw=2, )
-        #plt.hist(data[col][data['ID_type']==6], density = True, bins=nbins, label = f"{particle_type[6]}", histtype='step', color='r', )
+        #plt.hist(data[col][data['particle']==6], density = True, bins=nbins, label = f"{particle_type[6]}", histtype='step', color='r', )
         if col in nice_names.keys():
             plt.xlabel(nice_names[col])
         else:
@@ -147,8 +147,8 @@ if __name__ == '__main__':
     parser.add_argument('--base_pattern', help='Pattern for input files', type=str)
     parser.add_argument('--target_path', help='Name of the output dir', type=str, default='/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs')
     parser.add_argument('--balanced', help='If classes are balanced or unbalanced', choices=('balanced', 'unbalanced'), type=str, )
-    parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' )
-    parser.add_argument('--BKG0', help='If true, only BGKCAT=0 tracks are used. Default is true',  action='store_true') 
+    parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' ) # action='store_true' means args.unify_SS will be set to True if the --unify_SS argument is provided on the command line.
+    parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
 
     cfg = parser.parse_args()
 
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     df = pd.DataFrame(columns=loading_variables)
     
     for decay in folders:
-        pattern = f'{cfg.base_pattern}/{decay}/*.root'
+        pattern = f'{cfg.base_pattern}/{decay}/*5_1.mc.root'
         root_files = []
         root_files.extend(glob.glob(pattern))
         treename = find_tree_name(decay)
@@ -249,52 +249,38 @@ if __name__ == '__main__':
             with uproot.open("{}".format(f)) as _f:
                 _df = _f[treename].arrays(loading_variables, library="pd")
                 _df['decay'] = decay
-                print(f'Number of tracks per file: {_df.shape[0]}')
+                #print(f'Number of tracks per file: {_df.shape[0]}')
                 df = pd.concat([df, _df], ignore_index = True)
-                print(f'Number of tracks in concatenated df {df.shape[0]}')
+                #print(f'Number of tracks in concatenated df {df.shape[0]}')
 
     df.dropna(inplace=True)
     print(f"Total number of tracks: {df.shape[0]}") 
 
-    plt.hist(df['B_Tr_T_OWNPVIP'][(df.B_Tr_T_Origin_Flag==2)|(df.B_Tr_T_Origin_Flag==1)],bins=100, label = f"OWN", histtype='step', color='m', lw=2, range=(0,5))
-    plt.hist(df['B_Tr_T_BPVIP'][(df.B_Tr_T_Origin_Flag==2)|(df.B_Tr_T_Origin_Flag==1)],bins=100, label = f"BEST", histtype='step', color='b', lw=2, range=(0,5))
-    plt.legend()
-    plt.savefig(f"{cfg.target_path}/OWN_Best_IPcomparison.pdf")
-
     df.B_Tr_T_Origin_Flag.astype(int)
     df[['B_Tr_T_MC_MOTHER_ID']].astype(int)
     # Define labels for multiclassification
-    conditions = [
-    (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2), # OSKaon
-    (df.B_Tr_T_absID==13) & (df.B_Tr_T_Origin_Flag==2), # OSMuon
-    (df.B_Tr_T_absID==11) & (df.B_Tr_T_Origin_Flag==2) & (abs(df.B_Tr_T_MC_MOTHER_ID)!=22), # OSElectron, remove OSElectron from photon splitting
-    (df.B_Tr_T_absID==211) & (df.B_Tr_T_Origin_Flag==1), # SSPion
-    (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==1), # SSProton
-    (df.B_Tr_T_absID==2212) & (df.B_Tr_T_Origin_Flag==2), # OSProton
-    (df.B_Tr_T_Origin_Flag==100),
-   # (df.B_Tr_T_Origin_Flag==0),
+    # List of (condition, particle_type) tuples
+    condition_particle_pairs = [
+    ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag == 2), "OSKaon"),
+    ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag == 2), "OSMuon"),
+    ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22), "OSElectron"),
+    ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
+    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1), "SSProton"),
+    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 2), "OSProton"),
+    ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
+    ] #((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
 
-   # (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), # SSKaon
-    ]
-    particle_type = {"OSKaon":1,
-                    "OSMuon":2,
-                    "OSElectron":3,
-                    "SSPion":4,
-                    #"SSProton+SSKaon": 5,
-                    "SSProton":5,
-                    "OSProton":6,
-                    "notSamePV":7,
-                    #"prompt": 8,
-                   # "SSKaon":8,
-                     }
-    df['ID_type'] = np.select(conditions, particle_type.values())
-    df.loc[~df['ID_type'].isin(particle_type.values()), 'ID_type'] = 0
-    # Assign the corresponding particle type
-    df['particle'] = df['ID_type'].map({v: k for k, v in particle_type.items()})
-    # If ID_type is not in particle_type values, set 'particle' to None
-    df.loc[~df['ID_type'].isin(particle_type.values()), 'particle'] = 'not_taggingPart'
+    # Separate conditions and particle types for np.select()
+    conditions = [pair[0] for pair in condition_particle_pairs]
+    particle_type = [pair[1] for pair in condition_particle_pairs]
 
-    df = df.loc[(df.ID_type != 0 )]
+    # Assign particle types based on conditions, with default "Others" for unmatched rows
+    df['particle'] = np.select(conditions, particle_type, default="Others")
+    
+
+    # To remove all the other particles
+    # df = df.loc[(df.particle != 0 )]
+ 
     # For SS case if B_Tr_T_Charge has same sign of B_TRUE_ID is a correct tagging particle candidate
     # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
     # We want to remove all the SSKaon (or SSPion/SSProton) that will return a wrong tagging decision
@@ -334,37 +320,43 @@ if __name__ == '__main__':
     df_filtered = df_filtered.dropna()
 
     if cfg.BKG0:
-        df.B_BKGCAT.astype(int)
+        df_filtered.B_BKGCAT.astype(int)
         print(f"Dropping BKGCAT !=0 tracks...")
-        df = df[df.B_BKGCAT==0]
+        df_filtered = df_filtered[df_filtered.B_BKGCAT==0]
+        print(f"New number of tracks: {df_filtered.shape[0]}")
     else:
         count_BKGCAT(df_filtered)
     print(f"\nComposition before downsampling:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}")
     
-    # Downsample the 'notSamePV' class. 
+    
+    # Downsample the 'notSamePV', 'Others' classes. 
     # Get the count of the largest class excluding "notSamePV"
-    max_class_size = df_filtered[df_filtered.particle != 'notSamePV'].particle.value_counts().max()
+    max_class_size = df_filtered[df_filtered.particle == 'SSPion'].particle.value_counts().max()
     # Filter the 'notSamePV' rows
     not_same_pv_rows = df_filtered[df_filtered.particle == 'notSamePV']
+    others_rows = df_filtered[df_filtered.particle == 'Others']
     # Randomly sample the maximum class size from 'notSamePV'
     sampled_not_same_pv = not_same_pv_rows.sample(n=max_class_size, random_state=42)
+    others_rows = others_rows.sample(n=max_class_size, random_state=42)
     # Filter out 'notSamePV' from the original dataframe to keep the other rows
-    df_filtered = df_filtered[df_filtered.particle != 'notSamePV']
+    df_filtered = df_filtered[(df_filtered.particle != 'notSamePV') & (df_filtered.particle != 'Others')]
     # Concatenate the sampled 'notSamePV' rows back with the other classes
-    df_final = pd.concat([df_filtered, sampled_not_same_pv])
+    df_filtered = pd.concat([df_filtered, sampled_not_same_pv])
+    df_filtered = pd.concat([df_filtered, others_rows])
     # Optionally, shuffle the dataframe (to mix rows)
-    df_final = df_final.sample(frac=1, random_state=42).reset_index(drop=True)
+    df_filtered = df_filtered.sample(frac=1, random_state=42).reset_index(drop=True)
     
+
     # Plot features
     output_dir = 'DT_outputs'    
     # Unify SSKaon and SSProton into a single class
     if cfg.unify_SS:
         print("Unifying SSProton and SSKoan classes")
         # Unify classes 
-        df_final.loc[(df_final.particle=='SSKaon')|(df_final.particle=='SSProton'), 'particle']='SSKaon+SSProton'
+        df_filtered.loc[(df_filtered.particle=='SSKaon')|(df_filtered.particle=='SSProton'), 'particle']='SSKaon+SSProton'
         # Rescale ID
-        df_final.loc[(df_final.particle=='SSKaon+SSProton'), 'ID_type']=5
-        df_final.loc[(df_final.particle=='OSProton'), 'ID_type']=6
+        df_filtered.loc[(df_filtered.particle=='SSKaon+SSProton'), 'particle']=5
+        df_filtered.loc[(df_filtered.particle=='OSProton'), 'particle']=6
         particle_type = {"OSKaon":1,
                         "OSMuon":2,
                         "OSElectron":3,
@@ -372,20 +364,21 @@ if __name__ == '__main__':
                         "SSProton+SSKaon": 5,
                         "OSProton":6,
                         "notSamePV":7,
+                        "Others": 0,
                        # "prompt": 8
                         }
 
-    plot_features_byOrigin(df_final, features, particle_type, nbins=50)
-    x = df_final[features + ["ID_type", "particle"]]
+    plot_features_byOrigin(df_filtered, features, particle_type, nbins=50)
+    x = df_filtered[features + ["particle"]]
 
     print(f"\nComposition after downsampling:\n{round(x.particle.value_counts()/x.shape[0],4)*100}")
-    #print(f"\nComposition by particle and background category:\n{round(df_final[['particle','B_BKGCAT']].value_counts()/df_final.shape[0],4)*100}")
+    #print(f"\nComposition by particle and background category:\n{round(df_filtered[['particle','B_BKGCAT']].value_counts()/df_filtered.shape[0],4)*100}")
     print(f'The features used are {len(features)}: {features}')
     print('-----------------------------------------')
     # To get same amount of not_taggingPart
-    #x = pd.concat([x, df.loc[df.ID_type == 0][features + ["ID_type"]].head(len(x))])
-    y = x.ID_type
-    x.drop(columns=["ID_type", "particle"] , inplace = True)
+    #x = pd.concat([x, df.loc[df.particle == 0][features + ["particle"]].head(len(x))])
+    y = x.particle
+    x.drop(columns=["particle"] , inplace = True)
     x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.01, random_state=42)
     
     print("Start fitting")
@@ -394,15 +387,14 @@ if __name__ == '__main__':
     else:
         weights = str(cfg.balanced)
 
+    start_fit = time.time()
     clf = tree.DecisionTreeClassifier(max_depth = 6,class_weight=weights, min_impurity_decrease=0.009) #class_weight='balanced',  min_impurity_decrease=0.009
 
     clf.fit(x_train, y_train)
-
-    print(f"Fit in: {round(-start+ time.time() , 2)}s\n")
-    
+    print(f'Decision Tree training required: {round(time.time()-start_fit, 2)}s')
     # Visualize the decision tree
     #dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True,special_characters=True) 
-    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True, special_characters=True, proportion=True) 
+    dot_data = tree.export_graphviz(clf,feature_names=features,class_names=sorted(y_train.unique()),filled=True, rounded=True, special_characters=True, proportion=True) 
     graph = graphviz.Source(dot_data) 
     if cfg.unify_SS:
         title = f'{cfg.balanced}_SSKSSP'
@@ -413,9 +405,9 @@ if __name__ == '__main__':
     #print(f"Accuracy:{clf.score(x_test,y_test)}")
 
     print("\n Metrics for particle type composition: true VS predicted\n")
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type)
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), particle_type_dict=particle_type, normalization='predicted', title='Versus Predicted')
-    print(f'Running the script required: {start-time.time()}s')
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()))
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted')
+    print(f'Running the script required: {time.time()-start}s')
     # Compute feature importance
     '''
         print(f"Feature importance:\n")

@@ -1,11 +1,11 @@
 
 
-def metric_table(y_true, y_predicted, particle_type_dict, title='Versus True', normalization=None):      
+def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None):      
     '''
     Function to get metrics (in form of a table) for the amount of true VS predicted particle types
     Denominator can be the amount of predicted particles or of true partricle for a specific type
     Each table cell is filled with:
-        n( pred=particle_type_A & true=particle_type_B) / n(true=particle_type_A)
+        n( pred=possible_particle_A & true=possible_particle_B) / n(true=possible_particle_A)
     with n=number of cases
     The normalization parameter allows to choose if computing the %s with respect to the predicted (type B) or 
     true particles (type A)
@@ -25,12 +25,12 @@ def metric_table(y_true, y_predicted, particle_type_dict, title='Versus True', n
     #table.add_column("SSProton+SSKaon", justify="right", style="green")
     #table.add_column("SSKaon", justify="right", style="green")
     #table.add_column("OSProton", justify="right", style="green")
-    for key in particle_type_dict.keys():
+    for key in possible_particle:
         table.add_column(key, justify="right", style="green")
     '''    
-    for key, value in particle_type_dict.items():
+    for key, value in possible_particle_dict.items():
         percVector = []
-        for prediction_ID in np.arange(list(particle_type_dict.values())[0], list(particle_type_dict.values())[-1]+1):
+        for prediction_ID in np.arange(list(possible_particle_dict.values())[0], list(possible_particle_dict.values())[-1]+1):
             if prediction_ID in np.unique(y_predicted):
                 if normalization=='predicted':
                     denom=len(y_predicted[y_predicted==prediction_ID])
@@ -42,16 +42,17 @@ def metric_table(y_true, y_predicted, particle_type_dict, title='Versus True', n
             else:
                 percVector.append("Not predicted")
     '''
-    for key, value in particle_type_dict.items():
+
+    for particle_A in possible_particle: #for possible_particle in sorted(y_true.unique())
         percVector = []
-        for prediction_ID in np.arange(list(particle_type_dict.values())[0], list(particle_type_dict.values())[-1]+1):
-            if prediction_ID in np.unique(y_predicted):
+        for particle_B in possible_particle: # for particle in possible_particle:
+            if particle_B in sorted(np.unique(y_predicted)):
                 if normalization == 'predicted':
-                    denom = len(y_predicted[y_predicted == prediction_ID])
+                    denom = len(y_predicted[y_predicted == particle_B])
                 else:
-                    denom = len(y_true[y_true == value])
+                    denom = len(y_true[y_true == particle_A])
                 
-                unique_values, counts = np.unique(y_true[y_predicted == prediction_ID] == value, return_counts=True)
+                unique_values, counts = np.unique(y_true[y_predicted == particle_B] == particle_A, return_counts=True)
 
                 # Check if 'True' exists in unique_values before accessing counts[1]
                 if True in unique_values:
