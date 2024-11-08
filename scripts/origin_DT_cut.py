@@ -328,7 +328,7 @@ if __name__ == '__main__':
         count_BKGCAT(df_filtered)
     print(f"\nComposition before downsampling:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}")
     
-    
+    '''
     # Downsample the 'notSamePV', 'Others' classes. 
     # Get the count of the largest class excluding "notSamePV"
     max_class_size = df_filtered[df_filtered.particle == 'SSPion'].particle.value_counts().max()
@@ -344,6 +344,7 @@ if __name__ == '__main__':
     df_filtered = pd.concat([df_filtered, sampled_not_same_pv])
     df_filtered = pd.concat([df_filtered, others_rows])
     # Optionally, shuffle the dataframe (to mix rows)
+    '''
     df_filtered = df_filtered.sample(frac=1, random_state=42).reset_index(drop=True)
     
 
