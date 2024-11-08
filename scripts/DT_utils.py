@@ -65,6 +65,6 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
             else:
                 percVector.append("Not predicted")
 
-        table.add_row(key, *percVector)
+        table.add_row(particle_A, *percVector)
     console.print(table)
 
