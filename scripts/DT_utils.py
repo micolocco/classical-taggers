@@ -5,7 +5,9 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
     Function to get metrics (in form of a table) for the amount of true VS predicted particle types
     Denominator can be the amount of predicted particles or of true partricle for a specific type
     Each table cell is filled with:
-        n( pred=possible_particle_A & true=possible_particle_B) / n(true=possible_particle_A)
+        n(true=possible_particle_A & pred=possible_particle_B) / n(true=possible_particle_A)
+        or
+        n(true=possible_particle_A & pred=possible_particle_B) / n(pred=possible_particle_B)
     with n=number of cases
     The normalization parameter allows to choose if computing the %s with respect to the predicted (type B) or 
     true particles (type A)
