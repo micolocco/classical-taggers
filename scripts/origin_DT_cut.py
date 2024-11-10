@@ -260,15 +260,28 @@ if __name__ == '__main__':
     df[['B_Tr_T_MC_MOTHER_ID']].astype(int)
     # Define labels for multiclassification
     # List of (condition, particle_type) tuples
-    condition_particle_pairs = [
-    ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag == 2), "OSKaon"),
-    ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag == 2), "OSMuon"),
-    ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22), "OSElectron"),
-    ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
-    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1), "SSProton"),
-    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 2), "OSProton"),
-    ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
-    ] #((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
+    if cfg.unify_SS:
+        print("Unifying SSProton and SSKoan classes")
+        condition_particle_pairs = [
+        ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag == 2), "OSKaon"),
+        ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag == 2), "OSMuon"),
+        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22), "OSElectron"),
+        ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
+        (((df.B_Tr_T_absID == 2212) | (df.B_Tr_T_absID == 321)) & (df.B_Tr_T_Origin_Flag == 1), "SSProton+SSKaon"), #((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
+        ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 2), "OSProton"),
+        ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
+        ] 
+
+    else:
+        condition_particle_pairs = [
+        ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag == 2), "OSKaon"),
+        ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag == 2), "OSMuon"),
+        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22), "OSElectron"),
+        ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
+        ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1), "SSProton"),
+        ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 2), "OSProton"),
+        ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
+        ] #((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
 
     # Separate conditions and particle types for np.select()
     conditions = [pair[0] for pair in condition_particle_pairs]
@@ -328,7 +341,7 @@ if __name__ == '__main__':
         count_BKGCAT(df_filtered)
     print(f"\nComposition before downsampling:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}")
     
-    '''
+    
     # Downsample the 'notSamePV', 'Others' classes. 
     # Get the count of the largest class excluding "notSamePV"
     max_class_size = df_filtered[df_filtered.particle == 'SSPion'].particle.value_counts().max()
@@ -344,32 +357,32 @@ if __name__ == '__main__':
     df_filtered = pd.concat([df_filtered, sampled_not_same_pv])
     df_filtered = pd.concat([df_filtered, others_rows])
     # Optionally, shuffle the dataframe (to mix rows)
-    '''
+    
     df_filtered = df_filtered.sample(frac=1, random_state=42).reset_index(drop=True)
     
 
     # Plot features
     output_dir = 'DT_outputs'    
     # Unify SSKaon and SSProton into a single class
-    if cfg.unify_SS:
-        print("Unifying SSProton and SSKoan classes")
+    #if cfg.unify_SS:
+      #  print("Unifying SSProton and SSKoan classes")
         # Unify classes 
-        df_filtered.loc[(df_filtered.particle=='SSKaon')|(df_filtered.particle=='SSProton'), 'particle']='SSKaon+SSProton'
+      #  df_filtered.loc[(df_filtered.particle=='SSKaon')|(df_filtered.particle=='SSProton'), 'particle']='SSKaon+SSProton'
         # Rescale ID
-        df_filtered.loc[(df_filtered.particle=='SSKaon+SSProton'), 'particle']=5
-        df_filtered.loc[(df_filtered.particle=='OSProton'), 'particle']=6
-        particle_type = {"OSKaon":1,
-                        "OSMuon":2,
-                        "OSElectron":3,
-                        "SSPion":4,
-                        "SSProton+SSKaon": 5,
-                        "OSProton":6,
-                        "notSamePV":7,
-                        "Others": 0,
+        #df_filtered.loc[(df_filtered.particle=='SSKaon+SSProton'), 'particle']=5
+        #df_filtered.loc[(df_filtered.particle=='OSProton'), 'particle']=6
+        #particle_type = {"OSKaon":1,
+                       # "OSMuon":2,
+                       # "OSElectron":3,
+                       # "SSPion":4,
+                       # "SSProton+SSKaon": 5,
+                       # "OSProton":6,
+                       # "notSamePV":7,
+                       # "Others": 0,
                        # "prompt": 8
-                        }
+                       # }
 
-    plot_features_byOrigin(df_filtered, features, particle_type, nbins=50)
+    #plot_features_byOrigin(df_filtered, features, particle_type, nbins=50)
     x = df_filtered[features + ["particle"]]
 
     print(f"\nComposition after downsampling:\n{round(x.particle.value_counts()/x.shape[0],4)*100}")
@@ -389,7 +402,7 @@ if __name__ == '__main__':
         weights = str(cfg.balanced)
 
     start_fit = time.time()
-    clf = tree.DecisionTreeClassifier(max_depth = 6,class_weight=weights, min_impurity_decrease=0.009) #class_weight='balanced',  min_impurity_decrease=0.009
+    clf = tree.DecisionTreeClassifier(max_depth = 6,class_weight=weights, min_impurity_decrease=0.009) 
 
     clf.fit(x_train, y_train)
     print(f'Decision Tree training required: {round(time.time()-start_fit, 2)}s')
