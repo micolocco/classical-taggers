@@ -125,6 +125,7 @@ loading_variables = [
         'B_PX',
         'B_PY',
         'B_PZ',
+        "B_BKGCAT",
         'B_TRUEID',
         'B_BKGCAT',
         'B_nPVs',
