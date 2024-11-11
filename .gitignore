@@ -6,8 +6,8 @@ Cimplementation/tracedModels/**
 scripts/__pycache__
 scripts/.ipynb_checkpoints/
 savedModels/*
-*/*.csv
-*/*.log
+**/*.csv
+**/*.log
 lhcb-metainfo/
 .snakemake/
 __pycache__/
@@ -20,3 +20,4 @@ scaler_old
 !tagging_power_tables/**/*.pdf
 */DT_outputs
 configs/*.yaml
+test/

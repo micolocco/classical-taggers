@@ -1,1 +1,0 @@
-(B_Tr_T_absID==2212) & (B_Tr_T_Origin_Flag==1)

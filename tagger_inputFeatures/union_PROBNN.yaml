@@ -7,10 +7,12 @@ OSKaon:
     - B_PT
     - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
-    - B_Tr_T_PIDK
-    - B_Tr_T_PIDP
-    - B_Tr_T_PIDe
-    - B_Tr_T_PIDmu
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_absIP
     - B_Tr_T_eoverP
@@ -27,10 +29,12 @@ OSElectron:
     - B_PT
     - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
-    - B_Tr_T_PIDK
-    - B_Tr_T_PIDP
-    - B_Tr_T_PIDe
-    - B_Tr_T_PIDmu
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_absIP
     - B_Tr_T_eoverP
@@ -47,10 +51,12 @@ OSMuon:
     - B_PT
     - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
-    - B_Tr_T_PIDK
-    - B_Tr_T_PIDP
-    - B_Tr_T_PIDe
-    - B_Tr_T_PIDmu
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_absIP
     - B_Tr_T_eoverP
@@ -70,14 +76,18 @@ SSPion:
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Pion
     - B_PT
-    - B_Tr_T_PIDK
-    - B_Tr_T_PIDP
-    - B_Tr_T_PIDe
-    - B_Tr_T_PIDmu
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
-    # - B_nPVs
-   # - B_nTracks
+    - B_nPVs
+    - B_nTracks
+    - B_Tr_T_absIP
+
 
 
 
@@ -92,14 +102,18 @@ SSProton:
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Proton
     - B_PT
-    - B_Tr_T_PIDK
-    - B_Tr_T_PIDP
-    - B_Tr_T_PIDe
-    - B_Tr_T_PIDmu
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU    
+    - B_Tr_T_PROBNN_PI
+    # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
-  # - B_nPVs
-  # - B_nTracks
+    - B_nPVs
+    - B_nTracks
+    - B_Tr_T_absIP
+
 
 SSKaon:
   features:   
@@ -112,11 +126,14 @@ SSKaon:
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Kaon
     - B_PT
-    - B_Tr_T_PIDK
-    - B_Tr_T_PIDP
-    - B_Tr_T_PIDe
-    - B_Tr_T_PIDmu
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU     
+    - B_Tr_T_PROBNN_PI
+    # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
-  #  - B_nPVs
-   # - B_nTracks
+    - B_nPVs
+    - B_nTracks
+    - B_Tr_T_absIP

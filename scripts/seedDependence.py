@@ -24,22 +24,21 @@ tagging_perf_dict = {
     'TaggingPower_Cali': r'$\varepsilon_{tag,\mathrm{eff}}^{\mathrm{cali}}$'
 }
 
-def plot_tagging_power_vs_seed(seeds, calibrated_taggingPower, missing_seeds):
+def plot_tagging_power_vs_seed(seeds, calibrated_taggingPower, missing_seeds, lr, bs, arch):
     # Extract values and errors from the calibrated_taggingPower list
     values = [item[0] for item in calibrated_taggingPower]
     errors = [item[1] for item in calibrated_taggingPower]
 
     # Create the plot
-    plt.errorbar(seeds, values, yerr=errors, fmt='o', capsize=5, label='Calibrated Tagging Power')
-    
+    plt.errorbar(seeds, values, yerr=errors, fmt='o', capsize=5, label=f'Calibrated Tagging Power\nLR: {lr}, Arch: {arch}, BS: {bs}')    
     # Plot the missing data points with a red cross
     if missing_seeds:
         plt.scatter(missing_seeds, [0] * len(missing_seeds), color='red', marker='x', label='Not Found')
 
     plt.xlabel('Seed')
     plt.ylabel(f"{tagging_perf_dict['TaggingPower_Cali']} (%)")
-    plt.title('Calibrated Tagging Power vs. Seed')
-    plt.legend()
+    plt.title(f'{cfg.tagger}: Calibrated Tagging Power vs. Seed')
+    plt.legend(fontsize=14, loc='lower right')   
     plt.grid(True)
     # Save the plot to a file
     output_path = f"/home/molocco/classical-taggers/seedPlots"
@@ -60,9 +59,13 @@ if __name__ == '__main__':
     pprint(cfg)
 
     seeds = [2, 10, 12, 14, 45]
-    learning_rates = [0.001]
-    batch_sizes = [32]
-    architectures = ['simple']
+    learning_rates = [0.001,]
+    batch_sizes = [32,]
+    architectures = ['simple',]
+
+    #learning_rates = [0.001, 0.01, 0.1]
+    #batch_sizes = [32, 128, 1024, 2048]
+    #architectures = ['simple', 'complex']
 
     for lr in learning_rates:
         for bs in batch_sizes:
@@ -86,4 +89,4 @@ if __name__ == '__main__':
                         missing_seeds.append(seed)
                 
                 if calibrated_taggingPower or missing_seeds:
-                    plot_tagging_power_vs_seed(used_seeds, calibrated_taggingPower, missing_seeds)
+                    plot_tagging_power_vs_seed(used_seeds, calibrated_taggingPower, missing_seeds, lr, bs, arch)
