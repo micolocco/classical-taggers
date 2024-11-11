@@ -14,7 +14,7 @@ def in_data(data_path, list_of_files):
     return [join(data_path, i) for i in list_of_files if '#' not in i and len(i) > 0]
 
 taggers_conf = {
-    'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
+    'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon', 'OSProton'],
     'Bd2JpsiKst': ['SSPion', 'SSProton'],
     'Bs2DsPi': ['SSKaon'],
     'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
@@ -103,6 +103,7 @@ for decay, path_list in ntuples_raw_withUT.items():
     #print('-------')
     for tagger in taggers_conf[decay] :
         ntuples_selected_withUT[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/cut_DT_PROBNN_unbalanced_round3/union_PROBNN') for f in path_list]})
+        ntuples_selected_withUT[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/quentin/union_PROBNN') for f in path_list]})
 
 ntuples_tagged_withUT = {}
 for decay, path_list in ntuples_raw_withUT.items():
@@ -145,10 +146,16 @@ generated_paths_OSMuon = read_generated_paths(data,join(repo,'paths_for_snakemak
 rule all:
     input:
         join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/14/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/45/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/14/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/45/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_PROBNN_unbalanced_round3/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/quentin/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/quentin/union_PROBNN/2/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/quentin/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/quentin/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/quentin/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSProton/quentin/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
         ##join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
        # ntuples_selected_withUT['Bu2JpsiK']['OSMuon'],
        # ntuples_selected_withUT['Bu2JpsiK']['OSKaon'],
@@ -268,9 +275,9 @@ rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
         added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|OSProton|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
     # output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root'),
-    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|OSProton|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
     resources:
@@ -278,12 +285,12 @@ rule add_selection:
         MaxRunHours = 4, # medium queue
 
     run:
-       # tree = find_tree_name(wildcards.decay)
+        # tree = find_tree_name(wildcards.decay)
         cmd = [
             'python', input.script,
             '--added_features {input.added_features}',
             '--output {output}',
-            #'--treename', tree,
+            # '--treename', tree,
             '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
@@ -363,10 +370,10 @@ rule train_tagger:
         selected = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']],
         script = join(repo, 'scripts/pipeline.py'),
     output:
-        pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
-    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training_log.log')
+        pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|OSProton|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
+    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|OSProton|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training_log.log')
     resources:
-        mem_mb = 20000, # Specify memory requirement in megabytes 
+        mem_mb = 64000, # Specify memory requirement in megabytes 
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 24, # long queue
