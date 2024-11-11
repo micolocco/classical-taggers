@@ -61,6 +61,7 @@ if __name__ == '__main__':
         #'B_PY',
         #'B_PZ',
         'B_TRUEID',
+        'B_BKGCAT',
         'B_Tr_T_BPVIP',
         'B_Tr_T_BPVIPCHI2',
         'B_Tr_T_BPVX',
