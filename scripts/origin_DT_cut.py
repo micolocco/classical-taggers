@@ -154,6 +154,7 @@ if __name__ == '__main__':
 
     from pprint import pprint   
     pprint(cfg)
+    downsampling = False
     start = time.time()
     # Check and eventually make output directory where training info will be saved
     os.makedirs(cfg.target_path, exist_ok=True)
@@ -280,6 +281,11 @@ if __name__ == '__main__':
         ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
         ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1), "SSProton"),
         ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 2), "OSProton"),
+        ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag!=1), "noOSSSKaon"),
+        ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag != 2), "noOSMuon"),
+        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag != 2), "noOSElectron"),
+        ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag != 1), "noSSPion"),
+        ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 2), "noOSSSProton"),
         ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
         ] #((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
 
@@ -292,7 +298,7 @@ if __name__ == '__main__':
     
 
     # To remove all the other particles
-    # df = df.loc[(df.particle != 0 )]
+    #df = df.loc[(df.particle != 'Others' )]
  
     # For SS case if B_Tr_T_Charge has same sign of B_TRUE_ID is a correct tagging particle candidate
     # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
@@ -330,6 +336,7 @@ if __name__ == '__main__':
     
     # Filter the DataFrame to remove rows that meet the combined condition
     df_filtered = df[~removal_conditions].copy()
+    df_filtered = df.copy()
     df_filtered = df_filtered.dropna()
 
     if cfg.BKG0:
@@ -341,22 +348,22 @@ if __name__ == '__main__':
         count_BKGCAT(df_filtered)
     print(f"\nComposition before downsampling:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}")
     
-    
-    # Downsample the 'notSamePV', 'Others' classes. 
-    # Get the count of the largest class excluding "notSamePV"
-    max_class_size = df_filtered[df_filtered.particle == 'SSPion'].particle.value_counts().max()
-    # Filter the 'notSamePV' rows
-    not_same_pv_rows = df_filtered[df_filtered.particle == 'notSamePV']
-    others_rows = df_filtered[df_filtered.particle == 'Others']
-    # Randomly sample the maximum class size from 'notSamePV'
-    sampled_not_same_pv = not_same_pv_rows.sample(n=max_class_size, random_state=42)
-    others_rows = others_rows.sample(n=max_class_size, random_state=42)
-    # Filter out 'notSamePV' from the original dataframe to keep the other rows
-    df_filtered = df_filtered[(df_filtered.particle != 'notSamePV') & (df_filtered.particle != 'Others')]
-    # Concatenate the sampled 'notSamePV' rows back with the other classes
-    df_filtered = pd.concat([df_filtered, sampled_not_same_pv])
-    df_filtered = pd.concat([df_filtered, others_rows])
-    # Optionally, shuffle the dataframe (to mix rows)
+    if downsampling:
+        # Downsample the 'notSamePV', 'Others' classes. 
+        # Get the count of the largest class excluding "notSamePV"
+        max_class_size = df_filtered[df_filtered.particle == 'SSPion'].particle.value_counts().max()
+        # Filter the 'notSamePV' rows
+        not_same_pv_rows = df_filtered[df_filtered.particle == 'notSamePV']
+        others_rows = df_filtered[df_filtered.particle == 'Others']
+        # Randomly sample the maximum class size from 'notSamePV'
+        sampled_not_same_pv = not_same_pv_rows.sample(n=max_class_size, random_state=42)
+        others_rows = others_rows.sample(n=max_class_size, random_state=42)
+        # Filter out 'notSamePV' from the original dataframe to keep the other rows
+        df_filtered = df_filtered[(df_filtered.particle != 'notSamePV') & (df_filtered.particle != 'Others')]
+        # Concatenate the sampled 'notSamePV' rows back with the other classes
+        df_filtered = pd.concat([df_filtered, sampled_not_same_pv])
+        df_filtered = pd.concat([df_filtered, others_rows])
+        # Optionally, shuffle the dataframe (to mix rows)
     
     df_filtered = df_filtered.sample(frac=1, random_state=42).reset_index(drop=True)
     
