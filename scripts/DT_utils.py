@@ -1,6 +1,6 @@
 
 
-def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None):      
+def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, balanced=False, savepath=None, uncertainty=False):
     '''
     Function to get metrics (in form of a table) for the amount of true VS predicted particle types
     Denominator can be the amount of predicted particles or of true partricle for a specific type
@@ -14,44 +14,39 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
     '''
     from rich.console import Console
     from rich.table import Table
+    from rich import print as rprint
     import numpy as np
 
     console = Console()
 
     table = Table(show_header=True, title=title)
     table.add_column("True \ Predicted", justify="left", style='cyan')
-    #table.add_column("OSKaon", justify="right", style="green")
-    #table.add_column("OSMuon", justify="right", style="green")
-    #table.add_column("OSElectron", justify="right", style="green")
-    #table.add_column("SSPion", justify="right", style="green")
-    #table.add_column("SSProton+SSKaon", justify="right", style="green")
-    #table.add_column("SSKaon", justify="right", style="green")
-    #table.add_column("OSProton", justify="right", style="green")
+
+    weight = 1
+    if balanced:
+        weight = np.sum([np.nan_to_num((y_true == particle_truth) / np.sum(y_true == particle_truth)) for particle_truth in possible_particle], axis=0)
+
     for key in possible_particle:
         table.add_column(key, justify="right", style="green")
- 
-    for particle_A in possible_particle: #for possible_particle in sorted(y_true.unique())
+    for particle_truth in possible_particle: #for possible_particle in sorted(y_true.unique())
         percVector = []
-        for particle_B in possible_particle: # for particle in possible_particle:
-            if particle_B in sorted(np.unique(y_predicted)):
-                if normalization == 'predicted':
-                    denom = len(y_predicted[y_predicted == particle_B])
+        for particle_prediction in possible_particle: # for particle in possible_particle:
+            if particle_prediction in np.unique(y_predicted):
+                k = np.sum((y_predicted == particle_prediction) * (y_true == particle_truth) * weight)
+                if normalization=='predicted':
+                    n = np.sum((y_predicted == particle_prediction) * weight)
                 else:
-                    denom = len(y_true[y_true == particle_A])
-                
-                unique_values, counts = np.unique(y_true[y_predicted == particle_B] == particle_A, return_counts=True)
-
-                # Check if 'True' exists in unique_values before accessing counts[1]
-                if True in unique_values:
-                    true_count_index = np.where(unique_values == True)[0][0]
-                    true_count = counts[true_count_index]
-                    percentage = (true_count / denom) * 100
-                    percVector.append("{:.2f}".format(percentage))
+                    n = np.sum((y_true == particle_truth) * weight)
+                if uncertainty:
+                    percVector.append("{:.4f} ± {:.4f}".format((k/n)*100, (((k/n)*(1-k/n))/n)*100)) # Binominal variance of the efficiency from https://indico.cern.ch/event/66256/contributions/2071577/attachments/1017176/1447814/EfficiencyErrors.pdf
+                    # percVector.append("{:.4f} ± {:.4f}".format((k/n)*100, ((((k+1)*(k+2))/((n+2)*(n+3)))-(((k+1)**2)/((n+2)**2)))*100)) # Bayesian variance of the efficiency from https://indico.cern.ch/event/66256/contributions/2071577/attachments/1017176/1447814/EfficiencyErrors.pdf
                 else:
-                    percVector.append("0.00")  # No 'True' values, so 0% match
+                    percVector.append("{:.2f}".format((k/n)*100))
             else:
                 percVector.append("Not predicted")
-
-        table.add_row(particle_A, *percVector)
+        table.add_row(particle_truth, *percVector)
     console.print(table)
+    if savepath:
+        with open(savepath, "w") as f:
+            rprint(table, file=f)
 
