@@ -21,3 +21,4 @@ scaler_old
 */DT_outputs
 configs/*.yaml
 test/
+**/.nfs*

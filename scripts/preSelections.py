@@ -47,7 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('--cut_file', help='File where the cut is stored', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
-    parser.add_argument('--BKG0', help='If true, only BGKCAT=0 tracks are used. Default is true',  action='store_true') 
+    parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
 
     cfg = parser.parse_args()
 

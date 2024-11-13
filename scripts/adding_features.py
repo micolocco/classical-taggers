@@ -5,23 +5,23 @@ import os
 import argparse
 
 def DeltaQ(df,Mass, prefix):
-        E =np.sqrt( Mass**2 + df[f'{prefix}Tr_T_PX']**2 + df[f'{prefix}Tr_T_PY']**2 + df[f'{prefix}Tr_T_PZ']**2)
-        DeltaQ = np.sqrt( (E + df[f'{prefix}ENERGY'])**2  - ((df[f'{prefix}Tr_T_PX'] + df[f'{prefix}PX'])**2 + (df[f'{prefix}Tr_T_PY'] + df[f'{prefix}PY'])**2 + (df[f'{prefix}Tr_T_PZ'] + df[f'{prefix}PZ'])**2 )   ) -df[f'{prefix}M']  - Mass
+        E =np.sqrt( Mass**2 + df[f'B_Tr_T_PX']**2 + df[f'B_Tr_T_PY']**2 + df[f'B_Tr_T_PZ']**2)
+        DeltaQ = np.sqrt( (E + df[f'B_ENERGY'])**2  - ((df[f'B_Tr_T_PX'] + df[f'B_PX'])**2 + (df[f'B_Tr_T_PY'] + df[f'B_PY'])**2 + (df[f'B_Tr_T_PZ'] + df[f'B_PZ'])**2 )   ) -df[f'B_M']  - Mass
         return(DeltaQ)
 
 # Phi distance definition from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/src/Utils/TaggingHelpers.cpp?ref_type=heads#L43
 def min_dPhi(df, prefix):
-    df.eval(f'{prefix}Tr_T_cos_Phi=cos({prefix}Tr_T_Phi)', inplace=True)
-    df.eval(f'{prefix}Tr_T_sin_Phi=sin({prefix}Tr_T_Phi)', inplace=True)
-    df.eval(f'{prefix}cos_Phi=cos({prefix}PHI)', inplace=True)
-    df.eval(f'{prefix}sin_Phi=sin({prefix}PHI)', inplace=True)
-    df.eval(f'x_arctan=({prefix}Tr_T_cos_Phi*{prefix}sin_Phi) - ({prefix}cos_Phi*{prefix}Tr_T_sin_Phi)', inplace=True)
-    df.eval(f'y_arctan=({prefix}Tr_T_cos_Phi*{prefix}cos_Phi) + ({prefix}sin_Phi*{prefix}Tr_T_sin_Phi)', inplace=True)
-    df.eval(f'{prefix}Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
+    df.eval(f'B_Tr_T_cos_Phi=cos(B_Tr_T_Phi)', inplace=True)
+    df.eval(f'B_Tr_T_sin_Phi=sin(B_Tr_T_Phi)', inplace=True)
+    df.eval(f'B_cos_Phi=cos(B_PHI)', inplace=True)
+    df.eval(f'B_sin_Phi=sin(B_PHI)', inplace=True)
+    df.eval(f'x_arctan=(B_Tr_T_cos_Phi*B_sin_Phi) - (B_cos_Phi*B_Tr_T_sin_Phi)', inplace=True)
+    df.eval(f'y_arctan=(B_Tr_T_cos_Phi*B_cos_Phi) + (B_sin_Phi*B_Tr_T_sin_Phi)', inplace=True)
+    df.eval(f'B_Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
     # A bit of a hack to add the minimum distance
-    _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group[f'{prefix}Tr_T_PhiDistance']))).reset_index(name=f'{prefix}Tr_T_minPhiDistance')
+    _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group[f'B_Tr_T_PhiDistance']))).reset_index(name=f'B_Tr_T_minPhiDistance')
     df = pd.merge(df, _df, on='entry', how='left')
-    df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
+    df.drop([f'B_Tr_T_cos_Phi', f'B_Tr_T_sin_Phi', f'B_cos_Phi', f'B_sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
     return df
 
 if __name__ == '__main__':
@@ -40,26 +40,27 @@ if __name__ == '__main__':
     pprint(cfg)
 
     # Modify the B_ prefix dynamically based on evtType
-    prefix = cfg.evtType[:2] + "_"
+   #prefix = cfg.evtType[:2] + "_"
 
     # Replace B_ in the loading variables
-    loading_variables = [var.replace("B_", prefix) for var in [
-        #'B_BPVX',
-        #'B_BPVY',
-        #'B_BPVZ',
-        #'B_END_VX',
-        #'B_END_VY',
-        #'B_END_VZ',
-        #'B_ENERGY',
-        #'B_ETA',
-        #'B_M',
-        #'B_OLD_SSPionBDT_Mistag',
-        #'B_P',
-        #'B_PHI',
+    #loading_variables = [var.replace("B_", prefix) for var in [
+    loading_variables = [
+        'B_BPVX',
+        'B_BPVY',
+        'B_BPVZ',
+        'B_END_VX',
+        'B_END_VY',
+        'B_END_VZ',
+        'B_ENERGY',
+        'B_ETA',
+        'B_M',
+      #  'B_OLD_SSPionBDT_Mistag',
+        'B_P',
+        'B_PHI',
         'B_PT',
-        #'B_PX',
-        #'B_PY',
-        #'B_PZ',
+        'B_PX',
+        'B_PY',
+        'B_PZ',
         'B_TRUEID',
         'B_Tr_T_BPVIP',
         'B_Tr_T_BPVIPCHI2',
@@ -113,7 +114,7 @@ if __name__ == '__main__':
         'B_nPVs',
         'B_nTracks',
         'EVENTNUMBER',
-        'RUNNUMBER']]
+        'RUNNUMBER']
     print(loading_variables)
     #df_save = pd.DataFrame(columns=loading_variables)
 
@@ -131,33 +132,33 @@ if __name__ == '__main__':
 
     # drop the B mesons or other particles that are not of interest
     abs_id = B_abs_id_dic[cfg.evtType]
-    df.drop(df[abs(df[f'{prefix}TRUEID']) != abs_id ].index , inplace = True)
+    df.drop(df[abs(df[f'B_TRUEID']) != abs_id ].index , inplace = True)
     df.reset_index(inplace=True, drop = False)
     # Add some needed features
     # A bit of a hack to add the minimum distance
     df = min_dPhi(df, prefix)
-    df.eval(f'{prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)', inplace=True)
-    df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}BPVZ - {prefix}Tr_T_BPVZ)' , inplace = True)
-    df.eval(f'{prefix}Tr_T_DeltaR= ({prefix}ETA - {prefix}Tr_T_Eta)**2 + {prefix}Tr_T_PhiDistance**2', inplace = True)
-    df.eval(f'diff_P = abs({prefix}P - {prefix}Tr_T_P)', inplace = True)
-    df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
-    df.eval(f't = ({prefix}END_VX**2 + {prefix}END_VY**2 + {prefix}END_VZ**2 - {prefix}END_VX*{prefix}Tr_T_X - {prefix}END_VY*{prefix}Tr_T_Y - {prefix}END_VZ*{prefix}Tr_T_Z) / ({prefix}END_VX * {prefix}Tr_T_PX + {prefix}END_VY * {prefix}Tr_T_PY + {prefix}END_VZ * {prefix}Tr_T_PZ)' , inplace = True)
-    df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
-    df.eval(f'{prefix}Tr_T_absIP = abs({prefix}Tr_T_BPVIP)', inplace = True)
-    df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
-    df.eval(f'{prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)', inplace = True)
-    df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
-    df[f'{prefix}Tr_T_DeltaQ_Muon'] = DeltaQ(df,105.65837, prefix)
-    df[f'{prefix}Tr_T_DeltaQ_Electron'] = DeltaQ(df,0.51100, prefix)
-    df[f'{prefix}Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208, prefix)
-    df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
-    df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
-    df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
-    df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUEID)', inplace = True)
+    df.eval(f'B_Tr_T_cos_PhiDistance=cos(B_Tr_T_PhiDistance)', inplace=True)
+    df.eval(f'B_Tr_T_diff_z = abs(B_BPVZ - B_Tr_T_BPVZ)' , inplace = True)
+    df.eval(f'B_Tr_T_DeltaR= (B_ETA - B_Tr_T_Eta)**2 + B_Tr_T_PhiDistance**2', inplace = True)
+    df.eval(f'diff_P = abs(B_P - B_Tr_T_P)', inplace = True)
+    df.eval(f'P_proj = B_ENERGY*B_Tr_T_ENERGY - (B_Tr_T_PX*B_PX + B_Tr_T_PY*B_PY +B_Tr_T_PZ*B_PZ ) ', inplace = True)
+    df.eval(f't = (B_END_VX**2 + B_END_VY**2 + B_END_VZ**2 - B_END_VX*B_Tr_T_X - B_END_VY*B_Tr_T_Y - B_END_VZ*B_Tr_T_Z) / (B_END_VX * B_Tr_T_PX + B_END_VY * B_Tr_T_PY + B_END_VZ * B_Tr_T_PZ)' , inplace = True)
+    df.eval(f'EVIP = sqrt((B_Tr_T_X**2 + B_Tr_T_Y**2 + B_Tr_T_Z**2) + t**2 * (B_Tr_T_PX**2 + B_Tr_T_PY**2 + B_Tr_T_PZ**2) + 2*t*(B_Tr_T_X * B_Tr_T_PX + B_Tr_T_Y * B_Tr_T_PY + B_Tr_T_Z * B_Tr_T_PZ))', inplace = True)
+    df.eval(f'B_Tr_T_absBPVIP = abs(B_Tr_T_BPVIP)', inplace = True)
+    df[f'B_Tr_T_Origin_Flag'].astype(int)
+    df.eval(f'B_Tr_T_EtaDistance = abs(B_ETA - B_Tr_T_Eta)', inplace = True)
+    df[f'B_Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
+    df[f'B_Tr_T_DeltaQ_Muon'] = DeltaQ(df,105.65837, prefix)
+    df[f'B_Tr_T_DeltaQ_Electron'] = DeltaQ(df,0.51100, prefix)
+    df[f'B_Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208, prefix)
+    df[f'B_Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
+    df.eval(f'B_Tr_T_Signal_TagPart_PT = sqrt((B_PX + B_Tr_T_PX) **2 + (B_PY + B_Tr_T_PY)**2)', inplace = True)
+    df.eval(f'B_Tr_T_eoverP = B_Tr_T_Charge/B_Tr_T_P', inplace = True)
+    df.eval(f'B_Tr_T_absID =abs(B_Tr_T_TRUEID)', inplace = True)
     df.eval('EVIP = log(EVIP)', inplace = True)
-    df.eval(f'{prefix}Tr_T_BVIPSig = sqrt({prefix}Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
+    df.eval(f'B_Tr_T_BVIPSig = sqrt(B_Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval('P_proj = log(P_proj)', inplace = True)
-    df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
+    df.eval(f'B_Tr_T_atanPT_PZ = arctan2(B_Tr_T_PT, B_Tr_T_PZ)', engine='python', inplace=True)
 
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(cfg.output) as f:

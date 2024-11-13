@@ -10,7 +10,9 @@ matplotlib_lhcb_style(plt)
 plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
 plt.rcParams.update({'axes.unicode_minus' : False})
 
-
+'''
+python scripts/origin_checks.py >log_check_Bd_20.log
+'''
 def find_tree_name(decay):
     if decay == 'Bs2JpsiPhi':
         return 'BsToJpsiPhi_Detached/DecayTree'
@@ -21,10 +23,11 @@ def find_tree_name(decay):
 
 if __name__ == '__main__':
 
-    base_pattern = '/ceph/users/molocco/Data/withUT_MC_2024/1_raw/'
-    #folders = ['Bs2DsPi']
-    folders = ['Bd2JpsiKst']
+    base_pattern = '/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/'
+    ##folders = ['Bs2DsPi']
+    #folders = ['Bd2JpsiKst']
     #folders = ['Bu2JpsiK', 'Bd2JpsiKst', 'Bs2DsPi']
+    folders = ['Bu2JpsiK', 'Bd2JpsiKst',]
 
    # loading_variables = ['B_Tr_T_absID','B_Tr_T_Origin_Flag', 'B_TRUEID', 'B_Tr_T_Charge', 'B_Tr_T_MC_MOTHER_ID', 'B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
     loading_variables = ['B_Tr_T_TRUEID','B_Tr_T_Origin_Flag', 'B_TRUEID', 'B_Tr_T_Charge', 'B_Tr_T_MC_MOTHER_ID', 'B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
@@ -40,7 +43,7 @@ if __name__ == '__main__':
             }
 
     for decay in folders:
-        pattern = f'{base_pattern}/{decay}/old/*.root'
+        pattern = f'{base_pattern}/{decay}/*.root'
         root_files = []
         root_files.extend(glob.glob(pattern))
         treename = find_tree_name(decay)
@@ -123,7 +126,7 @@ if __name__ == '__main__':
             # Name the first column as 'MOTHER_ID'
             combined.index.name = 'MOTHER_ID'
             # Print the combined DataFrame
-            print(combined[:20].to_string(index=True, float_format="%.1f"))
+            print(combined[:100].to_string(index=True, float_format="%.1f"))
         print('-----------------------------------------------------------------------------------------')
         print('\n')
             #print('Charge-B Flavour relation for MOTHER_ID=5:')

@@ -51,11 +51,10 @@ def format_and_propagate(values):
         return ufloat(values[0], combined_error)
     else:
         return ufloat(values[0], values[1])
-
-def load_and_process_json(json_file, taggerName):
+'''
+def load_and_process_json_complicated(json_file, taggerName):
     with open(json_file, 'r') as f:
         data = json.load(f)
-
     # Navigate to the "calibrated" -> "selected" section
     try:
         selected_data = data[f'{taggerName}']['calibrated']['selected']
@@ -92,7 +91,7 @@ def load_and_process_json(json_file, taggerName):
         processed_data[field] = formatted_value
         print(f'{field}: {formatted_value}')
     return processed_data
-
+'''
 def find_tree_name(decay):
     if decay == 'Bs2JpsiPhi':
         return 'BsToJpsiPhi_Detached/DecayTree'
@@ -105,7 +104,7 @@ def find_tree_name(decay):
     else:
         return 'Tuple/DecayTree'
 
-'''
+
 def load_and_process_json(json_file): 
 
     with open(json_file, 'r') as f:
@@ -127,7 +126,7 @@ def load_and_process_json(json_file):
         processed_data[key] = format_and_propagate(numeric_values)
     
     return processed_data
-
+'''
 # Custom JSON encoder for ufloat objects
 class UFloatEncoder(json.JSONEncoder):
     def default(self, obj):

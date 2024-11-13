@@ -57,11 +57,11 @@ def process_chunk(df, prefix, abs_id):
     df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
     return df
 
+'''
 def dataframe_to_awkward(df):
     """Convert a pandas DataFrame to an awkward array."""
     return ak.Array(df.to_dict(orient="list"))
-
-'''
+    
 def process_file_in_batches(input_path, loading_variables, treename, prefix, abs_id, decay, batch_size, output_file):
     
     file_exists = os.path.exists(output_file) 

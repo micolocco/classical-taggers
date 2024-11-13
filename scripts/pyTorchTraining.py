@@ -95,7 +95,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     pos=0
     for i, col in enumerate(data.columns.to_list()):
         if col in features_list:
-            plt.subplot(4, 5 , pos + 1) # hardcoded according to the number of features
+            plt.subplot(6, 6 , pos + 1) # hardcoded according to the number of features
             if col in nice_names.keys():
                 plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', alpha=0.5, range=ranges[col])
                 plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', alpha=0.5, range=ranges[col])

@@ -82,7 +82,9 @@ ranges = {
         "B_Tr_T_PT": (0,10000),
         'B_nPVs': (0,18),
         'B_PT': (0,60000),
-        "B_Tr_T_BVIPSig": (0, 10),
+        "B_Tr_T_BPVIPSig": (0, 10),
+        "B_Tr_T_BPVIP": (0, 5),
+        "B_Tr_T_OWNPVIP": (0, 5),
         "B_Tr_T_CHI2DOF": (0, 5),
         'B_Tr_T_PIDK': (-150, 150),
         'B_Tr_T_PIDP': (-150, 150),
@@ -97,7 +99,8 @@ ranges = {
         "B_Tr_T_DeltaR": (0, 20),
         "B_Tr_T_Signal_TagPart_PT": (0, 100000),
         "B_Tr_T_PhiDistance": (-3.14, 3.14),
-        "B_Tr_T_EtaDistance": (0, 4)
+        "B_Tr_T_EtaDistance": (0, 4),
+        
 
 
 
@@ -109,7 +112,9 @@ nice_names = {
         "B_Tr_T_PT": r'$p_{T}(tag)$',
         'B_nPVs': r'$\mathrm{nPVs}$',
         'B_PT': r'$p_{T}(B)$',
-        "B_Tr_T_BVIPSig": r'$\sqrt{\chi^{2}_{\rm{IP}}(tag)~\rm{wrt}~\rm{PV}(B)}$',
+        "B_Tr_T_BPVIPSig": r'$\sqrt{\chi^{2}_{\rm{IP}}(tag)~\rm{wrt}~\rm{BestPV}}$',
+        "B_Tr_T_BPVIP": r'$\mathrm{IP}~\rm{wrt}~\rm{BestPV}$',
+        "B_Tr_T_OWNPVIP": r'$\mathrm{IP}~\rm{wrt}~\rm{ownPV}$',
         "B_Tr_T_CHI2DOF": r'$\chi^2/\mathrm{ndof}~$',
         'B_Tr_T_PIDK': r'$\mathrm{PID}_{K}(tag)$',
         'B_Tr_T_PIDP': r'$\mathrm{PID}_{p}(tag)$',
