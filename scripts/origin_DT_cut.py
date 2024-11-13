@@ -426,8 +426,10 @@ if __name__ == '__main__':
     #print(f"Accuracy:{clf.score(x_test,y_test)}")
 
     print("\n Metrics for particle type composition: true VS predicted\n")
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()))
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted')
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), title='Versus True (pruned)', savepath=f"{cfg.target_path}/{str(cfg.balanced)}/pruned_confusion_normalised_by_truth.txt")
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{cfg.target_path}/{str(cfg.balanced)}/pruned_confusion_normalised_by_prediction.txt")
+    # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), balanced=True, title='Versus True (balanced)') # same as unbalanced
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{cfg.target_path}/{str(cfg.balanced)}/pruned_balanced_confusion_normalised_by_prediction.txt")
     print(f'Running the script required: {time.time()-start}s')
     # Compute feature importance
     '''
