@@ -29,22 +29,7 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
     #table.add_column("OSProton", justify="right", style="green")
     for key in possible_particle:
         table.add_column(key, justify="right", style="green")
-    '''    
-    for key, value in possible_particle_dict.items():
-        percVector = []
-        for prediction_ID in np.arange(list(possible_particle_dict.values())[0], list(possible_particle_dict.values())[-1]+1):
-            if prediction_ID in np.unique(y_predicted):
-                if normalization=='predicted':
-                    denom=len(y_predicted[y_predicted==prediction_ID])
-                else:
-                    denom=len(y_true[y_true==value])
-                print(np.unique(y_true[y_predicted==prediction_ID]==value,return_counts=True))
-                print(f'{prediction_ID}, {value}')
-                percVector.append("{:.2f}".format(((np.unique(y_true[y_predicted==prediction_ID]==value,return_counts=True)[1][1])/denom)*100))
-            else:
-                percVector.append("Not predicted")
-    '''
-
+ 
     for particle_A in possible_particle: #for possible_particle in sorted(y_true.unique())
         percVector = []
         for particle_B in possible_particle: # for particle in possible_particle:
