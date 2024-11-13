@@ -5,7 +5,7 @@ OSKaon:
     - B_Tr_T_PT
     - B_nPVs
     - B_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
     - B_Tr_T_PROBNN_K
     - B_Tr_T_PROBNN_P
@@ -14,10 +14,23 @@ OSKaon:
     - B_Tr_T_PROBNN_PI
     # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_GHOSTPROB
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
     - B_Tr_T_eoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Kaon
+    - B_Run2_SSPion_Dec
+    - B_Run2_SSPion_Omega
+    - B_Run2_SSKaon_Dec
+    - B_Run2_SSKaon_Omega
+    - B_Run2_SSProton_Dec
+    - B_Run2_SSProton_Omega
+    - B_Run2_OSKaon_Dec
+    - B_Run2_OSKaon_Omega
+    - B_Run2_OSElectron_Dec
+    - B_Run2_OSElectron_Omega
+    - B_Run2_OSMuon_Dec
+    - B_Run2_OSMuon_Omega
+    
 
 
 OSElectron:
@@ -27,7 +40,7 @@ OSElectron:
     - B_Tr_T_PT
     - B_nPVs
     - B_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
     - B_Tr_T_PROBNN_K
     - B_Tr_T_PROBNN_P
@@ -36,10 +49,23 @@ OSElectron:
     - B_Tr_T_PROBNN_PI
     # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_GHOSTPROB
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
     - B_Tr_T_eoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Electron
+    - B_Run2_SSPion_Dec
+    - B_Run2_SSPion_Omega
+    - B_Run2_SSKaon_Dec
+    - B_Run2_SSKaon_Omega
+    - B_Run2_SSProton_Dec
+    - B_Run2_SSProton_Omega
+    - B_Run2_OSKaon_Dec
+    - B_Run2_OSKaon_Omega
+    - B_Run2_OSElectron_Dec
+    - B_Run2_OSElectron_Omega
+    - B_Run2_OSMuon_Dec
+    - B_Run2_OSMuon_Omega
+    
 
   
 OSMuon:
@@ -49,7 +75,7 @@ OSMuon:
     - B_Tr_T_PT
     - B_nPVs
     - B_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
     - B_Tr_T_PROBNN_K
     - B_Tr_T_PROBNN_P
@@ -58,10 +84,23 @@ OSMuon:
     - B_Tr_T_PROBNN_PI
     # - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_GHOSTPROB
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
     - B_Tr_T_eoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Muon
+    - B_Run2_SSPion_Dec
+    - B_Run2_SSPion_Omega
+    - B_Run2_SSKaon_Dec
+    - B_Run2_SSKaon_Omega
+    - B_Run2_SSProton_Dec
+    - B_Run2_SSProton_Omega
+    - B_Run2_OSKaon_Dec
+    - B_Run2_OSKaon_Omega
+    - B_Run2_OSElectron_Dec
+    - B_Run2_OSElectron_Omega
+    - B_Run2_OSMuon_Dec
+    - B_Run2_OSMuon_Omega
+    
 
 
  
@@ -69,7 +108,7 @@ SSPion:
   features:
     - B_Tr_T_P
     - B_Tr_T_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
@@ -86,7 +125,20 @@ SSPion:
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs
     - B_nTracks
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
+    - B_Run2_SSPion_Dec
+    - B_Run2_SSPion_Omega
+    - B_Run2_SSKaon_Dec
+    - B_Run2_SSKaon_Omega
+    - B_Run2_SSProton_Dec
+    - B_Run2_SSProton_Omega
+    - B_Run2_OSKaon_Dec
+    - B_Run2_OSKaon_Omega
+    - B_Run2_OSElectron_Dec
+    - B_Run2_OSElectron_Omega
+    - B_Run2_OSMuon_Dec
+    - B_Run2_OSMuon_Omega
+    
 
 
 
@@ -95,7 +147,7 @@ SSProton:
   features:    
     - B_Tr_T_P
     - B_Tr_T_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
@@ -112,14 +164,27 @@ SSProton:
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs
     - B_nTracks
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
+    - B_Run2_SSPion_Dec
+    - B_Run2_SSPion_Omega
+    - B_Run2_SSKaon_Dec
+    - B_Run2_SSKaon_Omega
+    - B_Run2_SSProton_Dec
+    - B_Run2_SSProton_Omega
+    - B_Run2_OSKaon_Dec
+    - B_Run2_OSKaon_Omega
+    - B_Run2_OSElectron_Dec
+    - B_Run2_OSElectron_Omega
+    - B_Run2_OSMuon_Dec
+    - B_Run2_OSMuon_Omega
+    
 
 
 SSKaon:
   features:   
     - B_Tr_T_P
     - B_Tr_T_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
@@ -136,4 +201,17 @@ SSKaon:
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs
     - B_nTracks
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
+    - B_Run2_SSPion_Dec
+    - B_Run2_SSPion_Omega
+    - B_Run2_SSKaon_Dec
+    - B_Run2_SSKaon_Omega
+    - B_Run2_SSProton_Dec
+    - B_Run2_SSProton_Omega
+    - B_Run2_OSKaon_Dec
+    - B_Run2_OSKaon_Omega
+    - B_Run2_OSElectron_Dec
+    - B_Run2_OSElectron_Omega
+    - B_Run2_OSMuon_Dec
+    - B_Run2_OSMuon_Omega
+    

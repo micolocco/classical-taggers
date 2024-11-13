@@ -5,19 +5,23 @@ OSKaon:
     - B_Tr_T_PT
     - B_nPVs
     - B_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
     - B_Tr_T_PROBNN_K
     - B_Tr_T_PROBNN_P
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU
     - B_Tr_T_PROBNN_PI
-    # - B_Tr_T_PROBNN_GHOST
-    - B_Tr_T_GHOSTPROB
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_absIP
     - B_Tr_T_eoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Kaon
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    - B_Tr_T_GHOSTPROB
 
 
 OSElectron:
@@ -27,19 +31,24 @@ OSElectron:
     - B_Tr_T_PT
     - B_nPVs
     - B_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
     - B_Tr_T_PROBNN_K
     - B_Tr_T_PROBNN_P
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU
     - B_Tr_T_PROBNN_PI
-    # - B_Tr_T_PROBNN_GHOST
-    - B_Tr_T_GHOSTPROB
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_absIP
     - B_Tr_T_eoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Electron
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    - B_Tr_T_GHOSTPROB
+
 
   
 OSMuon:
@@ -49,19 +58,23 @@ OSMuon:
     - B_Tr_T_PT
     - B_nPVs
     - B_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_CHI2DOF
     - B_Tr_T_PROBNN_K
     - B_Tr_T_PROBNN_P
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU
     - B_Tr_T_PROBNN_PI
-    # - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_GHOSTPROB
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
     - B_Tr_T_eoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Muon
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
 
 
  
@@ -69,7 +82,7 @@ SSPion:
   features:
     - B_Tr_T_P
     - B_Tr_T_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
@@ -81,12 +94,17 @@ SSPion:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU
     - B_Tr_T_PROBNN_PI
-    # - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs
     - B_nTracks
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+
 
 
 
@@ -95,7 +113,7 @@ SSProton:
   features:    
     - B_Tr_T_P
     - B_Tr_T_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
@@ -107,19 +125,25 @@ SSProton:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU    
     - B_Tr_T_PROBNN_PI
-    # - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs
     - B_nTracks
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    
+
 
 
 SSKaon:
   features:   
     - B_Tr_T_P
     - B_Tr_T_PT
-    - B_Tr_T_BPVIPSig
+    - B_Tr_T_BVIPSig
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
@@ -131,9 +155,15 @@ SSKaon:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU     
     - B_Tr_T_PROBNN_PI
-    # - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs
     - B_nTracks
-    - B_Tr_T_absBPVIP
+    - B_Tr_T_absIP
+    - B_Tr_T_PIDK
+    - B_Tr_T_PIDP
+    - B_Tr_T_PIDe
+    - B_Tr_T_PIDmu
+    
+
