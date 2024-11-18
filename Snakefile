@@ -144,13 +144,14 @@ generated_paths_OSMuon = read_generated_paths(data,join(repo,'paths_for_snakemak
 
 rule all:
     input:
+        '/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/original/balanced/treeSchema.pdf',
+
         #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_newFeat_BKG0_balanced/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_newFeat_BKG0_balanced/union_PROBNN/14/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_newFeat_BKG0_balanced/union_PROBNN/45/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_newFeat_BKG0_balanced/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_newFeat_BKG0_balanced/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        '/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/specific_others/unbalanced_treeSchema.pdf',
-        '/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/specific_others/balanced_treeSchema.pdf',
+        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/original/unbalanced/treeSchema.pdf',
 
        # ntuples_added_features_withUT['Bu2JpsiK'],
        # ntuples_added_features_withUT['Bd2JpsiKst'],
@@ -255,14 +256,14 @@ rule train_DT:
         script = join(repo, 'scripts/origin_DT_cut.py'),
         data = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features'),
     output:
-        pdf = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/specific_others/{balanced}_treeSchema.pdf'),
+        pdf = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/original/{balanced}/treeSchema.pdf'),
     log:
-        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/specific_others/{balanced}_treeSchema.log')
+        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/original/{balanced}/treeSchema.log')
     params:
-        target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/specific_others')
+        target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/original')
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes
-        MaxRunHours = 4, # medium queue
+        MaxRunHours = 8, # medium queue
 
     run:
         cmd = (
@@ -271,7 +272,7 @@ rule train_DT:
             f'--target_path {params.target_path} '  # Pass the target path
             f'--balanced {wildcards.balanced} '  # Specify if classes are balance dor not
            # f'--unify_SS '  # Specify if SSKaon and SSProton should be unified in single class
-            f'--BKG0'
+            f'--BKG0 '
             f'&> {log}'  # Redirect stdout and stderr to log file
         )
         shell(cmd)

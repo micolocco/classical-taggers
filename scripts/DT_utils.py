@@ -32,7 +32,7 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
         percVector = []
         for particle_prediction in possible_particle: # for particle in possible_particle:
             if particle_prediction in np.unique(y_predicted):
-                k = np.sum((y_predicted == particle_prediction) * (y_true == particle_truth) * weight)
+                k = np.sum(((y_predicted == particle_prediction) & (y_true == particle_truth)) * weight)
                 if normalization=='predicted':
                     n = np.sum((y_predicted == particle_prediction) * weight)
                 else:

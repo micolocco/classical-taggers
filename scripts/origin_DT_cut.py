@@ -11,6 +11,7 @@ import uproot
 import os
 import glob
 import argparse
+import datetime
 # Local import
 from IPython import embed
 from scripts import ranges, nice_names, matplotlib_lhcb_style
@@ -150,6 +151,8 @@ if __name__ == '__main__':
     parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' ) # action='store_true' means args.unify_SS will be set to True if the --unify_SS argument is provided on the command line.
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
 
+    print(f'Run at time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+
     cfg = parser.parse_args()
 
     from pprint import pprint   
@@ -158,6 +161,11 @@ if __name__ == '__main__':
     start = time.time()
     # Check and eventually make output directory where training info will be saved
     os.makedirs(cfg.target_path, exist_ok=True)
+    if cfg.unify_SS:
+        output_path = f'{cfg.target_path}/{str(cfg.balanced)}/SSKSSP/'
+    else:
+        output_path = f'{cfg.target_path}/{str(cfg.balanced)}/'
+
     fetaures_added = ['B_Tr_T_minPhiDistance', 'B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absBPVIP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_BPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
     loading_variables_noMC = [
         'B_BPVX',
@@ -205,7 +213,6 @@ if __name__ == '__main__':
         'B_Tr_T_BPVY',
         'B_Tr_T_BPVZ',
         'B_Tr_T_Phi',
-        'B_Tr_T_M',
         'B_Tr_T_CHI2DOF',
         'B_Tr_T_GHOSTPROB',
         'B_Tr_T_PX',
@@ -241,7 +248,7 @@ if __name__ == '__main__':
     df = pd.DataFrame(columns=loading_variables)
     
     for decay in folders:
-        pattern = f'{cfg.base_pattern}/{decay}/*5_1.mc.root'
+        pattern = f'{cfg.base_pattern}/{decay}/*.mc.root'
         root_files = []
         root_files.extend(glob.glob(pattern))
         treename = find_tree_name(decay)
@@ -281,12 +288,12 @@ if __name__ == '__main__':
         ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
         ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1), "SSProton"),
         ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 2), "OSProton"),
-        ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag!=1) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSKaon"),
-        ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSMuon"),
-        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSElectron"),
-        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22), "photonOSEl"),
-        ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 100), "noSSPion"),
-        ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSProton"),
+        #((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag!=1) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSKaon"),
+        #((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSMuon"),
+        #((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSElectron"),
+        #((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22), "photonOSEl"),
+        #((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 100), "noSSPion"),
+        #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSProton"),
         ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
         ] #((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
 
@@ -304,7 +311,7 @@ if __name__ == '__main__':
     # For SS case if B_Tr_T_Charge has same sign of B_TRUE_ID is a correct tagging particle candidate
     # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
     # We want to remove all the SSKaon (or SSPion/SSProton) that will return a wrong tagging decision
-    df['sign_tag'] = (df['B_TRUEID']/abs(df['B_TRUEID'])) * df['B_Tr_T_Charge']
+    #df['sign_tag'] = (df['B_TRUEID']/abs(df['B_TRUEID'])) * df['B_Tr_T_Charge']
     print(f"Total number of tracks for each B candidate (by TRUE_ID): \n {df['B_TRUEID'].value_counts()}")
     #plot_features(df, features, )
 
@@ -347,28 +354,27 @@ if __name__ == '__main__':
         print(f"New number of tracks: {df_filtered.shape[0]}")
     else:
         count_BKGCAT(df_filtered)
+
     print(f"\nComposition before downsampling:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}")
-    
     if downsampling:
         # Downsample the 'notSamePV', 'Others' classes. 
         # Get the count of the largest class excluding "notSamePV"
-        max_class_size = df_filtered[df_filtered.particle == 'SSPion'].particle.value_counts().max()
+        max_class_size = df_filtered[df_filtered.particle == 'noSSPion'].particle.value_counts().max()
         # Filter the 'notSamePV' rows
         not_same_pv_rows = df_filtered[df_filtered.particle == 'notSamePV']
-        others_rows = df_filtered[df_filtered.particle == 'Others']
+        #others_rows = df_filtered[df_filtered.particle == 'Others']
         # Randomly sample the maximum class size from 'notSamePV'
         sampled_not_same_pv = not_same_pv_rows.sample(n=max_class_size, random_state=42)
-        others_rows = others_rows.sample(n=max_class_size, random_state=42)
+        #others_rows = others_rows.sample(n=max_class_size, random_state=42)
         # Filter out 'notSamePV' from the original dataframe to keep the other rows
-        df_filtered = df_filtered[(df_filtered.particle != 'notSamePV') & (df_filtered.particle != 'Others')]
+        #df_filtered = df_filtered[(df_filtered.particle != 'notSamePV') & (df_filtered.particle != 'Others')]
+        df_filtered = df_filtered[(df_filtered.particle != 'notSamePV')]
         # Concatenate the sampled 'notSamePV' rows back with the other classes
         df_filtered = pd.concat([df_filtered, sampled_not_same_pv])
-        df_filtered = pd.concat([df_filtered, others_rows])
-        # Optionally, shuffle the dataframe (to mix rows)
-    
-    df_filtered = df_filtered.sample(frac=1, random_state=42).reset_index(drop=True)
-    
+        #df_filtered = pd.concat([df_filtered, others_rows])
+    # Optionally, shuffle the dataframe (to mix rows)
 
+    df_filtered = df_filtered.sample(frac=1, random_state=42).reset_index(drop=True)
     # Plot features
     output_dir = 'DT_outputs'    
     # Unify SSKaon and SSProton into a single class
@@ -390,16 +396,15 @@ if __name__ == '__main__':
                        # "prompt": 8
                        # }
 
-    #plot_features_byOrigin(df_filtered, features, particle_type, nbins=50)
-    x = df_filtered[features + ["particle"]]
+    #plot_features_byOrigin(df_filtered, features, particle_type, nbins=50)   
+    x = df_filtered[features + ["particle"]].copy()
+    y = x["particle"].copy()
 
-    print(f"\nComposition after downsampling:\n{round(x.particle.value_counts()/x.shape[0],4)*100}")
-    #print(f"\nComposition by particle and background category:\n{round(df_filtered[['particle','B_BKGCAT']].value_counts()/df_filtered.shape[0],4)*100}")
     print(f'The features used are {len(features)}: {features}')
     print('-----------------------------------------')
     # To get same amount of not_taggingPart
     #x = pd.concat([x, df.loc[df.particle == 0][features + ["particle"]].head(len(x))])
-    y = x.particle
+    print(f"Composition of the training-test sample (after downsampling):\n{round(x.particle.value_counts()/x.shape[0],4)*100}")
     x.drop(columns=["particle"] , inplace = True)
     x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.01, random_state=42)
     
@@ -418,19 +423,16 @@ if __name__ == '__main__':
     #dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True,special_characters=True) 
     dot_data = tree.export_graphviz(clf,feature_names=features,class_names=sorted(y_train.unique()),filled=True, rounded=True, special_characters=True, proportion=True) 
     graph = graphviz.Source(dot_data) 
-    if cfg.unify_SS:
-        title = f'{cfg.balanced}_SSKSSP'
-    else:
-        title = f'{cfg.balanced}'
-    graph.render(f"{cfg.target_path}/{title}_treeSchema")
+    os.makedirs(output_path, exist_ok=True)
+    graph.render(f"{output_path}/treeSchema")
     
     #print(f"Accuracy:{clf.score(x_test,y_test)}")
 
     print("\n Metrics for particle type composition: true VS predicted\n")
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), title='Versus True (pruned)', savepath=f"{cfg.target_path}/{str(cfg.balanced)}/pruned_confusion_normalised_by_truth.txt")
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{cfg.target_path}/{str(cfg.balanced)}/pruned_confusion_normalised_by_prediction.txt")
-    # DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), balanced=True, title='Versus True (balanced)') # same as unbalanced
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{cfg.target_path}/{str(cfg.balanced)}/pruned_balanced_confusion_normalised_by_prediction.txt")
+    #DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), title='Versus True (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_truth.txt")
+    #DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_prediction.txt")
+    ##DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), balanced=True, title='Versus True (balanced)') # same as unbalanced
+    #DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned / balanced)', balanced=True, savepath=f"{output_path}/pruned_balanced_confusion_normalised_by_prediction.txt")
     print(f'Running the script required: {time.time()-start}s')
     # Compute feature importance
     '''
