@@ -402,14 +402,14 @@ if __name__ == '__main__':
     clf = tree.DecisionTreeClassifier(max_depth = 6,class_weight=weights, min_impurity_decrease=0.009) 
     clf.fit(x_train, y_train)
     print(f'Decision Tree training required: {round(time.time()-start_fit, 2)}s')
-    joblib.dump(clf, "decision_tree_model.pkl")
+    os.makedirs(output_path, exist_ok=True)
+    joblib.dump(clf, f"{output_path}/decision_tree_model.pkl")
     print("Model saved successfully!")
 
     # Visualize the decision tree
     #dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True,special_characters=True) 
     dot_data = tree.export_graphviz(clf,feature_names=features,class_names=sorted(y_train.unique()),filled=True, rounded=True, special_characters=True, proportion=True) 
     graph = graphviz.Source(dot_data) 
-    os.makedirs(output_path, exist_ok=True)
     graph.render(f"{output_path}/treeSchema")
     
     #print(f"Accuracy:{clf.score(x_test,y_test)}")
