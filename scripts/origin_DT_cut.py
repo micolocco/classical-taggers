@@ -196,13 +196,13 @@ if __name__ == '__main__':
         ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
         ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1), "SSProton"),
         #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 2), "OSProton"),
-       # ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
-        #((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag!=1) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSKaon"),
-        #((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSMuon"),
-        #((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSElectron"),
-        #((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22), "photonOSEl"),
-        #((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 100), "noSSPion"),
-        #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1)  & (df.B_Tr_T_Origin_Flag != 100), "noSSProton"),
+        #((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
+        ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "otherK"),
+        ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "otherMu"),
+        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag != 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22) & (df.B_Tr_T_Origin_Flag != 100), "otherE"),
+        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22), "photonOSEl"),
+        ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 100), "otherPi"),
+        ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1)  & (df.B_Tr_T_Origin_Flag != 100), "otherP"),
         #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSProton"),
         ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
         ] #
@@ -214,9 +214,8 @@ if __name__ == '__main__':
     # Assign particle types based on conditions, with default "Others" for unmatched rows
     df['particle'] = np.select(conditions, particle_type, default="Others")
     
-
     # To remove all the other particles
-    df = df.loc[(df.particle != 'Others' )]
+    #df = df.loc[(df.particle != 'Others' )]
  
     # For SS case if B_Tr_T_Charge has same sign of B_TRUE_ID is a correct tagging particle candidate
     # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
@@ -258,7 +257,7 @@ if __name__ == '__main__':
     if downsampling:
         # Downsample the 'notSamePV', 'Others' classes. 
         # Get the count of the largest class excluding "notSamePV"
-        max_class_size = df_filtered[df_filtered.particle == 'noSSPion'].particle.value_counts().max()
+        max_class_size = df_filtered[df_filtered.particle == 'otherPi'].particle.value_counts().max()
         # Filter the 'notSamePV' rows
         not_same_pv_rows = df_filtered[df_filtered.particle == 'notSamePV']
         #others_rows = df_filtered[df_filtered.particle == 'Others']
@@ -315,17 +314,16 @@ if __name__ == '__main__':
             pickle.dump(clf, f)
             # Visualize the decision tree
         #dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True,special_characters=True) 
-        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=sorted(y_train.unique()),filled=True, rounded=True, special_characters=True, proportion=True) 
+        dot_data = tree.export_graphviz(clf,feature_names=features,class_names=clf.classes_,filled=True, rounded=True, special_characters=True, proportion=True) 
         graph = graphviz.Source(dot_data) 
         graph.render(f"{output_path}/treeSchema")
         print("Model saved successfully!")
-    
     #print(f"Accuracy:{clf.score(x_test,y_test)}")
 
     print("Metrics for particle type composition: true VS predicted\n")
-    unify_classes = ["noOSSSKaon", "noOSMuon", "noOSElectron", "photonOSEl", "noSSPion", "noOSSSProton", "Others"]
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), title='Versus True (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_truth.txt", unify_classes=None)
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/pruned_confusion_normalised_by_prediction.txt", unify_classes=None)
+    unify_classes = ["otherK", "otherMu", "otherE", "photonOSEl", "otherPi", "otherP", "Others"]
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), title='Versus True (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_truth.txt", unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/pruned_confusion_normalised_by_prediction.txt", unify_classes=unify_classes)
 
     #DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_prediction.txt")
     ##DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), balanced=True, title='Versus True (balanced)') # same as unbalanced
