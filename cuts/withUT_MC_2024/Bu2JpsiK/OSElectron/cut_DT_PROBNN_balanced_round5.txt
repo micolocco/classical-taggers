@@ -1,1 +1,1 @@
-(B_Tr_T_PROBNN_MU <= 0.644) & (B_Tr_T_diff_z <= 8.859) & (B_Tr_T_PROBNN_P <= 0.036) & (B_Tr_T_PROBNN_K <= 0.417) & ((B_Tr_T_MINIPChi2 > 8.923) | ((B_Tr_T_MINIPChi2 <= 8.923) & (B_Tr_T_PIDe > 1.739))) & (B_Tr_T_Origin_Flag!=0)
+(B_Tr_T_PROBNN_MU <= 0.632) & (B_Tr_T_diff_z <= 10.332) & (B_Tr_T_PROBNN_P <= 0.054) & (B_Tr_T_PROBNN_K <= 0.445) & ((B_Tr_T_OWNPVIPCHI2 > 9.293) | ((B_Tr_T_OWNPVIPCHI2 <= 9.293) & (B_Tr_T_PIDe > 2.147))) & (B_Tr_T_Origin_Flag!=0)
