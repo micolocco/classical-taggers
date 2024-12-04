@@ -19,6 +19,7 @@ from scripts import ranges, nice_names, matplotlib_lhcb_style
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 matplotlib_lhcb_style(plt)
+from scripts.preSelections import run2_taggers_variables
 
 def plot_tagDec(tagger, df_TagParticles, plotPath):
     plt.figure()
@@ -45,26 +46,28 @@ if __name__ == '__main__':
     )
     parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
     parser.add_argument('--cut', help='Cut used', type=str)
-    parser.add_argument('--link', help='Link fucntion used for calibration', type=str, default='link', choices=('mistag','link'))
+    parser.add_argument('--link', help='Link fucntion used for calibration', type=str, default='logit', choices=('mistag','logit'))
     parser.add_argument('--taggedData', help='Name of data (tagged data)', type=str)
     parser.add_argument('--modelPrePath', help='Path to where the NN models are saved up to cut type', type=str)
     parser.add_argument('--decayType', help='Event decay for calibration', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
-    parser.add_argument('--features', help='Input features used for NN training', default='tagger_inputFeatures/union') 
+    parser.add_argument('--features', help='Input features used for NN training',) 
+    parser.add_argument('--jsonPath', help='Where the best tagger candidates configs are saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
     
+
     cfg = parser.parse_args()
     pprint(cfg)
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
-    loading_variables = features + ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
+    loading_variables = features+ run2_taggers_variables + ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER'] 
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
 
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
-    json_file=f'candidatedTaggers_{cfg.link}_{cfg.cut}.json'
+    json_file=f'candidatedTaggers_{cfg.link}.json'
     #Read the best tagger candidate config from json file with the best hyperparameter combination
-    with open(json_file, 'r') as f:
+    with open(f'{cfg.jsonPath}/{cfg.cut}/{json_file}', 'r') as f:
         data = json.load(f)
     seed = int(data[cfg.tagger]['seed'])
     lr = float(data[cfg.tagger]['learning_rate'])
@@ -136,7 +139,7 @@ if __name__ == '__main__':
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
     with uproot.recreate(f"{cfg.taggedData}") as file:
-        file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER', 'entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
+        file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER', 'entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']+run2_taggers_variables]
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
         
     print(f'File created at {cfg.taggedData}')

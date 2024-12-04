@@ -222,8 +222,6 @@ if __name__ == '__main__':
     'Bd2DmPi': 511,
     'Bs2JpsiPhi': 531,
     }
-    # drop the B mesons or other particles that are not of interest
-    abs_id = B_abs_id_dic[cfg.evtType]
     '''
     if cfg.evtType=='Bs2DsPi':
         prefix = 'Bd' + "_"
@@ -232,6 +230,7 @@ if __name__ == '__main__':
         prefix = cfg.evtType[:2] + "_"
     '''
     prefix = cfg.evtType[:2] + "_"
+
     # Replace B_ in the loading variables
     loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
 
