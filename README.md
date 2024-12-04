@@ -1,6 +1,6 @@
 # Classical taggers
 ## Set up
-Create a Python environment with libraries required for the project.
+Create a Python environment with libraries required for the project. 
 ```
 conda env create -f ft_env.yml
 conda activate ft_env
@@ -32,6 +32,13 @@ example: python pipeline.py Bu2JpsiK OSKaon
 ```
 Decay must be one among Bd2JpsiKst,  Bs2DsPi,  Bu2JpsiK 
 Taggers must be one among OSKaon, OSMuon, OSElectron, SSPion, SSProton, SSKaon
+
+## Adding tagging decisions
+1) Define the best model specifics for each tagger (especially useful if you perform a grid search but also needed before adding the tagging decision). Run:
+```
+python scripts/getOptimized.py --cut <cut_type>
+```
+with costumized options as inputs.
 
 ## Producing NTuples
 

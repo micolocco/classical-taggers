@@ -47,7 +47,7 @@ def find_tree_name(decay):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
-        description='Apply a preselection for the tagging particles',
+        description='Try a Decision Tree for selecting different tagging particle types',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     

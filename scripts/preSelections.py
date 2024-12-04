@@ -6,7 +6,6 @@ import pyTorchTraining as pyTrain
 import argparse
 import os
 
-
 def extract_selection_var(cut_file):
     '''
     Function to extract strings from pre-selections cat. 
@@ -36,6 +35,27 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
     df.selected = df.selected.astype(int, copy = False) 
     return df
 
+run2_taggers_variables = [
+        'B_Run2_SSPion_Dec',
+        'B_Run2_SSPion_Omega',
+        'B_Run2_SSPion_MVA',
+        'B_Run2_SSKaon_Dec',
+        'B_Run2_SSKaon_Omega',
+        'B_Run2_SSKaon_MVA',
+        'B_Run2_SSProton_Dec',
+        'B_Run2_SSProton_Omega',
+        'B_Run2_SSProton_MVA',
+        'B_Run2_OSKaon_Dec',
+        'B_Run2_OSKaon_Omega',
+        'B_Run2_OSKaon_MVA',
+        'B_Run2_OSElectron_Dec',
+        'B_Run2_OSElectron_Omega',
+        'B_Run2_OSElectron_MVA',
+        'B_Run2_OSMuon_Dec',
+        'B_Run2_OSMuon_Omega',
+        'B_Run2_OSMuon_MVA',
+    ]
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Apply a preselection for the tagging particles',
@@ -48,24 +68,21 @@ if __name__ == '__main__':
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
+    #parser.add_argument('--run2_taggers', help='If specified, run2 taggers info is added',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
 
     cfg = parser.parse_args()
 
     from pprint import pprint
     pprint(cfg)
 
-    selection_variables = extract_selection_var(cfg.cut_file) + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','B_Tr_T_TRUEID']
+    selection_variables = extract_selection_var(cfg.cut_file)
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
-    loading_variables = features + selection_variables + ['B_BKGCAT']
+    extra_variables = ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge', 'B_BKGCAT']
+    
+    loading_variables = features + selection_variables + extra_variables + run2_taggers_variables
     loading_variables = np.unique(loading_variables).tolist()
-    '''
-    if "SS" in cfg.tagger:
-        particle = cfg.tagger.removeprefix("SS")
-        loading_variables += ["B_Tr_T_DeltaQ_" + particle]
-        if particle in ("Proton", "Pion"):
-            loading_variables += ["B_Tr_T_PIDP"]
-    '''
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0)[features + ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge','selected']]
+
+    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0)[features + extra_variables + run2_taggers_variables + ['selected']]
 
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)

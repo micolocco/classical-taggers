@@ -51,8 +51,8 @@ def format_and_propagate(values):
         return ufloat(values[0], combined_error)
     else:
         return ufloat(values[0], values[1])
-'''
-def load_and_process_json_complicated(json_file, taggerName):
+
+def extract_taggingInfo(json_file, taggerName):
     with open(json_file, 'r') as f:
         data = json.load(f)
     # Navigate to the "calibrated" -> "selected" section
@@ -91,7 +91,7 @@ def load_and_process_json_complicated(json_file, taggerName):
         processed_data[field] = formatted_value
         print(f'{field}: {formatted_value}')
     return processed_data
-'''
+
 def find_tree_name(decay):
     if decay == 'Bs2JpsiPhi':
         return 'BsToJpsiPhi_Detached/DecayTree'
