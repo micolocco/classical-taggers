@@ -127,7 +127,7 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Reading datasets
-    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER']
+    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
     
     df = pd.DataFrame(columns=vars)
     for i, f in enumerate(selected_files):
@@ -137,8 +137,13 @@ if __name__ == '__main__':
         _df.dropna(inplace = True)
         _df["SAMPLENUMBER"] = i
         _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
         df = pd.concat([df, _df], ignore_index = True)
+    
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
+    # Drop multicandidates
+    df = df.groupby("event_entry").first()
+
 
     # removal_time1 = time.time()
     # df = utils.remove_multicandidates(df)
