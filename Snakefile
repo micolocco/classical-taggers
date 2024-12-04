@@ -15,7 +15,7 @@ def in_data(data_path, list_of_files):
 
 taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
-    'Bd2JpsiKst': ['SSPion', 'SSProton'],
+    'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
     'Bs2DsPi': ['SSKaon'],
     'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
     'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
@@ -102,15 +102,20 @@ for decay, path_list in ntuples_raw_withUT.items():
     #print(decay, path_list)
     #print('-------')
     for tagger in taggers_conf[decay] :
-        ntuples_selected_withUT[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/cut_newFeat_BKG0_balanced/union_PROBNN') for f in path_list]})
+        ntuples_selected_withUT[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
 
 ntuples_tagged_withUT = {}
 for decay, path_list in ntuples_raw_withUT.items():
     ntuples_tagged_withUT.update({decay: {}})
-    #print(decay, path_list)
-    #print('-------')
-    for tagger in taggers_conf[decay] :
-        ntuples_tagged_withUT[decay].update({tagger: [f.replace('1_raw', f'4_tagged').replace(decay, f'{decay}/{tagger}/cut_newFeat_BKG0_balanced/union_PROBNN') for f in path_list]}) #cut_DT_PROBNN_unbalanced_round3
+    for tagger in taggers_conf[decay]:
+        # Filter the paths to only include those ending with '4_1.mc.root'
+        filtered_paths = [
+            f.replace('1_raw', '4_tagged')
+             .replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN')
+            for f in path_list if f.endswith('4_1.mc.root')
+        ]
+        ntuples_tagged_withUT[decay].update({tagger: filtered_paths})
+
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN_IPSig') for f in v]})
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{taggers_conf[decay][i]}/{k}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in v]})
     #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/only_OSKaon') for f in v]})
@@ -144,18 +149,33 @@ generated_paths_OSMuon = read_generated_paths(data,join(repo,'paths_for_snakemak
 
 rule all:
     input:
-        '/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/original/balanced/treeSchema.pdf',
+        #ntuples_selected_withUT['Bd2JpsiKst']['OSKaon'],
+        #ntuples_selected_withUT['Bd2JpsiKst']['OSElectron'],
+        #ntuples_selected_withUT['Bd2JpsiKst']['OSMuon'],
+        #ntuples_selected_withUT['Bd2JpsiKst']['SSPion'],
+        #ntuples_selected_withUT['Bd2JpsiKst']['SSProton'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'],
+        #join(data, 'savedModels/withUT_MC_2024/combinations/Bd2JpsiKst/all_Calibration.pdf'),
 
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/cut_newFeat_BKG0_balanced/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/cut_newFeat_BKG0_balanced/union_PROBNN/14/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_newFeat_BKG0_balanced/union_PROBNN/45/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/cut_newFeat_BKG0_balanced/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_newFeat_BKG0_balanced/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
-        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/original/unbalanced/treeSchema.pdf',
+
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/45/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
+
+
+        #ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'],
+
+        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP/balanced/treeSchema.pdf',
+        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP/unbalanced/treeSchema.pdf',
 
        # ntuples_added_features_withUT['Bu2JpsiK'],
        # ntuples_added_features_withUT['Bd2JpsiKst'],
-       #ntuples_added_features_withUT['Bs2JpsiPhi']
 
         #ntuples_tagged_withUT['Bs2JpsiPhi']['OSMuon'],
         #ntuples_tagged_withUT['Bs2JpsiPhi']['OSKaon'],
@@ -172,9 +192,6 @@ rule all:
 
        # ntuples_selected_withUT['Bu2JpsiK']['OSKaon'],
        # ntuples_selected_withUT['Bu2JpsiK']['OSElectron'],
-       # ntuples_selected_withUT['Bd2JpsiKst']['SSPion'],
-       # ntuples_selected_withUT['Bd2JpsiKst']['SSProton'],
-       # ntuples_selected_withUT['Bu2JpsiK']['OSMuon'],
 
 
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/2/lr0.001_bs128_simple/ROC_TRAIN_VAL.pdf'),
@@ -256,14 +273,16 @@ rule train_DT:
         script = join(repo, 'scripts/origin_DT_cut.py'),
         data = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features'),
     output:
-        pdf = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/original/{balanced}/treeSchema.pdf'),
+        pdf = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.pdf'),
     log:
-        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/original/{balanced}/treeSchema.log')
+        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.log')
     params:
-        target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/original')
+        target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/notSamePV_noOSP')
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 8, # medium queue
+
 
     run:
         cmd = (
@@ -305,6 +324,7 @@ rule add_selection:
         ]
         shell(' '.join(cmd))
 
+
 # Define the function to extract the decay based on the tagger
 def extract_decay(tagger):
     if tagger in ['OSKaon', 'OSMuon', 'OSElectron']:
@@ -319,29 +339,32 @@ def extract_decay(tagger):
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        selected = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root')
+        selected = join(data, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}')
     output:
-        root = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
+        root = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
     log:
-        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.log')
-        #join({wildcards.target_path}, '.{id,.*}.log')
+        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}.log'),
     params:
         modelPrePath = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}'),
         taggedDataPath = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/'),
-
     run:
+        print(f"Processing file: {wildcards.id}")
+        print(f"Selected input file: {input.selected}")
+
         cmd = [
             'python', input.script,
             '--selected {input.selected}',
             '--cut {wildcards.cut_name}',
             '--taggedData {output.root}',  
             '--modelPrePath {params.modelPrePath}',
-            '--decayType {wildcards.decay}', # Decay used for evaluaring the tagger
+            '--decayType {wildcards.decay}', # Decay used for evaluating the tagger
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
             '&> {log}'
         ]
         shell(' '.join(cmd))
+
+
 
 rule combine_tagger:
     input:
@@ -375,7 +398,11 @@ rule train_tagger:
     input:
         #selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN_IPSig', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
         #selected = lambda wildcards: [f.replace('cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
-        selected = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']],
+        selected = lambda wildcards: [
+            f.replace('cutName', f'{wildcards.cut_name}') 
+            for f in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+            if not f.endswith('4_1.mc.root')
+        ],
         script = join(repo, 'scripts/pipeline.py'),
     output:
         pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
