@@ -4,6 +4,8 @@ from pprint import pprint
 '''
 python replace_path.py --tagger <tagger> --decayType <decay> --seed <seed> --append <True, False>
 '''
+seeds = [2, 10, 12, 14, 45, 90, 120]
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Script for generating all the output lines to be inserted in the Snakefile when all the configurations (in yaml format) in the configs folder are wanted',
@@ -13,6 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--decayType', help='Event decay', type=str, choices=('Bu2JpsiK, Bd2JpsiKst, Bs2DsPi, Bd2DPi, Bs2JpsiPhi'))
     parser.add_argument('--seed', help='Random seed', type=str, default=45)
     parser.add_argument('--append', help='Decide whatever appending generated file path or overwrite, w=False, a=True', action='store_true')
+    parser.add_argument('--cut', help='Cut used', type=str)
 
     cfg = parser.parse_args()
     # Define the directory containing the YAML files
@@ -24,11 +27,10 @@ if __name__ == '__main__':
     # List all YAML files in the config directory
     yaml_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml') and f != 'config_test.yaml']
     print(f"Added paths {outputfile}: \n")
-    seeds = [2, 10, 12, 14, 45]
     # Iterate over each YAML file and replace the placeholder in the path
     for yaml_file in yaml_files:
         for seed in seeds:
-            original_path = f'savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/{seed}/lr0.1_bs32_complex/ROC_TRAIN_VAL.pdf'
+            original_path = f'savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}/{cfg.cut}/{seed}/lr0.1_bs32_complex/ROC_TRAIN_VAL.pdf'
             # Extract the base name without the .yaml extension
             base_name = os.path.splitext(yaml_file)[0]
             # Replace the placeholder in the original path with the base name
