@@ -73,7 +73,8 @@ if __name__ == '__main__':
     lr = float(data[cfg.tagger]['learning_rate'])
     bs = int(data[cfg.tagger]['batch_size'])
     arch = data[cfg.tagger]['architecture']
-    config = f'lr{lr}_bs{bs}_{arch}'
+    dm = float(data[cfg.tagger]['min_delta'])
+    config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
     model_path = join(cfg.modelPrePath, f"{seed}/{config}")
     # Load YAML configuration file
     with open(f'configs/{config}.yaml', 'r') as file:
@@ -133,6 +134,7 @@ if __name__ == '__main__':
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
 
+    # Take only tagging track with best mistag
     df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
     plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, plotPath=f'{os.path.dirname(cfg.taggedData)}')
     
