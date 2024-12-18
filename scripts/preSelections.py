@@ -77,9 +77,9 @@ if __name__ == '__main__':
 
     selection_variables = extract_selection_var(cfg.cut_file)
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
-    extra_variables = ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge', 'B_BKGCAT']
+    extra_variables = ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge',]
     
-    loading_variables = features + selection_variables + extra_variables + run2_taggers_variables
+    loading_variables = ['B_BKGCAT']+features + selection_variables + extra_variables + run2_taggers_variables
     loading_variables = np.unique(loading_variables).tolist()
 
     df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0)[features + extra_variables + run2_taggers_variables + ['selected']]

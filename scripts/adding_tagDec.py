@@ -60,7 +60,7 @@ if __name__ == '__main__':
     pprint(cfg)
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
-    loading_variables = features+ run2_taggers_variables + ['B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER'] 
+    loading_variables = features+ run2_taggers_variables + ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER'] 
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
 
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     # Data pre-processing 
     scalerPath = f"{model_path}/st_scaler.pkl"
     transformerPath = f"{model_path}/powerTransformer.pkl"
-    columns_to_drop = ['B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
+    columns_to_drop = ['entry', 'B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
     pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path= os.path.dirname(cfg.taggedData), flag='label', name=f'training_inputFeatures')
 
     #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
@@ -135,13 +135,13 @@ if __name__ == '__main__':
     test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
 
     # Take only tagging track with best mistag
-    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
+    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry', 'RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
     plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, plotPath=f'{os.path.dirname(cfg.taggedData)}')
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
     with uproot.recreate(f"{cfg.taggedData}") as file:
-        file["DecayTree"] = df_TagParticles[['RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']+run2_taggers_variables]
+        file["DecayTree"] = df_TagParticles[['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']+run2_taggers_variables]
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
         
     print(f'File created at {cfg.taggedData}')

@@ -149,16 +149,24 @@ generated_paths_OSMuon = read_generated_paths(data,join(repo,'paths_for_snakemak
 
 rule all:
     input:
+        ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'],
+        ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'],
+
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
+        #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
+        #'/ceph/users/molocco/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs2048_simple_dm0.0/ROC_TRAIN_VAL.pdf',
+        #'/ceph/users/molocco/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf',
         #ntuples_selected_withUT['Bd2JpsiKst']['OSKaon'],
         #ntuples_selected_withUT['Bd2JpsiKst']['OSElectron'],
         #ntuples_selected_withUT['Bd2JpsiKst']['OSMuon'],
         #ntuples_selected_withUT['Bd2JpsiKst']['SSPion'],
         #ntuples_selected_withUT['Bd2JpsiKst']['SSProton'],
-        ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'],
-        ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'],
-        ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'],
-        ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'],
-        ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'],
         #join(data, 'savedModels/withUT_MC_2024/combinations/Bd2JpsiKst/all_Calibration.pdf'),
 
 

@@ -7,7 +7,7 @@ from uncertainties import ufloat
 import argparse
 from scripts.generate_configFiles import learning_rates
 from scripts.generate_configFiles import train_batch_sizes
-#from scripts.generate_configFiles import architectures
+from scripts.generate_configFiles import architectures
 from scripts.generate_configFiles import min_delta
 from scripts.replace_path import seeds
 
@@ -41,13 +41,13 @@ if __name__ == '__main__':
         "OSElectron": "Bu2JpsiK",
         "OSMuon": "Bu2JpsiK",
         "SSPion": "Bd2JpsiKst",
-        "SSPion_Bu": "Bu2JpsiK",
         "SSProton": "Bd2JpsiKst",
         "SSKaon": "Bs2DsPi",
     }
 
     # Generate all possible combinations of hyperparameters
-    architectures = ['simple']
+    #architectures = ['simple']
+
     combinations = list(product(seeds, learning_rates, train_batch_sizes, architectures, min_delta))
 
     max_ratios = {}
@@ -56,9 +56,11 @@ if __name__ == '__main__':
         max_ratio = -np.inf
         best_hyperparams = None
         for seed, lr, bs, arch, dm in combinations:
+
             # Read tagging power values from JSON files
             results_folder = f"{cfg.model_prePath}/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed   
             folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{arch}_dm{dm}")
+
             json_file = os.path.join(folder_path, f"{link}/taggingInfo_{link}.json")
             
             if os.path.exists(json_file):

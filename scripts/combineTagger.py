@@ -74,15 +74,16 @@ if __name__ == '__main__':
         
     df = taggers_dataframes[0]
     print(df.shape)
-    
+    print(df.columns)
     for single_df in taggers_dataframes[1:]:
-        print(f'single:{df.shape}')
+        print(single_df.shape)
         df = pd.merge(df, single_df, on=['event_entry', 'B_TRUEID']+run2_taggers_variables, how='outer')   
         print(f'total:{df.shape}')
 
         #df = pd.merge(df, single_df, on=['event_entry',], how='outer')   
     print(df.shape)
 
+    
     taggers = ft.TaggerCollection()
 
     for tagger in cfg.tagger:
@@ -102,7 +103,7 @@ if __name__ == '__main__':
     ft.save_calibration(taggers=tagger_combination, title=combination, save_path=f'{outputPath}/run3')
     
     run2_taggers = ft.TaggerCollection()
-    for tagger in cfg.tagger+['SSKaon']:
+    for tagger in cfg.tagger:
         run2_taggers.create_tagger(f"{tagger}", eta_data =df[f'B_Run2_{tagger}_Omega'].tolist(), dec_data = df[f'B_Run2_{tagger}_Dec'].tolist(), B_ID =df.B_TRUEID.tolist(), mode = 'Bu', ) 
 
     run2_taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
