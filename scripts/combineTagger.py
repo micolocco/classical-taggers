@@ -71,6 +71,7 @@ if __name__ == '__main__':
     df = taggers_dataframes[0]
     print(df.shape)
     print(df.columns)
+    print('Dataframe shape must have same row number for a correct combination! Chcek it!')
     for single_df in taggers_dataframes[1:]:
         print(single_df.shape)
         df = pd.merge(df, single_df, on=['event_entry', 'B_TRUEID']+run2_taggers_variables, how='outer')   
