@@ -155,6 +155,12 @@ rule all:
         ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'],
         ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'],
 
+        #generated_paths_OSKaon,
+        #generated_paths_SSPion,
+        #generated_paths_SSProton,
+        #generated_paths_OSElectron,
+        #generated_paths_OSMuon,     
+
         #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
@@ -224,12 +230,6 @@ rule all:
         #ntuples_selected_withUT['Bu2JpsiK']['OSElectron'],
         #join(data, 'withUT_MC_2024/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf')
         #generated_paths_SSKaon,
-        #generated_paths_SSPion,
-        #generated_paths_SSProton,
-        #generated_paths_OSKaon,
-        #generated_paths_OSElectron,
-        #generated_paths_OSMuon,     
-
 rule add_features:
 # For some NTuples it's necessary to run locally (snakemake only, not on condor)
     input:

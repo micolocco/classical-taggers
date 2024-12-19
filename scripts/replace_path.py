@@ -16,6 +16,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', help='Random seed', type=str, default=45)
     parser.add_argument('--append', help='Decide whatever appending generated file path or overwrite, w=False, a=True', action='store_true')
     parser.add_argument('--cut', help='Cut used', type=str)
+    parser.add_argument('--features', help='Input features used for NN training',) 
+
 
     cfg = parser.parse_args()
     # Define the directory containing the YAML files
@@ -30,7 +32,7 @@ if __name__ == '__main__':
     # Iterate over each YAML file and replace the placeholder in the path
     for yaml_file in yaml_files:
         for seed in seeds:
-            original_path = f'savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}/{cfg.cut}/{seed}/lr0.1_bs32_complex/ROC_TRAIN_VAL.pdf'
+            original_path = f'savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}/{cfg.cut}/{cfg.features}/{seed}/lr0.1_bs32_complex/ROC_TRAIN_VAL.pdf'
             # Extract the base name without the .yaml extension
             base_name = os.path.splitext(yaml_file)[0]
             # Replace the placeholder in the original path with the base name
