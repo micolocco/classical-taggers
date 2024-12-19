@@ -103,22 +103,4 @@ if __name__ == '__main__':
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}')
         print(f'{run} combination created at {outputPath}')
 
-    '''
-    run2_taggers = ft.TaggerCollection()
-    for tagger in cfg.tagger:
-        run2_taggers.create_tagger(f"{tagger}", eta_data =df[f'B_Run2_{tagger}_Omega'].tolist(), dec_data = df[f'B_Run2_{tagger}_Dec'].tolist(), B_ID =df.B_TRUEID.tolist(), mode = 'Bu', ) 
-
-    run2_taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
-    run2_taggers.calibrate()
-
-    # Combine the taggers into one. With "calibrated=False" we would combine the raw single tagger statistics, which is not usually what we want.
-    combination = cfg.combinationName
-    run2_tagger_combination = run2_taggers.combine_taggers(combination, calibrated=True)
-    run2_tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
-    ## And calibrate this tagger again
-    run2_tagger_combination.calibrate()
-    run2_taggers.plot_calibration_curves(savepath = f'{outputPath}/run2', omega_range="minimal", nbins=10)
-    ft.plotting.draw_calibration_curve(run2_tagger_combination, savepath=f'{outputPath}/run2')
-    ft.save_calibration(taggers=run2_tagger_combination, title=combination, save_path=f'{outputPath}/run2')
-    '''
     
