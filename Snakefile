@@ -4,6 +4,8 @@ import numpy as np
 import os
 from copy import deepcopy
 
+import json
+
 try:
     data = config['DATA']
     repo = config['REPO']
@@ -166,8 +168,8 @@ rule all:
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
-        #'/ceph/users/molocco/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs2048_simple_dm0.0/ROC_TRAIN_VAL.pdf',
-        #'/ceph/users/molocco/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf',
+        #'/ceph/users/qfuehring/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs2048_simple_dm0.0/ROC_TRAIN_VAL.pdf',
+        #'/ceph/users/qfuehring/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf',
         #ntuples_selected_withUT['Bd2JpsiKst']['OSKaon'],
         #ntuples_selected_withUT['Bd2JpsiKst']['OSElectron'],
         #ntuples_selected_withUT['Bd2JpsiKst']['OSMuon'],
@@ -185,8 +187,8 @@ rule all:
 
         #ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'],
 
-        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP/balanced/treeSchema.pdf',
-        #'/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP/unbalanced/treeSchema.pdf',
+        #'/ceph/users/qfuehring/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP/balanced/treeSchema.pdf',
+        #'/ceph/users/qfuehring/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP/unbalanced/treeSchema.pdf',
 
        # ntuples_added_features_withUT['Bu2JpsiK'],
        # ntuples_added_features_withUT['Bd2JpsiKst'],
@@ -216,9 +218,9 @@ rule all:
         #ntuples_added_features_withUT['Bd2JpsiKst']
 
 
-        #'/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/Bd2JpsiKst/00237614_00000002_1.mc.root',
-        #'/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/Bu2JpsiK/00237567_00000001_1.mc.root',
-        #'/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/Bu2JpsiK/00237568_00000001_1.mc.root'
+        #'/ceph/users/qfuehring/Data/withUT_MC_2024/2_added_features/Bd2JpsiKst/00237614_00000002_1.mc.root',
+        #'/ceph/users/qfuehring/Data/withUT_MC_2024/2_added_features/Bu2JpsiK/00237567_00000001_1.mc.root',
+        #'/ceph/users/qfuehring/Data/withUT_MC_2024/2_added_features/Bu2JpsiK/00237568_00000001_1.mc.root'
 
         # generated_paths_OSKaon,
         # generated_paths_SSPion
@@ -259,7 +261,7 @@ rule add_features:
 rule train_DT:
     input:
         script = join(repo, 'scripts/origin_DT_cut.py'),
-        #data = glob.glob(f'/ceph/users/molocco/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root')
+        #data = glob.glob(f'/ceph/users/qfuehring/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root')
     output:
         pdf=join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf'),
     log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.log')
@@ -344,30 +346,48 @@ def extract_decay(tagger):
     else:
         raise ValueError(f"Unknown tagger: {tagger}")
 
+def extract_best(tagger, cut, link='logit'):
+    #Read the best tagger candidate config from json file with the best hyperparameter combination
+    with open(f'/home/qfuehring/classical-taggers/best_tagger_candidates/{cut}/candidatedTaggers_{link}.json', 'r') as f:
+        data = json.load(f)
+    seed = int(data[tagger]['seed'])
+    lr = float(data[tagger]['learning_rate'])
+    bs = int(data[tagger]['batch_size'])
+    arch = data[tagger]['architecture']
+    dm = float(data[tagger]['min_delta'])
+    config = f'lr{lr}_bs{bs}_{arch}'#_dm{dm}'
+    return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'arch':arch, 'dm':dm, 'tagger':tagger, 'cut':cut, 'link':link}
+
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        selected = join(data, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}')
+        selected = join(data, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}'),
+        model=lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("seed")}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("config")}/model.pth'), 
+        transformer=lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("seed")}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("config")}/powerTransformer.pkl'), 
+        scaler=lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("seed")}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("config")}/st_scaler.pkl'), 
+        config = lambda wildcards: join(repo, f'configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("config")}.yaml'),
     output:
         root = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
     log:
         join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}.log'),
-    params:
-        modelPrePath = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}'),
-        taggedDataPath = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/'),
     run:
         print(f"Processing file: {wildcards.id}")
         print(f"Selected input file: {input.selected}")
-
+        config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name)
         cmd = [
             'python', input.script,
             '--selected {input.selected}',
-            '--cut {wildcards.cut_name}',
             '--taggedData {output.root}',  
-            '--modelPrePath {params.modelPrePath}',
+            '--model {input.model}',
+            '--scaler {input.scaler}',
+            '--transformer {input.transformer}',
+            '--config {input.config}',
             '--decayType {wildcards.decay}', # Decay used for evaluating the tagger
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
+            f'--arch {config.get("arch")}',
+            f'--lr {config.get("lr")}',
+            f'--seed {config.get("seed")}',
             '&> {log}'
         ]
         shell(' '.join(cmd))
@@ -414,6 +434,9 @@ rule train_tagger:
         script = join(repo, 'scripts/pipeline.py'),
     output:
         pdf=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
+        model=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/model.pth'),
+        scaler=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/st_scaler.pkl'),
+        transformer=join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/powerTransformer.pkl'),
     log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training_log.log')
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes 

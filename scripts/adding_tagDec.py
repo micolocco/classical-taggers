@@ -45,15 +45,18 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
-    parser.add_argument('--cut', help='Cut used', type=str)
-    parser.add_argument('--link', help='Link fucntion used for calibration', type=str, default='logit', choices=('mistag','logit'))
+    parser.add_argument('--config', help='', type=str, default='logit')
     parser.add_argument('--taggedData', help='Name of data (tagged data)', type=str)
-    parser.add_argument('--modelPrePath', help='Path to where the NN models are saved up to cut type', type=str)
+    parser.add_argument('--model', help='Path to where the NN models are saved up to cut type', type=str)
     parser.add_argument('--decayType', help='Event decay for calibration', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--features', help='Input features used for NN training',) 
-    parser.add_argument('--jsonPath', help='Where the best tagger candidates configs are saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
+    parser.add_argument('--arch', help='NN architecture', type=str, default='[64,64,64]')
+    parser.add_argument('--seed', help='Seed for reproducibility', type=int, default=42)
+    parser.add_argument('--lr', help='Learning rate', type=float, default=1e-3)
+    parser.add_argument('--scaler', help='Path to the scaler', type=str)
+    parser.add_argument('--transformer', help='Path to the transformer', type=str)
     
 
     cfg = parser.parse_args()
@@ -64,27 +67,15 @@ if __name__ == '__main__':
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
 
-    #Load the best model (ie with the lowest training loss) and evaluate it on the test set
-    json_file=f'candidatedTaggers_{cfg.link}.json'
-    #Read the best tagger candidate config from json file with the best hyperparameter combination
-    with open(f'{cfg.jsonPath}/{cfg.cut}/{json_file}', 'r') as f:
-        data = json.load(f)
-    seed = int(data[cfg.tagger]['seed'])
-    lr = float(data[cfg.tagger]['learning_rate'])
-    bs = int(data[cfg.tagger]['batch_size'])
-    arch = data[cfg.tagger]['architecture']
-    dm = float(data[cfg.tagger]['min_delta'])
-    config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
-    model_path = join(cfg.modelPrePath, f"{seed}/{config}")
     # Load YAML configuration file
-    with open(f'configs/{config}.yaml', 'r') as file:
+    with open(cfg.config, 'r') as file:
         config = yaml.safe_load(file)
-    bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr})
-    pyTrain.load_model(model=bestModel, target_path=model_path)
+    bestModel = NeuralNetwork(features=features, architecture=cfg.arch, seed=cfg.seed, optimizer_kwargs={"lr" : cfg.lr})
+    pyTrain.load_model(model=bestModel, target_path=cfg.model.replace("model.pth", ""))
     bestModel.eval()
 
     ## To be removed
-    #testSetPath = f"{model_path}/testSet.csv"
+    #testSetPath = f"{cfg.model}/testSet.csv"
     #test_df = pd.read_csv(f"{testSetPath}")
     #test_df.rename(columns={'TagDec': f"{cfg.tagger}_TagDec"}, inplace=True)
     
@@ -111,14 +102,12 @@ if __name__ == '__main__':
     test_df.loc[test_df.label == -1, "label"] = 0 # shifting the label from -1 to 0
     
     # Data pre-processing 
-    scalerPath = f"{model_path}/st_scaler.pkl"
-    transformerPath = f"{model_path}/powerTransformer.pkl"
     columns_to_drop = ['entry', 'B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
     pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path= os.path.dirname(cfg.taggedData), flag='label', name=f'training_inputFeatures')
 
     #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset = inputDataset(df=test_df[features+['label']])
-    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    test_dataset.scale(test=True, scalerPath=cfg.scaler, transformerPath=cfg.transformer)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     print('Adding tagging decision')
