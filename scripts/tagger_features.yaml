@@ -11,7 +11,7 @@ OSKaon:
     - B_Tr_T_PIDP
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_absIP
-    - logSumProtonMinusKaon
+    # - logSumProtonMinusKaon
 OSElectron:
   features:
     - B_Tr_T_PT

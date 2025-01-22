@@ -19,6 +19,16 @@ vars_to_save = [
     # 'B_Tr_T_MC_GD_GD_MOTHER_ID',
 ]
 
+def smearing_IP(df, smearing_baseline, smearing_heavy):
+    np.random.seed(42)
+    if smearing_baseline:
+        df['B_Tr_T_res'] = 0.0115 + 11.3 / df['B_Tr_T_PT']
+    elif smearing_heavy:
+        df['B_Tr_T_res'] = 0.0115 + 18.7 / df['B_Tr_T_PT']
+    df['B_Tr_T_absIP'] = np.random.normal(df['B_Tr_T_absIP'], df['B_Tr_T_res'])
+    df.drop(columns=['B_Tr_T_res'], inplace=True)
+    return df
+
 def extract_selection_var(cut_file):
     '''
     Function to extract strings from pre-selections cat. 
@@ -35,7 +45,7 @@ def extract_selection_var(cut_file):
     result_array = np.unique(result_array).tolist()
     return result_array
 
-def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, add_torch_pid=False):
+def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, add_torch_pid=False, smearing_baseline=False, smearing_heavy=False):
     # loading_variables.remove('logSumProtonMinusKaon')
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
     with uproot.open("{}".format(notSelected_rootPath)) as f:
@@ -45,6 +55,9 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
                 df_torch = _f['Tuple/DecayTree'].arrays(['logSumProtonMinusKaon', 'B_Tr_T_P'], library="pd")
             assert(len(df_torch) == len(df))
             df['logSumProtonMinusKaon'] = df_torch['logSumProtonMinusKaon']
+    if smearing_heavy or smearing_baseline:
+        # Smearing impact parameter
+        df = smearing_IP(df, smearing_baseline, smearing_heavy)
     cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
     print(f"The applied cut is: {cuts}")
     df.eval(f"selected = {cuts}", inplace = True)
@@ -62,6 +75,8 @@ if __name__ == '__main__':
     parser.add_argument('--cut_file', help='File where the cut is stored', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--add_torch_pid', action="store_true") # add all the possible taggers
+    parser.add_argument('--smearing_heavy', action="store_true")
+    parser.add_argument('--smearing_baseline', action="store_true")
 
     cfg = parser.parse_args()
 
@@ -79,7 +94,14 @@ if __name__ == '__main__':
         if particle in ("Proton", "Pion"):
             loading_variables += ["B_Tr_T_PIDP"]
     '''
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.add_torch_pid)[features + vars_to_save + ['selected']]
+    df = apply_preSelections(
+        cfg.added_features,
+        cfg.cut_file,
+        cfg.treename,
+        loading_variables,
+        cfg.add_torch_pid,
+        cfg.smearing_baseline,
+        cfg.smearing_heavy)[features + vars_to_save + ['selected']]
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(f"{cfg.output}") as file:

@@ -61,8 +61,18 @@ ntuples_eos_withUT = {
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214043/0000/00214043_00000003_1.mc.root
 '''.split('\n')),
     'Bs2DsPi': in_data(data, '''
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214057/0000/00214057_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214055/0000/00214055_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229396/0000/00229396_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229396/0000/00229396_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229396/0000/00229396_00000003_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229396/0000/00229396_00000004_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229396/0000/00229396_00000005_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229396/0000/00229396_00000006_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000002_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000003_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000004_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000005_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000006_1.mc.root
 '''.split('\n')),
     'Bs2JpsiPhi': in_data(data, '''
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000001_1.mc.root
@@ -106,35 +116,55 @@ for decay, path_list in ntuples_raw_withUT.items():
 
 torch_files = [f"{data}/Scoping/8-by-128-true-{i+1}ev.root" for i in range(7)]
 
+rich_files = [
+    "Baseline_Win150ps_lumi_1.5e34.root",
+    "Baseline_Win300ps_lumi_1.5e34.root",
+    "Low_Win150ps_lumi_1.0e34.root",
+    "Low_Win300ps_lumi_1.0e34.root",
+    "Middle1.0_Win150ps_lumi_1.0e34.root",
+    "Middle1.0_Win300ps_lumi_1.0e34.root",
+    "Middle1.3_Win150ps_lumi_1.3e34.root",
+    "Middle1.3_Win300ps_lumi_1.3e34.root"
+]
+
+rich_modes = [f.replace('.root', "") for f in rich_files]
+
 ntuples_added_TORCH_DLLs = {}
-for k,v in ntuples_added_features_withUT.items():
-    ntuples_added_TORCH_DLLs.update({k: [f.replace(k, f'{k}/TORCH_DLLS') for f in v]})
+for k,v in ntuples_raw_withUT.items():
+    ntuples_added_TORCH_DLLs.update({k: [f.replace(k, f'{k}/TORCH_DLLs') for f in v]})
+ntuples_added_RICH_DLLs = {}
+for k,v in ntuples_raw_withUT.items():
+    ntuples_added_RICH_DLLs.update({k: [f.replace(k, f'{k}/RICH_DLLs_{m}') for f in v for m in rich_modes]})
 
 rule all:
     input:
         # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/run2_lowpt/2/mistag_validation.pdf'),
-        join(data, 'savedModels/withUT_MC_2024/Bs2JpsiPhi/SSKaon/run2_lowpt/2/mistag_validation.pdf'),
+        # join(data, 'savedModels/withUT_MC_2024/Bs2JpsiPhi/SSKaon/run2_lowpt/2/mistag_validation.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig_lowPT/1/mistag_Training.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig_lowPT/2/mistag_Training.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig_lowPT/3/mistag_Training.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig_lowPT/4/mistag_Training.pdf'),
+        join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/cut_Run2Summer2017Opt_v2_noProbNN_IPSig_lowPT/5/mistag_Training.pdf'),
         # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/run2_lowpt_noplowp/2/mistag_validation.pdf'),
         # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/run2_lowpt_nop/2/mistag_validation.pdf'),
         # join(data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/cut_DT_SSK_withOrigin/2/mistag_validation.pdf'),
-
         
 
-rule add_features:
-    input:
-        script = join(repo, 'scripts/adding_features.py'),
-        raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root')
-    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
-    run:
-        cmd = [
-            'python', input.script,
-            '--raw {input.raw}',
-            '--output {output}',
-            '--evtType {wildcards.decay}',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
+        #rule add_features:
+        #    input:
+        #script = join(repo, 'scripts/adding_features.py'),
+        #raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
+        #output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root')
+        #log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
+        #run:
+        #cmd = [
+            #    'python', input.script,
+            #'--raw {input.raw}',
+            #'--output {output}',
+            #'--evtType {wildcards.decay}',
+            #'&> {log}',
+            #]
+            #shell(' '.join(cmd))
 
 rule train_DT:
     input:
@@ -155,12 +185,30 @@ rule train_DT:
         shell(' '.join(cmd))
 
 
-rule add_selection:
+#rule add_selection:
+#    input:
+#        script = join(repo, 'scripts/preSelections.py'),
+#        added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
+#    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{id,.*}.root'),
+#    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/.{id,.*}.log')
+#    run:
+#        cmd = [
+#            'python', input.script,
+#            '--added_features {input.added_features}',
+#            '--output {output}',
+#            '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
+#            '--tagger {wildcards.tagger}',
+#            '--add_torch_pid',
+#            '&> {log}',
+#        ]
+#        shell(' '.join(cmd))
+
+rule add_selection_baseline_smearing:
     input:
         script = join(repo, 'scripts/preSelections.py'),
         added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{id,.*}.root'),
-    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/.{id,.*}.log')
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/smear_baseline/{id,.*}.root'),
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/smear_baseline/.{id,.*}.log')
     run:
         cmd = [
             'python', input.script,
@@ -168,7 +216,25 @@ rule add_selection:
             '--output {output}',
             '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
             '--tagger {wildcards.tagger}',
-            '--add_torch_pid',
+            '--smearing_baseline',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
+rule add_selection_heavy_smearing:
+    input:
+        script = join(repo, 'scripts/preSelections.py'),
+        added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/smear_heavy/{id,.*}.root'),
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/smear_heavy/.{id,.*}.log')
+    run:
+        cmd = [
+            'python', input.script,
+            '--added_features {input.added_features}',
+            '--output {output}',
+            '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
+            '--tagger {wildcards.tagger}',
+            '--smearing_heavy',
             '&> {log}',
         ]
         shell(' '.join(cmd))
@@ -179,7 +245,7 @@ rule train_tagger:
         #selected = lambda wildcards: [f.replace('cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
         selected = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']],
         script = join(repo, 'scripts/pipeline.py'),
-    output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/mistag_validation.pdf')
+    output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/mistag_Training.pdf')
     log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{seed}/log.log')
     resources:
         mem_mb = 60000, # Specify memory requirement in megabytes 
@@ -201,21 +267,114 @@ rule train_tagger:
         shell(' '.join(cmd))
 
 
-rule TORCH_DLLs:
-    input: ntuples_added_TORCH_DLLs['Bu2JpsiK']
-
-rule add_TORCH_DLLs:
+rule train_tagger_smear_baseline:
     input:
-        script = join(repo, 'scripts/add_torch_DLL.py'),
-        torch_dlls = torch_files,
-        added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/TORCH_DLLS/{id,.*}.root')
-    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/TORCH_DLLS/.{id,.*}.log')
+        selected = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}/smear_baseline') for f in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']],
+        script = join(repo, 'scripts/pipeline.py'),
+    output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/smear_baseline/{seed}/mistag_Training.pdf')
+    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/smear_baseline/{seed}/log.log')
+    resources:
+        mem_mb = 60000, # Specify memory requirement in megabytes 
+        gpus = 1
+    params:
+        config = lambda wildcards: join(repo, f'configs/config_{wildcards.tagger}.json'),
+        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/smear_baseline/{wildcards.seed}/')
     run:
         cmd = [
             'python', input.script,
-            '--file {input.added_features}',
-            '--torch_dlls {input.torch_dlls}',
+            '--selected {input.selected}',
+            '--target_path {params.target_path}',
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--config {params.config}',
+            '--decayType {wildcards.decay}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
+rule train_tagger_smear_heavy:
+    input:
+        selected = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}/smear_heavy') for f in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']],
+        script = join(repo, 'scripts/pipeline.py'),
+    output: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/smear_heavy/{seed}/mistag_Training.pdf')
+    log: join(data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/smear_heavy/{seed}/log.log')
+    resources:
+        mem_mb = 60000, # Specify memory requirement in megabytes 
+        gpus = 1
+    params:
+        config = lambda wildcards: join(repo, f'configs/config_{wildcards.tagger}.json'),
+        target_path = lambda wildcards: join(data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/smear_heavy/{wildcards.seed}/')
+    run:
+        cmd = [
+            'python', input.script,
+            '--selected {input.selected}',
+            '--target_path {params.target_path}',
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--config {params.config}',
+            '--decayType {wildcards.decay}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
+
+rule DLLs:
+    input: 
+        # ntuples_added_TORCH_DLLs['Bs2JpsiPhi'],
+        ntuples_added_RICH_DLLs['Bs2JpsiPhi'],
+
+#rule add_TORCH_DLLs:
+#    input:
+#        script = join(repo, 'scripts/add_PID_phis.py'),
+#        torch_dlls = torch_files,
+#        added_features = join(data, '{sample_type}/2_added_features/{decay}/{id}.root'),
+#    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/TORCH_DLLS/{id,.*}.root')
+#    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/TORCH_DLLS/.{id,.*}.log')
+#    run:
+#        cmd = [
+#            'python', input.script,
+#            '--file {input.added_features}',
+#            '--torch_dlls {input.torch_dlls}',
+#            '--output {output}',
+#           '&> {log}',
+#        ]
+#        shell(' '.join(cmd))
+#
+
+rule add_TORCH_DLLs:
+    input:
+        script = join(repo, 'scripts/add_PID_phis.py'),
+        dlls = torch_files,
+        raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root'),
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_raw/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/TORCH_DLLs/{id,.*}.root')
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_raw/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/TORCH_DLLs/.{id,.*}.log')
+    run:
+        cmd = [
+            'python', input.script,
+            '--file {input.raw}',
+            '--treename BsToJpsiPhi_Detached/DecayTree',
+            '--DLLs {input.dlls}',
+            '--postfix TORCH',
+            '--output {output}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
+rule add_RICH_DLLs:
+    input:
+        script = join(repo, 'scripts/add_PID_phis.py'),
+        raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root'),
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_raw/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/RICH_DLLs_{rich_mode}/{id,.*}.root')
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_raw/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/RICH_DLLs_{rich_mode}/.{id,.*}.log')
+    params:
+        rich_file = lambda wildcards: join(data, f'RICH_DLLs/{wildcards.rich_mode}.root')
+    run:
+        cmd = [
+            'python', input.script,
+            '--file {input.raw}',
+            '--treename BsToJpsiPhi_Detached/DecayTree',
+            '--DLLs {params.rich_file}',
+            '--postfix RICH_{wildcards.rich_mode}',
             '--output {output}',
             '&> {log}',
         ]

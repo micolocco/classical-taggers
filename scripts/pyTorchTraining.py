@@ -52,7 +52,7 @@ def prepare_data(train_df, features, val_df, savePlot_path, scalerPath, train_ba
     val_dataset = inputDataset(val_df, scalerPath, test = True)
     plot_features(data=train_df, features_list=features, target_path=savePlot_path, flag='label', name=f'training_inputFeatures')
     # Prepare data loaders
-    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=True)
+    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False)
     validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
     return train_dl, validation_dl
 

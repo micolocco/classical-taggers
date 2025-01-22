@@ -85,8 +85,8 @@ def plot_kp_for_torch(df, type, savepath, tagger):
     plt.close()
 
 
-    # plot_mothers(true_protons, 'B_Tr_T_MC_MOTHER_ID', savepath, type, tagger=cfg.tagger)
-    # plot_mothers(true_protons, 'B_Tr_T_MC_GD_MOTHER_ID', savepath, type, tagger=cfg.tagger)
+    plot_mothers(true_protons, 'B_Tr_T_MC_MOTHER_ID', savepath, type, tagger=cfg.tagger)
+    plot_mothers(true_protons, 'B_Tr_T_MC_GD_MOTHER_ID', savepath, type, tagger=cfg.tagger)
 
 
 def plot_mistag_for_torch(df, savepath, tagger):
@@ -176,9 +176,9 @@ if __name__ == '__main__':
     parser.add_argument('--target_path', help='Name of the output dir', type=str)
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
-    parser.add_argument('--seed', help='Random seed', default=2) 
-    parser.add_argument('--config', help='Config json', type=str) 
-    parser.add_argument('--decayType', help='Event decay', type=str) 
+    parser.add_argument('--seed', help='Random seed', default=2)
+    parser.add_argument('--config', help='Config json', type=str)
+    parser.add_argument('--decayType', help='Event decay', type=str)
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID',]
 
     # Reading datasets
-    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER', "B_Tr_T_TRUEID"]
+    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected', 'entry', 'RUNNUMBER', 'EVENTNUMBER', "B_Tr_T_TRUEID", "B_Tr_T_MC_GD_MOTHER_ID", "B_Tr_T_MC_MOTHER_ID"]
     
     df = pd.DataFrame(columns=vars)
     for f in selected_files:
@@ -268,7 +268,7 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'label']])
+    train_df, val_df, test_df = pyTrain.splitByEvent(df[features + ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID', 'label', "B_Tr_T_MC_GD_MOTHER_ID", "B_Tr_T_MC_MOTHER_ID"]])
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
     # Save test dataframe for calibration
     # test_df.to_csv(f"{testSetPath}", index = False)
-    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID']
+    columns_to_drop = ['event_entry', 'selected', 'TagDec', 'B_TRUEID', 'B_Tr_T_TRUEID',"B_Tr_T_MC_GD_MOTHER_ID", "B_Tr_T_MC_MOTHER_ID"]
     train_df.drop(columns = columns_to_drop, inplace = True)
     val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df, features=features, val_df=val_df, savePlot_path=cfg.target_path, scalerPath=scalerPath)
