@@ -1,52 +1,52 @@
 {
     "OSKaon": {
-        "calibrated tagging power": "2.72+/-0.07",
-        "seed": 12,
+        "calibrated tagging power": "2.44+/-0.06",
+        "seed": 45,
         "learning_rate": 0.001,
-        "batch_size": 2048,
+        "batch_size": 128,
         "architecture": "simple",
-        "min_delta": 0.001,
-        "max_ratio": 40.473159471762266,
-        "precision": 0.024707732557861968
+        "min_delta": 0.0,
+        "max_ratio": 37.940619918722,
+        "precision": 0.026356975772727022
     },
     "OSElectron": {
-        "calibrated tagging power": "0.660+/-0.035",
-        "seed": 12,
-        "learning_rate": 0.01,
-        "batch_size": 1024,
-        "architecture": "simple",
-        "min_delta": 0.0001,
-        "max_ratio": 18.603915378816513,
-        "precision": 0.05375212580996028
-    },
-    "OSMuon": {
-        "calibrated tagging power": "1.16+/-0.04",
-        "seed": 45,
-        "learning_rate": 0.01,
-        "batch_size": 1024,
-        "architecture": "simple",
-        "min_delta": 0.001,
-        "max_ratio": 27.451746959727082,
-        "precision": 0.03642755419052361
-    },
-    "SSPion": {
-        "calibrated tagging power": "1.33+/-0.08",
+        "calibrated tagging power": "0.550+/-0.031",
         "seed": 2,
         "learning_rate": 0.001,
-        "batch_size": 2048,
+        "batch_size": 128,
         "architecture": "simple",
         "min_delta": 0.0,
-        "max_ratio": 16.50442533515221,
-        "precision": 0.0605898102898581
+        "max_ratio": 17.540067414991846,
+        "precision": 0.057012323632535195
     },
-    "SSProton": {
-        "calibrated tagging power": "0.062+/-0.018",
+    "OSMuon": {
+        "calibrated tagging power": "1.02+/-0.04",
+        "seed": 2,
+        "learning_rate": 0.001,
+        "batch_size": 128,
+        "architecture": "simple",
+        "min_delta": 0.0,
+        "max_ratio": 25.327060941959427,
+        "precision": 0.039483460093993644
+    },
+    "SSPion": {
+        "calibrated tagging power": "1.29+/-0.08",
         "seed": 14,
         "learning_rate": 0.001,
-        "batch_size": 2048,
+        "batch_size": 1024,
         "architecture": "simple",
         "min_delta": 0.0,
-        "max_ratio": 3.4498059450698646,
-        "precision": 0.28987137709270433
+        "max_ratio": 16.068911617095253,
+        "precision": 0.06223196840140242
+    },
+    "SSProton": {
+        "calibrated tagging power": "0.011+/-0.007",
+        "seed": 2,
+        "learning_rate": 0.001,
+        "batch_size": 128,
+        "architecture": "simple",
+        "min_delta": 0.0,
+        "max_ratio": 1.4258508534669092,
+        "precision": 0.7013356253696051
     }
 }

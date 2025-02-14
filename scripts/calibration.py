@@ -28,6 +28,8 @@ if __name__ == '__main__':
     #parser.add_argument('--seed', help='Random seed', default=2) 
     parser.add_argument('--config', help='Config yaml', type=str, default='configs/config_test') 
     parser.add_argument('--decayType', help='Event decay', type=str)
+    parser.add_argument('--repo', help="Path to repository")
+
     print(f'Calibration started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg) 
@@ -41,7 +43,7 @@ if __name__ == '__main__':
     test_df = pd.read_csv(f"{testSetPath}")
 
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
-    bestModel = NeuralNetwork(features=features, optimizer_kwargs={"lr" : config.learning_rate}).to(device)
+    bestModel = NeuralNetwork(features=features, optimizer_kwargs={"lr" : config.learning_rate}, repo_path=cfg.repo).to(device)
     pyTrain.load_model(bestModel, cfg.target_path)
     bestModel.eval()
     
