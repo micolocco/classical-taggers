@@ -62,7 +62,6 @@ if __name__ == '__main__':
             folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{arch}_dm{dm}")
 
             json_file = os.path.join(folder_path, f"{link}/taggingInfo_{link}.json")
-            
             if os.path.exists(json_file):
                 data = utils.load_and_process_json(json_file)
                 tagging_power = data['TaggingPower_Cali']

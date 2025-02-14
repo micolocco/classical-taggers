@@ -40,6 +40,6 @@ if __name__ == '__main__':
         for bs in train_batch_sizes:
             for ar in architectures:
                 for dm in min_delta:
-                    generate_yaml_file(learning_rate=lr, train_batch_size=bs, architecture=a, min_delta=dm)
+                    generate_yaml_file(learning_rate=lr, train_batch_size=bs, architecture=ar, min_delta=dm)
                     i+=1
     print(f'Generated config {i} files')

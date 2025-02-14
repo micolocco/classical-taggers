@@ -6,6 +6,10 @@ import argparse
 import awkward as ak
 import datetime
 
+data_vars_translation = {
+     "B_Tr_T_zfirst": "B_Tr_T_firstZ",
+}
+
 def DeltaQ(df,Mass, prefix):
         E =np.sqrt( Mass**2 + df[f'{prefix}Tr_T_PX']**2 + df[f'{prefix}Tr_T_PY']**2 + df[f'{prefix}Tr_T_PZ']**2)
         DeltaQ = np.sqrt( (E + df[f'{prefix}ENERGY'])**2  - ((df[f'{prefix}Tr_T_PX'] + df[f'{prefix}PX'])**2 + (df[f'{prefix}Tr_T_PY'] + df[f'{prefix}PY'])**2 + (df[f'{prefix}Tr_T_PZ'] + df[f'{prefix}PZ'])**2 )   ) -df[f'{prefix}M']  - Mass
@@ -210,6 +214,7 @@ if __name__ == '__main__':
     parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
     parser.add_argument('--batch_size', help='Size of the data batch to process at a time', type=int, default=250) #1000
+    parser.add_argument('--data_calib', action="store_true", default="False")
     
     cfg = parser.parse_args()
     
@@ -229,10 +234,26 @@ if __name__ == '__main__':
         # Modify the prefix based on evtType
         prefix = cfg.evtType[:2] + "_"
     '''
-    prefix = cfg.evtType[:2] + "_"
+    prefix = cfg.evtType[:2] + "_" if not cfg.data_calib else "B_"
 
-    # Replace B_ in the loading variables
-    loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
+    loading_variables_withPrefix = []
+    prx = "OWNPV_" if cfg.data_calib else "BPV"
+    prxip = "OWNPVIP" if cfg.data_calib else "BPV_IP"
+    endx = "ENDV_" if cfg.data_calib else "END_V"
+
+    # BPV -> OWNPV will need to be changed for everything in the future productions!!!!
+    if cfg.data_calib:
+        loading_variables_withPrefix.append("B_Tr_T_IsInTree")
+        loading_variables_withPrefix.append("B_ID")
+        loading_variables_withPrefix.append("B_DTF_PV_Jpsi_MASS")
+        loading_variables_withPrefix.append("B_DTF_PV_MASS")
+        loading_variables_withPrefix.append("FillNumber")
+        for v in loading_variables:
+            if "TRUE" in v or "BKGCAT" in v or "Origin_Flag" in v or "MC" in v: continue
+            if "BPV" in v: v=v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP")
+            if "END_V" in v: v=v.replace("END_V", "ENDV_")
+            loading_variables_withPrefix.append(v) if v not in data_vars_translation.keys() else loading_variables_withPrefix.append(data_vars_translation[v])
+
 
     print(f'{loading_variables_withPrefix}')
     print('Started processing')
@@ -240,23 +261,23 @@ if __name__ == '__main__':
     #print('Started reading')
     with uproot.open("{}".format(cfg.raw)) as f:
         df = f[cfg.treename].arrays(loading_variables_withPrefix, library="pd")
-
-    # drop the B mesons or other particles that are not of interest
-    abs_id = B_abs_id_dic[cfg.evtType]
-    df.drop(df[abs(df[f'{prefix}TRUEID']) != abs_id ].index , inplace = True)
-    df.reset_index(inplace=True, drop = False)
+    if not cfg.data_calib:
+        # drop the B mesons or other particles that are not of interest
+        abs_id = B_abs_id_dic[cfg.evtType]
+        df.drop(df[abs(df[f'{prefix}TRUEID']) != abs_id ].index , inplace = True)
+        df.reset_index(inplace=True, drop = False)
+        df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUEID)', inplace = True) # Is this to change with the reconstructed ID ? 
     # Add some needed features
     # A bit of a hack to add the minimum distance
     df = min_dPhi(df, prefix)
     df.eval(f'{prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)', inplace=True)
-    df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}BPVZ - {prefix}Tr_T_BPVZ)' , inplace = True)
+    df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}{prx}Z - {prefix}Tr_T_{prx}Z)' , inplace = True)
     df.eval(f'{prefix}Tr_T_DeltaR= ({prefix}ETA - {prefix}Tr_T_Eta)**2 + {prefix}Tr_T_PhiDistance**2', inplace = True)
     df.eval(f'diff_P = abs({prefix}P - {prefix}Tr_T_P)', inplace = True)
     df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
-    df.eval(f't = ({prefix}END_VX**2 + {prefix}END_VY**2 + {prefix}END_VZ**2 - {prefix}END_VX*{prefix}Tr_T_X - {prefix}END_VY*{prefix}Tr_T_Y - {prefix}END_VZ*{prefix}Tr_T_Z) / ({prefix}END_VX * {prefix}Tr_T_PX + {prefix}END_VY * {prefix}Tr_T_PY + {prefix}END_VZ * {prefix}Tr_T_PZ)' , inplace = True)
+    df.eval(f't = ({prefix}{endx}X**2 + {prefix}{endx}Y**2 + {prefix}{endx}Z**2 - {prefix}{endx}X*{prefix}Tr_T_X - {prefix}{endx}Y*{prefix}Tr_T_Y - {prefix}{endx}Z*{prefix}Tr_T_Z) / ({prefix}{endx}X * {prefix}Tr_T_PX + {prefix}{endx}Y * {prefix}Tr_T_PY + {prefix}{endx}Z * {prefix}Tr_T_PZ)' , inplace = True)
     df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
-    df.eval(f'{prefix}Tr_T_absBPVIP = abs({prefix}Tr_T_BPVIP)', inplace = True)
-    df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
+    df.eval(f'{prefix}Tr_T_abs{prxip} = abs({prefix}Tr_T_{prxip})', inplace = True)
     df.eval(f'{prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)', inplace = True)
     df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Muon'] = DeltaQ(df,105.65837, prefix)
@@ -265,13 +286,17 @@ if __name__ == '__main__':
     df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
     df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
     df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
-    df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUEID)', inplace = True)
     df.eval('logEVIP = log(EVIP)', inplace = True)
-    df.eval(f'{prefix}Tr_T_BPVIPSig = sqrt({prefix}Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr
+    df.eval(f'{prefix}Tr_T_{prxip}Sig = sqrt({prefix}Tr_T_{prxip}CHI2)' , inplace = True) # IPSig == IPErr
     df.eval('logP_proj = log(P_proj)', inplace = True)
     df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
 
+    if not cfg.data_calib: df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
+
     df.columns = df.columns.str.replace(f'{prefix}', 'B_', regex=False)
+    if cfg.data_calib:
+        # Equivalent for data of Origin_Flag != 0
+        df = df[df['B_Tr_T_IsInTree'] != 1]
     print(f'Total shape should be {df.shape[0]}')
 
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)

@@ -103,6 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('--config', help='Config yaml', type=str, default='configs/config_test') 
     parser.add_argument('--decayType', help='Event decay', type=str)
     parser.add_argument('--clean', help='Decide whatever cleaning the directories before running, w=False, a=True', action='store_true')
+    parser.add_argument('--repo', help="Path to repository")
 
     print(f'Pipeline started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
@@ -110,7 +111,7 @@ if __name__ == '__main__':
     # Load YAML configuration file
     with open(f'{cfg.config}.yaml', 'r') as file:
         config = yaml.safe_load(file)
-    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     # Path to the ROOT input file
     selected_files = cfg.selected
     print(f"The features used are: {features}")
@@ -187,7 +188,7 @@ if __name__ == '__main__':
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=config['train_batch_size'], seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath)
     if cfg.config!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
-    model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}).to(device)
+    model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)

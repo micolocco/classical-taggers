@@ -328,6 +328,7 @@ rule add_selection:
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
             '--BKG0',
+            '--repo', repo,
             '&> {log}',
         ]
         shell(' '.join(cmd))
@@ -368,6 +369,7 @@ rule add_tagDec:
             '--decayType {wildcards.decay}', # Decay used for evaluating the tagger
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
+            '--repo', repo,
             '&> {log}'
         ]
         shell(' '.join(cmd))
@@ -434,6 +436,7 @@ rule train_tagger:
             '--features {wildcards.features}',
             '--config {params.config}',
             '--decayType {wildcards.decay}',
+            '--repo', repo,
             #'--clean',
             '&> {log}',
         ]
@@ -464,6 +467,7 @@ rule train_tagger:
 #             #'--seed {wildcards.seed}',
 #             '--config {params.config}',
 #             '--decayType {wildcards.decay}',
+#             '--repo', repo,
 #             '&> {log}',
 #         ]
 #         shell(' '.join(cmd))
