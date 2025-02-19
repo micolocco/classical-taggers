@@ -17,6 +17,8 @@ from zfit.models.basic import Exponential
 from zfit.models.functor import SumPDF
 from hepstats.splot import compute_sweights
 
+import tensorflow as tf
+import zfit
 
 from scripts.adding_features_v2  import run2_taggers_variables
 '''
