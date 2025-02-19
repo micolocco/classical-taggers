@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 import time
 import uproot
 import pandas as pd
-from inputDataset import inputDataset
+from scripts.inputDataset import inputDataset
 import pickle
 from matplotlib import pyplot as plt
 from IPython import embed

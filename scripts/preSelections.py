@@ -2,7 +2,7 @@ import numpy as np
 import uproot
 import re
 from scripts.adding_features_v2 import loading_variables
-import pyTorchTraining as pyTrain
+import scripts.pyTorchTraining as pyTrain
 import argparse
 import os
 

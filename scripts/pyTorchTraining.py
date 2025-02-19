@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 import pickle
 from scipy.special import expit
 import json
-import pipeline
+import scripts.pipeline
 
 # Local imports
 from scripts.NNModel import EarlyStopper
