@@ -108,7 +108,7 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     pprint(cfg)
     # Load YAML configuration file
-    with open(f'{cfg.config}.yaml', 'r') as file:
+    with open(f'{cfg.config}', 'r') as file:
         config = yaml.safe_load(file)
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
     # Path to the ROOT input file

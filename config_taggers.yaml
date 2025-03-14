@@ -1,8 +1,9 @@
 {
     "__comment":  "Snakemake configuration for e5 cluster infrastructure",
-    "DATA": "/ceph/users/molocco/Data",
-    "REPO": "/home/molocco/classical-taggers",
+    "DATAIN": "/ceph/FlavourTagging/NTuples/Run3/MC",
+    "DATAOUT": "/ceph/users/togasa/FlavourTagging/NTuples/MC",
+    "REPO": "/ceph/users/togasa/classical-taggers",
     "nCPUs":      "1",
-    "LOCALTMP": "/home/molocco/classical-taggers/outdir/tmp",
-    "LOG": "/home/molocco/classical-taggers/outdir/log",
+    "LOCALTMP": "/ceph/users/togasa/classical-taggers/outdir/tmp",
+    "LOG": "/ceph/users//togasa/classical-taggers/outdir/log",
 }

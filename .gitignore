@@ -22,3 +22,4 @@ scaler_old
 configs/*.yaml
 test/
 **/.nfs*
+best_tagger_candidates/*/candidatedTaggers*.json
