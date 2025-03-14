@@ -422,7 +422,7 @@ rule add_tagDec:
         config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name)
         cmd = [
             'python', input.script,
-            '--selected {input.selected}',
+            '--selected {input.selected}', 
             '--taggedData {output.root}',  
             '--model {input.model}',
             '--scaler {input.scaler}',
