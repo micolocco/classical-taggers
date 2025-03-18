@@ -62,8 +62,6 @@ if __name__ == '__main__':
             folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{arch}_dm{dm}")
 
             json_file = os.path.join(folder_path, f"{link}/taggingInfo_{link}.json")
-            print(json_file)
-            
             if os.path.exists(json_file):
                 print("enters outermost if")
                 data = utils.load_and_process_json(json_file)

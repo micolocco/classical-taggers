@@ -9,18 +9,18 @@ import yaml
 
 class NeuralNetwork(nn.Module):
 
-    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss()): 
+    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(), repo_path=""): 
         super().__init__()
         torch.manual_seed(seed) # needed to be sure the result is reproducible
         self.features = features
         self.criterion = loss
-        self.NN = self.create_network(architecture)
+        self.NN = self.create_network(architecture, repo_path=repo_path)
         self.optimizer = optimizer(self.parameters(), **optimizer_kwargs)
        # self.train_batch_size = train_batch_size
         #self.test_batch_size = test_batch_size
 
-    def create_network(self, architecture):
-        with open(f'NNarchitectures/{architecture}.yaml', 'r') as file:
+    def create_network(self, architecture, repo_path=""):
+        with open(f'{repo_path}/NNarchitectures/{architecture}.yaml', 'r') as file:
             architecture_config = yaml.safe_load(file)['architecture']
         # Set in_features for the first layer dynamically
         architecture_config[0]['params']['in_features'] = len(self.features)

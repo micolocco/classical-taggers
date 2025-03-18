@@ -2,7 +2,7 @@ import numpy as np
 import uproot
 import re
 from scripts.adding_features_v2 import loading_variables
-import pyTorchTraining as pyTrain
+import scripts.pyTorchTraining as pyTrain
 import argparse
 import os
 
@@ -22,11 +22,15 @@ def extract_selection_var(cut_file):
     result_array = np.unique(result_array).tolist()
     return result_array
 
-def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0):
+def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0, data_calib):
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
     with uproot.open("{}".format(notSelected_rootPath)) as f:
         df = f[treename].arrays(loading_variables, library="pd")
     cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
+    if data_calib:
+        cuts = np.char.replace(cuts, "(B_Tr_T_Origin_Flag!=0)", "(B_Tr_T_IsInTree!=1)")
+        cuts = np.char.replace(cuts, "BPV", "OWNPV")
+        cuts = np.char.replace(cuts, "OWNPV_IP", "OWNPVIP")
     print(f"The applied cut is: {cuts}")
     df.eval(f"selected = {cuts}", inplace = True)
     if BKG0:
@@ -68,6 +72,8 @@ if __name__ == '__main__':
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
+    parser.add_argument('--data_calib', action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
+    parser.add_argument('--repo', help="Path to repository")
     #parser.add_argument('--run2_taggers', help='If specified, run2 taggers info is added',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
 
     cfg = parser.parse_args()
@@ -76,13 +82,21 @@ if __name__ == '__main__':
     pprint(cfg)
 
     selection_variables = extract_selection_var(cfg.cut_file)
-    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
-    extra_variables = ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge',]
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
+    extra_variables = ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge']
     
-    loading_variables = ['B_BKGCAT']+features + selection_variables + extra_variables + run2_taggers_variables
+    loading_variables = features + selection_variables + extra_variables + run2_taggers_variables
     loading_variables = np.unique(loading_variables).tolist()
+    if cfg.BKG0: loading_variables += ['B_BKGCAT']
 
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0)[features + extra_variables + run2_taggers_variables + ['selected']]
+    if cfg.data_calib:
+        loading_variables = [v for v in loading_variables if "TRUE" not in v and "Flag" not in v]
+        loading_variables = [v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP") for v in loading_variables]
+        loading_variables = [v.replace("END_V", "ENDV_") for v in loading_variables]
+        loading_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
+
+    # df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)[features + extra_variables + run2_taggers_variables + ['selected']]
+    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)
 
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
