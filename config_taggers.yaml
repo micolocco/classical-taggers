@@ -1,7 +1,7 @@
 {
     "__comment":  "Snakemake configuration for e5 cluster infrastructure",
-    "DATAIN": "/ceph/FlavourTagging/NTuples/Run3/MC",
-    "DATAOUT": "/ceph/users/togasa/FlavourTagging/NTuples/MC",
+    "DATAIN": "/ceph/users/togasa/FlavourTagging/NTuples",
+    "DATAOUT": "/ceph/users/togasa/FlavourTagging/NTuples",
     "REPO": "/ceph/users/togasa/classical-taggers",
     "nCPUs":      "1",
     "LOCALTMP": "/ceph/users/togasa/classical-taggers/outdir/tmp",

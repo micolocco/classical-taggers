@@ -7,8 +7,12 @@ from copy import deepcopy
 import json
 
 try:
-    dataIn = config['DATAIN']
-    dataOut = config['DATAOUT']
+    #Flag what to train on, MC or Data
+    #trainOn = 'MC'
+    trainOn = 'Data'
+
+    dataIn = join(config['DATAIN'], trainOn)
+    dataOut = join(config['DATAOUT'], trainOn)
 
     
     repo = config['REPO']
@@ -85,7 +89,7 @@ ntuples_eos_withUT = {
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000002_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000003_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226271/0000/00226271_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226273/0000/00226273_00000001_1.mc.root
+        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhMC/cb/anaprod/lhcb/MC/Dev/MC.ROOT/00226273/0000/00226273_00000001_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000001_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000002_1.mc.root
         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000003_1.mc.root
@@ -238,31 +242,29 @@ rule all:
 
 
 decays_to_tag = ['Bu2JpsiK', 'Bd2JpsiKst']
-all_configs = [f for f in os.listdir(join(repo, "configs/")) if f.startswith("lr")]
+all_configs = [f[:-5] for f in os.listdir(join(repo, "configs/")) if f.startswith("lr")]
 
 
 from scripts.replace_path import seeds
 
-rule get_optimized:
+checkpoint get_optimized:
     input:
         script = join(repo, 'scripts/getOptimized.py'),
         modelPath = join(dataOut, "savedModels/withUT_MC_2024"),
         
 
-        tagging_infos = lambda wildcards : [
-            join(dataOut, f"/savedModels/withUT_MC_2024/{decay}/{tagger}/{wildcards.cut_name}/union_PROBNN/{seed}/{config}/logit/taggingInfo_logit.json")
+        tagging_infos = lambda wildcards : [dataOut + f"/savedModels/withUT_MC_2024/{decay}/{tagger}/{wildcards.cut_name}/union_PROBNN/{seed}/{config}/logit/taggingInfo_logit.json"
             for decay in decays_to_tag
-            for tagger in taggers_conf[decay]  # Dynamically select taggers for each decay
+            for tagger in taggers_conf[decay] 
             for seed in seeds
-            for config in all_configs # configs definieren und so
-]
+            for config in all_configs]
     log: 
-        join(repo, "best_tagger_candidates/{cut_name}/candidatedTaggers_logit.log")
+        join(repo, "best_tagger_candidates/{cut_name}/" + trainOn + "/candidatedTaggers_logit.log")
     output:
-        join(repo, "best_tagger_candidates/{cut_name}/candidatedTaggers_logit.json")
+        join(repo, "best_tagger_candidates/{cut_name}/" + trainOn + "/candidatedTaggers_logit.json")
     params:
     #     outpath = join(repo, "best_tagger_candidates")
-    run:
+    run:       
         cmd = [
             'python', input.script,
             f'--model_prePath {input.modelPath}',
@@ -279,7 +281,7 @@ rule add_features:
     input:
         script = join(repo, 'scripts/adding_features_v2.py'),
         #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
-        raw = join(dataIn, '{decay}/{id}.root')
+        raw = join(dataIn, '{sample_type}/1_raw/{decay}/{id}.root')
     log: join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     output: 
         root =join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
@@ -354,7 +356,7 @@ rule add_selection:
         added_features = join(dataOut, '{sample_type}/2_added_features/{decay}/{id}.root'),
     output: join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
     # output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root'),
-    log : join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
+    log: join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
     resources:
@@ -391,8 +393,8 @@ def extract_decay(tagger):
 def extract_best(tagger, cut,link='logit'):
     #Read the best tagger candidate config from json file with the best hyperparameter combination
 
-    with open(join(repo, f'best_tagger_candidates/{cut}/candidatedTaggers_{link}.json'), 'r') as f:
-    # with checkpoints.get_optimized.get(tagger = tagger, cut_name = cut).output[0].open() as f:
+    # with open(join(repo, f'best_tagger_candidates/{cut}/' + trainOn + '/candidatedTaggers_{link}.json'), 'r') as f:
+    with checkpoints.get_optimized.get(tagger = tagger, cut_name = cut).output[0].open() as f:
         data = json.load(f)
 
     seed = int(data[tagger]['seed'])
@@ -406,11 +408,11 @@ def extract_best(tagger, cut,link='logit'):
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
+        # best_tagger = join(repo, 'best_tagger_candidates/{cut_name}/'+ trainOn + '/candidatedTaggers_logit.json'),
         selected = join(dataOut, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}'),
         model=lambda wildcards: join(dataOut, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("seed")}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("config")}/model.pth'), 
         transformer=lambda wildcards: join(dataOut, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("seed")}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("config")}/powerTransformer.pkl'), 
         scaler=lambda wildcards: join(dataOut, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("seed")}/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("config")}/st_scaler.pkl'), 
-        best_tagger = join(repo, "best_tagger_candidates/{cut_name}/candidatedTaggers_logit.json"),
         config = lambda wildcards: join(repo, f'configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name).get("config")}.yaml'),
     output:
         root = join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
