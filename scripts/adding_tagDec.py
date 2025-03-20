@@ -46,7 +46,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
     parser.add_argument('--cut', help='Cut used', type=str)
-    parser.add_argument('--link', help='Link fucntion used for calibration', type=str, default='logit', choices=('mistag','logit'))
+    parser.add_argument('--link', help='Link function used for calibration', type=str, default='logit', choices=('mistag','logit'))
     parser.add_argument('--taggedData', help='Name of data (tagged data)', type=str)
     parser.add_argument('--modelPrePath', help='Path to where the NN models are saved up to cut type', type=str)
     parser.add_argument('--decayType', help='Event decay for calibration', type=str)

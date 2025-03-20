@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--cut', help='Cut desired', type=str, required=True)
     parser.add_argument('--features', help='Input features used for NN training',) 
-    parser.add_argument('--run2', help='If Run2 tagger combination must be computed as well',  action='store_true') # action='store_true' means args.run2 will be set to True if the --Run2 argument is provided on the command line.
+    parser.add_argument('--run2', help='If Run2 tagger combination must be computed as well',  action='store_true') # action='store_true' means args.run2 will be set to True if the --run2 argument is provided on the command line.
     parser.add_argument('--combinationName', help='Name used for the output combination', type=str)
     
     print(f'Combining taggers started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
