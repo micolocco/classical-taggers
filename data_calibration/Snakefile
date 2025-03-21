@@ -6,7 +6,12 @@ from copy import deepcopy
 
 
 try:
-    data = config['DATA']
+    #Flag what to train on, MC or Data
+    #trainOn = 'MC'
+    trainOn = 'Data'
+
+    dataOut = join(config['DATAOUT'], trainOn)
+    
     repo = config['REPO']
 except:
     raise RuntimeError("Make sure to specify snakemake config")
@@ -44,13 +49,23 @@ def extract_decay(tagger):
 eosdir = 'root://eoslhcb.cern.ch/'
 with open("block12_list.txt", "r") as f:
     files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2]
-files_s24c2 = [eosdir + line for line in files_s24c2]
+files_s24c2 = [line.strip() for line in files_s24c2][:10] ## TODO CHANGE TO ALL DATA FILES !!!!
+# files_s24c2 = [eosdir + line for line in files_s24c2]
+
+raw_path = os.path.dirname(files_s24c2[0])
+print(raw_path)
 
 raw_data = {
-    'Bu2JpsiK': [join(data, 'withUT_MC_2024/1_raw/Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
-    'Bd2JpsiKst': [join(data, 'withUT_MC_2024/1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
+    'Bu2JpsiK': [join(dataOut, 'withUT_MC_2024/1_raw/Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
+    'Bd2JpsiKst': [join(dataOut, 'withUT_MC_2024/1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
 }
+
+added_features_data = {}
+for decay, path_list in raw_data.items():
+    added_features_data.update({decay: {}})
+    for tagger in taggers_conf[decay] :
+        added_features_data[decay].update({tagger: [f.replace('1_raw', f'2_added_features').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
+
 selected_data = {}
 for decay, path_list in raw_data.items():
     selected_data.update({decay: {}})
@@ -72,18 +87,19 @@ rule raw:
         tagged_data['Bd2JpsiKst']['SSProton']
 
 
-#phis ntuples are huge, they contain all the decays, so this first rule is to populate 1_raw directory with only the interesting decay
+#phis ntuples are huge, they contain all the decays, so this first rule is to populate 2_added_features directory with only the interesting decay
 rule add_features_data:
     input:
         script = join(repo, 'scripts/adding_features_v2.py'),
-    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_raw/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
+        raw = join(raw_path, '{id}.root')
+    log: join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     output:
-        root =join(data, '{sample_type}/1_raw/{decay}/{id}.root')
+        root =join(dataOut, '{sample_type}/2_added_features/{decay}/{id}.root')
     run:
         tree = find_tree_name(wildcards.decay)
         cmd = [
             'python', input.script,
-            '--raw root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/{wildcards.id}.root',
+            '--raw ', input.raw,
             '--output {output}',
             '--evtType {wildcards.decay}',
             '--treename', tree,
@@ -95,9 +111,9 @@ rule add_features_data:
 rule add_selection_data:
     input:
         script = join(repo, 'scripts/preSelections.py'),
-        added_features = join(data, '{sample_type}/1_raw/{decay}/{id}.root'), # Raw from Jpsi are made by the rule above, with added features run already
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
-    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
+        added_features = join(dataOut, '{sample_type}/2_added_features/{decay}/{id}.root'), # Raw from Jpsi are made by the rule above, with added features run already
+    output: join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
+    log : join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
     run:
         cmd = [
             'python', input.script,
@@ -115,14 +131,14 @@ rule add_selection_data:
 rule add_tagDec_data:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        selected = join(data, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}')
+        selected = join(dataOut, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}')
     output:
-        root = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
+        root = join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
     log:
-        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}.log'),
+        join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}.log'),
     params:
-        modelPrePath = lambda wildcards: join(data.replace("ntuples","Micol_trainings"), f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}'),
-        taggedDataPath = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/'),
+        modelPrePath = lambda wildcards: join(dataOut.replace("ntuples","Micol_trainings"), f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}'),
+        taggedDataPath = join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/'),
     run:
         print(f"Processing file: {wildcards.id}")
         print(f"Selected input file: {input.selected}")

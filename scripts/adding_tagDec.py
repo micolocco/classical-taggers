@@ -47,8 +47,11 @@ if __name__ == '__main__':
     )
     parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
     parser.add_argument('--config', help='', type=str, default='logit')
+    parser.add_argument('--cut', help='Cut used', type=str)
+    parser.add_argument('--link', help='Link fucntion used for calibration', type=str, default='logit', choices=('mistag','logit'))
     parser.add_argument('--taggedData', help='Name of data (tagged data)', type=str)
     parser.add_argument('--model', help='Path to where the NN models are saved up to cut type', type=str)
+    parser.add_argument('--modelPrePath', help='Path to where the NN models are saved up to cut type', type=str)
     parser.add_argument('--decayType', help='Event decay for calibration', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
@@ -83,7 +86,8 @@ if __name__ == '__main__':
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
     json_file=f'candidatedTaggers_{cfg.link}.json'
     #Read the best tagger candidate config from json file with the best hyperparameter combination
-    with open(f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{json_file}', 'r') as f:
+    trainOn = "Data" if cfg.data_calib else "MC"
+    with open(f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{trainOn}/{json_file}', 'r') as f:
         data = json.load(f)
     seed = int(data[cfg.tagger]['seed'])
     lr = float(data[cfg.tagger]['learning_rate'])
@@ -135,7 +139,7 @@ if __name__ == '__main__':
 
     #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset = inputDataset(df=test_df[features+['label']])
-    test_dataset.scale(test=True, scalerPath=cfg.scaler, transformerPath=cfg.transformer)
+    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     print('Adding tagging decision')

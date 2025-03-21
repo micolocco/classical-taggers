@@ -8,8 +8,8 @@ import json
 
 try:
     #Flag what to train on, MC or Data
-    #trainOn = 'MC'
-    trainOn = 'Data'
+    trainOn = 'MC'
+    # trainOn = 'Data'
 
     dataIn = join(config['DATAIN'], trainOn)
     dataOut = join(config['DATAOUT'], trainOn)
@@ -291,12 +291,14 @@ rule add_features:
         #request_disk = 50000
     run:
         tree = find_tree_name(wildcards.decay)
+        dataCalib = '--data_calib' if trainOn == 'Data' else ''
         cmd = [
             'python', input.script,
             '--raw {input.raw}',
             '--output {output}',
             '--evtType {wildcards.decay}',
             '--treename', tree,
+            f'{dataCalib}',
             '&> {log}',
         ]
         shell(' '.join(cmd))

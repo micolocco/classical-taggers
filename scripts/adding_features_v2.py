@@ -214,7 +214,7 @@ if __name__ == '__main__':
     parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
     parser.add_argument('--batch_size', help='Size of the data batch to process at a time', type=int, default=250) #1000
-    parser.add_argument('--data_calib', action="store_true", default="False")
+    parser.add_argument('--data_calib', action="store_true", default=False)
     
     cfg = parser.parse_args()
     
@@ -238,7 +238,7 @@ if __name__ == '__main__':
 
     loading_variables_withPrefix = []
     prx = "OWNPV_" if cfg.data_calib else "BPV"
-    prxip = "OWNPVIP" if cfg.data_calib else "BPV_IP"
+    prxip = "OWNPVIP" if cfg.data_calib else "BPVIP" 
     endx = "ENDV_" if cfg.data_calib else "END_V"
 
     # BPV -> OWNPV will need to be changed for everything in the future productions!!!!
@@ -253,7 +253,13 @@ if __name__ == '__main__':
             if "BPV" in v: v=v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP")
             if "END_V" in v: v=v.replace("END_V", "ENDV_")
             loading_variables_withPrefix.append(v) if v not in data_vars_translation.keys() else loading_variables_withPrefix.append(data_vars_translation[v])
+        loading_variables_withPrefix.remove('B_Tr_T_OWNPVIP')
+        loading_variables_withPrefix.remove('B_Tr_T_OWNPVIPCHI2')
 
+        # loading_variables_withPrefix.append('B_Tr_T_BPVIP')
+        
+    else:
+        loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
 
     print(f'{loading_variables_withPrefix}')
     print('Started processing')
