@@ -11,6 +11,7 @@ Export the `classical-taggers` path in your `.bash_profile`. Example of `.bash_p
 # .bash_profile
 export PYTHONPATH=/home/molocco/classical-taggers:$PYTHONPATH
 ```
+Ajust the `config_taggers.yaml` with relevant paths for your setting.
 ## Hyperparameter search
 If you want to explore different hyperparameters combination you can do so by:
 - modify/run `scripts/generate_configFiles.py`: it will create all the possible combinations of the specified hyperparameters as `yaml` files in teh folder `configs`.

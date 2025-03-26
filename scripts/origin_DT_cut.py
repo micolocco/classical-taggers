@@ -13,8 +13,9 @@ import os
 import glob
 import argparse
 import datetime
+from collections import defaultdict
+
 # Local import
-from IPython import embed
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
@@ -53,11 +54,11 @@ if __name__ == '__main__':
     
     #base_pattern = '/ceph/users/molocco/Data/withUT_MC_2024/2_added_features'
     parser.add_argument('--base_pattern', help='Pattern for input files', type=str)
-    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs')
+    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP_SSK')
     parser.add_argument('--balanced', help='If classes are balanced or unbalanced', choices=('balanced', 'unbalanced'), type=str, )
     parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' ) # action='store_true' means args.unify_SS will be set to True if the --unify_SS argument is provided on the command line.
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
-    parser.add_argument('--load', help='If specified, DT is loaded, ot trained',  action='store_true') # action='store_true' means args.load will be set to True if the --load argument is provided on the command line.
+    parser.add_argument('--load', help='If specified, DT is loaded, or trained',  action='store_true') # action='store_true' means args.load will be set to True if the --load argument is provided on the command line.
 
     print(f'Run at time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 
@@ -74,30 +75,29 @@ if __name__ == '__main__':
     else:
         output_path = f'{cfg.target_path}/{str(cfg.balanced)}/'
 
-    fetaures_added = ['B_Tr_T_minPhiDistance', 'B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absBPVIP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_BPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
-    loading_variables_noMC = [
-        'B_BPVX',
-        'B_BPVY',
-        'B_BPVZ',
-        'B_END_VX',
-        'B_END_VY',
-        'B_END_VZ',
-        'B_ENERGY',
-        'B_ETA',
-        'B_M',
-        'B_P',
-        'B_PHI',
-        'B_PT',
-        'B_PX',
-        'B_PY',
-        'B_PZ',
-        'B_nPVs',
-        'B_nTracks',
+    features_added = ['B_Tr_T_minPhiDistance', 'B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
+    load_extra = ['EVENTNUMBER','RUNNUMBER']
+    features_noMC = [
+        #'B_OWNPV_X',
+        #'B_OWNPV_Y',
+        #'B_OWNPV_Z',
+        #'B_ENDV_X',
+        #'B_ENDV_Y',
+        #'B_ENDV_Z',
+        #'B_ENERGY',
+        #'B_ETA',
+        #'B_M',
+        #'B_P',
+        #'B_PHI',
+        #'B_PT',
+        #'B_PX',
+        #'B_PY',
+        #'B_PZ',
+        #'B_nPVs',
+        #'B_nTracks',
         'B_Tr_T_TRACKISLONG',
         'B_Tr_T_OWNPVIP',
         'B_Tr_T_OWNPVIPCHI2',
-        'B_Tr_T_BPVIP',
-        'B_Tr_T_BPVIPCHI2',
         'B_Tr_T_Charge',
         'B_Tr_T_ISMUON',
         'B_Tr_T_ENERGY',
@@ -116,11 +116,19 @@ if __name__ == '__main__':
         'B_Tr_T_PROBNN_P',
         'B_Tr_T_PROBNN_MU',
         'B_Tr_T_PROBNN_PI',
-        'B_Tr_T_zfirst', # This is the reconstructed z coordinate where a track begins (basically the PV of a track, similar to B_OWNPV_Z but for a track)
-        'B_Tr_T_BPVX',
-        'B_Tr_T_BPVY',
-        'B_Tr_T_BPVZ',
+        'B_Tr_T_firstX',
+        'B_Tr_T_firstY',
+        'B_Tr_T_firstZ',
+        'B_Tr_T_firstTX',
+        'B_Tr_T_firstTY',
+        'B_Tr_T_OWNPV_X',
+        'B_Tr_T_OWNPV_XERR',
+        'B_Tr_T_OWNPV_Y',
+        'B_Tr_T_OWNPV_YERR',
+        'B_Tr_T_OWNPV_Z',
+        'B_Tr_T_OWNPV_ZERR',
         'B_Tr_T_Phi',
+        'B_Tr_T_M',
         'B_Tr_T_CHI2DOF',
         'B_Tr_T_GHOSTPROB',
         'B_Tr_T_PX',
@@ -129,7 +137,9 @@ if __name__ == '__main__':
         'B_Tr_T_X',
         'B_Tr_T_Y',
         'B_Tr_T_Z',
-         ]
+        #'B_Tr_T_OBJECT_KEY',
+        'B_Tr_T_IPChi2BVTX',
+        'B_Tr_T_IPBVTX',]
         
     # Missing fetaures wrt Run2
     # atan ((PT/PZ)) possible to implement as function
@@ -143,11 +153,12 @@ if __name__ == '__main__':
     # SumBDT_ult don't know what is
     # PVndof not clear
     # TRGHP alias for TRACKGHOSTPROB
-    features = loading_variables_noMC + fetaures_added
-    loading_variables = features +["B_BKGCAT", "B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID"]    
+    features = features_noMC + features_added
+    mc_info = ["B_BKGCAT", "B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID"]    
+    loading_variables = features + mc_info + load_extra
  
-    #folders = ['Bd2JpsiKst', 'Bs2DsPi', 'Bu2JpsiK']
-    folders = ['Bd2JpsiKst',  'Bu2JpsiK'] 
+    folders = ['Bd2JpsiKst', 'Bs2DsPi', 'Bu2JpsiK']
+    #folders = ['Bd2JpsiKst',  'Bu2JpsiK'] 
     # NEED TO INCLUDE BS!!!!!!!
 
     # Iterate over each folder and collect the root files
@@ -156,7 +167,7 @@ if __name__ == '__main__':
     df = pd.DataFrame(columns=loading_variables)
     
     for decay in folders:
-        pattern = f'{cfg.base_pattern}/{decay}/*5_1.mc.root'
+        pattern = f'{cfg.base_pattern}/{decay}/*1_1.mc.root'
         root_files = []
         root_files.extend(glob.glob(pattern))
         treename = find_tree_name(decay)
@@ -170,7 +181,7 @@ if __name__ == '__main__':
                 #print(f'Number of tracks in concatenated df {df.shape[0]}')
 
     df.dropna(inplace=True)
-    print(f"Total number of tracks: {df.shape[0]}") 
+    print(f"Total number of tracks (all decays, all particles): {df.shape[0]}") 
 
     df['B_Tr_T_Origin_Flag'] = df['B_Tr_T_Origin_Flag'].astype(int)
     df['B_Tr_T_MC_MOTHER_ID'] = df['B_Tr_T_MC_MOTHER_ID'].astype(int)
@@ -196,13 +207,13 @@ if __name__ == '__main__':
         ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
         ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1), "SSProton"),
         #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 2), "OSProton"),
-        #((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
-        ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "otherK"),
-        ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "otherMu"),
-        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag != 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22) & (df.B_Tr_T_Origin_Flag != 100), "otherE"),
-        ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22), "photonOSEl"),
-        ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 100), "otherPi"),
-        ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1)  & (df.B_Tr_T_Origin_Flag != 100), "otherP"),
+        ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
+        #((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "otherK"),
+        #((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "otherMu"),
+        #((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag != 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22) & (df.B_Tr_T_Origin_Flag != 100), "otherE"),
+        #((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22), "photonOSEl"),
+        #((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 100), "otherPi"),
+        #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1)  & (df.B_Tr_T_Origin_Flag != 100), "otherP"),
         #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSProton"),
         ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
         ] #
@@ -214,8 +225,11 @@ if __name__ == '__main__':
     # Assign particle types based on conditions, with default "Others" for unmatched rows
     df['particle'] = np.select(conditions, particle_type, default="Others")
     
+    
     # To remove all the other particles
-    #df = df.loc[(df.particle != 'Others' )]
+    df = df.loc[(df.particle != 'Others' )]
+
+    print(f"Total number of tracks after removing 'Others': {df.shape[0]}")
  
     # For SS case if B_Tr_T_Charge has same sign of B_TRUE_ID is a correct tagging particle candidate
     # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
@@ -223,7 +237,7 @@ if __name__ == '__main__':
     #df['sign_tag'] = (df['B_TRUEID']/abs(df['B_TRUEID'])) * df['B_Tr_T_Charge']
     print(f"Total number of tracks for each B candidate (by TRUE_ID):\n{df['B_TRUEID'].value_counts()}")
    # plot_features(df, features, )
-
+    
     '''
     removal_conditions = (
         # Remove all SSPions/SSProtons from Bs2DsPi
@@ -239,12 +253,7 @@ if __name__ == '__main__':
     print(f"Applying removal conditions")
     df_filtered = df[~removal_conditions].copy()
     '''
-
     df_filtered = df.copy()
-
-    df_filtered = df_filtered.dropna()
-    print(f"New number of tracks: {df_filtered.shape[0]}")
-
     if cfg.BKG0:
         df_filtered['B_BKGCAT'] = df_filtered['B_BKGCAT'].astype(int)
         print(f"Dropping BKGCAT !=0 tracks...")
@@ -253,7 +262,9 @@ if __name__ == '__main__':
     else:
         DT_utils.count_BKGCAT(df_filtered)
 
-    print(f"\nComposition before splitting in training-test set:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}")
+    print(f"\nComposition (%) before splitting in training-test set:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}")
+    print(f"\nComposition before splitting in training-test set:\n{df_filtered.particle.value_counts()}")
+    
     if downsampling:
         # Downsample the 'notSamePV', 'Others' classes. 
         # Get the count of the largest class excluding "notSamePV"
@@ -308,18 +319,45 @@ if __name__ == '__main__':
         clf.fit(x_train, y_train)
         print(f'Decision Tree training required: {round(time.time()-start_fit, 2)}s')
         os.makedirs(output_path, exist_ok=True)
-        print(f"Type of clf being saved: {type(clf)}")
+
         # Save to a .pkl file
         with open(f"{output_path}/decision_tree_model.pkl", "wb") as f:
             pickle.dump(clf, f)
-            # Visualize the decision tree
+            
+        from sklearn.tree import export_text
+        # Get the text representation of the tree
+        tree_rules = export_text(clf, feature_names=features)
+        # Save the rules into a text file
+        with open(f"{output_path}/decision_tree_rules.txt", "w") as file:
+            file.write(tree_rules)
+
+        # Visualize the decision tree
         #dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True,special_characters=True) 
         dot_data = tree.export_graphviz(clf,feature_names=features,class_names=clf.classes_,filled=True, rounded=True, special_characters=True, proportion=True) 
         graph = graphviz.Source(dot_data) 
         graph.render(f"{output_path}/treeSchema")
         print("Model saved successfully!")
     #print(f"Accuracy:{clf.score(x_test,y_test)}")
+    # Get all decision paths from the classifier
+    paths = DT_utils.get_decision_paths(clf, features)
 
+    # Group the paths by class label
+    paths_by_class = defaultdict(list)
+    for conditions, label in paths:
+        # Combine conditions using AND for a single path.
+        combined = " & ".join(conditions)
+        paths_by_class[label].append(combined)
+
+    # Write the conditions for each class into separate files.
+    os.makedirs(f'{output_path}/cuts', exist_ok=True)
+    for label, conditions_list in paths_by_class.items():
+        # Create a file name based on the class label.
+        filename = os.path.join(f'{output_path}/cuts', f"{label}_preselection.txt")
+        with open(filename, "w") as f:
+            # If multiple paths lead to the same class, separate them with OR.
+            f.write("\nOR\n".join(conditions_list))
+        print(f"Saved cuts for class '{label}' in {filename}")
+    
     print("Metrics for particle type composition: true VS predicted\n")
     unify_classes = ["otherK", "otherMu", "otherE", "photonOSEl", "otherPi", "otherP", "Others"]
     DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), title='Versus True (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_truth.txt", unify_classes=unify_classes)

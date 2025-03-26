@@ -1,7 +1,7 @@
 import numpy as np 
 import pandas as pd 
 import matplotlib.pyplot as plt
-
+from sklearn.tree import _tree
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
@@ -279,7 +279,37 @@ def new_metric_table(y_true, y_predicted, possible_particle, title='Versus True'
         with open(savepath, "w") as f:
             rprint(table, file=f)
 
+def get_decision_paths(clf, feature_names):
+    """
+    Recursively traverse the tree to extract decision paths.
 
+    Returns:
+        A list of tuples: (list of conditions, predicted_class)
+    """
+    tree_ = clf.tree_
+    paths = []
+    
+    def recurse(node, current_conditions):
+        # If the node is not a leaf
+        if tree_.feature[node] != _tree.TREE_UNDEFINED:
+            feature = feature_names[tree_.feature[node]]
+            threshold = tree_.threshold[node]
+            # Left child: condition is feature <= threshold
+            left_conditions = current_conditions + [f"({feature} <= {threshold:.2f})"]
+            recurse(tree_.children_left[node], left_conditions)
+            # Right child: condition is feature > threshold
+            right_conditions = current_conditions + [f"({feature} > {threshold:.2f})"]
+            recurse(tree_.children_right[node], right_conditions)
+        else:
+            # Leaf node: get the class label for the node.
+            value = tree_.value[node]
+            class_index = value.argmax()
+            class_label = clf.classes_[class_index]
+            current_conditions.append('(B_Tr_T_Origin_Flag !=0)')
+            paths.append((current_conditions, class_label))
+    
+    recurse(0, [])
+    return paths
 '''
 def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, balanced=False, savepath=None, uncertainty=False):
     
