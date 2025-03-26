@@ -3,6 +3,7 @@ from os import makedirs
 import numpy as np
 import os
 from copy import deepcopy
+from snakemake.io import dynamic
 
 try:
     raw_data = config['RAW_DATA']
@@ -231,13 +232,20 @@ rule add_features:
         ]
         shell(' '.join(cmd))
 
+all_taggers = sorted({t for taggers in taggers_conf.values() for t in taggers})
+
+train_DT_outputs = [
+    join(modified_data, f"withUT_MC_2024/DT_outputs/notSamePV_noOSP_SSK/balanced/cuts/{tagger}_preselection.txt")
+    for tagger in all_taggers
+]
 
 rule train_DT:
     input:
         script = join(repo, 'scripts/origin_DT_cut.py'),
         data = join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features'),
     output:
-        pdf = join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/{spec}/{balanced}/tree_schema.pdf'),
+        #pdf = join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/{spec}/{balanced}/tree_schema.pdf'),
+        cuts = train_DT_outputs
     log:
         join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/{spec}/{balanced}/tree_schema.log')
     params:
@@ -246,8 +254,6 @@ rule train_DT:
         mem_mb = 20000, # Specify memory requirement in megabytes
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 8, # medium queue
-
-
     run:
         cmd = (
             f'python {input.script} '
@@ -289,6 +295,42 @@ rule add_selection:
         ]
         shell(' '.join(cmd))
 
+rule train_tagger:
+    input:
+        #selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN_IPSig', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
+        #selected = lambda wildcards: [f.replace('cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
+        selected = lambda wildcards: [
+            f.replace('cutName', f'{wildcards.cut_name}') 
+            for f in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+            if not f.endswith('4_1.mc.root')
+        ],
+        script = join(repo, 'scripts/pipeline.py'),
+    output:
+        pdf=join(modified_data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
+    log: join(modified_data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training_log.log')
+    resources:
+        mem_mb = 20000, # Specify memory requirement in megabytes 
+        #gpus = 1,
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 24, # long queue
+        #request_disk = 1024000
+    params:
+        config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),
+        target_path = lambda wildcards: join(modified_data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.seed}/{wildcards.config}/')
+    run:
+        cmd = [
+            'python', input.script,
+            '--selected {input.selected}',
+            '--target_path {params.target_path}',
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
+            '--config {params.config}',
+            '--decayType {wildcards.decay}',
+            #'--clean',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
 
 # Define the function to extract the decay based on the tagger
 def extract_decay(tagger):
@@ -359,42 +401,6 @@ rule combine_tagger:
         ]
         shell(' '.join(cmd))
         
-rule train_tagger:
-    input:
-        #selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN_IPSig', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
-        #selected = lambda wildcards: [f.replace('cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
-        selected = lambda wildcards: [
-            f.replace('cutName', f'{wildcards.cut_name}') 
-            for f in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-            if not f.endswith('4_1.mc.root')
-        ],
-        script = join(repo, 'scripts/pipeline.py'),
-    output:
-        pdf=join(modified_data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
-    log: join(modified_data, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training_log.log')
-    resources:
-        mem_mb = 20000, # Specify memory requirement in megabytes 
-        #gpus = 1,
-        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 24, # long queue
-        #request_disk = 1024000
-    params:
-        config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),
-        target_path = lambda wildcards: join(modified_data, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.seed}/{wildcards.config}/')
-    run:
-        cmd = [
-            'python', input.script,
-            '--selected {input.selected}',
-            '--target_path {params.target_path}',
-            '--tagger {wildcards.tagger}',
-            '--seed {wildcards.seed}',
-            '--features {wildcards.features}',
-            '--config {params.config}',
-            '--decayType {wildcards.decay}',
-            #'--clean',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
 
 #  rule calibrate_tagger:
 #     input:
