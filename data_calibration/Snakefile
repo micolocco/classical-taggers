@@ -6,12 +6,12 @@ from copy import deepcopy
 
 
 try:
-    #Flag what to train on, MC or Data
-    #trainOn = 'MC'
-    trainOn = 'Data'
+    out = config['OUT']
+    MC = config['MC']
+    data = config['DATA']
+    lowerMass = config['Mass_range_lower']
+    upperMass = config['Mass_range_upper']
 
-    dataOut = join(config['DATAOUT'], trainOn)
-    
     repo = config['REPO']
 except:
     raise RuntimeError("Make sure to specify snakemake config")
@@ -19,7 +19,7 @@ except:
 
 taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
-    'Bd2JpsiKst': ['SSPion', 'SSProton']#, 'OSKaon', 'OSElectron', 'OSMuon'],
+    'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
     # 'Bs2DsPi': ['SSKaon'],
     # 'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
     # 'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
@@ -53,11 +53,20 @@ files_s24c2 = [line.strip() for line in files_s24c2][:10] ## TODO CHANGE TO ALL 
 # files_s24c2 = [eosdir + line for line in files_s24c2]
 
 raw_path = os.path.dirname(files_s24c2[0])
-print(raw_path)
+
+mc_ids = {}
+for decay in taggers_conf.keys():
+    path = join(MC, decay + '/')
+    dec_ids = []
+    for f in os.listdir(join(path)):
+        if '.root' in f:
+            dec_ids.append(f)
+    mc_ids[decay] = dec_ids
+
 
 raw_data = {
-    'Bu2JpsiK': [join(dataOut, 'withUT_MC_2024/1_raw/Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
-    'Bd2JpsiKst': [join(dataOut, 'withUT_MC_2024/1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
+    'Bu2JpsiK': [join(out, 'Data/withUT_MC_2024/1_raw/Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
+    'Bd2JpsiKst': [join(out, 'Data/withUT_MC_2024/1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
 }
 
 added_features_data = {}
@@ -78,13 +87,18 @@ for decay, path_list in raw_data.items():
     for tagger in taggers_conf[decay] :
         tagged_data[decay].update({tagger: [f.replace('1_raw', f'4_tagged').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
 
+
+
 rule raw:
     input: 
         tagged_data['Bu2JpsiK']['OSKaon'],
         tagged_data['Bu2JpsiK']['OSMuon'],
         tagged_data['Bu2JpsiK']['OSElectron'],
         tagged_data['Bd2JpsiKst']['SSPion'],
-        tagged_data['Bd2JpsiKst']['SSProton']
+        tagged_data['Bd2JpsiKst']['SSProton'],
+
+        expand(join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/combinations/Run3/Total_combination.json'),
+               decay = taggers_conf.keys()),
 
 
 #phis ntuples are huge, they contain all the decays, so this first rule is to populate 2_added_features directory with only the interesting decay
@@ -92,9 +106,9 @@ rule add_features_data:
     input:
         script = join(repo, 'scripts/adding_features_v2.py'),
         raw = join(raw_path, '{id}.root')
-    log: join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
+    log: join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     output:
-        root =join(dataOut, '{sample_type}/2_added_features/{decay}/{id}.root')
+        root =join(out, 'Data/{sample_type}/2_added_features/{decay}/{id}.root')
     run:
         tree = find_tree_name(wildcards.decay)
         cmd = [
@@ -111,9 +125,9 @@ rule add_features_data:
 rule add_selection_data:
     input:
         script = join(repo, 'scripts/preSelections.py'),
-        added_features = join(dataOut, '{sample_type}/2_added_features/{decay}/{id}.root'), # Raw from Jpsi are made by the rule above, with added features run already
-    output: join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
-    log : join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
+        added_features = join(out, 'Data/{sample_type}/2_added_features/{decay}/{id}.root'), # Raw from Jpsi are made by the rule above, with added features run already
+    output: join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
+    log : join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
     run:
         cmd = [
             'python', input.script,
@@ -131,14 +145,14 @@ rule add_selection_data:
 rule add_tagDec_data:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        selected = join(dataOut, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}')
+        selected = join(out, 'Data/{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}')
     output:
-        root = join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
+        root = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
     log:
-        join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}.log'),
+        join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}.log'),
     params:
-        modelPrePath = lambda wildcards: join(dataOut.replace("ntuples","Micol_trainings"), f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}'),
-        taggedDataPath = join(dataOut, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/'),
+        modelPrePath = lambda wildcards: join(out.replace("ntuples","Micol_trainings"), f'Data/savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}'),
+        taggedDataPath = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/'),
     run:
         print(f"Processing file: {wildcards.id}")
         print(f"Selected input file: {input.selected}")
@@ -157,3 +171,98 @@ rule add_tagDec_data:
             '&> {log}'
         ]
         shell(' '.join(cmd))
+
+
+rule sim_sweights:
+    input:
+        script = join(repo, 'data_calibration/sweights.py'),
+    output:
+        mc_res = join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/mc_fit/mc_res.json'),
+    log:
+        join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/mc_fit/mc_log.log'),
+    params:
+        sim_files = join(MC, '{decay}/'),
+    run:
+        tree = find_tree_name(wildcards.decay)
+        out_path = os.path.dirname(os.path.dirname(output.mc_res))
+
+        cmd = [
+            'python {input.script}',
+            '--sim_files {params.sim_files}*.root',
+            '--range {lowerMass} {upperMass}', 
+            '--treename', tree,
+            '--simulation',
+            '--output ', out_path,
+            '--decayType {wildcards.decay}',
+            '&> {log}'
+        ]
+        shell(' '.join(cmd))        
+
+def taggedPaths(decay):
+    taggers = taggers_conf[decay]
+    ids = [os.path.basename(i) for i in raw_data[decay]]
+    prepath = join(out, f'Data/withUT_MC_2024/4_tagged/{decay}')
+    paths = expand(join(prepath, '{tagger}/notSamePV_noOSP/union_PROBNN/{id}'), tagger = taggers, id = ids)
+    return paths
+
+rule data_sweights:
+    input:
+        script = join(repo, 'data_calibration/sweights.py'),
+        mc_res = join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/mc_fit/mc_res.json'),
+        taggedPaths = lambda wildcards: taggedPaths(decay=wildcards.decay),
+        
+    output:
+        data_res = join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/data_fit/data_res.json'),
+        sweights = join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/data_fit/sweights.root'),
+
+    log:
+        join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/data_fit/data_log.log'),
+    params:
+        sim_files = join(MC, '{decay}/'),
+        tagged_prePath = join(out, 'Data/withUT_MC_2024/4_tagged/'),
+        taggers = lambda wildcards: ' '.join(taggers_conf[wildcards.decay]),
+        # tree = lambda wildcards: find_tree_name(wildcards.decay),
+    run:
+        out_path = os.path.dirname(os.path.dirname(output.data_res))
+        cmd = [
+            'python {input.script}',
+            '--sim_files {params.sim_files}*.root',
+            '--range {lowerMass} {upperMass}', 
+            '--treename "DecayTree;1"', ##Maybe different in different files? might has to change
+            # 'treename {params.tree}',
+            '--output', out_path,
+            '--decayType {wildcards.decay}',
+            '--features union_PROBNN',
+            '--sim_fit {input.mc_res}',
+            '--tagged_prePath {params.tagged_prePath}',
+            '--cut notSamePV_noOSP',
+            '--tagger {params.taggers}',
+            '&> {log}'
+        ]
+        shell(' '.join(cmd))        
+        	
+rule data_calib:
+    input:
+        script = join(repo, 'data_calibration/data_calib.py'),
+        sweights = join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/data_fit/sweights.root'),
+    output:
+        join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/combinations/Run3/Total_combination.json')
+    log:
+        join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/combinations/Run3/Total_combination.log'),
+    params:
+        taggers = lambda wildcards: ' '.join(taggers_conf[wildcards.decay]),
+        out_path = join(out, 'Data/savedModels/withUT_MC_2024/{decay}/data_calib_output/')
+
+    run:
+        cmd = [
+            'python {input.script}',
+            '--input_file {input.sweights}',
+            '--decayType {wildcards.decay}',
+            '--tagger {params.taggers}',
+            '--outputPath {params.out_path}', 
+            '--features union_PROBNN',
+            '--combinationName Total_combination',
+            '--cut notSamePV_noOSP',
+            '&> {log}'
+        ]
+        shell(' '.join(cmd))   

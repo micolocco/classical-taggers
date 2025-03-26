@@ -250,7 +250,13 @@ if __name__ == '__main__':
     ax2.axhline(-2, color='red', linestyle='dotted')
     ax2.scatter(bin_centers, residuals, color='black', marker='+')
     ax2.set_ylabel("Pull")
-    ax2.set_xlabel(r"$ m(B^+)~[\mathrm{MeV}/c^2]$")
+
+    if "Bu2JpsiK" in cfg.decayType:
+        xlabel = r"$ m(B^+)~[\mathrm{MeV}/c^2]$"
+    if "Bd2JpsiKst" in cfg.decayType:
+        xlabel = r"$ m(B^{*0})~[\mathrm{MeV}/c^2]$"
+
+    ax2.set_xlabel(xlabel)
     ax1.set_xlim(mass_range[0], mass_range[1])
     ax1.set_ylim(0, 1.1*np.max(counts))
 

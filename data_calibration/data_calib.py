@@ -25,7 +25,7 @@ if __name__ == '__main__':
     pprint(cfg)
 
     run = "Run2" if "Run2" in cfg.tagger[0] else "Run3"
-    outputPath =f'{cfg.outputPath}/{cfg.decayType}/combinations/{run}'
+    outputPath =f'{cfg.outputPath}/combinations/{run}'
     os.makedirs(outputPath, exist_ok=True)
 
     B_ID_var = "B_ID"
