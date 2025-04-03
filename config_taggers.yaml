@@ -1,6 +1,6 @@
 {
     "__comment":  "Snakemake configuration for e5 cluster infrastructure",
-    "DATA": "/ceph/users/togasa/FlavourTagging/NTuples/Data",
+    "DATA": "/ceph/FlavourTagging/NTuples/Run3/data",
     "MC": "/ceph/FlavourTagging/NTuples/Run3/MC",
     "OUT": "/ceph/users/togasa/FlavourTagging/NTuples",
     "Mass_range_lower" : 5200,

@@ -72,9 +72,9 @@ if __name__ == '__main__':
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
-    parser.add_argument('--data_calib', action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
+    parser.add_argument('--data_calib', action='store_true')
     parser.add_argument('--repo', help="Path to repository")
-    #parser.add_argument('--run2_taggers', help='If specified, run2 taggers info is added',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
+    #parser.add_argument('--run2_taggers', help='If specified, run2 taggers info is added',  action='store_true')
 
     cfg = parser.parse_args()
 
@@ -94,6 +94,8 @@ if __name__ == '__main__':
         loading_variables = [v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP") for v in loading_variables]
         loading_variables = [v.replace("END_V", "ENDV_") for v in loading_variables]
         loading_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
+    else:
+        loading_variables += ["B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
 
     # df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)[features + extra_variables + run2_taggers_variables + ['selected']]
     df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)

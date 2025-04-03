@@ -11,7 +11,7 @@ dependencies:
   - pandas==1.4.4
   - python==3.9.19
   - uproot==4.3.7
-  - awkward==2.7.4
+  - awkward==1.10.5
   - pulp==2.7.0
   - ipython
   - numba==0.53

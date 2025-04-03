@@ -76,6 +76,8 @@ if __name__ == '__main__':
             if "BPV" in v: v=v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP")
             if "END_V" in v: v=v.replace("END_V", "ENDV_")
             features.append(v) if v not in data_vars_translation.keys() else features.append(data_vars_translation[v])
+    else:
+        features = _features
 
     loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
     if cfg.data_calib: loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]

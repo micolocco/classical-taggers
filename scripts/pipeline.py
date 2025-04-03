@@ -65,14 +65,15 @@ def stats_printout(df, tagger, decayType, train_df, val_df, test_df):
         ID=511
     if decayType[:2]=='Bs':
         ID=531
-    B_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==-ID)].shape[0]
-    antiB_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==ID)].shape[0]
-    B_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==-ID)].shape[0]
-    antiB_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==ID)].shape[0]
-    B_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==-ID)].shape[0]
-    antiB_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==ID)].shape[0]
-    B_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==-ID)].shape[0]
-    antiB_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==ID)].shape[0]
+    
+    B_correct_train =     train_df[(train_df.label==1) &(train_df[BID]==-ID)].shape[0]
+    antiB_correct_train = train_df[(train_df.label==1) &(train_df[BID]==ID) ].shape[0]
+    B_wrong_train  =      train_df[(train_df.label==0) &(train_df[BID]==-ID)].shape[0]
+    antiB_wrong_train  =  train_df[(train_df.label==0) &(train_df[BID]==ID) ].shape[0]
+    B_correct_test =      test_df[(test_df.selected==1)&(test_df[BID]==-ID) &(test_df.label==1)].shape[0]
+    antiB_correct_test =  test_df[(test_df.selected==1)&(test_df[BID]==ID)  &(test_df.label==1)].shape[0]
+    B_wrong_test =        test_df[(test_df.selected==1)&(test_df[BID]==-ID) &(test_df.label==0)].shape[0]
+    antiB_wrong_test =    test_df[(test_df.selected==1)&(test_df[BID]==ID)  &(test_df.label==0)].shape[0]
     table = Table(show_header=True)
     table.add_column("", justify="left")
     table.add_column("l=1, B", justify="left", style='cyan', overflow="fold")
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('--selected', help='File with preselection applied', nargs='+')
     parser.add_argument('--target_path', help='Name of the output dir', type=str, default='../test')
-    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
+    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree;1')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--seed', help='Random seed', default=45) 
     parser.add_argument('--features', help='Input features for NN training', default='union') 
@@ -104,6 +105,9 @@ if __name__ == '__main__':
     parser.add_argument('--decayType', help='Event decay', type=str)
     parser.add_argument('--clean', help='Decide whatever cleaning the directories before running, w=False, a=True', action='store_true')
     parser.add_argument('--repo', help="Path to repository")
+    parser.add_argument('--train_on_data', action="store_true", default=False)
+    parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio'))
+    
 
     print(f'Pipeline started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
@@ -114,7 +118,7 @@ if __name__ == '__main__':
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     # Path to the ROOT input file
     selected_files = cfg.selected
-    print(f"The features used are: {features}")
+    print(f"The features used are: {features}", flush=True)
     # Check and eventually make output directory where training info will be saved
     pyTrain.recreate_directory(cfg.target_path, clean=cfg.clean)
     # Path to where the scaler parameters will be saved
@@ -127,12 +131,29 @@ if __name__ == '__main__':
     start = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    if cfg.train_on_data:
+        print(f'features are {features}')
+        for i in range(len(features)):
+            features[i] = features[i].replace("BPVIP", "OWNPVIP")
+            features[i] = features[i].replace("B_TRUEID", "B_ID")
+
     # Reading datasets
-    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected',]
+    vars = features + ['B_ID' if cfg.train_on_data else 'B_TRUEID','B_Tr_T_Charge','selected']
+    if cfg.train_on_data:
+        weight_label = cfg.weight_type
+        vars = vars + [weight_label]
+
+    #TODO maybe stupid??
+    if cfg.train_on_data:
+        vars.append('B_DTF_PV_Jpsi_MASS')
     
     df = pd.DataFrame(columns=vars)
+
+    print(f'Reading of files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f"Reading a total of {len(selected_files)} files.", flush=True)
+
     for i, f in enumerate(selected_files):
-        print(f"Reading input file: {f}")
+        print(f"Reading input file: {f}", flush=True)
         with uproot.open("{}".format(f)) as _f:
             _df = _f[cfg.treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
         _df.dropna(inplace = True)
@@ -140,6 +161,12 @@ if __name__ == '__main__':
         _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
         _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
         df = pd.concat([df, _df], ignore_index = True)
+    print(f'Reading of files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+    
+    ## TODO ask whether tagging only in this range is sensible
+    print(df.shape)
+    df = df.query(f'B_DTF_PV_Jpsi_MASS < 5400 and B_DTF_PV_Jpsi_MASS > 5200')
+    print(df.shape)
     
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
     # Drop multicandidates
@@ -166,7 +193,10 @@ if __name__ == '__main__':
     # When using data:
     #   - tagging decision: the B_TRUEID must be replaced with B_ID 
     #   - calibration: B_ID = reconstructed ID when moving to data!
-    df["label"] = df[f"{cfg.tagger}_TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) 
+    BID = 'B_ID' if cfg.train_on_data else 'B_TRUEID'
+
+    df["label"] = df[f"{cfg.tagger}_TagDec"] * df[BID]/abs(df[BID]) 
+    
     df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -174,7 +204,7 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']], seed=cfg.seed, train_val_split=config['train_val_split'])
+    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID, 'label']], seed=cfg.seed, train_val_split=config['train_val_split'])
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
@@ -182,7 +212,7 @@ if __name__ == '__main__':
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
-    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID',]
+    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID,]
     #train_df.drop(columns = columns_to_drop, inplace = True)
     #val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=config['train_batch_size'], seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath)
@@ -190,7 +220,14 @@ if __name__ == '__main__':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
     model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
+
+    weights = None
+    if cfg.train_on_data:
+        weights = df[weight_label]
+        print(f'weighttype: {weight_label}')
+        print(f'weights: \n{weights}')
+
+    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config, sample_weights = weights)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     # Plot ROC curves for validation and train test
@@ -202,7 +239,7 @@ if __name__ == '__main__':
     #clf = pyTrain.logistic_regression(df=train_df, target_path=cfg.target_path)
     #pyTrain.plot_NNoutput_mistag(config.model_name, clf, yPredVal, yTrueVal, train_df['yPred'], train_df['yTrue'], cfg.target_path)
     #pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
-    pyTrain.plot_mistag(tagger=cfg.tagger, df=train_df, target_path=cfg.target_path, type = 'Training', show_trueB=False)
+    pyTrain.plot_mistag(tagger=cfg.tagger, df=train_df, target_path=cfg.target_path, type = 'Training', show_trueB=False, BID = BID)
     plt.figure()
     plt.hist(1-train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 0, only selected")
@@ -243,7 +280,7 @@ if __name__ == '__main__':
     plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 1")
     plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
-    pyTrain.plot_mistag(tagger=cfg.tagger, df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
+    pyTrain.plot_mistag(tagger=cfg.tagger, df=test_df_sel1, target_path=cfg.target_path, type = 'Test', BID = BID)
     
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
@@ -254,7 +291,7 @@ if __name__ == '__main__':
     test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
     test_df[f"{cfg.tagger}_Eta"] = 1 - test_df['predictedProb']
 
-    test_df = test_df[['event_entry','selected', f"{cfg.tagger}_Eta", f"{cfg.tagger}_TagDec", 'label','B_TRUEID']]
+    test_df = test_df[['event_entry','selected', f"{cfg.tagger}_Eta", f"{cfg.tagger}_TagDec", 'label',BID]]
 
     #print(test_df.loc[test_df.selected == 1][f"{cfg.tagger}_Eta"]) 
 
@@ -273,7 +310,7 @@ if __name__ == '__main__':
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
     pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles,  plot_name=f'{cfg.target_path}/Normalized_TagDec.pdf')
     # Calibrating the tagger and saving parameters
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path)
+    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, BID = BID)
     # Try both calibration functions
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, calibration_option='logit')
+    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, calibration_option='logit', BID = BID)
     print(f'Pipeline finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')

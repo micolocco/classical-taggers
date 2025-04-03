@@ -261,6 +261,10 @@ if __name__ == '__main__':
     else:
         loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
 
+        loading_variables_withPrefix.append("Bu_DTF_PV_Jpsi_MASS")
+        loading_variables_withPrefix.append("Bu_DTF_PV_MASS")
+        print(loading_variables_withPrefix)
+
     print(f'{loading_variables_withPrefix}')
     print('Started processing')
     #process_file_in_batches(cfg.raw, loading_variables_withPrefix, cfg.treename, prefix, abs_id, cfg.evtType, cfg.batch_size, cfg.output)

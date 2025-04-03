@@ -111,7 +111,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     plt.savefig(f"{target_path}/{name}.pdf")
     
 
-def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config):
+def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config, sample_weights = None):
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
@@ -125,17 +125,18 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
         
         i = 1
-        initial_validation_loss = model.validate_model(validation_dl)
+        sample_weights = torch.from_numpy(sample_weights.values)
+        initial_validation_loss = model.validate_model(validation_dl, sample_weights=sample_weights)
         print(f"The initial Validation Loss: {np.array(np.array(initial_validation_loss).mean()).mean():.6f}")
 
         for epoch in range(config['n_epochs']):
             epoch_start = time.time()
             print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}-------------")
-            stepLoss = model.train_model(train_dl, epoch, config['n_epochs'])
+            stepLoss = model.train_model(train_dl, epoch, config['n_epochs'], sample_weights=sample_weights)
             # Train over mini-batches
             trainingEpoch_loss.append(np.array(stepLoss).mean())
             # Compute validation loss
-            validationStep_loss = model.validate_model(validation_dl)
+            validationStep_loss = model.validate_model(validation_dl, sample_weights=sample_weights)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
             print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s") 
             if early_stopper.early_stop(validationEpoch_loss[-1]): 
@@ -300,7 +301,7 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, df['yPred'], df['yTru
     plt.close()
 '''
 
-def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbins=100):
+def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbins=100, BID = 'B_TrueID'):
     plt.figure()
     # plt.title("Mistag rate")
     plt.yscale("log")
@@ -311,18 +312,18 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
         plt.title(f'{tagger} mistag after Logistic Regression', fontsize=24)
     else:
         if show_trueB:
-            plt.hist(1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==-521)],bins = nbins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
-            plt.hist(1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==521)],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
-            plt.hist(1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==-521)],bins = nbins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
-            plt.hist(1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==521)],bins = nbins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
+            plt.hist(1-df.yPred[(df.yTrue==0)&(df[BID]==-521)],bins = nbins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
+            plt.hist(1-df.yPred[(df.yTrue==0)&(df[BID]==521)],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
+            plt.hist(1-df.yPred[(df.yTrue==1)&(df[BID]==-521)],bins = nbins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
+            plt.hist(1-df.yPred[(df.yTrue==1)&(df[BID]==521)],bins = nbins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
    
         else:
             plt.hist(1-df.yPred[df.yTrue == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
             plt.hist(1-df.yPred[df.yTrue == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
-    data1=1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==-521)]  
-    data2=1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==521)]   
-    data3=1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==-521)]  
-    data4=1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==521)]
+    data1=1-df.yPred[(df.yTrue==0)&(df[BID]==-521)]  
+    data2=1-df.yPred[(df.yTrue==0)&(df[BID]==521)]   
+    data3=1-df.yPred[(df.yTrue==1)&(df[BID]==-521)]  
+    data4=1-df.yPred[(df.yTrue==1)&(df[BID]==521)]
     plt.title(f"{tagger}", fontsize=24)
     plt.xlabel(r"1 - NN output", fontsize=24)
     #plt.annotate(f'{len(df.yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
@@ -363,14 +364,14 @@ def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins
     plt.close()
 
 
-def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag'):
+def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag', BID = 'B_TrueID'):
 
     #Calibration of the taggers and parameters saving
     import lhcb_ftcalib as ft
 
     taggers = ft.TaggerCollection()
     
-    taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu' ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
+    taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), B_ID = df_tag[BID].tolist(),mode = 'Bu' ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
     
     if calibration_option=='logit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
