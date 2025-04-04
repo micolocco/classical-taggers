@@ -13,7 +13,7 @@ from scripts.replace_path import seeds
 
 
 '''
-python scripts/getOptimized.py --cut <cutName>
+python scripts/getOptimized.py --spec <specName>
 '''
 
 if __name__ == '__main__':
@@ -22,7 +22,7 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/molocco/Data/savedModels/withUT_MC_2024')
-    parser.add_argument('--cut', help='Cut type to be used', type=str)
+    parser.add_argument('--spec', help='Specification to be used', type=str)
     parser.add_argument('--outputPath', help='Where the best tagger candidates configs will be saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     
@@ -58,7 +58,7 @@ if __name__ == '__main__':
         for seed, lr, bs, arch, dm in combinations:
 
             # Read tagging power values from JSON files
-            results_folder = f"{cfg.model_prePath}/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed   
+            results_folder = f"{cfg.model_prePath}/{decay}/{tagger}/{cfg.spec}/{cfg.features}/{seed}" #cfg.seed   
             folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{arch}_dm{dm}")
 
             json_file = os.path.join(folder_path, f"{link}/taggingInfo_{link}.json")
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     # Output the dictionary with the maximum ratios and corresponding hyperparameters
     print(json.dumps(max_ratios,  indent=4, default=str))
-    filename=f'{cfg.outputPath}/{cfg.cut}/candidatedTaggers_{link}.json'
+    filename=f'{cfg.outputPath}/{cfg.spec}/candidatedTaggers_{link}.json'
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     with open(filename, 'w') as f:

@@ -73,7 +73,7 @@ for conditions, label in paths:
 os.makedirs(f'{output_path}/cuts', exist_ok=True)
 for label, conditions_list in paths_by_class.items():
     # Create a file name based on the class label.
-    filename = os.path.join(f'{output_path}/cuts', f"{label}_preselection.txt")
+    filename = os.path.join(f'{output_path}/cuts', f"{label}_preselections.txt")
     with open(filename, "w") as f:
         # If multiple paths lead to the same class, separate them with OR.
         f.write("\nOR\n".join(conditions_list))

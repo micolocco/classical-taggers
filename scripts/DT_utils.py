@@ -295,10 +295,10 @@ def get_decision_paths(clf, feature_names):
             feature = feature_names[tree_.feature[node]]
             threshold = tree_.threshold[node]
             # Left child: condition is feature <= threshold
-            left_conditions = current_conditions + [f"({feature} <= {threshold:.2f})"]
+            left_conditions = current_conditions + [f"({feature} <= {threshold:.4f})"]
             recurse(tree_.children_left[node], left_conditions)
             # Right child: condition is feature > threshold
-            right_conditions = current_conditions + [f"({feature} > {threshold:.2f})"]
+            right_conditions = current_conditions + [f"({feature} > {threshold:.4f})"]
             recurse(tree_.children_right[node], right_conditions)
         else:
             # Leaf node: get the class label for the node.

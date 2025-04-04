@@ -23,7 +23,7 @@ def min_dPhi(df, prefix):
     df.eval(f'{prefix}Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
     # A bit of a hack to add the minimum distance
     _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group[f'{prefix}Tr_T_PhiDistance']))).reset_index(name=f'{prefix}Tr_T_minPhiDistance')
-    df = pd.merge(df, _df, on='entry', how='left')
+    df = pd.merge(df, _f, on='entry', how='left')
     df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
     return df
 
@@ -58,8 +58,9 @@ def process_chunk(df, prefix, abs_id):
     df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
     return df
 
+# Variables not used for pre-selections and training are commented to speed up NTuples processing
 
-full_list = [
+loading_variables = [
         'B_OWNPV_X',
         'B_OWNPV_Y',
         'B_OWNPV_Z',
@@ -76,6 +77,7 @@ full_list = [
         'B_PY',
         'B_PZ',
         'B_TRUEID',
+        #'B_ID',
         'B_BKGCAT',
         'B_nPVs',
         'B_nTracks',
@@ -125,7 +127,7 @@ full_list = [
         'B_Tr_T_Z',
         'B_Tr_T_IPChi2BVTX',
         'B_Tr_T_IPBVTX',
-        #'B_Tr_T_IsInTree',
+        'B_Tr_T_IsInTree',
         'B_Tr_T_Origin_Flag',
         'B_Tr_T_TRUE_PARTICLE_ID',
         #'B_Tr_T_TRUEPRIMARYVERTEX_X',
@@ -134,11 +136,11 @@ full_list = [
         #'B_Tr_T_TRUEORIGINVERTEX_X',
         #'B_Tr_T_TRUEORIGINVERTEX_Y',
         #'B_Tr_T_TRUEORIGINVERTEX_Z',
-        #'B_Tr_T_MC_MOTHER_ID',
+        'B_Tr_T_MC_MOTHER_ID',
         #'B_Tr_T_MC_MOTHER_KEY',
-        #'B_Tr_T_MC_GD_MOTHER_ID',
+        'B_Tr_T_MC_GD_MOTHER_ID',
         #'B_Tr_T_MC_GD_MOTHER_KEY',
-        #'B_Tr_T_MC_GD_GD_MOTHER_ID',
+        'B_Tr_T_MC_GD_GD_MOTHER_ID',
         #'B_Tr_T_MC_GD_GD_MOTHER_KEY',
         'B_Run2_SSPion_Dec',
         'B_Run2_SSPion_Omega',
@@ -203,9 +205,6 @@ if __name__ == '__main__':
     #Optimize memory usage by reading only the needed variable
     #Read full list of variables if input file ends with 1_1.mc.root as these samples will be used for DT training 
     # else read a selection of variables
-    if cfg.raw.endswith('1_1.mc.root'):
-        loading_variables = full_list
-    else:
 
     with uproot.open("{}".format(cfg.raw)) as f:
         df = f[cfg.treename].arrays(loading_variables, library="pd")
