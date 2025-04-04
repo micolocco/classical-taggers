@@ -6,33 +6,59 @@ import pyTorchTraining as pyTrain
 import argparse
 import os
 
+import re
+import numpy as np
+
 def extract_selection_var(cut_file):
     '''
-    Function to extract strings from pre-selections cat. 
-    Return vector of strings
+    Extract variable names from a pre-selection file with OR-ed cut lines.
+    Each line is a separate AND clause.
     '''
-    # Input string
-    input_string = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
-    # Define the regular expression pattern
-    pattern = r'\(+([^<>!=]+)[<>!=]'
-    # Use the findall function to extract all matches
-    matches = re.findall(pattern, f"{input_string}")
-    # Create an array with the extracted strings
-    result_array = [match.strip() for match in matches]
-    result_array = np.unique(result_array).tolist()
-    return result_array
+    with open(cut_file, "r") as f:
+        cut_lines = [line.strip() for line in f if line.strip()]
+
+    # regex pattern: match variable name before a comparator (e.g., <=, >=, <, >, ==, !=)
+    pattern = r'\(*([\w\d_]+)\s*(?:<=|>=|<|>|==|!=)'
+
+    all_vars = []
+    for line in cut_lines:
+        matches = re.findall(pattern, line)
+        all_vars.extend([m.strip() for m in matches])
+
+    return sorted(set(all_vars))  # unique, sorted list
+
+
 
 def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0):
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
-    with uproot.open("{}".format(notSelected_rootPath)) as f:
+    
+    # Load variables from ROOT file
+    with uproot.open(notSelected_rootPath) as f:
         df = f[treename].arrays(loading_variables, library="pd")
-    cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
-    print(f"The applied cut is: {cuts}")
-    df.eval(f"selected = {cuts}", inplace = True)
+
+    # Read cuts line-by-line and build OR combination
+    with open(cut_file, "r") as f:
+        cut_lines = [line.strip() for line in f if line.strip() and line.strip().upper() != "OR"]
+
+    print("Parsed cut lines:")
+    for cut in cut_lines:
+        print(f"  - {cut}")
+
+    combined_cut = " | ".join(f"({cut})" for cut in cut_lines)
+    
+    print(f"Evaluating combined cut: {combined_cut}")
+    df.eval(f"selected = {combined_cut}", inplace=True)
+
+    # Filter by BKGCAT==0 if needed
     if BKG0:
-        print("Tracks with BKGCAT!=0 are removed")
-        df = df[df.B_BKGCAT==0]
-    df.selected = df.selected.astype(int, copy = False) 
+        if 'Bs2DsPi' in notSelected_rootPath:
+            print("Filtering out B_BKGCAT != 20") #They are the 95% of the events
+            df = df[df.B_BKGCAT == 20]
+        else:  
+            print("Filtering out B_BKGCAT != 0")
+            df = df[df.B_BKGCAT == 0]
+
+    df.selected = df.selected.astype(int, copy=False)
     return df
 
 run2_taggers_variables = [
@@ -83,9 +109,10 @@ if __name__ == '__main__':
     loading_variables = np.unique(loading_variables).tolist()
 
     df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0)[features + extra_variables + run2_taggers_variables + ['selected']]
-
+    print(f"Selected {df.shape[0]} events after pre-selection")
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(f"{cfg.output}") as file:
         file["DecayTree"] = df
     print(f"Pre-selections applied. NTuple saved at {cfg.output}")
+    

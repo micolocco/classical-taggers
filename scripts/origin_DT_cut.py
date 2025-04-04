@@ -57,7 +57,8 @@ if __name__ == '__main__':
     parser.add_argument('--target_path', help='Name of the output dir', type=str, default='/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP_SSK')
     parser.add_argument('--balanced', help='If classes are balanced or unbalanced', choices=('balanced', 'unbalanced'), type=str, )
     parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' ) # action='store_true' means args.unify_SS will be set to True if the --unify_SS argument is provided on the command line.
-    parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
+    # Per default BKG0==0 are removed
+    parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --0 argument is provided on the command line.
     parser.add_argument('--load', help='If specified, DT is loaded, or trained',  action='store_true') # action='store_true' means args.load will be set to True if the --load argument is provided on the command line.
 
     print(f'Run at time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
@@ -78,23 +79,23 @@ if __name__ == '__main__':
     features_added = ['B_Tr_T_minPhiDistance', 'B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
     load_extra = ['EVENTNUMBER','RUNNUMBER']
     features_noMC = [
-        #'B_OWNPV_X',
-        #'B_OWNPV_Y',
-        #'B_OWNPV_Z',
-        #'B_ENDV_X',
-        #'B_ENDV_Y',
-        #'B_ENDV_Z',
-        #'B_ENERGY',
-        #'B_ETA',
-        #'B_M',
-        #'B_P',
-        #'B_PHI',
-        #'B_PT',
-        #'B_PX',
-        #'B_PY',
-        #'B_PZ',
-        #'B_nPVs',
-        #'B_nTracks',
+        'B_OWNPV_X',
+        'B_OWNPV_Y',
+        'B_OWNPV_Z',
+        'B_ENDV_X',
+        'B_ENDV_Y',
+        'B_ENDV_Z',
+        'B_ENERGY',
+        'B_ETA',
+        'B_M',
+        'B_P',
+        'B_PHI',
+        'B_PT',
+        'B_PX',
+        'B_PY',
+        'B_PZ',
+        'B_nPVs',
+        'B_nTracks',
         'B_Tr_T_TRACKISLONG',
         'B_Tr_T_OWNPVIP',
         'B_Tr_T_OWNPVIPCHI2',
@@ -116,19 +117,19 @@ if __name__ == '__main__':
         'B_Tr_T_PROBNN_P',
         'B_Tr_T_PROBNN_MU',
         'B_Tr_T_PROBNN_PI',
-        'B_Tr_T_firstX',
-        'B_Tr_T_firstY',
-        'B_Tr_T_firstZ',
-        'B_Tr_T_firstTX',
-        'B_Tr_T_firstTY',
-        'B_Tr_T_OWNPV_X',
-        'B_Tr_T_OWNPV_XERR',
-        'B_Tr_T_OWNPV_Y',
-        'B_Tr_T_OWNPV_YERR',
-        'B_Tr_T_OWNPV_Z',
-        'B_Tr_T_OWNPV_ZERR',
-        'B_Tr_T_Phi',
-        'B_Tr_T_M',
+        #'B_Tr_T_firstX',
+        #'B_Tr_T_firstY',
+        #'B_Tr_T_firstZ',
+        #'B_Tr_T_firstTX',
+        #'B_Tr_T_firstTY',
+        #'B_Tr_T_OWNPV_X',
+        #'B_Tr_T_OWNPV_XERR',
+        #'B_Tr_T_OWNPV_Y',
+        #'B_Tr_T_OWNPV_YERR',
+        #'B_Tr_T_OWNPV_Z',
+        #'B_Tr_T_OWNPV_ZERR',
+        #'B_Tr_T_Phi',
+        #'B_Tr_T_M',
         'B_Tr_T_CHI2DOF',
         'B_Tr_T_GHOSTPROB',
         'B_Tr_T_PX',
@@ -254,10 +255,16 @@ if __name__ == '__main__':
     df_filtered = df[~removal_conditions].copy()
     '''
     df_filtered = df.copy()
+    # Leaving it as an option, but only BKG_CAT==0 should be the default
     if cfg.BKG0:
         df_filtered['B_BKGCAT'] = df_filtered['B_BKGCAT'].astype(int)
-        print(f"Dropping BKGCAT !=0 tracks...")
-        df_filtered = df_filtered.loc[df_filtered.B_BKGCAT==0]
+        print("Filtering tracks based on decay and B_BKGCAT values...")
+
+        mask = (
+            (df_filtered['decay'].str.contains('Bs2DsPi') & (df_filtered['B_BKGCAT'] == 20)) # Only for Bs2DsPi due to problems with the BKG_CAT
+            | (~df_filtered['decay'].str.contains('Bs2DsPi') & (df_filtered['B_BKGCAT'] == 0))
+        )
+        df_filtered = df_filtered.loc[mask]
         print(f"New number of tracks: {df_filtered.shape[0]}")
     else:
         DT_utils.count_BKGCAT(df_filtered)
@@ -335,7 +342,7 @@ if __name__ == '__main__':
         #dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True,special_characters=True) 
         dot_data = tree.export_graphviz(clf,feature_names=features,class_names=clf.classes_,filled=True, rounded=True, special_characters=True, proportion=True) 
         graph = graphviz.Source(dot_data) 
-        graph.render(f"{output_path}/treeSchema")
+        graph.render(f"{output_path}/tree_schema")
         print("Model saved successfully!")
     #print(f"Accuracy:{clf.score(x_test,y_test)}")
     # Get all decision paths from the classifier
@@ -352,7 +359,7 @@ if __name__ == '__main__':
     os.makedirs(f'{output_path}/cuts', exist_ok=True)
     for label, conditions_list in paths_by_class.items():
         # Create a file name based on the class label.
-        filename = os.path.join(f'{output_path}/cuts', f"{label}_preselection.txt")
+        filename = os.path.join(f'{output_path}/cuts', f"{label}_preselections.txt")
         with open(filename, "w") as f:
             # If multiple paths lead to the same class, separate them with OR.
             f.write("\nOR\n".join(conditions_list))
