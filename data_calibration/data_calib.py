@@ -26,6 +26,23 @@ def setup_time_vars(time_unit, decay_time_branches, data, dm):
     #data["time_mod_dm_err"] = data["time_err"] % (2 * np.pi / dm)
     return data
 
+def setup_time_vars(time_unit, decay_time_branches, data, dm):
+    data["time"] = data[decay_time_branches[0]]
+    # data["time_err"] = data[decay_time_branches[1]]
+
+    if time_unit == "fs":
+        data["time"] *= 1000
+        # data["time_err"] *= 1000
+    if time_unit == "c_fs":
+        data["time"] *= 1000 / 0.29979
+        # data["time_err"] *= 1000 / 0.29979
+    if time_unit == "c_ps":
+        data["time"] /= 0.29979
+        # data["time_err"] /= 0.29979
+
+    data["time_mod_dm"] = data["time"] % (2 * np.pi / dm)
+    return data
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Combine the taggers',
@@ -44,6 +61,11 @@ if __name__ == '__main__':
                         help='Unit of the time branches')
     parser.add_argument('--decay-time-branches', type=str, default=["B_DTF_PV_CTAU"], nargs="+", #"B_DTF_PV_CTAUERR"
                         help='Branches names of the decay-time variables (first decay time, second decay-time error).') # Just using decay time for now
+
+    parser.add_argument('--time-unit', type=str, default="c_ps",
+                        help='Unit of the time branches')
+    parser.add_argument('--decay-time-branches', type=str, default=["B_DTF_PV_CTAU"], nargs="+",
+                        help='Branche names of the decay-time variables (first decay time, second decay-time error).') # Just using decay time for now
 
     
     cfg = parser.parse_args()
