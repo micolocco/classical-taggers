@@ -14,7 +14,7 @@ except:
 
 taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
-    'Bd2JpsiKst': ['SSPion', 'SSProton']#, 'OSKaon', 'OSElectron', 'OSMuon'],
+    'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
     # 'Bs2DsPi': ['SSKaon'],
     # 'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
     # 'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
@@ -69,7 +69,10 @@ rule raw:
         tagged_data['Bu2JpsiK']['OSMuon'],
         tagged_data['Bu2JpsiK']['OSElectron'],
         tagged_data['Bd2JpsiKst']['SSPion'],
-        tagged_data['Bd2JpsiKst']['SSProton']
+        tagged_data['Bd2JpsiKst']['SSProton'],
+        tagged_data['Bd2JpsiKst']['OSKaon'],
+        tagged_data['Bd2JpsiKst']['OSMuon'],
+        tagged_data['Bd2JpsiKst']['OSElectron'],
 
 
 #phis ntuples are huge, they contain all the decays, so this first rule is to populate 1_raw directory with only the interesting decay

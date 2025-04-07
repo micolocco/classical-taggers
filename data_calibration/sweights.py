@@ -80,7 +80,8 @@ if __name__ == '__main__':
     if not cfg.simulation:
         taggers_dataframes = []  # List to store DataFrames for each tagger
         for tagger in cfg.tagger:
-            vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', "B_ID", 'entry', "FillNumber", "B_DTF_PV_Jpsi_MASS"]
+            print(tagger)
+            vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', "B_ID", 'entry', "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_CTAU"]
             input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
             input_files = glob.glob(input_path)
             # Loop over all files
@@ -106,7 +107,7 @@ if __name__ == '__main__':
         print('Dataframe shape must have same row number for a correct combination! Check it!')
         for single_df in taggers_dataframes[1:]:
             print(single_df.shape)
-            df_data = pd.merge(df_data, single_df, on=['event_entry', "B_ID", massname, "entry", "FillNumber"]+run2_taggers_variables, how='outer')   
+            df_data = pd.merge(df_data, single_df, on=['event_entry', "B_ID", massname, "entry", "FillNumber", "B_DTF_PV_CTAU"]+run2_taggers_variables, how='outer')   
             print(f'total:{df_data.shape}')
         # Merge all DataFrames on the common columns
         # df_data = df_data.query("FillNumber < 10056 and FillNumber > 9982") # for block1 selection

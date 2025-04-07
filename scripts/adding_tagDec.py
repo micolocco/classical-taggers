@@ -71,7 +71,7 @@ if __name__ == '__main__':
             features.append(v) if v not in data_vars_translation.keys() else features.append(data_vars_translation[v])
 
     loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
-    if cfg.data_calib: loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
+    if cfg.data_calib: loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
     else: loading_variables += ["B_TRUEID"]
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
     save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
     if cfg.data_calib:
-        save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
+        save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
     with uproot.recreate(f"{cfg.taggedData}") as file:
         file["DecayTree"] = df_TagParticles[save_vars]
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]

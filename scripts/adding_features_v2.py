@@ -205,6 +205,7 @@ loading_variables = [
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
         'B_Run2_OSMuon_MVA',
+        'B_DTF_PV_CTAU',
         ]
 
 if __name__ == '__main__':
