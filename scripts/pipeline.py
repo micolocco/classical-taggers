@@ -106,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--clean', help='Decide whatever cleaning the directories before running, w=False, a=True', action='store_true')
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--train_on_data', action="store_true", default=False)
-    parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio'))
+    parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     
 
     print(f'Pipeline started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
@@ -141,19 +141,22 @@ if __name__ == '__main__':
     vars = features + ['B_ID' if cfg.train_on_data else 'B_TRUEID','B_Tr_T_Charge','selected']
     if cfg.train_on_data:
         weight_label = cfg.weight_type
-        vars = vars + [weight_label]
+        if weight_label != 'ones':
+            vars = vars + [weight_label]
 
-    #TODO maybe stupid??
-    if cfg.train_on_data:
-        vars.append('B_DTF_PV_Jpsi_MASS')
+    #vars.append('B_DTF_PV_Jpsi_MASS')
+
+    print(vars)
     
     df = pd.DataFrame(columns=vars)
 
     print(f'Reading of files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(selected_files)} files.", flush=True)
 
+    import psutil
     for i, f in enumerate(selected_files):
-        print(f"Reading input file: {f}", flush=True)
+        print(f"Reading input file {i}/{len(selected_files)}: {f}", flush=True)
+        print(f'Megabites used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}')
         with uproot.open("{}".format(f)) as _f:
             _df = _f[cfg.treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
         _df.dropna(inplace = True)
@@ -162,11 +165,25 @@ if __name__ == '__main__':
         _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
         df = pd.concat([df, _df], ignore_index = True)
     print(f'Reading of files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+
+
+
+    # plt.hist(df['B_DTF_PV_Jpsi_MASS'], bins = 200, range = (5200,5400), alpha = 0.4, color = 'teal',label= 'all')
+    # plt.hist(df['B_DTF_PV_Jpsi_MASS'][df['selected'] == 1], bins = 200, range = (5200,5400), alpha = 0.4, color = 'limegreen',label= 'selected')
+    # plt.hist(df['B_DTF_PV_Jpsi_MASS'][df['selected'] == 0], bins = 200, range = (5200,5400), alpha = 0.4, color = 'coral',label= 'not selected')
+    # plt.xlabel("m($B^{+})~[MeV]/c^{2}$")
+    # plt.ylabel("events per $[MeV]/c^{2}$")
+    # plt.legend()
+    # from os.path import join
+    # plt.savefig(join(cfg.target_path, f"Massdistribution_post&pre_selection_{cfg.decayType}.png"))
+    # plt.close()
+
+
     
     ## TODO ask whether tagging only in this range is sensible
-    print(df.shape)
-    df = df.query(f'B_DTF_PV_Jpsi_MASS < 5400 and B_DTF_PV_Jpsi_MASS > 5200')
-    print(df.shape)
+    # print(df.shape)
+    # df = df.query(f'B_DTF_PV_Jpsi_MASS < 5400 and B_DTF_PV_Jpsi_MASS > 5200')
+    # print(df.shape)
     
     df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
     # Drop multicandidates
@@ -204,7 +221,23 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID, 'label']], seed=cfg.seed, train_val_split=config['train_val_split'])
+
+    additional_columns = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID, 'label', 'B_DTF_PV_Jpsi_MASS']
+    if cfg.train_on_data and weight_label != 'ones':
+        additional_columns.append(weight_label)
+
+    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + additional_columns], seed=cfg.seed, train_val_split=config['train_val_split'])
+    
+    train_batch_size = config['train_batch_size']
+    val_batch_size = 1024
+    weights_train = None
+    weights_val = None
+    if cfg.train_on_data and weight_label != 'ones': 
+    
+        weights_train = train_df[weight_label].to_numpy()#.to_numpy().reshape((train_batch_size, -1))
+        weights_val = val_df[weight_label].to_numpy()#.to_numpy().reshape((val_batch_size, -1))
+
+
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
@@ -212,22 +245,20 @@ if __name__ == '__main__':
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     # Save test dataframe for calibration
     test_df.to_csv(f"{testSetPath}", index = False)
-    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID,]
+    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID]#, 'B_DTF_PV_Jpsi_MASS']
+    if cfg.train_on_data and weight_label != 'ones':
+        columns_to_drop.append(weight_label)
     #train_df.drop(columns = columns_to_drop, inplace = True)
     #val_df.drop(columns = columns_to_drop, inplace = True)
-    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=config['train_batch_size'], seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath)
+    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=train_batch_size, seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath, test_batch_size = val_batch_size)
     if cfg.config!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
     model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
 
-    weights = None
-    if cfg.train_on_data:
-        weights = df[weight_label]
-        print(f'weighttype: {weight_label}')
-        print(f'weights: \n{weights}')
+    
 
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config, sample_weights = weights)
+    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config, train_weights = weights_train, val_weights= weights_val)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     # Plot ROC curves for validation and train test
@@ -266,7 +297,7 @@ if __name__ == '__main__':
     test_df_sel1 = test_df.query('selected==1').copy()
     test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
     test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
+    test_dl_sel1 = DataLoader(pyTrain.IndexedDataset(test_dataset_sel1), batch_size = 1024, shuffle=False)
     print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
     
@@ -285,7 +316,7 @@ if __name__ == '__main__':
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
+    test_dl = DataLoader(pyTrain.IndexedDataset(test_dataset), batch_size = 1024, shuffle=False)
 
     #test_df[f"{cfg.tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
     test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values

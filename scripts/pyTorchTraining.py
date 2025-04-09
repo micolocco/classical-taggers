@@ -3,6 +3,7 @@ import os
 import time
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
 import copy
 from matplotlib import pyplot as plt
 from sklearn.metrics import auc, roc_curve
@@ -84,8 +85,8 @@ def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size
     val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # Prepare data loaders
     #torch.manual_seed(seed) # to ensure reproducibility
-    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False)
-    validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
+    train_dl = DataLoader(IndexedDataset(train_dataset), batch_size = train_batch_size, shuffle=False)
+    validation_dl = DataLoader(IndexedDataset(val_dataset), batch_size = test_batch_size, shuffle=False)
     return train_dl, validation_dl 
 
 
@@ -111,7 +112,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     plt.savefig(f"{target_path}/{name}.pdf")
     
 
-def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config, sample_weights = None):
+def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config, train_weights = None, val_weights= None):
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
@@ -125,18 +126,21 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
         
         i = 1
-        sample_weights = torch.from_numpy(sample_weights.values)
-        initial_validation_loss = model.validate_model(validation_dl, sample_weights=sample_weights)
+        if train_weights is not None:
+            train_weights = torch.from_numpy(train_weights)
+        if val_weights is not None:
+            val_weights = torch.from_numpy(val_weights)
+        initial_validation_loss = model.validate_model(validation_dl, sample_weights=val_weights)
         print(f"The initial Validation Loss: {np.array(np.array(initial_validation_loss).mean()).mean():.6f}")
 
         for epoch in range(config['n_epochs']):
             epoch_start = time.time()
             print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}-------------")
-            stepLoss = model.train_model(train_dl, epoch, config['n_epochs'], sample_weights=sample_weights)
+            stepLoss = model.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)
             # Train over mini-batches
             trainingEpoch_loss.append(np.array(stepLoss).mean())
             # Compute validation loss
-            validationStep_loss = model.validate_model(validation_dl, sample_weights=sample_weights)
+            validationStep_loss = model.validate_model(validation_dl, sample_weights=val_weights)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
             print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s") 
             if early_stopper.early_stop(validationEpoch_loss[-1]): 
@@ -410,11 +414,17 @@ def propagate_and_round(values):
 
     if len(values) > 2:  # For TaggingPower_Cali and EffectiveMistag_Cali
         combined_error = np.sqrt(np.sum(np.square(values[1:])))
-        rounded_error = round(combined_error, -int(np.floor(np.log10(combined_error))))
-        
-        significant_digit = int(np.floor(np.log10(rounded_error)))
-        rounded_value = round(values[0], -significant_digit)
-        
+        if combined_error in [np.nan, np.NAN, np.NaN]:
+            print('\n\n')
+            print(type(combined_error))
+            print(combined_error)
+            rounded_error = round(combined_error, -int(np.floor(np.log10(combined_error))))
+            
+            significant_digit = int(np.floor(np.log10(rounded_error)))
+            rounded_value = round(values[0], -significant_digit)
+        else:
+            rounded_error = rounded_value = np.NaN
+
         return [rounded_value, rounded_error]
     else:  # For other data
         max_error = max(values[1:])
@@ -441,3 +451,13 @@ def print_taggingInfo(tag_file='taggingInfo.json'):
 
 
 
+class IndexedDataset(torch.utils.data.Dataset):
+    def __init__(self, dataset):
+        self.dataset = dataset
+    
+    def __getitem__(self, idx):
+        data, target = self.dataset[idx]
+        return data, target, idx  # Also return index
+
+    def __len__(self):
+        return len(self.dataset)

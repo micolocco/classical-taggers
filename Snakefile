@@ -98,8 +98,7 @@ ntuples_eos_withUT = {
 #Data files
 with open("data_calibration/block12_list.txt", "r") as f:
     files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2][:80] ## TODO CHANGE TO ALL DATA FILES !!!!
-
+files_s24c2 = [line.strip() for line in files_s24c2]#[:720] ## TODO CHANGE TO ALL DATA FILES !!!!
 raw_path = os.path.dirname(files_s24c2[0])
 
 mc_ids = {}
@@ -190,18 +189,23 @@ def find_tree_name(decay):
         return 'Tuple/DecayTree'
 
 # Read the generated paths
-generated_paths_SSPion = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_SSPion.txt'))
-generated_paths_SSKaon = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_SSKaon.txt'))
-generated_paths_SSProton = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_SSProton.txt'))
-generated_paths_OSKaon = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_OSKaon.txt'))
+generated_paths_SSPion     = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_SSPion.txt'    ))
+generated_paths_SSKaon     = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_SSKaon.txt'    ))
+generated_paths_SSProton   = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_SSProton.txt'  ))
+generated_paths_OSKaon     = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_OSKaon.txt'    ))
 generated_paths_OSElectron = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_OSElectron.txt'))
-generated_paths_OSMuon = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_OSMuon.txt'))
+generated_paths_OSMuon     = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_OSMuon.txt'    ))
+
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/signal_weights/ROC_TRAIN_VAL.pdf',
         '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/pdf_ratio/ROC_TRAIN_VAL.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/signal_weights/ROC_TRAIN_VAL.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/ones/ROC_TRAIN_VAL.pdf',
+        
 
+        #expand("/ceph/users/togasa/FlavourTagging/NTuples/Data/withUT_MC_2024/4_weighted/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/{id}.root", id = [os.path.basename(i)[:-5] for i in files_s24c2[:10]])
+        # expand("/ceph/users/togasa/FlavourTagging/NTuples/Data/withUT_MC_2024/4_weighted/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/data_fit/data_res.json")
 
         ## ntuples_tagged_withUT_mc['Bd2JpsiKst']['OSKaon'],
         ## ntuples_tagged_withUT_mc['Bd2JpsiKst']['OSElectron'],
@@ -343,7 +347,7 @@ rule add_features:
     output: 
         root =join(out, '{data_type, (MC|Data)}/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
     resources:
-        mem_mb = 20_000, # Specify memory requirement in megabytes
+        mem_mb = 80_000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
         #request_disk = 50000
     run:
@@ -420,7 +424,7 @@ rule add_selection:
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
     resources:
-        mem_mb = 2_000, # Specify memory requirement in megabytes
+        mem_mb = 30_000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
 
     run:
@@ -444,20 +448,19 @@ rule add_selection:
 
 rule MC_Mass_Fit:
     input:
-        script = join(repo, 'scripts/sweights.py'),
+        script = join(repo, 'scripts/mass_fits.py'),
         selected = lambda wildcards: [
             f.replace('cutName', f'{wildcards.cut_name}')
             for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
             if not f.endswith('4_1.mc.root')
         ],
     output:
-        mc_res = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/mc_fit/mc_res.json'),
+        mc_res = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/mc_fit/mc_res.json'),
     log:
         join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/mc_fit/mc_res.log'),
     resources:
         mem_mb = 10_000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
-
     run:
         tree = find_tree_name(wildcards.decay)
         out_path = os.path.dirname(os.path.dirname(output.mc_res))
@@ -475,27 +478,26 @@ rule MC_Mass_Fit:
         ]
         shell(' '.join(cmd))
 
-
-rule add_weights:
+rule data_Mass_Fit: 
     input:
-        script = join(repo, 'scripts/sweights.py'),
+        script = join(repo, 'scripts/mass_fits.py'),
         mc_res = join(out, 'Data/{sample_type}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/mc_fit/mc_res.json'),
         mc_selected = lambda wildcards: [
             f.replace('cutName', f'{wildcards.cut_name}')
-            for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-            if not f.endswith('4_1.mc.root')
+            for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] if not f.endswith('4_1.mc.root')
         ],
         data_selected = lambda wildcards: [
             f.replace('cutName', f'{wildcards.cut_name}')
-            for f in selected_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+            for f in selected_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
     output:
+        # join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/model.dll'),
         data_res = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/data_res.json'),
-        sweights = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/sweights.root'),
+        # sweights = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/sweights.root'),
     log:
         join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/data_res.log'),
     resources:
-        mem_mb = 40_000, 
+        mem_mb = 10_000, 
         MaxRunHours = 6, 
     params:
         tagged_prePath = join(out, 'Data/withUT_MC_2024/5_weighted/'),
@@ -517,6 +519,39 @@ rule add_weights:
             '&> {log}'
         ]
         shell(' '.join(cmd))
+
+rule add_weights:
+    input:
+        script = join(repo, 'scripts/add_weights.py'),
+        selected = join(out, 'Data/{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}.root'),
+        mc_res = join(out, 'Data/{sample_type}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/mc_fit/mc_res.json'),
+        model = join(out,  'Data/{sample_type}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/data_res.json'),
+    output:
+        join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/plots/validate_sweights_{id}.png'),
+        weighted = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/{id}.root'),
+    log:
+        join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/{id}.log'),
+    resources:
+        mem_mb = 30_000, 
+        MaxRunHours = 2, 
+    run:
+        out_path = os.path.dirname(output.weighted)
+
+        cmd = [
+            'python {input.script}',
+            '--selected {input.selected}',
+            '--data_fit_model {input.model}',
+            '--treename "DecayTree;1"',
+            '--sim_fit_model {input.mc_res}' ,
+            '--out_path', out_path,
+            '--decayType {wildcards.decay}',
+            '--obs_name B_DTF_PV_Jpsi_MASS',
+            '--range {lowerMass} {upperMass}',
+            '&> {log}'
+        ]
+
+        shell(' '.join(cmd))
+    
 
 # Define the function to extract the decay based on the tagger
 def extract_decay(tagger):
@@ -589,7 +624,7 @@ rule add_tagDec:
 
 
 
-rule combine_tagger: #TODO fix input for data
+rule combine_tagger: 
     input:
         tagged = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f  in ntuples_tagged_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']],
         script = join(repo, 'scripts/combineTagger.py'),
@@ -681,20 +716,25 @@ rule train_tagger_data:
         #     f.replace('cutName', f'{wildcards.cut_name}')
         #     for f in selected_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
         # ],
-        weighted = join(out, 'Data/{sample_type}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/sweights.root'),
+        join(repo, 'scripts/NNModel.py'),
+        join(repo, 'scripts/pyTorchTraining.py'),
+        weighted = lambda wildcards: [
+            join(out, f'Data/{wildcards.sample_type}/4_weighted/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{j}.root') 
+            for j in [os.path.basename(i)[:-5] for i in files_s24c2]],
+
 
         script = join(repo, 'scripts/pipeline.py'),
         config = join(repo, 'configs/{config}.yaml'),
     output:
-        pdf=join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio)}/ROC_TRAIN_VAL.pdf'),
-        model=join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio)}/model.pth'),
-        scaler=join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio)}/st_scaler.pkl'),
-        transformer=join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio)}/powerTransformer.pkl'),
-        taggingInfo=join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio)}/logit/taggingInfo_logit.json'),
+        pdf=join(out,         'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/ROC_TRAIN_VAL.pdf'),
+        model=join(out,       'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/model.pth'),
+        scaler=join(out,      'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/st_scaler.pkl'),
+        transformer=join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/powerTransformer.pkl'),
+        taggingInfo=join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/logit/taggingInfo_logit.json'),
     log: 
-        join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio)}/training_log.log')
+        join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training_log.log')
     resources:
-        mem_mb = 40_000, # Specify memory requirement in megabytes 
+        mem_mb = 80_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 24, # long queue

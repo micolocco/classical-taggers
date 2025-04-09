@@ -269,6 +269,7 @@ if __name__ == '__main__':
     print('Started processing')
     #process_file_in_batches(cfg.raw, loading_variables_withPrefix, cfg.treename, prefix, abs_id, cfg.evtType, cfg.batch_size, cfg.output)
     #print('Started reading')
+    print(f'Reading {cfg.raw}')
     with uproot.open("{}".format(cfg.raw)) as f:
         df = f[cfg.treename].arrays(loading_variables_withPrefix, library="pd")
     if not cfg.data_calib:

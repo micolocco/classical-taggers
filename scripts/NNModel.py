@@ -9,7 +9,7 @@ import yaml
 
 class NeuralNetwork(nn.Module):
 
-    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(reduce=None), repo_path=""): 
+    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(reduction='none'), repo_path=""): 
         '''
         The loss function's reduce flag must be set to None to enable individual sample weighting.
         '''
@@ -50,12 +50,17 @@ class NeuralNetwork(nn.Module):
         stepLoss = []
         self.train()
         # enumerate mini batches
-        for i, (inputsTrain, targetsTrain) in enumerate(train_dl):
+
+        for i, (inputsTrain, targetsTrain, indices) in enumerate(train_dl):
             # Clear the gradients
             self.optimizer.zero_grad()
             # compute the model output
             yPredTrain = self(inputsTrain)
-            training_loss = self.calc_loss(yPredTrain, targetsTrain, sample_weights=sample_weights)
+            if sample_weights is not None:
+                batch_weights = sample_weights[indices]
+            else:
+                batch_weights = None
+            training_loss = self.calc_loss(yPredTrain, targetsTrain, sample_weights=batch_weights)
             training_loss.backward()
             # update model weights
             self.optimizer.step()
@@ -68,26 +73,34 @@ class NeuralNetwork(nn.Module):
     def validate_model(self, validation_dl, sample_weights=None):
         self.eval()
         validationStep_loss = []
-        for i, (inputsVal, targetsVal) in enumerate(validation_dl):
+        for i, (inputsVal, targetsVal, indices) in enumerate(validation_dl):
     
             # Forward pass
             yPredVal = self(inputsVal)
-            validation_loss = self.calc_loss(yPredVal, targetsVal, sample_weights=sample_weights)
+            if sample_weights is not None:
+                batch_weights = sample_weights[indices]
+            else:
+                batch_weights = None
+            validation_loss = self.calc_loss(yPredVal, targetsVal, sample_weights=batch_weights)
             validationStep_loss.append(validation_loss.item())
         return validationStep_loss
 
     def calc_loss(self, yPredVal, targetVal, sample_weights = None):
         if sample_weights is None:
             sample_weights = torch.ones(targetVal.shape)
+        # print('\n\n')
         
-        loss = self.criterion(yPredVal, targetVal)
-        loss = loss * sample_weights
+        loss = torch.reshape(self.criterion(yPredVal, targetVal), (-1,))
+        # print(f'{loss}, {len(loss)}')
+        # print(f'{sample_weights}, {len(sample_weights)}')
+        loss = loss * sample_weights / torch.mean(sample_weights)
+        # print(f'{loss}, {len(loss)}')
         return loss.mean()
 
     # Evaluate the model
     def evaluate_model(self, test_dl):
         predictions, actuals = list(), list()
-        for i, (inputs, targets) in enumerate(test_dl):
+        for i, (inputs, targets, _) in enumerate(test_dl):
             # evaluate the model on the test set
             yPred = self(inputs)
             # retrieve numpy array

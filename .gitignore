@@ -16,10 +16,11 @@ Data/PyConf-create-lhcb-metadata-git-repo.lock
 os_commands.py
 scaler_old
 **/*.pdf
+best_tagger_candidates/*/candidatedTaggers*.json
+scripts/trouble_shhoting.ipynb
 # Except for PDFs in the tagging_power_tables directory
 !tagging_power_tables/**/*.pdf
 */DT_outputs
 configs/*.yaml
 test/
 **/.nfs*
-best_tagger_candidates/*/candidatedTaggers*.json

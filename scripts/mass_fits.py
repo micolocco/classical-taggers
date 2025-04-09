@@ -18,7 +18,6 @@ from zfit.models.functor import SumPDF
 from hepstats.splot import compute_sweights
 
 import tensorflow as tf
-import zfit
 
 # from scripts.preSelections import run2_taggers_variables
 run2_taggers_variables = [
@@ -71,29 +70,42 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     # pprint(cfg)
 
+    # id = ''
+    # if cfg.sim_fit:
+    #     id =  os.path.basename(cfg.data_files)[:-5] + '_'
+    
     massname = cfg.obs
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
     outputdir = join(cfg.output, "mc_fit") if cfg.simulation else join(cfg.output, "data_fit")
     os.makedirs(outputdir, exist_ok=True)
 
     if not cfg.simulation:
-        vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER',  "B_ID", 'entry', "FillNumber", "B_DTF_PV_Jpsi_MASS"] #f'{tagger}_TagDec', f'{tagger}_Eta',
+        #vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER',  "B_ID", 'entry', "FillNumber", "B_DTF_PV_Jpsi_MASS"] #f'{tagger}_TagDec', f'{tagger}_Eta',
+        vars = ['RUNNUMBER', 'EVENTNUMBER', massname]
+        
         input_files = cfg.data_files
+        if isinstance(input_files, str):
+            input_files = [input_files]
         # Loop over all files
         dataframes = []
+        import psutil
+
         for i, f in enumerate(input_files):
             print(f"Reading input file: {f}")
+            print(f'Megabites used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+
             with uproot.open(f) as _f:
                 _df = _f[cfg.treename].arrays(library="pd")
             _df.dropna(inplace=True)
             _df["SAMPLENUMBER"] = i
             _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
             # _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
+            
+            _df = _df.groupby("event_entry").first()
 
             dataframes.append(_df)
         #print(f'{pd.concat(singleTagger_dataframes).shape[0]}')
         df_data=pd.concat(dataframes, ignore_index=True)
-        df_data = df_data.groupby("event_entry").first()
 
         print(df_data.shape)
         print(df_data.columns)        
@@ -101,6 +113,7 @@ if __name__ == '__main__':
         df_data = pd.DataFrame()
         input_files = cfg.sim_files
         for file in input_files:
+            print(f"Reading input file: {file}", flush=True)
             with uproot.open(file) as f:
                 _df = f[cfg.treename].arrays([massname], library="pd")
             df_data = pd.concat([df_data, _df], ignore_index = True)
@@ -196,7 +209,11 @@ if __name__ == '__main__':
     signal_scaled = sig_yield_val * signal_pdf_eval * binwidth
     # gauss_scaled = gauss_yield_val * gauss_pdf_eval * binwidth
     total_signal_eval = signal_scaled
-    ax1.plot(x_plot, total_signal_eval, label=signalname_from_filename(input_files[0]), color="blue", linestyle = "--", linewidth=2)
+    if isinstance(input_files, str):
+        ax1.plot(x_plot, total_signal_eval, label=signalname_from_filename(input_files), color="blue", linestyle = "--", linewidth=2)
+    else:
+        ax1.plot(x_plot, total_signal_eval, label=signalname_from_filename(input_files[0]), color="blue", linestyle = "--", linewidth=2)
+
 
     if not cfg.simulation:
         background_pdf_eval = poly.pdf(x_plot, norm_range=obs)
@@ -221,7 +238,7 @@ if __name__ == '__main__':
     outname = "mc_res.json" if cfg.simulation else "data_res.json"
     os.makedirs(outputdir, exist_ok=True)
 
-    with open(join(outputdir, outname), "w") as f:
+    with open(join(outputdir, f'{outname}'), "w") as f:
         json.dump(fit_results, f, indent=4)
 
     # Compute residuals
@@ -247,52 +264,5 @@ if __name__ == '__main__':
     ax1.set_ylim(0, 1.1*np.max(counts))
 
     plt.tight_layout()
-    plt.savefig(join(outputdir, "fit_res.png"))
+    plt.savefig(join(outputdir, f"fit_res.png"))
     plt.close()
-
-    # Compute sweights
-    if not cfg.simulation:
-        weights = compute_sweights(model, masses)
-        print(weights)
-        signal_weights = weights[yield_signal] 
-        background_weights = weights[yield_bkg] 
-        print("signal sWeights: ", signal_weights)
-        #print("background sWeights: ", background_weights)
-
-
-
-        signal = model_sig_ext.pdf(masses, obs) * sig_yield_val
-        bkg = comb_ext.pdf(masses, obs) * bkg_yield_val
-
-
-        plt.plot(masses, signal, color="red", label="signal", marker=".", linestyle="None")
-        plt.plot(masses, bkg, color="green", label="background", marker=".", linestyle="None")
-        plt.xlabel("m($B^{+})~[MeV]/c^{2}$")
-        plt.ylabel("pdfs")
-        plt.legend()
-        plt.savefig(join(outputdir, f"validate_pdfs_{cfg.decayType}.png"))
-        plt.close()
-
-        df_data["pdf_ratio"] = signal/bkg
-        print(df_data["pdf_ratio"].values)
-
-
-
-        df_data["signal_weights"] = signal_weights
-        df_data["background_weights"] = background_weights
-        # plt.plot(masses, signal_weights, marker=".", linestyle="None", color="red", markersize=0.1, label="signal weights")
-        # plt.plot(masses, signal_gauss_weights, marker=".", linestyle="None", color="red", markersize=0.1, label="signal gauss weights")
-        plt.plot(masses, df_data["signal_weights"], marker=".", linestyle="None", color="red", markersize=0.1, label="signal")
-        plt.plot(masses, df_data["background_weights"], marker=".", linestyle="None", color="green", markersize=0.1, label="background weights")
-        plt.plot(masses, background_weights + signal_weights, marker=".", linestyle="None", color="black", markersize=0.1, label="Sum of three")
-        plt.xlabel("m($B^{+})~[MeV]/c^{2}$")
-        plt.ylabel("weights")
-        plt.legend()
-        plt.savefig(join(outputdir, f"validate_sweights_{cfg.decayType}.png"))
-        plt.close()
-
-        print(df_data)
-
-        tree_dict = {col: np.array(df_data[col]) for col in df_data.columns}
-        with uproot.recreate(join(outputdir, "sweights.root")) as f:
-            f['DecayTree'] = tree_dict
