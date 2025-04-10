@@ -140,12 +140,12 @@ generated_paths_OSMuon = read_generated_paths(join(repo,'paths_for_snakemake/gen
 
 rule all:
     input:
-        join(modified_data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
-        join(modified_data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         join(modified_data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         join(modified_data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         join(modified_data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         join(modified_data, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
+        join(modified_data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
+        join(modified_data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
 
         #expand(ntuples_selected_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_selected_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
@@ -259,7 +259,7 @@ rule add_features:
 
 all_taggers = sorted({t for taggers in taggers_conf.values() for t in taggers})
 
-
+'''
 rule train_DT:
     input:
         script = join(repo, 'scripts/origin_DT_cut.py'),
@@ -269,11 +269,11 @@ rule train_DT:
         #cuts = join(modified_data, "{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/{cut_name}/balanced/cuts/{tagger}_preselections.txt")
         cuts = expand(join(modified_data, "{{sample_type,(withUT_MC_2024|noUT_MC_2024)}}/DT_outputs/{{cut_name}}/{{balanced}}/cuts/{tagger}_preselections.txt"), tagger=all_taggers)
     log:
-        join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/{cut_name}/{balanced, (balanced|unbalanced)}/cuts/tree_schema.log')
+        join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/{cut_name}/{balanced, (balanced|unbalanced)}/tree_schema.log')
     params:
-        target_path = lambda wildcards: join(modified_data, f'{wildcards.sample_type}/DT_outputs/{wildcards.cut_name}/{wildcards.balanced}/cuts')
+        target_path = lambda wildcards: join(modified_data, f'{wildcards.sample_type}/DT_outputs/{wildcards.cut_name}/{wildcards.balanced}/')
     resources:
-        mem_mb = 80000, # Specify memory requirement in megabytes
+        mem_mb = 20000, # Specify memory requirement in megabytes
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 8, # medium queue
     run:
@@ -287,7 +287,7 @@ rule train_DT:
             f'&> {log}'  # Redirect stdout and stderr to log file
         )
         shell(cmd)
-        
+ '''    
 
 rule add_selection:
     input:
@@ -329,7 +329,7 @@ rule train_tagger:
              .replace('{balanced}', wildcards.balanced)
              .replace('{features}', wildcards.features)
             for f in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-            if not f.endswith('4_1.mc.root')
+           # if not f.endswith('4_1.mc.root')
         ],
         script = join(repo, 'scripts/pipeline.py'),
     output:

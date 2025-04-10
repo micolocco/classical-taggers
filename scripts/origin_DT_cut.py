@@ -54,7 +54,7 @@ if __name__ == '__main__':
     
     #base_pattern = '/ceph/users/molocco/Data/withUT_MC_2024/2_added_features'
     parser.add_argument('--base_pattern', help='Pattern for input files', type=str)
-    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='/ceph/users/molocco/Data/withUT_MC_2024/DT_outputs/notSamePV_noOSP_SSK')
+    parser.add_argument('--target_path', help='Name of the output dir', type=str,)
     parser.add_argument('--balanced', help='If classes are balanced or unbalanced', choices=('balanced', 'unbalanced'), type=str, )
     parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' ) # action='store_true' means args.unify_SS will be set to True if the --unify_SS argument is provided on the command line.
     # Per default BKG0==0 are removed
@@ -72,9 +72,9 @@ if __name__ == '__main__':
     # Check and eventually make output directory where training info will be saved
     os.makedirs(cfg.target_path, exist_ok=True)
     if cfg.unify_SS:
-        output_path = f'{cfg.target_path}/{str(cfg.balanced)}/SSKSSP/'
+        output_path = f'{cfg.target_path}/SSKSSP/'
     else:
-        output_path = f'{cfg.target_path}/{str(cfg.balanced)}/'
+        output_path = f'{cfg.target_path}'
 
     features_added = ['B_Tr_T_minPhiDistance', 'B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
     load_extra = ['EVENTNUMBER','RUNNUMBER']

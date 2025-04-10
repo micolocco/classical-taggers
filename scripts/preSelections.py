@@ -6,6 +6,7 @@ import pyTorchTraining as pyTrain
 import argparse
 import os
 
+from IPython import embed
 import re
 import numpy as np
 
@@ -110,6 +111,7 @@ if __name__ == '__main__':
 
     df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0)[features + extra_variables + run2_taggers_variables + ['selected']]
     print(f"Selected {df.shape[0]} events after pre-selection")
+    
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(f"{cfg.output}") as file:

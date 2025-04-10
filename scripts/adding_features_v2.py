@@ -23,7 +23,7 @@ def min_dPhi(df, prefix):
     df.eval(f'{prefix}Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
     # A bit of a hack to add the minimum distance
     _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group[f'{prefix}Tr_T_PhiDistance']))).reset_index(name=f'{prefix}Tr_T_minPhiDistance')
-    df = pd.merge(df, _f, on='entry', how='left')
+    df = pd.merge(df, _df, on='entry', how='left')
     df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
     return df
 
