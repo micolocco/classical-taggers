@@ -60,6 +60,7 @@ def process_chunk(df, prefix, abs_id):
 
 # Variables not used for pre-selections and training are commented to speed up NTuples processing
 
+# List of variables (icludes MC variables)
 loading_variables = [
         'B_OWNPV_X',
         'B_OWNPV_Y',
@@ -160,6 +161,7 @@ loading_variables = [
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
         'B_Run2_OSMuon_MVA',
+        'B_DTF_PV_CTAU'
         ]
 
 
@@ -171,6 +173,7 @@ if __name__ == '__main__':
     parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
     parser.add_argument('--batch_size', help='Size of the data batch to process at a time', type=int, default=250) #1000
+    parser.add_argument('--data_calib', action="store_true", default="False")
     
     cfg = parser.parse_args()
     
@@ -193,11 +196,25 @@ if __name__ == '__main__':
     #prefix = cfg.evtType[:2] + "_"
     prefix = 'B_'
 
-
-    # Replace B_ in the loading variables
+    if cfg.data_calib:
+        loading_variables_withPrefix = []
+        loading_variables_withPrefix.append("B_Tr_T_IsInTree")
+        loading_variables_withPrefix.append("B_ID")
+        loading_variables_withPrefix.append("B_DTF_PV_Jpsi_MASS")
+        loading_variables_withPrefix.append("B_DTF_PV_MASS")
+        loading_variables_withPrefix.append("FillNumber")
+        for v in loading_variables: # Skip MC variable
+            if "TRUE" in v or "BKGCAT" in v or "Origin_Flag" in v or "MC" in v: continue
+            loading_variables_withPrefix.append(v)
+        print(f'{loading_variable_data}')
+         # Equivalent for data of Origin_Flag != 0 (included later on in the pre-selections)
+        with uproot.open("{}".format(cfg.raw)) as f:
+            df = f[cfg.treename].arrays(loading_variables_data, library="pd")
+        df = df[df[f'{prefix}_Tr_T_IsInTree'] != 1]
+    # Replace B_ in the loading variables if there is a prefix
     #loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
-
     #print(f'{loading_variables_withPrefix}')
+    
     print('Started processing')
     #process_file_in_batches(cfg.raw, loading_variables_withPrefix, cfg.treename, prefix, abs_id, cfg.evtType, cfg.batch_size, cfg.output)
     #print('Started reading')
@@ -206,12 +223,16 @@ if __name__ == '__main__':
     #Read full list of variables if input file ends with 1_1.mc.root as these samples will be used for DT training 
     # else read a selection of variables
 
-    with uproot.open("{}".format(cfg.raw)) as f:
-        df = f[cfg.treename].arrays(loading_variables, library="pd")
-    # drop the B mesons or other particles that are not of interest
-    abs_id = B_abs_id_dic[cfg.evtType]
-    df.drop(df[abs(df[f'{prefix}TRUEID']) != abs_id ].index , inplace = True)
-    df.reset_index(inplace=True, drop = False)
+    # drop the B mesons or other particles that are not of interest and perform operations on MC variables
+    if not cfg.data_calib:
+        with uproot.open("{}".format(cfg.raw)) as f:
+            df = f[cfg.treename].arrays(loading_variables, library="pd")
+        abs_id = B_abs_id_dic[cfg.evtType]
+        df.drop(df[abs(df[f'{prefix}TRUEID']) != abs_id ].index , inplace = True)
+        df.reset_index(inplace=True, drop = False)
+        df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUE_PARTICLE_ID)', inplace = True)
+        df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
+   
     # Add some needed features
     # A bit of a hack to add the minimum distance
     df = min_dPhi(df, prefix)
@@ -223,7 +244,6 @@ if __name__ == '__main__':
     df.eval(f't = ({prefix}ENDV_X**2 + {prefix}ENDV_Y**2 + {prefix}ENDV_Z**2 - {prefix}ENDV_X*{prefix}Tr_T_X - {prefix}ENDV_Y*{prefix}Tr_T_Y - {prefix}ENDV_Z*{prefix}Tr_T_Z) / ({prefix}ENDV_X * {prefix}Tr_T_PX + {prefix}ENDV_Y * {prefix}Tr_T_PY + {prefix}ENDV_Z * {prefix}Tr_T_PZ)' , inplace = True)
     df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
     df.eval(f'{prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)', inplace = True)
-    df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
     df.eval(f'{prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)', inplace = True)
     df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Muon'] = DeltaQ(df,105.65837, prefix)
@@ -232,7 +252,6 @@ if __name__ == '__main__':
     df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
     df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
     df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
-    df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUE_PARTICLE_ID)', inplace = True)
     df.eval('logEVIP = log(EVIP)', inplace = True)
     df.eval(f'{prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval('logP_proj = log(P_proj)', inplace = True)
