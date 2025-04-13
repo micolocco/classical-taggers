@@ -86,8 +86,9 @@ for decay, path_list in ntuples_raw.items():
         #    for f in path_list
         #    #for f in path_list if f.endswith('.mc.root') #4_1.mc.root hold out sample
         #]
-        ntuples_tagged[decay].update({tagger: [f.replace(f'{raw_data}', f'{modified_data}/3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
-
+        ntuples_tagged[decay].update({tagger: [f.replace(f'{raw_data}', f'{modified_data}/4_tagged')  # 👈 Fix this
+                                        .replace(decay, f'{decay}/{tagger}/{{cut_name}}_{{balanced}}/{{features}}')
+                                        for f in path_list]})
 #ntuples_selected = {}
 #for decay, path_list in ntuples_raw.items():
 #    ntuples_selected.update({decay: {}})
@@ -143,11 +144,11 @@ rule add_features:
 rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
-        added_features = join(modified_data, 'withUT_MC_2024/2_added_features/{decay}/{id}.root'),
+        added_features = join(modified_data, '2_added_features/{decay}/{id}.root'),
         cut_file = join(modified_MC, 'withUT_MC_2024/DT_outputs/{cut_name}/{balanced}/cuts/{tagger}_preselections.txt') # Cut file is in the MC path
-    output: join(modified_data, 'withUT_MC_2024/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{id,.*}.root'),
+    output: join(modified_data, '3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{id,.*}.root'),
     # output: join(data, 'withUT_MC_2024/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root'),
-    log : join(modified_data, 'withUT_MC_2024/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/.{id,.*}.log')
+    log : join(modified_data, '3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/.{id,.*}.log')
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
     resources:
@@ -175,13 +176,13 @@ rule add_selection:
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        selected = join(modified_data, '3_selected/{decay}/{tagger}/{cut_name}_{balanced}/{features}/{id}')
+        selected = join(modified_data, '3_selected/{decay}/{tagger}/{cut_name}/{balanced}/{features}/{id}')
     output:
         root = join(modified_data, '4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{id}'),
     log:
         join(modified_data, '4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{id}.log'),
     params:
-        modelPrePath = lambda wildcards: join(modified_MC, f'savedModels/withUT_MC_2024/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.balanced}_{wildcards.features}'),
+        modelPrePath = lambda wildcards: join(modified_MC, f'savedModels/withUT_MC_2024/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}'),
         taggedDataPath = join(modified_data, '4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/'),
     run:
         print(f"Processing file: {wildcards.id}")

@@ -60,14 +60,19 @@ def process_chunk(df, prefix, abs_id):
 
 # Variables not used for pre-selections and training are commented to speed up NTuples processing
 
-# List of variables (icludes MC variables)
+# List of variables (includes MC variables)
 loading_variables = [
-        'B_OWNPV_X',
-        'B_OWNPV_Y',
-        'B_OWNPV_Z',
-        'B_ENDV_X',
-        'B_ENDV_Y',
-        'B_ENDV_Z',
+        #'B_OWNPV_X',
+        #'B_OWNPV_Y',
+        #'B_OWNPV_Z',
+        #'B_ENDV_X',
+        #'B_ENDV_Y',
+        #'B_ENDV_Z',
+        #'EVENTNUMBER',
+        #'B_Tr_T_TRACKISLONG',
+        #'B_Tr_T_OWNPVIP',
+        #'B_Tr_T_Charge',
+        #"B_Tr_T_ISMUON"
         'B_ENERGY',
         'B_ETA',
         'B_M',
@@ -82,13 +87,8 @@ loading_variables = [
         'B_BKGCAT',
         'B_nPVs',
         'B_nTracks',
-        'EVENTNUMBER',
         'RUNNUMBER',
-        'B_Tr_T_TRACKISLONG',
-        'B_Tr_T_OWNPVIP',
         'B_Tr_T_OWNPVIPCHI2',
-        'B_Tr_T_Charge',
-        'B_Tr_T_ISMUON',
         'B_Tr_T_ENERGY',
         'B_Tr_T_Eta',
         'B_Tr_T_MINIP',
@@ -206,10 +206,10 @@ if __name__ == '__main__':
         for v in loading_variables: # Skip MC variable
             if "TRUE" in v or "BKGCAT" in v or "Origin_Flag" in v or "MC" in v: continue
             loading_variables_withPrefix.append(v)
-        print(f'{loading_variable_data}')
+        print(f'{loading_variables_withPrefix}')
          # Equivalent for data of Origin_Flag != 0 (included later on in the pre-selections)
         with uproot.open("{}".format(cfg.raw)) as f:
-            df = f[cfg.treename].arrays(loading_variables_data, library="pd")
+            df = f['DecayTree'].arrays(loading_variables_withPrefix, library="pd")
         df = df[df[f'{prefix}_Tr_T_IsInTree'] != 1]
     # Replace B_ in the loading variables if there is a prefix
     #loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
