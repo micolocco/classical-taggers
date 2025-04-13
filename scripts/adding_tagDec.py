@@ -53,21 +53,25 @@ if __name__ == '__main__':
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--features', help='Input features used for NN training',) 
-    parser.add_argument('--jsonPath', help='Where the best tagger candidates configs are saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
-    
+    parser.add_argument('--data_calib', action="store_true")
+    parser.add_argument('--repo', help="Path to repository")
 
     cfg = parser.parse_args()
     pprint(cfg)
 
-    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
-    loading_variables = features+ run2_taggers_variables + ['entry','B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER'] 
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
+    loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
+    if cfg.data_calib: 
+        loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+    else: 
+        loading_variables += ["B_TRUEID"]
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
 
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
     json_file=f'candidatedTaggers_{cfg.link}.json'
     #Read the best tagger candidate config from json file with the best hyperparameter combination
-    with open(f'{cfg.jsonPath}/{cfg.cut}/{json_file}', 'r') as f:
+    with open(f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{json_file}', 'r') as f:
         data = json.load(f)
     seed = int(data[cfg.tagger]['seed'])
     lr = float(data[cfg.tagger]['learning_rate'])
@@ -77,9 +81,9 @@ if __name__ == '__main__':
     config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
     model_path = join(cfg.modelPrePath, f"{seed}/{config}")
     # Load YAML configuration file
-    with open(f'configs/{config}.yaml', 'r') as file:
+    with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:
         config = yaml.safe_load(file)
-    bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr})
+    bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr}, repo_path=cfg.repo)
     pyTrain.load_model(model=bestModel, target_path=model_path)
     bestModel.eval()
 
@@ -107,13 +111,14 @@ if __name__ == '__main__':
     #   - calibration: B_ID = reconstructed ID when moving to data!
 
     # Now the label is needed for the scaling, but in the future must be removed before scaling in the training so that it'ds not necessary here 
-    test_df["label"] = test_df[f"{cfg.tagger}_TagDec"] * test_df[f"B_TRUEID"]/abs(test_df[f"B_TRUEID"]) 
+    id_var = "B_TRUEID" if not cfg.data_calib else "B_ID"
+    test_df["label"] = test_df[f"{cfg.tagger}_TagDec"] * test_df[id_var]/abs(test_df[id_var])     
     test_df.loc[test_df.label == -1, "label"] = 0 # shifting the label from -1 to 0
     
     # Data pre-processing 
     scalerPath = f"{model_path}/st_scaler.pkl"
     transformerPath = f"{model_path}/powerTransformer.pkl"
-    columns_to_drop = ['entry', 'B_TRUEID','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
+    columns_to_drop = ['entry', id_var,'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
     pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path= os.path.dirname(cfg.taggedData), flag='label', name=f'training_inputFeatures')
 
     #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
@@ -140,8 +145,11 @@ if __name__ == '__main__':
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
+    save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
+    if cfg.data_calib:
+        save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
     with uproot.recreate(f"{cfg.taggedData}") as file:
-        file["DecayTree"] = df_TagParticles[['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']+run2_taggers_variables]
+        file["DecayTree"] = df_TagParticles[save_vars]
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
         
     print(f'File created at {cfg.taggedData}')

@@ -2,7 +2,7 @@ import numpy as np
 import uproot
 import re
 from scripts.adding_features_v2 import loading_variables
-import pyTorchTraining as pyTrain
+import scripts.pyTorchTraining as pyTrain
 import argparse
 import os
 
@@ -46,7 +46,8 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
         print(f"  - {cut}")
 
     combined_cut = " | ".join(f"({cut})" for cut in cut_lines)
-    
+    if data_calib:
+        combined_cut = np.char.replace(combined_cut, "(B_Tr_T_Origin_Flag!=0)", "(B_Tr_T_IsInTree!=1)") # This is a workaround for the data calibration. The cut is not applied to the MC, but it is applied to the data. Actually, it's already applied in added_features_v2.py so there shouldn't be any InTree=1 in the data.
     print(f"Evaluating combined cut: {combined_cut}")
     df.eval(f"selected = {combined_cut}", inplace=True)
 
@@ -95,6 +96,8 @@ if __name__ == '__main__':
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
+    parser.add_argument('--data_calib', action='store_true') # action='store_true' means args.data_calib will be set to True 
+    parser.add_argument('--repo', help="Path to repository")
     #parser.add_argument('--run2_taggers', help='If specified, run2 taggers info is added',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
 
     cfg = parser.parse_args()
@@ -103,13 +106,19 @@ if __name__ == '__main__':
     pprint(cfg)
 
     selection_variables = extract_selection_var(cfg.cut_file)
-    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features)
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     extra_variables = ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge',]
     
-    loading_variables = ['B_BKGCAT']+features + selection_variables + extra_variables + run2_taggers_variables
+    if cfg.BKG0: extra_variables += ['B_BKGCAT']
+    if cfg.data_calib: extra_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+    
+    loading_variables = features + selection_variables + extra_variables + run2_taggers_variables
+    # Remove eventual MC info
+    if cfg.data_calib: loading_variables = [v for v in loading_variables if "TRUE" not in v and "Flag" not in v and "MC" not in v]
+    
     loading_variables = np.unique(loading_variables).tolist()
 
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0)[features + extra_variables + run2_taggers_variables + ['selected']]
+    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)#[features + extra_variables + run2_taggers_variables + ['selected']]
     print(f"Selected {df.shape[0]} events after pre-selection")
     
     # Save the selected tracks into NTuples

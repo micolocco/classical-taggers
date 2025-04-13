@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 import pickle
 from scipy.special import expit
 import json
-import pipeline
+import scripts.pipeline
 
 # Local imports
 from scripts.NNModel import EarlyStopper
@@ -42,11 +42,11 @@ def recreate_directory(target_path, clean=False):
     except Exception as e:
         print(f'Failed to create {target_path}. Reason: {e}')
 
-def get_features(tagger, yaml_file):
+def get_features(tagger, yaml_file, repo_path):
     '''Function for assigning the input features corresponding to each tagger.
     The input features will be used for the training of the NN
     yaml_file: Configuration file for getting the input features'''
-    with open(f'tagger_inputFeatures/{yaml_file}.yaml', 'r') as file:
+    with open(f'{repo_path}/tagger_inputFeatures/{yaml_file}.yaml', 'r') as file:
         config = yaml.safe_load(file)
         if tagger in config:
             return config[tagger]['features']
