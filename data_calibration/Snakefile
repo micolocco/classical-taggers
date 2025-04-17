@@ -44,8 +44,8 @@ def extract_decay(tagger):
         raise ValueError(f"Unknown tagger: {tagger}")
 
 # Stripping s24c2 MagUp - Block 1 
-# The txt files has been generated with:
 # ls /ceph-kernel/FlavourTagging/NTuples/Run3/data/reweighted/*.root > block1_list.txt 
+# ls /ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/*.root > block1_list.txt
 # where /ceph-kernel/FlavourTagging/NTuples/Run3/data/reweighted/ is the `raw_data` path
 
 with open("block1_list.txt", "r") as f:
@@ -54,8 +54,8 @@ files_s24c2 = [line.strip() for line in files_s24c2]
 files_s24c2 = [raw_data + line for line in files_s24c2]
 
 ntuples_raw = {
-    'Bu2JpsiK': [join(raw_data, '1_raw/Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
-    'Bd2JpsiKst': [join(raw_data, '1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
+    'Bu2JpsiK': [join(raw_data, 'Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
+    #'Bd2JpsiKst': [join(raw_data, '1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
 }
 
 print(ntuples_raw)
@@ -104,8 +104,8 @@ for decay, path_list in ntuples_raw.items():
 rule all:
     input: 
         expand(ntuples_tagged['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_tagged['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_tagged['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_tagged['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
@@ -137,6 +137,7 @@ rule add_features:
             '--evtType {wildcards.decay}',
             '--treename', tree,
             '--data_calib',
+            '--signal_weights',
             '&> {log}',
         ]
         shell(' '.join(cmd))
@@ -168,6 +169,7 @@ rule add_selection:
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
             '--data_calib',
+            '--signal_weights',
             '--repo', repo,
             '&> {log}',
         ]
@@ -191,7 +193,7 @@ rule add_tagDec:
         cmd = [
             'python', input.script,
             '--selected {input.selected}',
-            '--cut {wildcards.cut_name}',
+            '--cut {wildcards.cut_name}_{wildcards.balanced}',
             '--taggedData {output.root}',  
             '--modelPrePath {params.modelPrePath}',
             '--decayType {wildcards.decay}', # Decay used for evaluating the tagger
@@ -199,6 +201,7 @@ rule add_tagDec:
             '--features {wildcards.features}',
             '--repo', repo,
             '--data_calib',
+            '--signal_weights',
             '&> {log}'
         ]
         shell(' '.join(cmd))

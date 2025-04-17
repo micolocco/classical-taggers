@@ -55,6 +55,7 @@ if __name__ == '__main__':
     parser.add_argument('--features', help='Input features used for NN training',) 
     parser.add_argument('--data_calib', action="store_true")
     parser.add_argument('--repo', help="Path to repository")
+    parser.add_argument('--signal_weights', action='store_true', help='store signal_weights if they are already in the NTuples') # action='store_true' means args.signal_weights will be set to True if the --signal_weights argument is provided on the command line.
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -63,6 +64,8 @@ if __name__ == '__main__':
     loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
     if cfg.data_calib: 
         loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+        if cfg.signal_weights: 
+            loading_variables += ["signal_weights"]
     else: 
         loading_variables += ["B_TRUEID"]
     loading_variables = np.unique(loading_variables).tolist()
@@ -148,6 +151,8 @@ if __name__ == '__main__':
     save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
     if cfg.data_calib:
         save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+        if cfg.signal_weights: 
+            save_vars += ["signal_weights"]
     with uproot.recreate(f"{cfg.taggedData}") as file:
         file["DecayTree"] = df_TagParticles[save_vars]
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]

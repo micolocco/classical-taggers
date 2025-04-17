@@ -62,17 +62,45 @@ def process_chunk(df, prefix, abs_id):
 
 # List of variables (includes MC variables)
 loading_variables = [
-        #'B_OWNPV_X',
-        #'B_OWNPV_Y',
-        #'B_OWNPV_Z',
-        #'B_ENDV_X',
-        #'B_ENDV_Y',
-        #'B_ENDV_Z',
-        #'EVENTNUMBER',
-        #'B_Tr_T_TRACKISLONG',
-        #'B_Tr_T_OWNPVIP',
-        #'B_Tr_T_Charge',
-        #"B_Tr_T_ISMUON"
+        'B_OWNPV_X',
+        'B_OWNPV_Y',
+        'B_OWNPV_Z',
+        'B_ENDV_X',
+        'B_ENDV_Y',
+        'B_ENDV_Z',
+        'EVENTNUMBER',
+        'B_Tr_T_TRACKISLONG',
+        'B_Tr_T_OWNPVIP',
+        'B_Tr_T_Charge',
+        "B_Tr_T_ISMUON",
+        'B_Tr_T_ENERGY',
+        'B_Tr_T_MINIP',
+        'B_Tr_T_MINIPChi2',
+        'B_Tr_T_PIDK',
+        'B_Tr_T_PIDe',
+        'B_Tr_T_PIDmu',
+        'B_Tr_T_PIDP',
+        'B_Tr_T_PROBNN_GHOST',
+        'B_Tr_T_firstX',
+        'B_Tr_T_firstY',
+        'B_Tr_T_firstZ',
+        'B_Tr_T_firstTX',
+        'B_Tr_T_firstTY',
+        'B_Tr_T_OWNPV_X',
+        'B_Tr_T_OWNPV_XERR',
+        'B_Tr_T_OWNPV_Y',
+        'B_Tr_T_OWNPV_YERR',
+        'B_Tr_T_OWNPV_ZERR',
+        'B_Tr_T_M',
+        'B_Tr_T_X',
+        'B_Tr_T_Y',
+        'B_Tr_T_Z',
+        'B_Tr_T_IPBVTX',
+        "B_ID",
+        "B_DTF_PV_Jpsi_MASS",
+        "B_DTF_PV_MASS",
+        'B_DTF_PV_CTAU',
+        'B_DTF_PV_CTAUERR',
         'B_ENERGY',
         'B_ETA',
         'B_M',
@@ -83,54 +111,33 @@ loading_variables = [
         'B_PY',
         'B_PZ',
         'B_TRUEID',
-        #'B_ID',
-        'B_BKGCAT',
         'B_nPVs',
         'B_nTracks',
         'RUNNUMBER',
         'B_Tr_T_OWNPVIPCHI2',
-        'B_Tr_T_ENERGY',
         'B_Tr_T_Eta',
-        'B_Tr_T_MINIP',
-        'B_Tr_T_MINIPChi2',
         'B_Tr_T_P',
         'B_Tr_T_PT',
-        'B_Tr_T_PIDK',
-        'B_Tr_T_PIDe',
-        'B_Tr_T_PIDmu',
-        'B_Tr_T_PIDP',
-        'B_Tr_T_PROBNN_GHOST',
         'B_Tr_T_PROBNN_E',
         'B_Tr_T_PROBNN_K',
         'B_Tr_T_PROBNN_P',
         'B_Tr_T_PROBNN_MU',
         'B_Tr_T_PROBNN_PI',
-        'B_Tr_T_firstX',
-        'B_Tr_T_firstY',
-        'B_Tr_T_firstZ',
-        'B_Tr_T_firstTX',
-        'B_Tr_T_firstTY',
-        'B_Tr_T_OWNPV_X',
-        'B_Tr_T_OWNPV_XERR',
-        'B_Tr_T_OWNPV_Y',
-        'B_Tr_T_OWNPV_YERR',
-        'B_Tr_T_OWNPV_Z',
-        'B_Tr_T_OWNPV_ZERR',
         'B_Tr_T_Phi',
-        'B_Tr_T_M',
         'B_Tr_T_CHI2DOF',
         'B_Tr_T_GHOSTPROB',
         'B_Tr_T_PX',
         'B_Tr_T_PY',
         'B_Tr_T_PZ',
-        'B_Tr_T_X',
-        'B_Tr_T_Y',
-        'B_Tr_T_Z',
         'B_Tr_T_IPChi2BVTX',
-        'B_Tr_T_IPBVTX',
-        'B_Tr_T_IsInTree',
         'B_Tr_T_Origin_Flag',
+        'B_Tr_T_IsInTree',
+        'B_ID',
+        'B_BKGCAT',
+        'FillNumber',
         'B_Tr_T_TRUE_PARTICLE_ID',
+        'B_Tr_T_OWNPV_Z',
+        'B_OWNPV_Z',
         #'B_Tr_T_TRUEPRIMARYVERTEX_X',
         #'B_Tr_T_TRUEPRIMARYVERTEX_Y',
         #'B_Tr_T_TRUEPRIMARYVERTEX_Z',
@@ -145,23 +152,22 @@ loading_variables = [
         #'B_Tr_T_MC_GD_GD_MOTHER_KEY',
         'B_Run2_SSPion_Dec',
         'B_Run2_SSPion_Omega',
-        'B_Run2_SSPion_MVA',
+        #'B_Run2_SSPion_MVA',
         'B_Run2_SSKaon_Dec',
         'B_Run2_SSKaon_Omega',
-        'B_Run2_SSKaon_MVA',
+        #'B_Run2_SSKaon_MVA',
         'B_Run2_SSProton_Dec',
         'B_Run2_SSProton_Omega',
-        'B_Run2_SSProton_MVA',
+        #'B_Run2_SSProton_MVA',
         'B_Run2_OSKaon_Dec',
         'B_Run2_OSKaon_Omega',
-        'B_Run2_OSKaon_MVA',
+        #'B_Run2_OSKaon_MVA',
         'B_Run2_OSElectron_Dec',
         'B_Run2_OSElectron_Omega',
-        'B_Run2_OSElectron_MVA',
+        #'B_Run2_OSElectron_MVA',
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
-        'B_Run2_OSMuon_MVA',
-        'B_DTF_PV_CTAU'
+        #'B_Run2_OSMuon_MVA',
         ]
 
 
@@ -174,6 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
     parser.add_argument('--batch_size', help='Size of the data batch to process at a time', type=int, default=250) #1000
     parser.add_argument('--data_calib', action="store_true", default="False")
+    parser.add_argument('--signal_weights', action='store_true', help='store signal_weights if they are already in the NTuples') # action='store_true' means args.signal_weights will be set to True if the --signal_weights argument is provided on the command line.
     
     cfg = parser.parse_args()
     
@@ -195,22 +202,23 @@ if __name__ == '__main__':
     '''
     #prefix = cfg.evtType[:2] + "_"
     prefix = 'B_'
+    weights =  ['sWeights',
+                'signal_weights',
+                'background_weights',
+                'fraction_weights',
+                'reweighter_weights',
+                'reweighter_weights_raw']
 
     if cfg.data_calib:
-        loading_variables_withPrefix = []
-        loading_variables_withPrefix.append("B_Tr_T_IsInTree")
-        loading_variables_withPrefix.append("B_ID")
-        loading_variables_withPrefix.append("B_DTF_PV_Jpsi_MASS")
-        loading_variables_withPrefix.append("B_DTF_PV_MASS")
-        loading_variables_withPrefix.append("FillNumber")
-        for v in loading_variables: # Skip MC variable
-            if "TRUE" in v or "BKGCAT" in v or "Origin_Flag" in v or "MC" in v: continue
-            loading_variables_withPrefix.append(v)
-        print(f'{loading_variables_withPrefix}')
+        loading_variables = [v for v in loading_variables if "TRUE" not in v and "Flag" not in v and "MC" not in v and "BKGCAT" not in v]
+        if cfg.signal_weights:
+            loading_variables += weights
+        loading_variables = np.unique(loading_variables).tolist()
+        print("Loading variables are: ", loading_variables)
          # Equivalent for data of Origin_Flag != 0 (included later on in the pre-selections)
         with uproot.open("{}".format(cfg.raw)) as f:
-            df = f['DecayTree'].arrays(loading_variables_withPrefix, library="pd")
-        df = df[df[f'{prefix}_Tr_T_IsInTree'] != 1]
+            df = f['DecayTree'].arrays(loading_variables, library="pd")
+        df = df[df[f'{prefix}Tr_T_IsInTree'] != 1]
     # Replace B_ in the loading variables if there is a prefix
     #loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
     #print(f'{loading_variables_withPrefix}')
