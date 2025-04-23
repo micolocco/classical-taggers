@@ -22,9 +22,9 @@ matplotlib_lhcb_style(plt)
 import utils
 '''
 For testing purposes:
-python scripts/pipeline.py --selected NTuple_test_<tagger>.root --tagger <tagger> --decayType <decayType> where NTuple_test_tagger.root is whatever NTuple with this name
+python scripts/pipeline.py --data NTuple_test_<tagger>.root --tagger <tagger> --decayType <decayType> where NTuple_test_tagger.root is whatever NTuple with this name
 example:
-python scripts/pipeline.py --selected NTuple_test_OSKaon.root --tagger OSKaon --decayType Bu2JpsiK 
+python scripts/pipeline.py --data NTuple_test_OSKaon.root --tagger OSKaon --decayType Bu2JpsiK 
 '''
 
 def stats_printout(df, tagger, decayType, train_df, val_df, test_df):
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         description='Train the tagger on the specified decay',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--selected', help='File with preselection applied', nargs='+')
+    parser.add_argument('--data', help='File with preselection applied', nargs='+')
     parser.add_argument('--target_path', help='Name of the output dir', type=str, default='../test')
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree;1')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         config = yaml.safe_load(file)
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     # Path to the ROOT input file
-    selected_files = cfg.selected
+    selected_files = cfg.data
     print(f"The features used are: {features}", flush=True)
     # Check and eventually make output directory where training info will be saved
     pyTrain.recreate_directory(cfg.target_path, clean=cfg.clean)
@@ -154,15 +154,14 @@ if __name__ == '__main__':
     print(f"Reading a total of {len(selected_files)} files.", flush=True)
 
     import psutil
-    for i, f in enumerate(selected_files):
-        print(f"Reading input file {i}/{len(selected_files)}: {f}", flush=True)
+    for sample_number, f in enumerate(selected_files):
+        print(f"Reading input file {sample_number}/{len(selected_files)}: {f}", flush=True)
         print(f'Megabites used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}')
         with uproot.open("{}".format(f)) as _f:
             _df = _f[cfg.treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
         _df.dropna(inplace = True)
-        _df["SAMPLENUMBER"] = i
-        _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
+        _df["event_entry"] = f'{sample_number}' + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
         df = pd.concat([df, _df], ignore_index = True)
     print(f'Reading of files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
@@ -222,7 +221,7 @@ if __name__ == '__main__':
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
 
-    additional_columns = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID, 'label', 'B_DTF_PV_Jpsi_MASS']
+    additional_columns = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID, 'label']#, 'B_DTF_PV_Jpsi_MASS']
     if cfg.train_on_data and weight_label != 'ones':
         additional_columns.append(weight_label)
 
@@ -233,7 +232,6 @@ if __name__ == '__main__':
     weights_train = None
     weights_val = None
     if cfg.train_on_data and weight_label != 'ones': 
-    
         weights_train = train_df[weight_label].to_numpy()#.to_numpy().reshape((train_batch_size, -1))
         weights_val = val_df[weight_label].to_numpy()#.to_numpy().reshape((val_batch_size, -1))
 

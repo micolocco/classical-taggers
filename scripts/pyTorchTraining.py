@@ -19,6 +19,7 @@ from scripts.inputDataset import inputDataset
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 import yaml
+import sys
 
 
 def recreate_directory(target_path, clean=False):
@@ -68,7 +69,7 @@ def splitByEvent (df, seed, train_val_split):
     Use random.Random(2) to reproduce same shuffling''' 
     import random
     events_list = np.unique(df.event_entry)
-    random.Random(3).shuffle(events_list) # cfg.seed
+    random.Random(seed).shuffle(events_list)
     n_train_val = int(train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
     train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
@@ -142,7 +143,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
             # Compute validation loss
             validationStep_loss = model.validate_model(validation_dl, sample_weights=val_weights)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
-            print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s") 
+            print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True) 
             if early_stopper.early_stop(validationEpoch_loss[-1]): 
                 stopped = True 
                 break
@@ -150,7 +151,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
                 lossValBest = validationEpoch_loss[-1]
                 lossTrainBest = trainingEpoch_loss[-1]
                 bestEpoch = epoch
-                save_model(model, target_path)
+                # save_model(model, target_path)
                 bestModel = copy.deepcopy(model)
             i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
@@ -173,9 +174,9 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
             
         #return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, dtype=float)
 
-def save_model(model, target_path):
+def save_model(model, target_path, filename = 'model.pth'):
     # target_path = name_formatter.assign_name(folder, target_path)
-    torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/model.pth")
+    torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/{filename}")
     #save_hyperparameters(model, target_path)
 
 def save_hyperparameters(model, target_path):
