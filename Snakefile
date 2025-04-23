@@ -118,9 +118,7 @@ raw_data = {
 
 added_features_data = {}
 for decay, path_list in raw_data.items():
-    added_features_data.update({decay: {}})
-    for tagger in taggers_conf[decay] :
-        added_features_data[decay].update({tagger: [f.replace('1_raw', f'2_added_features').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
+    added_features_data.update({decay: [f.replace('1_raw', '2_added_features') for f in path_list]})
 
 selected_data = {}
 for decay, path_list in raw_data.items():
@@ -150,12 +148,12 @@ for decay, path_list in raw_data.items():
 
 # TO DO add the other configurations e.g. noUT, openVELO etc
 ntuples_raw_withUT_mc = deepcopy(ntuples_eos_withUT)
-for k,v in ntuples_raw_withUT_mc.items():
-    ntuples_raw_withUT_mc[k] = [f.replace(os.path.dirname(f), f'{out}/MC/withUT_MC_2024/1_raw/{k}') for f in v]
+for decay, path_list in ntuples_raw_withUT_mc.items():
+    ntuples_raw_withUT_mc[decay] = [f.replace(os.path.dirname(f), f'{out}/MC/withUT_MC_2024/1_raw/{decay}') for f in path_list]
 
 ntuples_added_features_withUT_mc = {}
-for k,v in ntuples_raw_withUT_mc.items():
-    ntuples_added_features_withUT_mc.update({k: [f.replace('1_raw', '2_added_features') for f in v]})
+for decay, path_list in ntuples_raw_withUT_mc.items():
+    ntuples_added_features_withUT_mc.update({decay: [f.replace('1_raw', '2_added_features') for f in path_list]})
 
 ntuples_selected_withUT_mc = {}
 for decay, path_list in ntuples_raw_withUT_mc.items():
@@ -218,10 +216,34 @@ generated_paths_OSMuon     = read_generated_paths(out,join(repo,'paths_for_snake
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/pdf_ratio/testing/ROC_TEST.pdf',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/signal_weights/testing/ROC_TEST.pdf',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/ones/testing/ROC_TEST.pdf',
-        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.001/testing/ROC_TEST.pdf',
+        weighted_data['Bd2JpsiKst']['OSKaon'],
+        weighted_data['Bd2JpsiKst']['OSMuon'],
+        # weighted_data['Bd2JpsiKst']['OSElectron'],
+
+        weighted_data['Bd2JpsiKst']['SSProton'],
+        weighted_data['Bd2JpsiKst']['SSPion'],
+
+        # ntuples_selected_withUT_mc['Bu2JpsiK']['OSKaon'],
+        # ntuples_selected_withUT_mc['Bu2JpsiK']['OSMuon'],
+        # ntuples_selected_withUT_mc['Bu2JpsiK']['OSElectron'],
+
+        
+        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['OSKaon'],
+        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['OSMuon'],
+        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['OSElectron'],
+
+        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['SSProton'],
+        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['SSPion'],
+        
+        # ntuples_added_features_withUT_mc['Bu2JpsiK']['OSKaon'],
+        # ntuples_added_features_withUT_mc['Bu2JpsiK']['OSMuon'],
+        # # ntuples_added_features_withUT_mc['Bu2JpsiK']['OSElectron'],
+
+
+        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/pdf_ratio/testing/ROC_TEST.pdf',
+        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/signal_weights/testing/ROC_TEST.pdf',
+        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/ones/testing/ROC_TEST.pdf',
+        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.001/testing/ROC_TEST.pdf',
 
 
 
@@ -304,7 +326,7 @@ rule add_features:
     output: 
         root =join(out, '{data_type, (MC|Data)}/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
     resources:
-        mem_mb = 80_000, # Specify memory requirement in megabytes
+        mem_mb = 20_000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
         #request_disk = 50000
     run:
