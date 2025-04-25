@@ -479,16 +479,27 @@ rule data_Mass_Fit:
         join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/data_res.log'),
     resources:
         mem_mb = 10_000, 
-        MaxRunHours = 6, 
+        MaxRunHours = 6,
+        request_disk = 256_000,
     params:
         tagged_prePath = join(out, 'Data/withUT_MC_2024/5_weighted/'),
         taggers = lambda wildcards: ' '.join(taggers_conf[wildcards.decay]),
         # tree = lambda wildcards: find_tree_name(wildcards.decay),
     run:
         out_path = os.path.dirname(os.path.dirname(output.data_res))
+
+
+        selected_scratch = []
+        for path in input.data_selected:
+            path_scratch = path.replace("ceph/users", "scratch")
+            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
+            shell(f'cp {path} {path_scratch}')
+            selected_scratch.append(path_scratch)
+
         cmd = [
             'python {input.script}',
-            '--data_files {input.data_selected}',
+            # '--data_files {input.data_selected}',
+            '--data_files ', ' '.join(selected_scratch),
             '--sim_files {input.mc_selected}',
             '--range {lowerMass} {upperMass}', 
             '--treename "DecayTree;1"',
