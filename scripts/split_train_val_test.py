@@ -13,8 +13,9 @@ from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 
 
-def ascii_histogram(data, bins=10, width=50, symbol='#'):
+def ascii_histogram(data, bins=10, symbol='#'):
     counts, bin_edges = np.histogram(data, bins=bins)
+    width = np.max(data)-np.min(data)/bins
     max_count = max(counts)
     
     for i in range(bins):
@@ -23,7 +24,7 @@ def ascii_histogram(data, bins=10, width=50, symbol='#'):
         count = counts[i]
         bar_len = int((count / max_count) * width)
         bar = symbol * bar_len
-        print(f'{bin_start:>7.2f} - {bin_end:>7.2f} | {bar} ({count})')
+        print(f'{bin_start:>7.2f} - {bin_end:>7.2f} | {bar} ({count})', flush=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -52,7 +53,7 @@ if __name__ == '__main__':
         id = filename[:-3]
 
     #Read File
-    print(f"Reading file: {cfg.weighted}")
+    print(f"Reading file: {cfg.weighted}", flush=True)
     with uproot.open("{}".format(cfg.weighted)) as f:
         df = f[cfg.treename].arrays(library="pd")
     df.dropna(inplace = True)
@@ -96,11 +97,8 @@ if __name__ == '__main__':
     #Write each frame to file
     purposes = ['train', 'validation', 'test']
     for df_, p in zip(split_dfs, purposes):
-        print(f'saving the {p} split. {len(df_["event_entry"].unique())} events, {len(df_)} tracks')
-        tracks_per_event = []
-        for evt in df_["event_entry"].unique():
-            tracks_per_event.append(np.sum(df_["event_entry"] == evt))
-        print(tracks_per_event)
+        print(f'saving the {p} split. {len(df_["event_entry"].unique())} events, {len(df_)} tracks', flush=True)
+        tracks_per_event = df_["event_entry"].value_counts().tolist()
 
         if len(tracks_per_event) > 0:
             print(f'minimum tracks per event: {np.min(tracks_per_event):.0f}')
@@ -114,7 +112,7 @@ if __name__ == '__main__':
 
             print('\n')
 
-            ascii_histogram(tracks_per_event, bins = 14, width = 50)
+            ascii_histogram(tracks_per_event, bins = 14)
             
             print('\n\n')
 
