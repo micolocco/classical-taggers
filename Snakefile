@@ -98,7 +98,7 @@ ntuples_eos_withUT = {
 #Data files
 with open("data_calibration/block12_list.txt", "r") as f:
     files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2]#[:10]
+files_s24c2 = [line.strip() for line in files_s24c2]#[:120]
 raw_path = os.path.dirname(files_s24c2[0])
 
 mc_ids = {}
@@ -216,12 +216,18 @@ generated_paths_OSMuon     = read_generated_paths(out,join(repo,'paths_for_snake
 
 rule all:
     input:
-        weighted_data['Bd2JpsiKst']['OSKaon'],
-        weighted_data['Bd2JpsiKst']['OSMuon'],
-        # weighted_data['Bd2JpsiKst']['OSElectron'],
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/pdf_ratio/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/signal_weights/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/ones/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.001/testing/ROC_TEST.pdf',
+        
+        
+        # weighted_data['Bd2JpsiKst']['OSKaon'],
+        # weighted_data['Bd2JpsiKst']['OSMuon'],
+        # # weighted_data['Bd2JpsiKst']['OSElectron'],
 
-        weighted_data['Bd2JpsiKst']['SSProton'],
-        weighted_data['Bd2JpsiKst']['SSPion'],
+        # weighted_data['Bd2JpsiKst']['SSProton'],
+        # weighted_data['Bd2JpsiKst']['SSPion'],
 
         # ntuples_selected_withUT_mc['Bu2JpsiK']['OSKaon'],
         # ntuples_selected_withUT_mc['Bu2JpsiK']['OSMuon'],
@@ -240,10 +246,6 @@ rule all:
         # # ntuples_added_features_withUT_mc['Bu2JpsiK']['OSElectron'],
 
 
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/pdf_ratio/testing/ROC_TEST.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/signal_weights/testing/ROC_TEST.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/ones/testing/ROC_TEST.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.001/testing/ROC_TEST.pdf',
 
 
 
@@ -676,16 +678,6 @@ rule split_sample:
         ]
         shell(' '.join(cmd))
 
-rule copy_to_scratch:
-    input:
-        in_file = '/ceph/users/{path_and_filename}'
-    output:
-        out_file ='/scratch/{path_and_filename}'
-    log:
-        log = '/scratch/{path_and_filename}.copy.log'
-    run:
-        shell(f'mkdir -p {os.path.dirname(output.out_file)} &> {log.log}')
-        shell(f'cp {input.in_file} {output.out_file} >> {log.log}')
 
 rule train_tagger_MC:
     input:
@@ -715,15 +707,34 @@ rule train_tagger_MC:
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 24, # long queue
-        #request_disk = 1024000
+        request_disk = 256_000
     run:
         outpath = os.path.dirname(output.model)
 
+        train_scratch = []
+        for path in input.train:
+            path_scratch = path.replace("ceph/users", "scratch")
+            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
+            shell(f'cp {path} {path_scratch}')
+            train_scratch.append(path_scratch)
+
+        val_scratch = []
+        for path in input.val:
+            path_scratch = path.replace("ceph/users", "scratch")
+            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
+            shell(f'cp {path} {path_scratch}')
+            val_scratch.append(path_scratch)
+
+
+
+
         cmd = [
             'python', input.script,
-            '--training_data {input.train}',
-            '--validation_data {input.val}',
-            '--target_path', outpath,
+            # '--training_data {input.train}',
+            # '--validation_data {input.val}',
+            '--training_data', ' '.join(train_scratch),
+            ' --validation_data' ' '.join(val_scratch),
+            ' --target_path', outpath,
             '--tagger {wildcards.tagger}',
             '--seed {wildcards.seed}',
             '--features {wildcards.features}',
@@ -745,7 +756,7 @@ rule train_tagger_data:
             f.replace('cutName', f'{wildcards.cut_name}')#.replace("ceph/users", "scratch")  #Copy files to scratch disk for better performance
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
         ],
-        val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation') #.replace("ceph/users", "scratch")
+        val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')#.replace("ceph/users", "scratch")
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
 
@@ -765,14 +776,33 @@ rule train_tagger_data:
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 48, # long queue
-        #request_disk = 1024000
+        request_disk = 256_000
     run:
         outpath = os.path.dirname(output.model)
+        
+        train_scratch = []
+        for path in input.train:
+            path_scratch = path.replace("ceph/users", "scratch")
+            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
+            shell(f'cp {path} {path_scratch}')
+            train_scratch.append(path_scratch)
+
+        val_scratch = []
+        for path in input.val:
+            path_scratch = path.replace("ceph/users", "scratch")
+            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
+            shell(f'cp {path} {path_scratch}')
+            val_scratch.append(path_scratch)
+
+        shell(f'echo {" ".join(val_scratch)} &> {log}')
+
 
         cmd = [
             'python', input.script,
-            '--training_data {input.train}',
-            '--validation_data {input.val}',
+            # '--training_data {input.train}',
+            # '--validation_data {input.val}',
+            '--training_data', ' '.join(train_scratch), ' ',
+            '--validation_data' ' '.join(val_scratch), ' ',
             '--target_path', outpath,
             '--tagger {wildcards.tagger}',
             '--seed {wildcards.seed}',
@@ -783,13 +813,13 @@ rule train_tagger_data:
             '--repo', repo,
             '--data_type Data',
             #'--clean',
-            '&> {log}',
+            '>> {log}',
         ]
         shell(' '.join(cmd))
 
 rule test_and_calibrate_tagger_MC:
     input:
-        testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')# .replace("ceph/users", "scratch")
+        testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')#.replace("ceph/users", "scratch")
             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
             if not f.endswith('4_1.mc.root')
         ],
@@ -808,13 +838,22 @@ rule test_and_calibrate_tagger_MC:
         mem_mb = 20_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 6,
+        request_disk = 256_000
     run:
         outpath = os.path.dirname(output.ROC)
         model_path = os.path.dirname(input.model)
 
+        test_scratch = []
+        for path in input.testing:
+            path_scratch = path.replace("ceph/users", "scratch")
+            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
+            shell(f'cp {path} {path_scratch}')
+            test_scratch.append(path_scratch)
+
         cmd = [
             'python', input.script,
-            '--testing_data {input.testing}',
+            # '--testing_data {input.testing}',
+            '--testing_data', ' '.join(test_scratch),
             '--target_path', outpath,
             '--train_path', outpath.replace('testing', 'training'),
             '--treename "DecayTree;1"',
@@ -832,7 +871,7 @@ rule test_and_calibrate_tagger_MC:
 
 rule test_and_calibrate_tagger_data:
     input:
-        testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test') #.replace("ceph/users", "scratch")
+        testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')#.replace("ceph/users", "scratch")
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
         model = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/model.pth'),
@@ -850,13 +889,22 @@ rule test_and_calibrate_tagger_data:
         mem_mb = 35_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 6,
+        request_disk = 256_000
     run:
         outpath = os.path.dirname(output.ROC)
         model_path = os.path.dirname(input.model)
 
+        test_scratch = []
+        for path in input.testing:
+            path_scratch = path.replace("ceph/users", "scratch")
+            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
+            shell(f'cp {path} {path_scratch}')
+            test_scratch.append(path_scratch)
+
         cmd = [
             'python', input.script,
-            '--testing_data {input.testing}',
+            # '--testing_data {input.testing}',
+            '--testing_data', ' '.join(test_scratch),
             '--target_path', outpath,
             '--train_path', outpath.replace('testing', 'training'),
             '--treename "DecayTree;1"',
