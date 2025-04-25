@@ -369,15 +369,19 @@ def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins
     plt.close()
 
 
-def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag', BID = 'B_TrueID'):
+def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag', BID = 'B_TrueID',weights = None):
 
     #Calibration of the taggers and parameters saving
     import lhcb_ftcalib as ft
 
     taggers = ft.TaggerCollection()
+       
+    if weights is None:
+        weights = np.ones(len(df_tag))
     
-    taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), B_ID = df_tag[BID].tolist(),mode = 'Bu' ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
     
+    taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), weight = weights, B_ID = df_tag[BID].tolist(),mode = eventType[:2] )
+
     if calibration_option=='logit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
     elif calibration_option=='mistag':

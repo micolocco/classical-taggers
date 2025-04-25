@@ -110,6 +110,9 @@ if __name__ == '__main__':
         weight_label = cfg.weight_type
         if weight_label != 'ones':
             vars = vars + [weight_label]
+        if weight_label != 'signal_weights':
+            vars = vars + ['signal_weights']
+
 
     print(vars, flush = True)
 
@@ -131,8 +134,11 @@ if __name__ == '__main__':
     columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID]#, 'B_DTF_PV_Jpsi_MASS']
     if cfg.data_type == 'Data' and weight_label != 'ones':
         columns_to_drop.append(weight_label)
+        if weight_label != 'signal_weights':
+            columns_to_drop.append('signal_weights')
 
-    
+    sweights = test_df['signal_weights']
+    # sweights_sel1 = test_df.query('selected==1')['signal_weights']
 
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     test_df_sel1 = test_df.query('selected==1').copy()
@@ -176,15 +182,24 @@ if __name__ == '__main__':
     test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5, f"{cfg.tagger}_Eta"] *= -1
     test_df.loc[test_df[f"{cfg.tagger}_Eta"] < 0, f"{cfg.tagger}_Eta"] += 1
 
+    if cfg.data_type == 'Data':
+        test_df['signal_weights'] = sweights
+        
+
     df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
+    if cfg.data_type == 'Data':
+        sweights_TagParticles = df_TagParticles['signal_weights']
+        df_TagParticles.drop(columns = ['signal_weights'], inplace = True)
+    else:
+        sweights_TagParticles = None
     #df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
     
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating", flush = True)
     pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles,  plot_name=f'{cfg.target_path}/Normalized_TagDec.pdf')
     # Calibrating the tagger and saving parameters
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decay_type, target_path=cfg.target_path, BID = BID)
+    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decay_type, target_path=cfg.target_path, BID = BID, weights=sweights_TagParticles)
     # Try both calibration functions
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decay_type, target_path=cfg.target_path, calibration_option='logit', BID = BID)
+    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decay_type, target_path=cfg.target_path, calibration_option='logit', BID = BID, weights=sweights_TagParticles)
 
 
     print(f'testing ended on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
