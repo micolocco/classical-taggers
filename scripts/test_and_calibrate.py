@@ -131,17 +131,24 @@ if __name__ == '__main__':
     bestModel = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo)
     pyTrain.load_model(model=bestModel, target_path=model_path)
 
-    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID]#, 'B_DTF_PV_Jpsi_MASS']
-    if cfg.data_type == 'Data' and weight_label != 'ones':
-        columns_to_drop.append(weight_label)
+    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
+    if cfg.data_type == 'Data' :
+        if weight_label != 'ones':
+            columns_to_drop.append(weight_label)
         if weight_label != 'signal_weights':
             columns_to_drop.append('signal_weights')
 
-    sweights = test_df['signal_weights']
+    if cfg.data_type == 'Data':
+        sweights = test_df['signal_weights']
     # sweights_sel1 = test_df.query('selected==1')['signal_weights']
 
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
+    print(f'Columns:{test_df.columns}')
     test_df_sel1 = test_df.query('selected==1').copy()
+    print(f'Columns:{test_df_sel1.drop(columns = columns_to_drop).columns}')
+
+    print(test_df['label'])
+
     test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
     test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl_sel1 = DataLoader(pyTrain.IndexedDataset(test_dataset_sel1), batch_size = 1024, shuffle=False)
@@ -149,6 +156,8 @@ if __name__ == '__main__':
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
     
     test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
+    print(test_df_sel1['yPred'])
+    print(test_df_sel1['yTrue'])
     pyTrain.plot_ROC(tagger=cfg.tagger, val_df=test_df_sel1, target_path =cfg.target_path)
     plt.figure()
     plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
@@ -188,7 +197,7 @@ if __name__ == '__main__':
 
     df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
     if cfg.data_type == 'Data':
-        sweights_TagParticles = df_TagParticles['signal_weights']
+        sweights_TagParticles = df_TagParticles['signal_weights'].to_numpy().astype(np.float64)
         df_TagParticles.drop(columns = ['signal_weights'], inplace = True)
     else:
         sweights_TagParticles = None
