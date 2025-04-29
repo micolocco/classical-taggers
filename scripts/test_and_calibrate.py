@@ -145,10 +145,6 @@ if __name__ == '__main__':
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     print(f'Columns:{test_df.columns}')
     test_df_sel1 = test_df.query('selected==1').copy()
-    print(f'Columns:{test_df_sel1.drop(columns = columns_to_drop).columns}')
-
-    print(test_df['label'])
-
     test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
     test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl_sel1 = DataLoader(pyTrain.IndexedDataset(test_dataset_sel1), batch_size = 1024, shuffle=False)
@@ -156,8 +152,6 @@ if __name__ == '__main__':
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
     
     test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
-    print(test_df_sel1['yPred'])
-    print(test_df_sel1['yTrue'])
     pyTrain.plot_ROC(tagger=cfg.tagger, val_df=test_df_sel1, target_path =cfg.target_path)
     plt.figure()
     plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
