@@ -216,6 +216,26 @@ generated_paths_OSMuon     = read_generated_paths(out,join(repo,'paths_for_snake
 
 rule all:
     input:
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.0/pdf_ratio/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.0/signal_weights/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.0/ones/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.0/testing/ROC_TEST.pdf',
+
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_complex_dm0.0/pdf_ratio/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_complex_dm0.0/signal_weights/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_complex_dm0.0/ones/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_complex_dm0.0/testing/ROC_TEST.pdf',
+
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_complex_dm0.0/pdf_ratio/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_complex_dm0.0/signal_weights/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_complex_dm0.0/ones/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_complex_dm0.0/testing/ROC_TEST.pdf',
+
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_simple_dm0.001/pdf_ratio/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_simple_dm0.001/signal_weights/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_simple_dm0.001/ones/testing/ROC_TEST.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.001/testing/ROC_TEST.pdf',
+
         '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/pdf_ratio/testing/ROC_TEST.pdf',
         '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/signal_weights/testing/ROC_TEST.pdf',
         '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/ones/testing/ROC_TEST.pdf',
@@ -459,6 +479,31 @@ rule MC_Mass_Fit:
         ]
         shell(' '.join(cmd))
 
+def copy_to_scratch(paths):
+    scratch_paths = []
+
+    # check whether ceph-kernel is mounted. If yes, copy from there
+    kernel_live = False
+    if os.path.exists(paths[0].replace("ceph", "ceph-kernel")):
+        paths = [path.replace("ceph", "ceph-kernel") for path in paths]
+        kernel_live = True
+
+
+    for path in paths:
+        if kernel_live:
+            # if ceph-kernel is mounted, copy from there
+            path_scratch = path.replace("ceph-kernel/users", "scratch")
+        else:
+            # if not, copy from ceph
+            # replace the ceph path with scratch path
+            path_scratch = path.replace("ceph/users", "scratch")
+        #make sure path on scratch exists or is created
+        shell(f'mkdir -p {os.path.dirname(path_scratch)}')
+        #Copy data from ceph to scratch
+        shell(f'cp {path} {path_scratch}')
+        scratch_paths.append(path_scratch)
+    return scratch_paths
+
 rule data_Mass_Fit: 
     input:
         script = join(repo, 'scripts/mass_fits.py'),
@@ -489,12 +534,8 @@ rule data_Mass_Fit:
         out_path = os.path.dirname(os.path.dirname(output.data_res))
 
 
-        selected_scratch = []
-        for path in input.data_selected:
-            path_scratch = path.replace("ceph/users", "scratch")
-            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
-            shell(f'cp {path} {path_scratch}')
-            selected_scratch.append(path_scratch)
+        selected_scratch = copy_to_scratch(input.data_selected)
+
 
         cmd = [
             'python {input.script}',
@@ -722,19 +763,8 @@ rule train_tagger_MC:
     run:
         outpath = os.path.dirname(output.model)
 
-        train_scratch = []
-        for path in input.train:
-            path_scratch = path.replace("ceph/users", "scratch")
-            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
-            shell(f'cp {path} {path_scratch}')
-            train_scratch.append(path_scratch)
-
-        val_scratch = []
-        for path in input.val:
-            path_scratch = path.replace("ceph/users", "scratch")
-            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
-            shell(f'cp {path} {path_scratch}')
-            val_scratch.append(path_scratch)
+        train_scratch = copy_to_scratch(input.train)
+        val_scratch = copy_to_scratch(input.val)
 
 
 
@@ -744,7 +774,7 @@ rule train_tagger_MC:
             # '--training_data {input.train}',
             # '--validation_data {input.val}',
             '--training_data', ' '.join(train_scratch),
-            ' --validation_data' ' '.join(val_scratch),
+            ' --validation_data', ' '.join(val_scratch),
             ' --target_path', outpath,
             '--tagger {wildcards.tagger}',
             '--seed {wildcards.seed}',
@@ -787,33 +817,22 @@ rule train_tagger_data:
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 48, # long queue
-        request_disk = 256_000
+        request_disk = 256_000,
+        cpus = 4
     run:
         outpath = os.path.dirname(output.model)
         
-        train_scratch = []
-        for path in input.train:
-            path_scratch = path.replace("ceph/users", "scratch")
-            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
-            shell(f'cp {path} {path_scratch}')
-            train_scratch.append(path_scratch)
+        train_scratch = copy_to_scratch(input.train)
+        val_scratch = copy_to_scratch(input.val)
 
-        val_scratch = []
-        for path in input.val:
-            path_scratch = path.replace("ceph/users", "scratch")
-            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
-            shell(f'cp {path} {path_scratch}')
-            val_scratch.append(path_scratch)
-
-        shell(f'echo {" ".join(val_scratch)} &> {log}')
 
 
         cmd = [
             'python', input.script,
             # '--training_data {input.train}',
             # '--validation_data {input.val}',
-            '--training_data', ' '.join(train_scratch), ' ',
-            '--validation_data' ' '.join(val_scratch), ' ',
+            '--training_data', ' '.join(train_scratch),
+            '--validation_data', ' '.join(val_scratch),
             '--target_path', outpath,
             '--tagger {wildcards.tagger}',
             '--seed {wildcards.seed}',
@@ -823,6 +842,7 @@ rule train_tagger_data:
             '--weight_type {wildcards.weight_type}',
             '--repo', repo,
             '--data_type Data',
+            '--num_thrads {resources.cpus}',
             #'--clean',
             '>> {log}',
         ]
@@ -854,12 +874,7 @@ rule test_and_calibrate_tagger_MC:
         outpath = os.path.dirname(output.ROC)
         model_path = os.path.dirname(input.model)
 
-        test_scratch = []
-        for path in input.testing:
-            path_scratch = path.replace("ceph/users", "scratch")
-            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
-            shell(f'cp {path} {path_scratch}')
-            test_scratch.append(path_scratch)
+        test_scratch = copy_to_scratch(input.testing)
 
         cmd = [
             'python', input.script,
@@ -905,12 +920,7 @@ rule test_and_calibrate_tagger_data:
         outpath = os.path.dirname(output.ROC)
         model_path = os.path.dirname(input.model)
 
-        test_scratch = []
-        for path in input.testing:
-            path_scratch = path.replace("ceph/users", "scratch")
-            shell(f'mkdir -p {os.path.dirname(path_scratch)}')
-            shell(f'cp {path} {path_scratch}')
-            test_scratch.append(path_scratch)
+        test_scratch = copy_to_scratch(input.testing)
 
         cmd = [
             'python', input.script,
