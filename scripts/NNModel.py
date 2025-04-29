@@ -93,7 +93,8 @@ class NeuralNetwork(nn.Module):
         loss = torch.reshape(self.criterion(yPredVal, targetVal), (-1,))
         # print(f'{loss}, {len(loss)}')
         # print(f'{sample_weights}, {len(sample_weights)}')
-        loss = loss * sample_weights / torch.mean(sample_weights)
+        # loss = loss * sample_weights / torch.mean(sample_weights)
+        loss = torch.matmul(loss,sample_weights) / torch.mean(sample_weights)
         # print(f'{loss}, {len(loss)}')
         return loss.mean()
 

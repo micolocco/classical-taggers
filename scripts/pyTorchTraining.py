@@ -113,7 +113,7 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     plt.savefig(f"{target_path}/{name}.pdf")
     
 
-def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config, train_weights = None, val_weights= None):
+def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config, train_weights = None, val_weights= None, num_threads=1):
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
@@ -123,6 +123,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
         stopped = False
         bestEpoch = 0
 
+        torch.set_num_threads(num_threads)
         training_start = time.time()
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
         

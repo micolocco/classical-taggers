@@ -117,6 +117,7 @@ if __name__ == '__main__':
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
+    parser.add_argument('--num_threads', help='Number of threads to use in training', type=int, default=1)
     
     print(f'Training started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
@@ -214,7 +215,7 @@ if __name__ == '__main__':
         print(f"Data shape: {data.shape}")
         break
 
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config, train_weights = weights_train, val_weights= weights_val)
+    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config, train_weights = weights_train, val_weights= weights_val, num_threads=cfg.num_threads)
     
     pyTrain.save_model(bestModel, cfg.target_path)
     
