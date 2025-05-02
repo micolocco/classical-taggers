@@ -842,7 +842,7 @@ rule train_tagger_data:
             '--weight_type {wildcards.weight_type}',
             '--repo', repo,
             '--data_type Data',
-            '--num_thrads {resources.cpus}',
+            '--num_threads {resources.cpus}',
             #'--clean',
             '>> {log}',
         ]
