@@ -7,6 +7,7 @@ from scripts.NNModel import NeuralNetwork
 import datetime
 import multiprocessing as mp
 import sys
+import threading
 
 def train_with_log(train_df, val_df, vars, weight_label, BID, val_files, pre_path, treename, tagger, seed, features, 
                     config, decay_type, clean, repo, data_type, weight_type, num_threads):
@@ -24,6 +25,26 @@ def train_with_log(train_df, val_df, vars, weight_label, BID, val_files, pre_pat
         finally:
             sys.stdout = sys.__stdout__  # Restore original stdout
     
+#Define a custom stdout class to handle thread-local output to different log files
+class ThreadLocalStdout:
+    def __init__(self):
+        self.local = threading.local()
+
+    def set_log_file(self, filename):
+        self.local.log_file = open(filename, 'w')
+
+    def write(self, message):
+        if hasattr(self.local, 'log_file'):
+            self.local.log_file.write(message)
+            self.local.log_file.flush()
+        else:
+            sys.__stdout__.write(message)
+
+    def flush(self):
+        if hasattr(self.local, 'log_file'):
+            self.local.log_file.flush()
+        else:
+            sys.__stdout__.flush()
 
     
     
@@ -46,9 +67,12 @@ if __name__ == '__main__':
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
+    parser.add_argument('--training_logs', help='Path to the log files of each individual training', type=str, nargs='+')
     
 
     cfg = parser.parse_args()
+    sys.stdout = ThreadLocalStdout()
+
     pprint(cfg)
 
     BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
@@ -86,8 +110,9 @@ if __name__ == '__main__':
     for config in cfg.config:
         print(f'Config file used: {config}: Training begins {datetime.datetime.now().strftime("%H:%M:%S")}')
 
+        logfile = next((log for log in cfg.training_logs if config in log), None)
         p = mp.Process(target=train_with_log, args=(train_df, val_df, vars, weight_label, BID, cfg.pre_path, cfg.treename, cfg.tagger, cfg.seed, features,
-                                                          config, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean))
+                                                          config, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile))
         threads.append(p)
         p.start()
 

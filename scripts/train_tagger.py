@@ -102,7 +102,10 @@ def read_files(files, vars, treename):
 # Moving pipeline to a function, to allow for Hyperparameter tuning in different file
 def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, treename, 
                       tagger, seed, features, config, decay_type, 
-                      repo, data_type, weight_type, num_threads = 1, clean = False):
+                      repo, data_type, weight_type, num_threads = 1, clean = False, logfile = None):
+    if logfile:
+        sys.stdout.set_log_file(logfile)
+
     print(f'Training started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 
     # Load YAML configuration file
