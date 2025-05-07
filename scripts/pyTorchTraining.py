@@ -414,6 +414,8 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     for key, value in formatted_data.items():
         print(f"{key}: {value}")
 
+    return info_dict
+
 # Function to propagate and round the errors and values
 def propagate_and_round(values):
     values = np.array(values) * 100  # Multiply all values by 100

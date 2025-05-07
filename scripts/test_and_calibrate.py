@@ -29,7 +29,7 @@ def read_files_reduce_unselected(files, vars, treename):
 
     for i, f in enumerate(files):
         print(f"Reading input file {i}/{len(files)}: {f}", flush=True)
-        print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}')
+        print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush = True)
 
         id = os.path.basename(f)[:-5]
         if id[-7:-2] == '.data':
@@ -54,7 +54,125 @@ def read_files_reduce_unselected(files, vars, treename):
     
     return df
 
+def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path, treename, tagger, features, config, decay_type, seed, repo, data_type, weight_type, model_path):
+    print(f'Training started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
+    # Load YAML configuration file
+    with open(f'{config}', 'r') as file:
+        config = yaml.safe_load(file)
 
+
+    # Path to where the scaler parameters will be saved
+    scalerPath = f"{train_path}/st_scaler.pkl"
+    transformerPath = f"{train_path}/powerTransformer.pkl"
+
+
+    start = time.time()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Device used: {device}")
+    
+
+    test_df.sample(frac=1, random_state=cfg.seed).reset_index(drop=True)
+
+
+    if data_type == 'Data':
+        print(f'features are {features}', flush = True)
+        for i in range(len(features)):
+            features[i] = features[i].replace("BPVIP", "OWNPVIP")
+            features[i] = features[i].replace("B_TRUEID", "B_ID")
+
+    
+
+    #Load model
+
+    model_path = model_path
+
+    bestModel = NeuralNetwork(features=features, architecture=config['architecture'], seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo)
+    pyTrain.load_model(model=bestModel, target_path=model_path)
+
+    columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
+    if data_type == 'Data' :
+        if weight_label != 'ones':
+            columns_to_drop.append(weight_label)
+        if weight_label != 'signal_weights':
+            columns_to_drop.append('signal_weights')
+
+    if data_type == 'Data':
+        sweights = test_df['signal_weights']
+    # sweights_sel1 = test_df.query('selected==1')['signal_weights']
+
+    # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
+    print(f'Columns:{test_df.columns}')
+
+    test_df_sel1 = test_df.query('selected==1').copy()
+
+    test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
+    test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    test_dl_sel1 = DataLoader(pyTrain.IndexedDataset(test_dataset_sel1), batch_size = 1024, shuffle=False)
+    print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
+    print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
+    
+    test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
+    
+    pyTrain.plot_ROC(tagger=tagger, val_df=test_df_sel1, target_path =target_path)
+    
+    plt.figure()
+    plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Test set: Probability of label 0, only selected")
+    plt.savefig(f"{target_path}/testSet_prob0distrib.pdf")
+    plt.figure()
+    plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Test set: Probability of label 1")
+    plt.savefig(f"{target_path}/testSet_prob1distrib.pdf")
+    pyTrain.plot_mistag(tagger=tagger, df=test_df_sel1, target_path=target_path, type = 'Test', BID = BID)
+    
+
+    test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
+    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    test_dl = DataLoader(pyTrain.IndexedDataset(test_dataset), batch_size = 1024, shuffle=False)
+
+    #test_df[f"{tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
+    test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
+    test_df[f"{tagger}_Eta"] = 1 - test_df['predictedProb']
+
+    test_df = test_df[['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID]]
+
+    #print(test_df.loc[test_df.selected == 1][f"{tagger}_Eta"]) 
+
+    test_df.loc[test_df.selected == 0, f"{tagger}_TagDec"] = 0  # classic
+    test_df.loc[test_df.selected == 0, f"{tagger}_Eta"] = 0.5  # classic
+    pyTrain.plot_tagDec(tagger =tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{target_path}/Not_Normalized_TagDec.pdf')
+ 
+    # Eta Normalization [0, 0.5]
+    test_df.loc[test_df[f"{tagger}_Eta"] > 0.5 ,f"{tagger}_TagDec"] *= -1
+    test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_Eta"] *= -1
+    test_df.loc[test_df[f"{tagger}_Eta"] < 0, f"{tagger}_Eta"] += 1
+
+    if data_type == 'Data':
+        test_df['signal_weights'] = sweights
+        
+
+    df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
+    if data_type == 'Data':
+        sweights_TagParticles = df_TagParticles['signal_weights'].to_numpy().astype(np.float64)
+        df_TagParticles.drop(columns = ['signal_weights'], inplace = True)
+    else:
+        sweights_TagParticles = None
+    #df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
+    
+    print(f"{df_TagParticles.shape[0]} tracks used for calibrating", flush = True)
+    pyTrain.plot_tagDec(tagger =tagger, df_TagParticles=df_TagParticles,  plot_name=f'{target_path}/Normalized_TagDec.pdf')
+    
+    # Calibrating the tagger and saving parameters
+    mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, BID = BID, weights=sweights_TagParticles)
+    
+    # Try both calibration functions
+    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', BID = BID, weights=sweights_TagParticles)
+
+
+    print(f'testing ended on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+
+    return mistag_info['TaggingPower'], logit_info['TaggingPower']
+     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -75,32 +193,16 @@ if __name__ == '__main__':
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--model_path', help='Path to trained model', type=str)
 
-    print(f'Training started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
     cfg = parser.parse_args()
     pprint(cfg)
-    # Load YAML configuration file
-    with open(f'{cfg.config}', 'r') as file:
-        config = yaml.safe_load(file)
-    
-    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    # Path to the ROOT input file
-    test_files = cfg.testing_data
-    
-    # Path to where the scaler parameters will be saved
-    scalerPath = f"{cfg.train_path}/st_scaler.pkl"
-    transformerPath = f"{cfg.train_path}/powerTransformer.pkl"
-
-
-    start = time.time()
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Device used: {device}")
-    
 
     BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
 
+    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
+
 
     if cfg.data_type == 'Data':
-        print(f'features are {features}', flush = True)
+        print(f'features are {features}')
         for i in range(len(features)):
             features[i] = features[i].replace("BPVIP", "OWNPVIP")
             features[i] = features[i].replace("B_TRUEID", "B_ID")
@@ -110,99 +212,17 @@ if __name__ == '__main__':
         weight_label = cfg.weight_type
         if weight_label != 'ones':
             vars = vars + [weight_label]
-        if weight_label != 'signal_weights':
-            vars = vars + ['signal_weights']
-
 
     print(vars, flush = True)
 
 
     #Reading Data from files
     print(f'Reading of test files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
-    print(f"Reading a total of {len(test_files)} files.", flush=True)
-    test_df = read_files_reduce_unselected(test_files, vars = vars, treename=cfg.treename)
+    print(f"Reading a total of {len(cfg.testing_data)} files.", flush=True)
+    test_df = read_files_reduce_unselected(cfg.testing_data, vars = vars, treename=cfg.treename)
     print(f'Reading of test files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush = True)
-    test_df.sample(frac=1, random_state=cfg.seed).reset_index(drop=True)
-
-    #Load model
-
-    model_path = cfg.model_path
-
-    bestModel = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo)
-    pyTrain.load_model(model=bestModel, target_path=model_path)
-
-    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
-    if cfg.data_type == 'Data' :
-        if weight_label != 'ones':
-            columns_to_drop.append(weight_label)
-        if weight_label != 'signal_weights':
-            columns_to_drop.append('signal_weights')
-
-    if cfg.data_type == 'Data':
-        sweights = test_df['signal_weights']
-    # sweights_sel1 = test_df.query('selected==1')['signal_weights']
-
-    # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
-    print(f'Columns:{test_df.columns}')
-    test_df_sel1 = test_df.query('selected==1').copy()
-    test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
-    test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    test_dl_sel1 = DataLoader(pyTrain.IndexedDataset(test_dataset_sel1), batch_size = 1024, shuffle=False)
-    print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
-    print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
-    
-    test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
-    pyTrain.plot_ROC(tagger=cfg.tagger, val_df=test_df_sel1, target_path =cfg.target_path)
-    plt.figure()
-    plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Test set: Probability of label 0, only selected")
-    plt.savefig(f"{cfg.target_path}/testSet_prob0distrib.pdf")
-    plt.figure()
-    plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Test set: Probability of label 1")
-    plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
-    pyTrain.plot_mistag(tagger=cfg.tagger, df=test_df_sel1, target_path=cfg.target_path, type = 'Test', BID = BID)
-    
-
-    test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
-    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    test_dl = DataLoader(pyTrain.IndexedDataset(test_dataset), batch_size = 1024, shuffle=False)
-
-    #test_df[f"{cfg.tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-    test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
-    test_df[f"{cfg.tagger}_Eta"] = 1 - test_df['predictedProb']
-
-    test_df = test_df[['event_entry','selected', f"{cfg.tagger}_Eta", f"{cfg.tagger}_TagDec", 'label',BID]]
-
-    #print(test_df.loc[test_df.selected == 1][f"{cfg.tagger}_Eta"]) 
-
-    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
-    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
-    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{cfg.target_path}/Not_Normalized_TagDec.pdf')
- 
-    # Eta Normalization [0, 0.5]
-    test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5 ,f"{cfg.tagger}_TagDec"] *= -1
-    test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5, f"{cfg.tagger}_Eta"] *= -1
-    test_df.loc[test_df[f"{cfg.tagger}_Eta"] < 0, f"{cfg.tagger}_Eta"] += 1
-
-    if cfg.data_type == 'Data':
-        test_df['signal_weights'] = sweights
-        
-
-    df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
-    if cfg.data_type == 'Data':
-        sweights_TagParticles = df_TagParticles['signal_weights'].to_numpy().astype(np.float64)
-        df_TagParticles.drop(columns = ['signal_weights'], inplace = True)
-    else:
-        sweights_TagParticles = None
-    #df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
-    
-    print(f"{df_TagParticles.shape[0]} tracks used for calibrating", flush = True)
-    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles,  plot_name=f'{cfg.target_path}/Normalized_TagDec.pdf')
-    # Calibrating the tagger and saving parameters
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decay_type, target_path=cfg.target_path, BID = BID, weights=sweights_TagParticles)
-    # Try both calibration functions
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decay_type, target_path=cfg.target_path, calibration_option='logit', BID = BID, weights=sweights_TagParticles)
 
 
-    print(f'testing ended on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    testing_pipeline(test_df=test_df, vars=vars, weight_label=weight_label, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
+                     treename=cfg.treename, tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
+                     seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, weight_type=cfg.weight_type, model_path = cfg.model_path)

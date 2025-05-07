@@ -8,5 +8,6 @@
     "REPO": "/ceph/users/togasa/classical-taggers",
     "nCPUs":      "1",
     "LOCALTMP": "/ceph/users/togasa/classical-taggers/outdir/tmp",
-    "LOG": "/ceph/users//togasa/classical-taggers/outdir/log",
+    "LOG": "/ceph/users/togasa/classical-taggers/outdir/log",
+    "use_batched" : False,
 }
