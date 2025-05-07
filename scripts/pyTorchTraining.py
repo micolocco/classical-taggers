@@ -229,7 +229,13 @@ def plot_ROC(tagger, val_df, target_path, train_df= None):
     lw  = 2
     fpr_test, tpr_test,_ = roc_curve(val_df.yTrue, val_df.yPred)
     roc_auc_test = round(auc(fpr_test, tpr_test),5)
-    plt.plot(fpr_test, tpr_test, color='darkblue',lw=lw, label=f'Test (area = {roc_auc_test})' )
+
+    if train_df is not None: 
+        label = f'Validation (area = {roc_auc_test})'
+    else:
+        label = f'Test (area = {roc_auc_test})'
+    
+    plt.plot(fpr_test, tpr_test, color='darkblue',lw=lw, label=label)
     plt.plot([0, 1], [0, 1], color='k', lw=lw, linestyle='--')
     plt.xlim([-0.02, 1.0])
     plt.ylim([0.0, 1.05])
