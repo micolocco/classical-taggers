@@ -8,22 +8,6 @@ import datetime
 import multiprocessing as mp
 import sys
 import threading
-
-def train_with_log(train_df, val_df, vars, weight_label, BID, val_files, pre_path, treename, tagger, seed, features, 
-                    config, decay_type, clean, repo, data_type, weight_type, num_threads):
-    target_path = pre_path + f'/{seed}/{config}/{weight_type}/training/'
-
-    logfile = f'{target_path}/training_log.log'
-
-    with open(logfile, 'w') as f:  
-        sys.stdout = f
-        try:
-            training_pipeline(train_df=train_df, val_df=val_df, vars=vars, weight_label=weight_label, BID=BID, 
-                target_path=target_path, treename=treename, tagger=tagger, seed=seed, features=features, 
-                config=config, decay_type=decay_type, clean=clean, repo=repo, data_type=data_type, 
-                weight_type=weight_type, num_threads=num_threads)
-        finally:
-            sys.stdout = sys.__stdout__  # Restore original stdout
     
 #Define a custom stdout class to handle thread-local output to different log files
 class ThreadLocalStdout:
@@ -111,7 +95,7 @@ if __name__ == '__main__':
         print(f'Config file used: {config}: Training begins {datetime.datetime.now().strftime("%H:%M:%S")}')
 
         logfile = next((log for log in cfg.training_logs if config in log), None)
-        p = mp.Process(target=train_with_log, args=(train_df, val_df, vars, weight_label, BID, cfg.pre_path, cfg.treename, cfg.tagger, cfg.seed, features,
+        p = mp.Process(target=training_pipeline, args=(train_df, val_df, vars, weight_label, BID, cfg.pre_path, cfg.treename, cfg.tagger, cfg.seed, features,
                                                           config, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile))
         threads.append(p)
         p.start()
