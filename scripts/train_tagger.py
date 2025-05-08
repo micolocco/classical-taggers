@@ -23,7 +23,7 @@ import utils
 import psutil
 
 
-def stats_printout(tagger, decay_type, train_df, val_df):
+def stats_printout(tagger, decay_type, train_df, val_df, BID):
     '''
     Function to print statistics about the dataset composition
     '''
@@ -81,7 +81,7 @@ def read_files(files, vars, treename):
     df = pd.DataFrame(columns=vars)
 
     for i, f in enumerate(files):
-        print(f"Reading input file {i}/{len(files)}: {f}", flush=True)
+        print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
         print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}')
 
         id = os.path.basename(f)[:-5]
@@ -99,11 +99,19 @@ def read_files(files, vars, treename):
 
     return df
 
+def get_architecture(config):
+    nL = config['numlayers']
+    nN = config['numneurons']
+    dp = config['dropout']
+    return f'nL{nL}_nN{nN}_dp{dp}'
+
 # Moving pipeline to a function, to allow for Hyperparameter tuning in different file
 def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, treename, 
                       tagger, seed, features, config, decay_type, 
                       repo, data_type, weight_type, num_threads = 1, clean = False, logfile = None):
-    if logfile:
+    if logfile is not None:
+        from scripts.batch_train_tagger import ThreadLocalStdout
+        sys.stdout = ThreadLocalStdout()
         sys.stdout.set_log_file(logfile)
 
     print(f'Training started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
@@ -148,7 +156,7 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
-    stats_printout(tagger=tagger, decay_type=decay_type,train_df=train_df, val_df=val_df)
+    stats_printout(tagger=tagger, decay_type=decay_type,train_df=train_df, val_df=val_df, BID=BID)
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     # Save test dataframe for calibration
     
@@ -162,7 +170,7 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=train_batch_size, seed=seed, scalerPath=scalerPath, transformerPath=transformerPath, test_batch_size = val_batch_size)
     if config!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
-    model = NeuralNetwork(features=features, architecture=config['architecture'], seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
+    model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
 
     for batch in validation_dl:

@@ -8,6 +8,7 @@ import datetime
 import multiprocessing as mp
 import sys
 import threading
+from os.path import basename
     
 #Define a custom stdout class to handle thread-local output to different log files
 class ThreadLocalStdout:
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--seed', help='Random seed', default=45, type = int) 
     parser.add_argument('--features', help='Input features for NN training', default='union') 
-    parser.add_argument('--config', help='Config yaml', type=str, nargs='+') 
+    parser.add_argument('--configs', help='Configs to train', type=str, nargs='+') 
     parser.add_argument('--decay_type', help='Event decay', type=str)
     parser.add_argument('--clean', help='Decide whatever cleaning the directories before running, w=False, a=True', action='store_true')
     parser.add_argument('--repo', help="Path to repository")
@@ -56,6 +57,7 @@ if __name__ == '__main__':
 
     cfg = parser.parse_args()
     sys.stdout = ThreadLocalStdout()
+    print(f'Batch started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 
     pprint(cfg)
 
@@ -80,28 +82,37 @@ if __name__ == '__main__':
 
     #Reading Data from files
     print(f'Reading of training files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
-    print(f"Reading a total of {len(cfg.train_files)} files.", flush=True)
-    train_df = read_files(cfg.train_files, vars = vars, treename=cfg.treename)
+    print(f"Reading a total of {len(cfg.training_data)} files.", flush=True)
+    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename)
     print(f'Reading of training files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     print(f'Reading of validation files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
-    print(f"Reading a total of {len(cfg.val_files)} files.", flush=True)
-    val_df = read_files(cfg.val_files, vars = vars, treename=cfg.treename)
+    print(f"Reading a total of {len(cfg.validation_data)} files.", flush=True)
+    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     mp.set_start_method('spawn')
     threads = []
-    for config in cfg.config:
-        print(f'Config file used: {config}: Training begins {datetime.datetime.now().strftime("%H:%M:%S")}')
+    for config_path in cfg.configs:
+        config_name = basename(config_path)[:-5]
+        print(f'Training of {config_name} begins {datetime.datetime.now().strftime("%H:%M:%S")}')
+        
+        logfile = next((log for log in cfg.training_logs if config_name in log), None)
+        if logfile is None and cfg.training_logs is not None:
+            print(f'No log file found for config {config_name}. Exiting.')
+            sys.exit(1)
+        print(f'{logfile} is the log file used for config {config_name}')
 
-        logfile = next((log for log in cfg.training_logs if config in log), None)
-        p = mp.Process(target=training_pipeline, args=(train_df, val_df, vars, weight_label, BID, cfg.pre_path, cfg.treename, cfg.tagger, cfg.seed, features,
-                                                          config, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile))
+        outpath = cfg.pre_path + '/' + config_name + '/' + cfg.weight_type + '/training/'
+
+        p = mp.Process(target=training_pipeline, args=(train_df, val_df, vars, weight_label, BID, outpath, cfg.treename, cfg.tagger, cfg.seed, features,
+                                                          config_path, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile))
         threads.append(p)
         p.start()
 
         
     for p in threads:
         p.join()
+    print(f'Batch ended on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     
 

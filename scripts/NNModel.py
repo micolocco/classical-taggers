@@ -94,7 +94,7 @@ class NeuralNetwork(nn.Module):
         # print(f'{loss}, {len(loss)}')
         # print(f'{sample_weights}, {len(sample_weights)}')
         # loss = loss * sample_weights / torch.mean(sample_weights)
-        loss = torch.matmul(loss,sample_weights) / torch.mean(sample_weights)
+        loss = torch.matmul(loss,sample_weights.float()) / torch.mean(sample_weights)
         # print(f'{loss}, {len(loss)}')
         return loss.mean()
 

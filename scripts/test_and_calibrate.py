@@ -28,8 +28,8 @@ def read_files_reduce_unselected(files, vars, treename):
     df = pd.DataFrame(columns=vars)
 
     for i, f in enumerate(files):
-        print(f"Reading input file {i}/{len(files)}: {f}", flush=True)
-        print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush = True)
+        print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
+        print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} at {datetime.datetime.now().strftime("%H:%M:%S")}', flush = True)
 
         id = os.path.basename(f)[:-5]
         if id[-7:-2] == '.data':
@@ -54,8 +54,9 @@ def read_files_reduce_unselected(files, vars, treename):
     
     return df
 
-def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path, treename, tagger, features, config, decay_type, seed, repo, data_type, weight_type, model_path):
-    print(f'Training started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
+def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path, treename, tagger, features, config, 
+                     decay_type, seed, repo, data_type, weight_type, model_path):
+    print(f'Testing started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
     # Load YAML configuration file
     with open(f'{config}', 'r') as file:
         config = yaml.safe_load(file)
@@ -212,6 +213,8 @@ if __name__ == '__main__':
         weight_label = cfg.weight_type
         if weight_label != 'ones':
             vars = vars + [weight_label]
+        if weight_label != 'signal_weights':
+            vars = vars +['signal_weights']
 
     print(vars, flush = True)
 
@@ -222,6 +225,13 @@ if __name__ == '__main__':
     test_df = read_files_reduce_unselected(cfg.testing_data, vars = vars, treename=cfg.treename)
     print(f'Reading of test files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush = True)
 
+
+    print(f'Number of Tracks in test set: {test_df.shape[0]}', flush = True)
+    print(f'Number of selected tracks in test set: {test_df.selected.sum()}', flush = True)
+    print(f'Number of events in test set: {test_df.event_entry.nunique()}', flush = True)
+    print(f'Number of events with selected tracks in test set: {test_df[test_df.selected == 1].event_entry.nunique()}', flush = True)
+    print(f'Average number of tracks per event: {test_df.shape[0]/test_df.event_entry.nunique()}', flush = True)
+    print(f'Average number of selected tracks per event: {test_df.selected.sum()/test_df[test_df.selected == 1].event_entry.nunique()}', flush = True)
 
     testing_pipeline(test_df=test_df, vars=vars, weight_label=weight_label, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
                      treename=cfg.treename, tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
