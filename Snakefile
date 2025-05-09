@@ -152,7 +152,7 @@ rule all:
         #expand(ntuples_selected_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_selected_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(join(modified_MC, 'withUT_MC_2024/DT_outputs/allBKGCAT_notSamePV_noOSP_SSK_balanced/balanced/cuts/OSKaon_preselections.txt'))
-        #'/ceph/users/molocco/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs2048_simple_dm0.0/ROC_TRAIN_VAL.pdf',
+        #'/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024//Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs2048_simple_dm0.0/ROC_TRAIN_VAL.pdf',
         # ntuples_added_features_withUT['Bu2JpsiK'],
        # ntuples_added_features_withUT['Bd2JpsiKst'],
         #join(modified_MC, 'withUT_MC_2024/DT_outputs/allBKGCAT_notSamePV_noOSP_SSK_balanced/balanced/tree_schema.pdf')
@@ -176,8 +176,8 @@ rule all:
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         #join(data, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
-        #'/ceph/users/molocco/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs2048_simple_dm0.0/ROC_TRAIN_VAL.pdf',
-        #'/ceph/users/molocco/Data/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf',
+        #'/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024//Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs2048_simple_dm0.0/ROC_TRAIN_VAL.pdf',
+        #'/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024//Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf',
         #ntuples_selected_withUT['Bd2JpsiKst']['OSKaon'],
         #ntuples_selected_withUT['Bd2JpsiKst']['OSElectron'],
         #ntuples_selected_withUT['Bd2JpsiKst']['OSMuon'],
@@ -291,7 +291,8 @@ rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
         added_features = join(modified_MC, '{sample_type}/2_added_features/{decay}/{id}.root'),
-        cut_file = join(modified_MC, '{sample_type}/DT_outputs/{cut_name}/{balanced}/cuts/{tagger}_preselections.txt')
+        cut_file = join(modified_MC, 'withUT_MC_2024/DT_outputs/{cut_name}/balanced/cuts/{tagger}_preselections.txt') # Cut file is in the MC path
+
     output: join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{id,.*}.root'),
     # output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root'),
     log : join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/.{id,.*}.log')

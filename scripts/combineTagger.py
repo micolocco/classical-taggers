@@ -44,9 +44,9 @@ if __name__ == '__main__':
     parser.add_argument('--tagged_prePath', help='Folder where the files with the tagging decision are saved', default='/ceph/users/molocco/Data/withUT_MC_2024/4_tagged')
     parser.add_argument('--tagger', help='List of taggers/single tagger', nargs='+', required=True)
     parser.add_argument('--decayType', help='Decay used for the calibration', type=str)
-    #parser.add_argument('--outputPath', help='Name of the output dir', type=str, default='/ceph/users/molocco/Data/savedModels/withUT_MC_2024/')
+    #parser.add_argument('--outputPath', help='Name of the output dir', type=str, default='/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024//')
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
-    parser.add_argument('--cut', help='Cut desired', type=str, required=True)
+    parser.add_argument('--cut', help='Cut desired', type=str,)
     parser.add_argument('--features', help='Input features used for NN training',) 
     parser.add_argument('--run2', help='If Run2 tagger combination must be computed as well',  action='store_true') # action='store_true' means args.run2 will be set to True if the --run2 argument is provided on the command line.
     parser.add_argument('--combinationName', help='Name used for the output combination', type=str)
@@ -62,7 +62,10 @@ if __name__ == '__main__':
     pprint(cfg)
     
     #outputPath =f'{cfg.outputPath}/{cfg.decayType}/combinations/'
-    outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/combinations/'
+    if cfg.simulation:
+        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/combinations/'
+    else:
+        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/block1_combinations/'
     os.makedirs(outputPath, exist_ok=True)
     
     vars = []
@@ -71,19 +74,27 @@ if __name__ == '__main__':
     else:
         B_ID_var = "B_ID"
         vars.extend(['FillNumber', 'B_DTF_PV_CTAU', 'signal_weights'])
+    vars.extend(['RUNNUMBER', 'EVENTNUMBER', B_ID_var])
+    vars.extend(run2_taggers_variables)
     taggers_dataframes = []  # List to store DataFrames for each tagger
     # Loop over all taggers
     for tagger in cfg.tagger:
-        vars.extend(run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', B_ID_var])
-        input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
-        input_files = glob.glob(input_path)
+        loading_variables = []
+        loading_variables = vars + [f'{tagger}_TagDec', f'{tagger}_Eta']
+        #input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
+        if cfg.simulation:
+            input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, '*.root')
+            input_files = glob.glob(input_path)
+        else:
+            input_files = os.path.join(cfg.tagged_prePath, cfg.decayType, 'data_fit/sweights.root')
+            print
         # Loop over all files
         singleTagger_dataframes = []
         
         for i, f in enumerate(input_files):
             print(f"Reading input file: {f}")
             with uproot.open(f) as _f:
-                _df = _f[cfg.treename].arrays(vars, library="pd")
+                _df = _f[cfg.treename].arrays(loading_variables, library="pd")
             _df.dropna(inplace=True)
             _df["SAMPLENUMBER"] = i
             _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)

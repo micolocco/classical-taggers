@@ -6,18 +6,17 @@ from copy import deepcopy
 
 
 try:
-    raw_data = config['RAW_DATA']
-    modified_data = config['MODIFIED_DATA']
-    modified_MC = config['MODIFIED_MC']
+    data = config['RAW_DATA']
     repo = config['REPO']
+    modified_MC = config['MODIFIED_MC']
 except:
     raise RuntimeError("Make sure to specify snakemake config")
 
 
 taggers_conf = {
-    'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
-    'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
-    # 'Bs2DsPi': ['SSKaon'],
+    #'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
+    #'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
+    'Bs2DsPi': ['SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
     # 'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
     # 'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
 }
@@ -25,7 +24,7 @@ def find_tree_name(decay):
     if decay == 'Bs2JpsiPhi':
         return 'BsToJpsiPhi_Detached/DecayTree'
     if decay == 'Bs2DsPi':
-        return 'Hlt2B2OC_BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
+        return 'BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
     if decay == 'Bu2JpsiK':
         return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
     if decay == 'Bd2JpsiKst':
@@ -33,6 +32,7 @@ def find_tree_name(decay):
     else:
         return 'Tuple/DecayTree'
 
+# Extract decay used for training the tagger, used for the model path
 def extract_decay(tagger):
     if tagger in ['OSKaon', 'OSMuon', 'OSElectron']:
         return 'Bu2JpsiK'
@@ -43,149 +43,122 @@ def extract_decay(tagger):
     else:
         raise ValueError(f"Unknown tagger: {tagger}")
 
-# Stripping s24c2 MagUp - Block 1 
-# ls /ceph-kernel/FlavourTagging/NTuples/Run3/data/reweighted/*.root > block1_list.txt 
-# ls /ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/*.root > block1_list.txt
-# where /ceph-kernel/FlavourTagging/NTuples/Run3/data/reweighted/ is the `raw_data` path
+# Stripping s24c2 MagUp - Block 1 and 2
+# The txt files has been generated with ls /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/*.root > block12_list.txt
+def select_input_files(decay):
+    """Read block1_list_Nicolas_<decay>.txt and return
+    a list of full EOS URLs for that decay."""
+    eosdir = 'root://eoslhcb.cern.ch/'
+    txt = f"block12_list_{decay}.txt"
+    with open(txt, "r") as f:
+        lines = [line.strip() for line in f]
+    return [eosdir + path for path in lines]
 
-with open("block1_list.txt", "r") as f:
-    files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2]
-files_s24c2 = [raw_data + line for line in files_s24c2]
-
-ntuples_raw = {
-    'Bu2JpsiK': [join(raw_data, 'Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
-    #'Bd2JpsiKst': [join(raw_data, '1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
+raw_data = {
+    decay: [
+        join(data, 'withUT_MC_2024', '1_raw', decay, basename(path))
+        for path in select_input_files(decay)
+    ]
+    for decay in taggers_conf
 }
-
-print(ntuples_raw)
-for k,v in ntuples_raw.items():
-    ntuples_raw[k] = [f.replace(os.path.dirname(f), f'{raw_data}/{k}') for f in v]
-
-ntuples_added_features = {}
-for k,v in ntuples_raw.items():
-    #ntuples_added_features.update({k: [f.replace('1_raw', '2_added_features') for f in v]})
-    ntuples_added_features.update({k: [f.replace(f'{raw_data}', f'{modified_data}/2_added_features') for f in v]})
-
-ntuples_selected = {}
-for decay, path_list in ntuples_raw.items():
-    ntuples_selected.update({decay: {}})
-    #print(decay, path_list)
-    #print('-------')
+selected_data = {}
+for decay, path_list in raw_data.items():
+    selected_data.update({decay: {}})
     for tagger in taggers_conf[decay] :
-        ntuples_selected[decay].update({tagger: [f.replace(f'{raw_data}', f'{modified_data}/3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
+        selected_data[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/allBKGCAT_notSamePV_noOSP_SSK/union_PROBNN') for f in path_list]})
 
-ntuples_tagged = {}
-for decay, path_list in ntuples_raw.items():
-    ntuples_tagged.update({decay: {}})
-    for tagger in taggers_conf[decay]:
-        # Filter the paths to only include those ending with '4_1.mc.root'
-        #filtered_paths = [
-        #    f.replace('1_raw', '4_tagged')
-        #     .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}')
-        #    for f in path_list
-        #    #for f in path_list if f.endswith('.mc.root') #4_1.mc.root hold out sample
-        #]
-        ntuples_tagged[decay].update({tagger: [f.replace(f'{raw_data}', f'{modified_data}/4_tagged')  # 👈 Fix this
-                                        .replace(decay, f'{decay}/{tagger}/{{cut_name}}_{{balanced}}/{{features}}')
-                                        for f in path_list]})
-#ntuples_selected = {}
-#for decay, path_list in ntuples_raw.items():
-#    ntuples_selected.update({decay: {}})
-#    for tagger in taggers_conf[decay] :
-#        ntuples_selected[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
-#
-#ntuples_tagged = {}
-#for decay, path_list in ntuples_raw.items():
-#    ntuples_tagged.update({decay: {}})
-#    for tagger in taggers_conf[decay] :
-#        ntuples_tagged[decay].update({tagger: [f.replace('1_raw', f'4_tagged').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
+tagged_data = {}
+for decay, path_list in raw_data.items():
+    tagged_data.update({decay: {}})
+    for tagger in taggers_conf[decay] :
+        tagged_data[decay].update({tagger: [f.replace('1_raw', f'4_tagged').replace(decay, f'{decay}/{tagger}/allBKGCAT_notSamePV_noOSP_SSK/union_PROBNN') for f in path_list]})
+
+
 
 rule all:
     input: 
-        expand(ntuples_tagged['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        expand(ntuples_tagged['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        expand(ntuples_tagged['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        tagged_data['Bs2DsPi']['SSKaon'],
+        #tagged_data['Bs2DsPi']['OSKaon'],
 
-rule add_features:
-# For some NTuples it's necessary to run locally (snakemake only, not on condor)
+        #tagged_data['Bs2DsPi']['OSElectron'],
+        #tagged_data['Bs2DsPi']['OSMuon'],
+        #tagged_data['Bu2JpsiK']['OSKaon'],
+        #tagged_data['Bu2JpsiK']['OSMuon'],
+        #tagged_data['Bu2JpsiK']['OSElectron'],
+        #tagged_data['Bd2JpsiKst']['SSPion'],
+        #tagged_data['Bd2JpsiKst']['SSProton'],
+        #tagged_data['Bd2JpsiKst']['OSKaon'],
+        #tagged_data['Bd2JpsiKst']['OSMuon'],
+        #tagged_data['Bd2JpsiKst']['OSElectron'],
+
+        #data['Bu2JpsiK'],
+        #data['Bd2JpsiKst'],
+        # Add taggers on Bs
+
+#phis ntuples are huge, they contain all the decays, so this first rule is to populate 1_raw directory with only the interesting decay
+RAW_SETTINGS = {
+    "Bu2JpsiK": "root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/",
+    "Bs2DsPi": "root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00267010/0000/",
+}
+
+    
+rule add_features_data:
     input:
         script = join(repo, 'scripts/adding_features_v2.py'),
-        #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
-        #raw = join(data, 'withUT_MC_2024/1_raw/{decay}/{id}.root')
-        raw = join(raw_data, '{decay}/{id}.root')
-
-    log: join(modified_data, '2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
-    output: 
-        root =join(modified_data, '2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
-        #request_disk = 50000
-    resources:
-        mem_mb = 20000, # Specify memory requirement in megabytes
-        MaxRunHours = 8, # medium queue
-
-    run:
-        tree = find_tree_name(wildcards.decay)
-        cmd = [
-            'python', input.script,
-            '--raw {input.raw}',
-            '--output {output}',
-            '--evtType {wildcards.decay}',
-            '--treename', tree,
-            '--data_calib',
-            '--signal_weights',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-
-rule add_selection:
-    input:
-        script = join(repo, 'scripts/preSelections.py'),
-        added_features = join(modified_data, '2_added_features/{decay}/{id}.root'),
-        cut_file = join(modified_MC, 'withUT_MC_2024/DT_outputs/{cut_name}/{balanced}/cuts/{tagger}_preselections.txt') # Cut file is in the MC path
-    output: join(modified_data, '3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{id,.*}.root'),
-    # output: join(data, 'withUT_MC_2024/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{cut_name}/{id,.*}.root'),
-    log : join(modified_data, '3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/.{id,.*}.log')
-    # params:
-    #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
+    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_raw/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
+    output:
+        root =join(data, '{sample_type}/1_raw/{decay}/{id}.root')
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
 
     run:
-       # tree = find_tree_name(wildcards.decay)
+        tree = find_tree_name(wildcards.decay)
+        input_raw = join(RAW_SETTINGS[wildcards.decay], f'{wildcards.id}.root')
+        cmd = [
+            'python', input.script,
+            '--raw', input_raw,
+            '--output {output}',
+            '--evtType {wildcards.decay}',
+            '--treename', tree,
+            '--data_calib',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
+rule add_selection_data:
+    input:
+        script = join(repo, 'scripts/preSelections.py'),
+        added_features = join(data, '{sample_type}/1_raw/{decay}/{id}.root'), # Raw from Jpsi are made by the rule above, with added features run already
+        cut_file = join(modified_MC, 'withUT_MC_2024/DT_outputs/{cut_name}/balanced/cuts/{tagger}_preselections.txt') # Cut file is in the MC path
+    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
+    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
+    run:
         cmd = [
             'python', input.script,
             '--added_features {input.added_features}',
             '--output {output}',
-            #'--treename', tree,
             '--cut_file', input.cut_file,
-            #join(modified_data, '{wildcards.sample_type}/DT_outputs/{wildcards.cut_name}/balanced/cuts/{wildcards.decay}/{tagger}_preselections.txt')
-            #'--cut_file', join(modified_data, '{wildcards.sample_type}/DT_outputs/{wildcards.cut_name}/balanced/cuts/{wildcards.decay}/{tagger}_preselections.txt'),
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
             '--data_calib',
-            '--signal_weights',
             '--repo', repo,
             '&> {log}',
         ]
         shell(' '.join(cmd))
 
-rule add_tagDec:
+rule add_tagDec_data:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        selected = join(modified_data, '3_selected/{decay}/{tagger}/{cut_name}/{balanced}/{features}/{id}')
+        selected = join(data, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}')
     output:
-        root = join(modified_data, '4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{id}'),
+        root = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
     log:
-        join(modified_data, '4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{id}.log'),
+        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}.log'),
     params:
-        modelPrePath = lambda wildcards: join(modified_MC, f'savedModels/withUT_MC_2024/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}'),
-        taggedDataPath = join(modified_data, '4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/'),
+        #modelPrePath = lambda wildcards: join(data.replace("ntuples","Micol_trainings"), f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}'),
+        modelPrePath = lambda wildcards: join(modified_MC, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}_balanced/{wildcards.features}'),
+        taggedDataPath = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/'),
     run:
         print(f"Processing file: {wildcards.id}")
         print(f"Selected input file: {input.selected}")
@@ -193,7 +166,7 @@ rule add_tagDec:
         cmd = [
             'python', input.script,
             '--selected {input.selected}',
-            '--cut {wildcards.cut_name}_{wildcards.balanced}',
+            '--cut {wildcards.cut_name}_balanced',
             '--taggedData {output.root}',  
             '--modelPrePath {params.modelPrePath}',
             '--decayType {wildcards.decay}', # Decay used for evaluating the tagger
@@ -201,48 +174,6 @@ rule add_tagDec:
             '--features {wildcards.features}',
             '--repo', repo,
             '--data_calib',
-            '--signal_weights',
             '&> {log}'
         ]
         shell(' '.join(cmd))
-
-#phis ntuples are huge, they contain all the decays, so this first rule is to populate 1_raw directory with only the interesting decay
-#rule add_features_data:
-#    input:
-#        script = join(repo, 'scripts/adding_features_v2.py'),
-#    log: join(data, 'withUT_MC_2024/1_raw/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
-#    output:
-#        root =join(data, 'withUT_MC_2024/1_raw/{decay}/{id}.root')
-#    run:
-#        tree = find_tree_name(wildcards.decay)
-#        cmd = [
-#            'python', input.script,
-#            '--raw root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/{wildcards.id}.root',
-#            '--output {output}',
-#            '--evtType {wildcards.decay}',
-#            '--treename', tree,
-#            '--data_calib',
-#            '&> {log}',
-#        ]
-#        shell(' '.join(cmd))
-
-#        
-#rule add_selection_data:
-#    input:
-#        script = join(repo, 'scripts/preSelections.py'),
-#        added_features = join(data, 'withUT_MC_2024/1_raw/{decay}/{id}.root'), # Raw from Jpsi are made by the rule above, with added features run already
-#    output: join(modified_data, 'withUT_MC_2024/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
-#    log : join(modified_data, 'withUT_MC_2024/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
-#    run:
-#        cmd = [
-#            'python', input.script,
-#            '--added_features {input.added_features}',
-#            '--output {output}',
-#            '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
-#            '--tagger {wildcards.tagger}',
-#            '--features {wildcards.features}',
-#            '--data_calib',
-#            '--repo', repo,
-#            '&> {log}',
-#        ]
-#        shell(' '.join(cmd))

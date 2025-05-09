@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     for seed in seeds:
         # Read tagging power values from JSON files
-        results_folder = f"/ceph/users/molocco/Data/savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/{seed}" #cfg.seed
+        results_folder = f"/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024//{cfg.decayType}/{cfg.tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/{seed}" #cfg.seed
         # Create DataFrames to hold the results
         results_before = pd.DataFrame(combinations, columns=['Learning Rate', 'Batch Size', 'Architecture'])
         results_mistag = pd.DataFrame(combinations, columns=['Learning Rate', 'Batch Size', 'Architecture'])

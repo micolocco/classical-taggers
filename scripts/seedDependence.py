@@ -75,7 +75,7 @@ if __name__ == '__main__':
                 missing_seeds = []
                 for seed in seeds:
                     # Read tagging power values from JSON files
-                    results_folder = f"/ceph/users/molocco/Data/savedModels/withUT_MC_2024/{cfg.decayType}/{cfg.tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/{seed}" #cfg.seed
+                    results_folder = f"/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024//{cfg.decayType}/{cfg.tagger}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin/{seed}" #cfg.seed
                     folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{arch}")
                     json_file = os.path.join(folder_path, "mistag/taggingInfo_mistag.json")
                     if os.path.exists(json_file):

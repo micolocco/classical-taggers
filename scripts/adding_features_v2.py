@@ -6,6 +6,25 @@ import argparse
 import awkward as ak
 import datetime
 
+import os
+import os, tempfile, subprocess
+
+def stage_remote(remote_url, max_retries=3):
+    """Copy remote_url into /tmp (or $TMPDIR) and return the local path."""
+    fn = os.path.basename(remote_url)
+    local = os.path.join(tempfile.gettempdir(), fn)
+    if not os.path.exists(local):
+        os.makedirs(os.path.dirname(local), exist_ok=True)
+        for attempt in range(1, max_retries+1):
+            print(f"Staging {remote_url} → {local} (attempt {attempt})")
+            ret = subprocess.call(["xrdcp", "-f", remote_url, local])
+            if ret == 0:
+                break
+            elif attempt == max_retries:
+                raise RuntimeError(f"xrdcp failed after {max_retries} tries")
+    return local
+
+
 
 def DeltaQ(df,Mass, prefix):
         E =np.sqrt( Mass**2 + df[f'{prefix}Tr_T_PX']**2 + df[f'{prefix}Tr_T_PY']**2 + df[f'{prefix}Tr_T_PZ']**2)
@@ -97,8 +116,8 @@ loading_variables = [
         'B_Tr_T_Z',
         'B_Tr_T_IPBVTX',
         "B_ID",
-        "B_DTF_PV_Jpsi_MASS",
         "B_DTF_PV_MASS",
+        "B_DTF_PV_MASSERR",
         'B_DTF_PV_CTAU',
         'B_DTF_PV_CTAUERR',
         'B_ENERGY',
@@ -168,6 +187,9 @@ loading_variables = [
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
         #'B_Run2_OSMuon_MVA',
+        'B_Run2_OSVertexCharge_Dec',
+        'B_Run2_OSVertexCharge_Omega',
+        #'B_Run2_OSVertexCharge_MVA',
         ]
 
 
@@ -202,22 +224,31 @@ if __name__ == '__main__':
     '''
     #prefix = cfg.evtType[:2] + "_"
     prefix = 'B_'
-    weights =  ['sWeights',
-                'signal_weights',
-                'background_weights',
-                'fraction_weights',
-                'reweighter_weights',
-                'reweighter_weights_raw']
-
+    if cfg.evtType == 'Bu2JpsiK' or cfg.evtType == 'Bd2JpsiKst':
+        weights =  ['sWeights',
+                    'signal_weights',
+                    'background_weights',
+                    'fraction_weights',
+                    'reweighter_weights',
+                    'reweighter_weights_raw']
+    #elif cfg.evtType == 'Bs2DsPi':
+    #    weights = ['nSig_uo_kkpi_2022_Evts_sw']
     if cfg.data_calib:
         loading_variables = [v for v in loading_variables if "TRUE" not in v and "Flag" not in v and "MC" not in v and "BKGCAT" not in v]
         if cfg.signal_weights:
             loading_variables += weights
         loading_variables = np.unique(loading_variables).tolist()
+        if "Jpsi" in cfg.evtType:
+            loading_variables.append("B_DTF_PV_Jpsi_MASS")
+            #loading_variables.append("B_DTF_PV_Jpsi_MASSERR")
+        elif "Ds" in cfg.evtType:
+            loading_variables.append("B_DTF_PV_Ds_MASS") 
+            #loading_variables.append("B_DTF_PV_Ds_MASSERR")
         print("Loading variables are: ", loading_variables)
          # Equivalent for data of Origin_Flag != 0 (included later on in the pre-selections)
-        with uproot.open("{}".format(cfg.raw)) as f:
-            df = f['DecayTree'].arrays(loading_variables, library="pd")
+        local_file = stage_remote(cfg.raw)
+        with uproot.open(local_file) as f:
+            df = f[cfg.treename].arrays(loading_variables, library="pd")
         df = df[df[f'{prefix}Tr_T_IsInTree'] != 1]
     # Replace B_ in the loading variables if there is a prefix
     #loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]

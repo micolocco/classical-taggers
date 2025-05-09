@@ -1,0 +1,6 @@
+/ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/merged_batch_1_sweights_reweighted.root
+/ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/merged_batch_2_sweights_reweighted.root
+/ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/merged_batch_3_sweights_reweighted.root
+/ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/merged_batch_5_sweights_reweighted.root
+/ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/merged_batch_6_sweights_reweighted.root
+/ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/merged_batch_7_sweights_reweighted.root

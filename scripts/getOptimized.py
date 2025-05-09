@@ -21,7 +21,7 @@ if __name__ == '__main__':
         description='Apply a preselection for the tagging particles',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/molocco/Data/savedModels/withUT_MC_2024')
+    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/')
     parser.add_argument('--spec', help='Specification to be used', type=str)
     parser.add_argument('--outputPath', help='Where the best tagger candidates configs will be saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 

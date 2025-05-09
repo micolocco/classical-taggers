@@ -1,9 +1,9 @@
 {
     "__comment":  "Snakemake configuration for e5 cluster infrastructure",
     "RAW_MC": "/ceph-kernel/FlavourTagging/NTuples/Run3/MC",
-    "RAW_DATA":  "/ceph/users/molocco/FlavourTagging/data/reweighted/1_raw",
+    "RAW_DATA":  "/ceph/users/molocco/FlavourTagging/data/",
     "MODIFIED_MC": "/ceph/users/molocco/FlavourTagging/MC",  
-    "MODIFIED_DATA": "/ceph/users/molocco/FlavourTagging/data/reweighted",  
+    "MODIFIED_DATA": "/ceph/users/molocco/FlavourTagging/data/",  
     "REPO": "/home/molocco/classical-taggers",
     "nCPUs":      "1",
     "LOCALTMP": "/home/molocco/classical-taggers/outdir/tmp",
