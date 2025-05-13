@@ -53,7 +53,7 @@ class NeuralNetwork(nn.Module):
 
         for i, (inputsTrain, targetsTrain, indices) in enumerate(train_dl):
             # Clear the gradients
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad(set_to_none=True) #TODO set_to_none=True ??
             # compute the model output
             yPredTrain = self(inputsTrain)
             if sample_weights is not None:
@@ -69,7 +69,7 @@ class NeuralNetwork(nn.Module):
             #if (i+1) % 1000 == 0:
                 #print (f'Epoch [{epoch+1}/{n_epochs}], Step [{i+1}/{n_total_steps}], Loss: {training_loss.item():.4f}')
         return stepLoss
-
+    
     def validate_model(self, validation_dl, sample_weights=None):
         self.eval()
         validationStep_loss = []
@@ -81,21 +81,19 @@ class NeuralNetwork(nn.Module):
                 batch_weights = sample_weights[indices]
             else:
                 batch_weights = None
-            validation_loss = self.calc_loss(yPredVal, targetsVal, sample_weights=batch_weights)
+            with torch.no_grad():
+                validation_loss = self.calc_loss(yPredVal, targetsVal, sample_weights=batch_weights)
+            #print(f'validation loss requires gradient : {validation_loss.requires_grad}')  # TODO with torch.no_grad(): ??
             validationStep_loss.append(validation_loss.item())
         return validationStep_loss
-
-    def calc_loss(self, yPredVal, targetVal, sample_weights = None):
+    
+    def calc_loss(self, yPred, target, sample_weights = None):
         if sample_weights is None:
-            sample_weights = torch.ones(targetVal.shape)
-        # print('\n\n')
+            sample_weights = torch.ones(target.shape)
         
-        loss = torch.reshape(self.criterion(yPredVal, targetVal), (-1,))
-        # print(f'{loss}, {len(loss)}')
-        # print(f'{sample_weights}, {len(sample_weights)}')
-        # loss = loss * sample_weights / torch.mean(sample_weights)
+        loss = torch.reshape(self.criterion(yPred, target), (-1,))
+        
         loss = torch.matmul(loss,sample_weights.float()) / torch.mean(sample_weights)
-        # print(f'{loss}, {len(loss)}')
         return loss.mean()
 
     # Evaluate the model

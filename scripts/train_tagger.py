@@ -111,13 +111,24 @@ def get_architecture(config):
 # Moving pipeline to a function, to allow for Hyperparameter tuning in different file
 def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, treename, 
                       tagger, seed, features, config, decay_type, 
-                      repo, data_type, weight_type, num_threads = 1, clean = False, logfile = None):
+                      repo, data_type, weight_type, num_threads = 1, clean = False, logfile = None, debug = True):
     if logfile is not None:
         from scripts.batch_train_tagger import ThreadLocalStdout
         sys.stdout = ThreadLocalStdout()
         sys.stdout.set_log_file(logfile)
 
-    print(f'Training started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    #Set Debug modes
+    torch.autograd.set_detect_anomaly(debug)
+    torch.autograd.profiler.emit_nvtx(debug)
+    torch.autograd.profiler.profile(debug)
+    
+    
+    torch.jit.enable_onednn_fusion(True)
+    
+
+    start = datetime.datetime.now()
+
+    print(f'Training started on {start.strftime("%Y-%m-%d %H:%M:%S")}')
 
     # Load YAML configuration file
     with open(f'{config}', 'r') as file:
@@ -137,7 +148,6 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
         weight_label = weight_type
 
 
-    start = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device used: {device}")
     
@@ -212,7 +222,9 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     plt.yscale("log")
     plt.savefig(f"{target_path}/trainingSet_prob1distrib.pdf")
 
-    print(f'Training ended on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    end = datetime.datetime.now()
+    print(f'Training ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f'Training time: {end - start}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

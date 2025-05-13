@@ -134,7 +134,8 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
             val_weights = torch.from_numpy(val_weights)
         initial_validation_loss = model.validate_model(validation_dl, sample_weights=val_weights)
         print(f"The initial Validation Loss: {np.array(np.array(initial_validation_loss).mean()).mean():.6f}")
-
+        
+        epochtimes = []
         for epoch in range(config['n_epochs']):
             epoch_start = time.time()
             print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}-------------")
@@ -144,7 +145,9 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
             # Compute validation loss
             validationStep_loss = model.validate_model(validation_dl, sample_weights=val_weights)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
-            print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True) 
+            print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
+            epochtimes.append((time.time()-epoch_start))
+
             if early_stopper.early_stop(validationEpoch_loss[-1]): 
                 stopped = True 
                 break
@@ -156,6 +159,11 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
                 bestModel = copy.deepcopy(model)
             i +=1
         training_time = round((time.time()- training_start) / 60 , 2)
+        #calculate standard deviation of epoch times
+        epochtimes_mean = np.mean(epochtimes)
+        epochtimes_std = np.std(epochtimes)
+
+        print(f'Average time per epoch: {epochtimes_mean} +/- {epochtimes_std} seconds')
         print(f"Training finished in {training_time} min, {i-1} epochs, early stopping: {stopped}")
         return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
             #if epoch > earlyStop:  # check the termination condition

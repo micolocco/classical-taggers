@@ -77,7 +77,8 @@ if __name__ == '__main__':
         weight_label = cfg.weight_type
         if weight_label != 'ones':
             vars = vars + [weight_label]
-
+    else:
+        weight_label = None
 
 
     #Reading Data from files
@@ -103,10 +104,13 @@ if __name__ == '__main__':
             sys.exit(1)
         print(f'{logfile} is the log file used for config {config_name}')
 
-        outpath = cfg.pre_path + '/' + config_name + '/' + cfg.weight_type + '/training/'
+        outpath = cfg.pre_path + '/' + config_name 
+        if cfg.data_type == 'Data':
+            outpath = outpath + '/' + cfg.weight_type
+        outpath = outpath +'/training/'
 
         p = mp.Process(target=training_pipeline, args=(train_df, val_df, vars, weight_label, BID, outpath, cfg.treename, cfg.tagger, cfg.seed, features,
-                                                          config_path, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile))
+                                                          config_path, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile, False))
         threads.append(p)
         p.start()
 
