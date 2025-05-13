@@ -122,7 +122,7 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     torch.autograd.profiler.emit_nvtx(debug)
     torch.autograd.profiler.profile(debug)
     
-    
+
     torch.jit.enable_onednn_fusion(True)
     
 
@@ -185,15 +185,6 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
     model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
-
-    for batch in validation_dl:
-        if isinstance(batch, (list, tuple)):
-            data = batch[0]  # inputs
-            labels = batch[1]  # targets (optional, depending on dataset)
-        else:
-            data = batch  # e.g., for unsupervised data
-        print(f"Data shape: {data.shape}")
-        break
 
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config = config, train_weights = weights_train, val_weights= weights_val, num_threads=num_threads)
     

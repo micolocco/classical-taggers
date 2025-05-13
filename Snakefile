@@ -227,7 +227,7 @@ with open(join(repo,'configs/hyperpar_intervals.yaml'), 'r') as file:
 
 
 intervals = {key[1:]: value for key, value in intervals.items()}
-print(intervals)
+
 
 hyper_par_chunk = expand('nL{nL}_nN{nN}', nL=intervals['numlayers'], nN=intervals['numneurons'])
 weights = [
@@ -815,8 +815,9 @@ def get_log(data_type):
     weight = "{weight_type}/" if data_type != 'MC' else ""
     logs = {}
     # logs['training_logs'] = list(get_chunk(data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log'))
-    logs = list(get_chunk(data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log'))
+    logs = get_chunk(data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log')
     if batched:
+        logs = list(logs)
         if data_type == 'MC':
             weight_name = 'MC'
         else:
@@ -930,7 +931,7 @@ rule train_tagger_data:
         # chunk_log = join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/training_chunk.log')
         #     if batched else None,
     resources:
-        mem_mb = 100_000, # Specify memory requirement in megabytes 
+        mem_mb = 60_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 8,#24, # long queue
