@@ -16,12 +16,12 @@ try:
     repo = config['REPO']
 
     batched = config['use_batched'] 
-    if batched:
-        ruleorder: batched_train_tagger_data > train_tagger_data 
-        ruleorder: batched_train_tagger_MC > train_tagger_MC 
-    else:
-        ruleorder: train_tagger_data > batched_train_tagger_data
-        ruleorder: train_tagger_MC > batched_train_tagger_MC
+    # if batched:
+    #     ruleorder: batched_train_tagger_data > train_tagger_data 
+    #     ruleorder: batched_train_tagger_MC > train_tagger_MC 
+    # else:
+    #     ruleorder: train_tagger_data > batched_train_tagger_data
+    #     ruleorder: train_tagger_MC > batched_train_tagger_MC
 except:
     raise RuntimeError("Make sure to specify snakemake config")
 
@@ -237,65 +237,9 @@ weights = [
 ]
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_nL8_nN16/pdf_ratio/training/ROC_TRAIN_VAL.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_nL8_nN16/signal_weights/training/ROC_TRAIN_VAL.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_nL8_nN16/ones/training/ROC_TRAIN_VAL.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_nL8_nN16/training/ROC_TRAIN_VAL.pdf',
-        
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.0/signal_weights/training/ROC_TRAIN_VAL.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.0/ones/training/ROC_TRAIN_VAL.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.0/training/ROC_TRAIN_VAL.pdf',
+        expand(join(out, 'Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nL}_nN{nN}/{weight}/training/model.pth'),
+               lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nL=intervals['numlayers'], nN=intervals['numneurons'], weight=weights),
 
-        
-        
-        # weighted_data['Bd2JpsiKst']['OSKaon'],
-        # weighted_data['Bd2JpsiKst']['OSMuon'],
-        # # weighted_data['Bd2JpsiKst']['OSElectron'],
-
-        # weighted_data['Bd2JpsiKst']['SSProton'],
-        # weighted_data['Bd2JpsiKst']['SSPion'],
-
-        # ntuples_selected_withUT_mc['Bu2JpsiK']['OSKaon'],
-        # ntuples_selected_withUT_mc['Bu2JpsiK']['OSMuon'],
-        # ntuples_selected_withUT_mc['Bu2JpsiK']['OSElectron'],
-
-        
-        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['OSKaon'],
-        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['OSMuon'],
-        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['OSElectron'],
-
-        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['SSProton'],
-        # ntuples_added_features_withUT_mc['Bd2JpsiKst']['SSPion'],
-        
-        # ntuples_added_features_withUT_mc['Bu2JpsiK']['OSKaon'],
-        # ntuples_added_features_withUT_mc['Bu2JpsiK']['OSMuon'],
-        # # ntuples_added_features_withUT_mc['Bu2JpsiK']['OSElectron'],
-
-
-
-
-
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/pdf_ratio/training/ROC_TRAIN_VAL.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/signal_weights/training/ROC_TRAIN_VAL.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/ones/training/ROC_TRAIN_VAL.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.001/training/ROC_TRAIN_VAL.pdf',
-        
-        # [i.replace('ceph/users', 'scratch') for i in ntuples_train_split_withUT_mc['Bu2JpsiK']['OSElectron']],
-        # [i.replace('ceph/users', 'scratch') for i in train_split_data['Bu2JpsiK']['OSElectron']],
-
-        # ntuples_train_split_withUT_mc['Bu2JpsiK']['OSElectron'],
-        # train_split_data['Bu2JpsiK']['OSElectron'],
-        
-
-        #expand("/ceph/users/togasa/FlavourTagging/NTuples/Data/withUT_MC_2024/4_weighted/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/{id}.root", id = [os.path.basename(i)[:-5] for i in files_s24c2[:10]])
-        # expand("/ceph/users/togasa/FlavourTagging/NTuples/Data/withUT_MC_2024/4_weighted/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/data_fit/data_res.json")
-
-        ## ntuples_tagged_withUT_mc['Bd2JpsiKst']['OSKaon'],
-        ## ntuples_tagged_withUT_mc['Bd2JpsiKst']['OSElectron'],
-        ## ntuples_tagged_withUT_mc['Bd2JpsiKst']['OSMuon'],
-        ## ntuples_tagged_withUT_mc['Bd2JpsiKst']['SSProton'],
-        ## ntuples_tagged_withUT_mc['Bd2JpsiKst']['SSPion'],
 
 
 
@@ -736,8 +680,155 @@ rule split_sample:
         shell(' '.join(cmd))
 
 
+
+
+
+
+
+
+# rule train_tagger_MC:
+#     input:
+#         train = lambda wildcards: [
+#             f.replace('cutName', f'{wildcards.cut_name}')
+#             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+#             if not f.endswith('4_1.mc.root')
+#         ],
+#         val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
+#             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
+#             if not f.endswith('4_1.mc.root')
+#         ],
+
+#         script = join(repo, 'scripts/train_tagger.py'),
+#         config = join(repo, 'configs/{config}.yaml'),
+#     output:
+#         ROC=         join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/ROC_TRAIN_VAL.pdf'),
+#         model=       join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
+#         scaler=      join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
+#         transformer= join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
+#         # taggingInfo= join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/logit/taggingInfo_logit.json'),
+#         #   |-> created in pytrain.calibration
+#     log: 
+#         join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/training_log.log')
+#     resources:
+#         mem_mb = 20_000, # Specify memory requirement in megabytes 
+#         #gpus = 1,
+#         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+#         MaxRunHours = 24, # long queue
+#         request_disk = 256_000
+#     run:
+#         outpath = os.path.dirname(output.model)
+
+#         train_scratch = copy_to_scratch(input.train)
+#         val_scratch = copy_to_scratch(input.val)
+
+
+
+
+#         cmd = [
+#             'python', input.script,
+#             # '--training_data {input.train}',
+#             # '--validation_data {input.val}',
+#             '--training_data', ' '.join(train_scratch),
+#             ' --validation_data', ' '.join(val_scratch),
+#             ' --target_path', outpath,
+#             '--tagger {wildcards.tagger}',
+#             '--seed {wildcards.seed}',
+#             '--features {wildcards.features}',
+#             '--config {input.config}',
+#             '--decay_type {wildcards.decay}',
+#             '--data_type MC',
+#             '--repo', repo,
+#             #'--clean',
+#             '&> {log}',
+#         ]
+#         shell(' '.join(cmd))
+
+# rule train_tagger_data:
+#     input:
+#         join(repo, 'scripts/NNModel.py'),
+#         join(repo, 'scripts/pyTorchTraining.py'),
+
+#         train = lambda wildcards: [
+#             f.replace('cutName', f'{wildcards.cut_name}')
+#             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+#         ],
+#         val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
+#             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
+#         ],
+
+#         script = join(repo, 'scripts/train_tagger.py'),
+#         config = join(repo, 'configs/{config}.yaml'),
+#     output:
+#         ROC=         join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/ROC_TRAIN_VAL.pdf'),
+#         model=       join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/model.pth'),
+#         scaler=      join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/st_scaler.pkl'),
+#         transformer= join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/powerTransformer.pkl'),
+#         # taggingInfo= join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/logit/taggingInfo_logit.json'),
+#         #   |-> created in pytrain.calibration
+#     log: 
+#         join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/training_log.log')
+#     resources:
+#         mem_mb = 30_000, # Specify memory requirement in megabytes 
+#         #gpus = 1,
+#         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+#         MaxRunHours = 8, # long queue
+#         machine="heemskerck.e5.physik.tu-dortmund.de",
+#     run:
+#         outpath = os.path.dirname(output.model)
+        
+#         train_scratch = copy_to_scratch(input.train)
+#         val_scratch = copy_to_scratch(input.val)
+
+
+
+#         cmd = [
+#             'python', input.script,
+#             # '--training_data {input.train}',
+#             # '--validation_data {input.val}',
+#             '--training_data', ' '.join(train_scratch),
+#             '--validation_data', ' '.join(val_scratch),
+#             '--target_path', outpath,
+#             '--tagger {wildcards.tagger}',
+#             '--seed {wildcards.seed}',
+#             '--features {wildcards.features}',
+#             '--config', input.config,
+#             '--decay_type {wildcards.decay}',
+#             '--weight_type {wildcards.weight_type}',
+#             '--repo', repo,
+#             '--data_type Data',
+#             '--num_threads 1',
+#             #'--clean',
+#             '&> {log}',
+#         ]
+#         shell(' '.join(cmd))
+
+def get_chunk(middle_path, filename):
+    #If Batched mode is on, training job trains all configuration in a hyperparameter chunk 
+    #(currently all batch sizes, layers, etc. except learning rate and weight type)
+    
+    if batched:
+        return [join(out, middle_path+ 'lr{learning_rate}_bs{batch_size}_' + f+ filename) for f in hyper_par_chunk]
+    else:
+        return join(out, middle_path+ '{config}' + filename)
+
+def get_log(data_type):
+    weight = "{weight_type}/" if data_type != 'MC' else ""
+    logs = {}
+    # logs['training_logs'] = list(get_chunk(data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log'))
+    logs = list(get_chunk(data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log'))
+    if batched:
+        if data_type == 'MC':
+            weight_name = 'MC'
+        else:
+            weight_name = '{weight_type}'
+        # logs['chunk_log'] =[join(out, data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/.' + weight + '_logs/lr{learning_rate}_training_chunk.log')]
+        logs = logs + [join(out, data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/chunk_logs/' + weight_name + '_lr{learning_rate}_bs{batch_size}_training_chunk.log')]
+    return logs
+
 rule train_tagger_MC:
+    #If the batched flag from the config file is set to True, this rule trains a chunk of hyperparameters, if False it trains only one hyperparameter configuration 
     input:
+        script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
         train = lambda wildcards: [
             f.replace('cutName', f'{wildcards.cut_name}')
             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
@@ -747,57 +838,75 @@ rule train_tagger_MC:
             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
             if not f.endswith('4_1.mc.root')
         ],
-
-        script = join(repo, 'scripts/train_tagger.py'),
-        config = join(repo, 'configs/{config}.yaml'),
+        
+        config = [join(repo, 'configs/lr{learning_rate}_bs{batch_size}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk] if batched
+                 else join(repo, 'configs/{config}.yaml'),
     output:
-        ROC=         join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/ROC_TRAIN_VAL.pdf'),
-        model=       join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
-        scaler=      join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
-        transformer= join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
-        # taggingInfo= join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/logit/taggingInfo_logit.json'),
-        #   |-> created in pytrain.calibration
-    log: 
-        join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/training/training_log.log')
+        ROC=         get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/training/ROC_TRAIN_VAL.pdf'),
+        model=       get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/training/model.pth'),
+        scaler=      get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/training/st_scaler.pkl'),
+        transformer= get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/training/powerTransformer.pkl'),
+    params:
+        pre_path = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}')
+    log:
+        get_log('MC'),
+        # get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/training/training_log.log'),
+        # chunk_log = join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/training_chunk.log')
+        #      if batched else None,
     resources:
-        mem_mb = 20_000, # Specify memory requirement in megabytes 
+        mem_mb = 30_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 24, # long queue
-        request_disk = 256_000
+    threads:
+        len(hyper_par_chunk)+1 if batched else 1,
     run:
-        outpath = os.path.dirname(output.model)
-
         train_scratch = copy_to_scratch(input.train)
         val_scratch = copy_to_scratch(input.val)
 
-
-
+        if not batched:
+            outpath = os.path.dirname(output.model)
 
         cmd = [
             'python', input.script,
-            # '--training_data {input.train}',
-            # '--validation_data {input.val}',
             '--training_data', ' '.join(train_scratch),
-            ' --validation_data', ' '.join(val_scratch),
-            ' --target_path', outpath,
+            '--validation_data', ' '.join(val_scratch),
             '--tagger {wildcards.tagger}',
             '--seed {wildcards.seed}',
             '--features {wildcards.features}',
-            '--config {input.config}',
             '--decay_type {wildcards.decay}',
-            '--data_type MC',
             '--repo', repo,
+            '--data_type MC',
             #'--clean',
-            '&> {log}',
         ]
+
+        if batched:
+            logs = list(log)
+            training_logs = logs[:-1]
+            chunk_log = logs[len(logs)-1]
+
+            conditional_cmd =[
+                # '--training_logs', ' '.join(log.training_logs),
+                '--training_logs', ' '.join(training_logs),
+                '--pre_path', params.pre_path,
+                '--configs', ' '.join(input.config),
+                # '&>',  log.chunk_log,
+                '&>',  chunk_log,
+            ]
+        else:
+            conditional_cmd = [
+                '--target_path', outpath,
+                '--config {input.config}',
+                '&> {log}',
+            ]
+        print(cmd)
+        cmd = cmd + conditional_cmd
+        print(cmd)
         shell(' '.join(cmd))
 
 rule train_tagger_data:
     input:
-        join(repo, 'scripts/NNModel.py'),
-        join(repo, 'scripts/pyTorchTraining.py'),
-
+        script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
         train = lambda wildcards: [
             f.replace('cutName', f'{wildcards.cut_name}')
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
@@ -806,160 +915,71 @@ rule train_tagger_data:
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
 
-        script = join(repo, 'scripts/train_tagger.py'),
-        config = join(repo, 'configs/{config}.yaml'),
+        config = [join(repo, 'configs/lr{learning_rate}_bs{batch_size}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk] if batched
+                 else join(repo, 'configs/{config}.yaml'),
     output:
-        ROC=         join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/ROC_TRAIN_VAL.pdf'),
-        model=       join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/model.pth'),
-        scaler=      join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/st_scaler.pkl'),
-        transformer= join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/powerTransformer.pkl'),
-        # taggingInfo= join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/logit/taggingInfo_logit.json'),
-        #   |-> created in pytrain.calibration
-    log: 
-        join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/{config}/{weight_type,(signal_weights|pdf_ratio|ones)}/training/training_log.log')
-    resources:
-        mem_mb = 30_000, # Specify memory requirement in megabytes 
-        #gpus = 1,
-        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 48, # long queue
-    run:
-        outpath = os.path.dirname(output.model)
-        
-        train_scratch = copy_to_scratch(input.train)
-        val_scratch = copy_to_scratch(input.val)
-
-
-
-        cmd = [
-            'python', input.script,
-            # '--training_data {input.train}',
-            # '--validation_data {input.val}',
-            '--training_data', ' '.join(train_scratch),
-            '--validation_data', ' '.join(val_scratch),
-            '--target_path', outpath,
-            '--tagger {wildcards.tagger}',
-            '--seed {wildcards.seed}',
-            '--features {wildcards.features}',
-            '--config', input.config,
-            '--decay_type {wildcards.decay}',
-            '--weight_type {wildcards.weight_type}',
-            '--repo', repo,
-            '--data_type Data',
-            '--num_threads 1',
-            #'--clean',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-
-def get_chunk(middle_path, filename):
-    return [join(out, middle_path+f+ filename) for f in hyper_par_chunk]
-
-
-rule batched_train_tagger_MC:
-    input:
-        script = join(repo, 'scripts/batch_train_tagger.py'),
-        train = lambda wildcards: [
-            f.replace('cutName', f'{wildcards.cut_name}')
-            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-            if not f.endswith('4_1.mc.root')
-        ],
-        val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
-            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
-            if not f.endswith('4_1.mc.root')
-        ],
-
-        configs = [join(repo, 'configs/lr{learning_rate}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk],
-    output:
-        ROC=         get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/training/ROC_TRAIN_VAL.pdf'),
-        model=       get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/training/model.pth'),
-        scaler=      get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/training/st_scaler.pkl'),
-        transformer= get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/training/powerTransformer.pkl'),
-    params:
-        pre_path = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}')
-    log:
-        get_chunk('MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/training/training_log.log'),
-        chunk_log = join(out, 'MC/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_training_chunk.log'),
-    resources:
-        mem_mb = 30_000, # Specify memory requirement in megabytes 
-        #gpus = 1,
-        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 24, # long queue
-    threads:
-        len(hyper_par_chunk)+1,
-    run:
-        train_scratch = copy_to_scratch(input.train)
-        val_scratch = copy_to_scratch(input.val)
-
-
-        cmd = [
-            'python', input.script,
-            '--training_data', ' '.join(train_scratch),
-            '--validation_data', ' '.join(val_scratch),
-            '--pre_path', params.pre_path,
-            '--tagger {wildcards.tagger}',
-            '--seed {wildcards.seed}',
-            '--features {wildcards.features}',
-            '--configs', ' '.join(input.configs),
-            '--decay_type {wildcards.decay}',
-            '--repo', repo,
-            '--data_type MC',
-            '--training_logs', ' '.join(log.training_logs),
-            #'--clean',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-
-rule batched_train_tagger_data:
-    input:
-        script = join(repo, 'scripts/batch_train_tagger.py'),
-        train = lambda wildcards: [
-            f.replace('cutName', f'{wildcards.cut_name}')
-            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-        ],
-        val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
-            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-        ],
-
-        configs = [join(repo, 'configs/lr{learning_rate}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk],
-    output:
-        ROC=         get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/ROC_TRAIN_VAL.pdf'),
-        model=       get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/model.pth'),
-        scaler=      get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/st_scaler.pkl'),
-        transformer= get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/powerTransformer.pkl'),
+        ROC=         get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/ROC_TRAIN_VAL.pdf'),
+        model=       get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/model.pth'),
+        scaler=      get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/st_scaler.pkl'),
+        transformer= get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/powerTransformer.pkl'),
     params:
         pre_path = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}')
     log:
-        training_logs = get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/lr{learning_rate}_', '/{weight_type,(signal_weights|pdf_ratio|ones)}/training/training_log.log'),
-        chunk_log = join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/.{weight_type,(signal_weights|pdf_ratio|ones)}_logs/lr{learning_rate}_training_chunk.log'),
+        get_log('Data'),
+        # get_chunk('Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', '/training/training_log.log'),
+        # chunk_log = join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/training_chunk.log')
+        #     if batched else None,
     resources:
         mem_mb = 100_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 2,#24, # long queue
+        MaxRunHours = 8,#24, # long queue
     threads:
-        len(hyper_par_chunk)+1,
+        len(hyper_par_chunk)+1     if batched else 1,
     run:
         train_scratch = copy_to_scratch(input.train)
         val_scratch = copy_to_scratch(input.val)
 
+        if not batched:
+            outpath = os.path.dirname(output.model)
 
         cmd = [
             'python', input.script,
             '--training_data', ' '.join(train_scratch),
             '--validation_data', ' '.join(val_scratch),
-            '--pre_path', params.pre_path,
             '--tagger {wildcards.tagger}',
             '--seed {wildcards.seed}',
             '--features {wildcards.features}',
-            '--configs', ' '.join(input.configs),
             '--decay_type {wildcards.decay}',
             '--weight_type {wildcards.weight_type}',
             '--repo', repo,
             '--data_type Data',
-            '--training_logs', ' '.join(log.training_logs),
             #'--clean',
-            '&>', log.chunk_log,
         ]
+
+        if batched:
+            logs = list(log)
+            chunk_log = logs[len(logs)-1]
+            training_logs = logs[:-1]
+
+            conditional_cmd =[
+                # '--training_logs', ' '.join(log.training_logs),
+                '--training_logs', ' '.join(training_logs),
+                '--pre_path', params.pre_path,
+                '--configs', ' '.join(input.config),
+                # '&>',  log.chunk_log,
+                '&>',  chunk_log,
+            ]
+
+        else:
+            conditional_cmd = [
+                '--target_path', outpath,
+                '--config {input.config}',
+                '&> {log}',
+            ]
+
+        print('cmd:', cmd)
+        cmd = cmd + conditional_cmd
         shell(' '.join(cmd))
 
 rule test_and_calibrate_tagger_MC:
