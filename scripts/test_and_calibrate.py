@@ -16,6 +16,7 @@ import datetime
 import yaml
 # Local import
 import scripts.pyTorchTraining as pyTrain
+from scripts.train_tagger import get_architecture
 from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
@@ -56,7 +57,8 @@ def read_files_reduce_unselected(files, vars, treename):
 
 def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path, treename, tagger, features, config, 
                      decay_type, seed, repo, data_type, weight_type, model_path):
-    print(f'Testing started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
+    start = datetime.datetime.now()
+    print(f'Testing started on {start.strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
     # Load YAML configuration file
     with open(f'{config}', 'r') as file:
         config = yaml.safe_load(file)
@@ -67,7 +69,6 @@ def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path,
     transformerPath = f"{train_path}/powerTransformer.pkl"
 
 
-    start = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device used: {device}")
     
@@ -87,7 +88,7 @@ def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path,
 
     model_path = model_path
 
-    bestModel = NeuralNetwork(features=features, architecture=config['architecture'], seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo)
+    bestModel = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo)
     pyTrain.load_model(model=bestModel, target_path=model_path)
 
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
@@ -169,8 +170,9 @@ def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path,
     # Try both calibration functions
     logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', BID = BID, weights=sweights_TagParticles)
 
-
-    print(f'testing ended on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    end = datetime.datetime.now()
+    print(f'testing ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f'Time taken for testing and calibration: {end - start}', flush = True)
 
     return mistag_info['TaggingPower'], logit_info['TaggingPower']
      

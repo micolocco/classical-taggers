@@ -4,7 +4,7 @@ import numpy as np
 import os
 import re
 from copy import deepcopy
-
+import yaml
 import json
 
 try:
@@ -105,7 +105,7 @@ ntuples_eos_withUT = {
 #Data files
 with open("data_calibration/block12_list.txt", "r") as f:
     files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2][:200]
+files_s24c2 = [line.strip() for line in files_s24c2]
 raw_path = os.path.dirname(files_s24c2[0])
 
 mc_ids = {}
@@ -221,17 +221,20 @@ generated_paths_OSElectron = read_generated_paths(out,join(repo,'paths_for_snake
 generated_paths_OSMuon     = read_generated_paths(out,join(repo,'paths_for_snakemake/generated_paths_OSMuon.txt'    ))
 
 #Define a hyperparameter chunk, used for parallelization of the training during hyperparameter optimization
-hyper_par_chunk = []
 
-pattern = re.compile(r"lr\d+\.?\d*_(bs\d+_nL\d+_nN\d+).yaml")
-for f in os.listdir(join(repo, 'configs')):
-    match = pattern.fullmatch(f)
-    if match:
-        hyper_par = match.group(1)
-        if hyper_par not in hyper_par_chunk:
-            hyper_par_chunk.append(hyper_par)
+with open(join(repo,'configs/hyperpar_intervals.yaml'), 'r') as file:
+    intervals = yaml.safe_load(file)
 
 
+intervals = {key[1:]: value for key, value in intervals.items()}
+print(intervals)
+
+hyper_par_chunk = expand('nL{nL}_nN{nN}', nL=intervals['numlayers'], nN=intervals['numneurons'])
+weights = [
+    'ones',
+    'signal_weights',
+    'pdf_ratio'
+]
 rule all:
     input:
         '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs1024_nL8_nN16/pdf_ratio/training/ROC_TRAIN_VAL.pdf',
@@ -350,7 +353,7 @@ rule add_features:
     output: 
         root =join(out, '{data_type, (MC|Data)}/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
     resources:
-        mem_mb = 20_000, # Specify memory requirement in megabytes
+        mem_mb = 30_000, 
         MaxRunHours = 4, # medium queue
         #request_disk = 50000
     run:

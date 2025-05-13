@@ -1,11 +1,10 @@
-# NN parameters
-train_val_split : 0.6 # test set percentage of dataset
-learning_rate : 0.001 #0.001
-train_batch_size : 1024
-n_epochs : 500
-architecture: 'simple'
-min_delta: 0.0
 activation_function: ELU
+dropout: 0.1
+learning_rate: 0.01
+min_delta: 0
+n_epochs: 20
+numlayers: 4
+numneurons: 8
 patience: 25
-
-
+train_batch_size: 1024
+train_val_split: 0.6

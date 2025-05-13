@@ -100,10 +100,13 @@ def read_files(files, vars, treename):
     return df
 
 def get_architecture(config):
-    nL = config['numlayers']
-    nN = config['numneurons']
-    dp = config['dropout']
-    return f'nL{nL}_nN{nN}_dp{dp}'
+    if 'architecture' in config.keys():
+        return config['architecture']
+    else:
+        nL = config['numlayers']
+        nN = config['numneurons']
+        dp = config['dropout']
+        return f'nL{nL}_nN{nN}_dp{dp}'
 
 # Moving pipeline to a function, to allow for Hyperparameter tuning in different file
 def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, treename, 
