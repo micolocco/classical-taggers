@@ -19,7 +19,7 @@ def setup_time_vars(time_unit, decay_time_branches, data, dm):
         data["time"] /= 0.29979
         # data["time_err"] /= 0.29979
 
-    data["time_mod_dm"] = data["time"] % (2 * np.pi / dm)
+    data["time_mod_dm"] = data["time"] % (2 * np.pi / dm) # dm value = world average for deltaMass
     return data
 
 if __name__ == '__main__':
@@ -71,7 +71,9 @@ if __name__ == '__main__':
                                   dec_data = df[f'{tagger}_TagDec'].tolist(),
                                   B_ID =df[B_ID_var].tolist(),
                                   mode = mode,
-                                  weight=df["signal_weights"].to_numpy().astype(np.float64), 
+                                  #weight=df["signal_weights"].to_numpy().astype(np.float64), 
+                                  weight=df["reweighter_weights"].to_numpy().astype(np.float64), 
+
                                   tau_ps=df["time"].to_numpy().astype(np.float64),)
         else:
             taggers.create_tagger(f"{tagger}",
@@ -79,7 +81,9 @@ if __name__ == '__main__':
                                   dec_data = df[f'{tagger}_Dec'].tolist(),
                                   B_ID =df[B_ID_var].tolist(),
                                   mode = mode,
-                                  weight=df["signal_weights"].to_numpy().astype(np.float64),
+                                  #weight=df["signal_weights"].to_numpy().astype(np.float64),
+                                  weight=df["reweighter_weights"].to_numpy().astype(np.float64), 
+
                                   tau_ps=df["time"].to_numpy().astype(np.float64),)
         # Different calibration curves for each tagger, maybe put a if wrt to tagger name
         if i==0:

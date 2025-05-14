@@ -6,8 +6,8 @@ from copy import deepcopy
 
 
 try:
-    raw_data = join(config['RAW_DATA'], 'reweighted/')
-    modified_data = join(config['MODIFIED_DATA'], 'reweighted/')
+    raw_data = config['RAW_DATA']
+    modified_data = config['MODIFIED_DATA']+'/reweighted'
     modified_MC = config['MODIFIED_MC']
     repo = config['REPO']
 except:
@@ -16,8 +16,8 @@ except:
 
 taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
-    #'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
-    'Bs2DsPi': ['SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
+    'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
+    # 'Bs2DsPi': ['SSKaon'],
     # 'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
     # 'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
 }
@@ -25,7 +25,7 @@ def find_tree_name(decay):
     if decay == 'Bs2JpsiPhi':
         return 'BsToJpsiPhi_Detached/DecayTree'
     if decay == 'Bs2DsPi':
-        return 'BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
+        return 'Hlt2B2OC_BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
     if decay == 'Bu2JpsiK':
         return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
     if decay == 'Bd2JpsiKst':
@@ -48,82 +48,47 @@ def extract_decay(tagger):
 # ls /ceph/users/molocco/FlavourTagging/data/reweighted/1_raw/Bu2JpsiK/*.root > block1_list.txt
 # where /ceph-kernel/FlavourTagging/NTuples/Run3/data/reweighted/ is the `raw_data` path
 
-#with open("block1_list.txt", "r") as f:
-#    files_s24c2 = f.readlines()
-#files_s24c2 = [line.strip() for line in files_s24c2]
-#files_s24c2 = [raw_data + line for line in files_s24c2]
-def select_input_files(decay):
-    """Read block1_list_Nicolas_<decay>.txt and return
-    a list of full EOS URLs for that decay."""
-    eosdir = 'root://eoslhcb.cern.ch/'
-    txt = f"block1_list_Nicolas_{decay}.txt"
-    with open(txt, "r") as f:
-        lines = [line.strip() for line in f]
-    return [eosdir + path for path in lines]
+with open("block1_list_Nicolas_Bu2JpsiK.txt", "r") as f:
+    files_s24c2 = f.readlines()
+files_s24c2 = [line.strip() for line in files_s24c2]
+files_s24c2 = [raw_data + line for line in files_s24c2]
 
-# 1) Rebuild ntuples_raw by decay
 ntuples_raw = {
-    decay: [
-        join(raw_data, '1_raw', decay, basename(path))
-        for path in select_input_files(decay)
-    ]
-    for decay in taggers_conf
-}
-# (2) now build ntuples_added_features cleanly:
-ntuples_added_features = {
-    decay: [
-        join(
-            modified_data,
-            '2_added_features',
-            decay,
-            basename(raw_path)
-        )
-        for raw_path in ntuples_raw[decay]
-    ]
-    for decay in ntuples_raw
+    'Bu2JpsiK': [join(raw_data, 'Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
+    #'Bd2JpsiKst': [join(raw_data, '1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
 }
 
-# 2) Rebuild ntuples_selected
-ntuples_selected = {
-    decay: {
-        tagger: [
-            join(
-                modified_data,
-                '3_selected',
-                decay,
-                tagger,
-                '{cut_name}',
-                '{balanced}',
-                '{features}',
-                basename(raw_path)
-            )
-            for raw_path in ntuples_raw[decay]
-        ]
-        for tagger in taggers_conf[decay]
-    }
-    for decay in ntuples_raw
-}
+print(ntuples_raw)
+for k,v in ntuples_raw.items():
+    ntuples_raw[k] = [f.replace(os.path.dirname(f), f'{raw_data}/{k}') for f in v]
 
-# 3) Rebuild ntuples_tagged
-ntuples_tagged = {
-    decay: {
-        tagger: [
-            join(
-                modified_data,
-                '4_tagged',
-                decay,
-                tagger,
-                '{cut_name}_{balanced}',
-                '{features}',
-                basename(raw_path)
-            )
-            for raw_path in ntuples_raw[decay]
-        ]
-        for tagger in taggers_conf[decay]
-    }
-    for decay in ntuples_raw
-}
+ntuples_added_features = {}
+for k,v in ntuples_raw.items():
+    #ntuples_added_features.update({k: [f.replace('1_raw', '2_added_features') for f in v]})
+    ntuples_added_features.update({k: [f.replace(f'{raw_data}', f'{modified_data}/2_added_features') for f in v]})
 
+ntuples_selected = {}
+for decay, path_list in ntuples_raw.items():
+    ntuples_selected.update({decay: {}})
+    #print(decay, path_list)
+    #print('-------')
+    for tagger in taggers_conf[decay] :
+        ntuples_selected[decay].update({tagger: [f.replace(f'{raw_data}', f'{modified_data}/3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
+
+ntuples_tagged = {}
+for decay, path_list in ntuples_raw.items():
+    ntuples_tagged.update({decay: {}})
+    for tagger in taggers_conf[decay]:
+        # Filter the paths to only include those ending with '4_1.mc.root'
+        #filtered_paths = [
+        #    f.replace('1_raw', '4_tagged')
+        #     .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}')
+        #    for f in path_list
+        #    #for f in path_list if f.endswith('.mc.root') #4_1.mc.root hold out sample
+        #]
+        ntuples_tagged[decay].update({tagger: [f.replace(f'{raw_data}', f'{modified_data}/4_tagged')  # 👈 Fix this
+                                        .replace(decay, f'{decay}/{tagger}/{{cut_name}}_{{balanced}}/{{features}}')
+                                        for f in path_list]})
 #ntuples_selected = {}
 #for decay, path_list in ntuples_raw.items():
 #    ntuples_selected.update({decay: {}})
@@ -138,10 +103,9 @@ ntuples_tagged = {
 
 rule all:
     input: 
-        expand(ntuples_tagged['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_tagged['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_tagged['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_tagged['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
@@ -154,7 +118,7 @@ rule add_features:
         script = join(repo, 'scripts/adding_features_v2.py'),
         #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
         #raw = join(data, 'withUT_MC_2024/1_raw/{decay}/{id}.root')
-        raw = join(raw_data, '1_raw/{decay}/{id}.root')
+        raw = join(raw_data, '{decay}/{id}.root')
 
     log: join(modified_data, '2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     output: 
@@ -173,7 +137,7 @@ rule add_features:
             '--evtType {wildcards.decay}',
             '--treename', tree,
             '--data_calib',
-            #'--signal_weights',
+            '--signal_weights',
             '&> {log}',
         ]
         shell(' '.join(cmd))
@@ -197,7 +161,6 @@ rule add_selection:
         cmd = [
             'python', input.script,
             '--added_features {input.added_features}',
-            
             '--output {output}',
             #'--treename', tree,
             '--cut_file', input.cut_file,
@@ -206,7 +169,7 @@ rule add_selection:
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
             '--data_calib',
-            #'--signal_weights',
+            '--signal_weights',
             '--repo', repo,
             '&> {log}',
         ]
@@ -238,7 +201,7 @@ rule add_tagDec:
             '--features {wildcards.features}',
             '--repo', repo,
             '--data_calib',
-            #'--signal_weights',
+            '--signal_weights',
             '&> {log}'
         ]
         shell(' '.join(cmd))
