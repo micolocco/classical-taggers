@@ -24,7 +24,7 @@ class inputDataset(Dataset):
 
     # Get a row at an index
     def __getitem__(self, index):
-        return [self.X[index], self.y[index]]
+        return [self.X[index], self.y[index], index]
     
     # Apply scaling
     def scale (self, test, scalerPath, transformerPath):

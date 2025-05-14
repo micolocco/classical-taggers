@@ -86,8 +86,8 @@ def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size
     val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # Prepare data loaders
     #torch.manual_seed(seed) # to ensure reproducibility
-    train_dl = DataLoader(IndexedDataset(train_dataset), batch_size = train_batch_size, shuffle=False)
-    validation_dl = DataLoader(IndexedDataset(val_dataset), batch_size = test_batch_size, shuffle=False)
+    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False)
+    validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
     return train_dl, validation_dl 
 
 
@@ -473,16 +473,3 @@ def print_taggingInfo(tag_file='taggingInfo.json'):
         print(f"{key}: {value}")
 
 
-
-
-
-class IndexedDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset):
-        self.dataset = dataset
-    
-    def __getitem__(self, idx):
-        data, target = self.dataset[idx]
-        return data, target, idx  # Also return index
-
-    def __len__(self):
-        return len(self.dataset)
