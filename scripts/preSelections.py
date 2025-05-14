@@ -82,6 +82,8 @@ run2_taggers_variables = [
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
         #'B_Run2_OSMuon_MVA',
+        'B_Run2_OSVertexCharge_Dec',
+        'B_Run2_OSVertexCharge_Omega',
     ]
 
 if __name__ == '__main__':
@@ -99,6 +101,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_calib', action='store_true') # action='store_true' means args.data_calib will be set to True 
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--signal_weights', action='store_true', help='store signal_weights if they are already in the NTuples') # action='store_true' means args.signal_weights will be set to True if the --signal_weights argument is provided on the command line.
+    parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
+    
     #parser.add_argument('--run2_taggers', help='If specified, run2 taggers info is added',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
 
     cfg = parser.parse_args()
@@ -111,7 +115,16 @@ if __name__ == '__main__':
     extra_variables = ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge',]
     
     if cfg.BKG0: extra_variables += ['B_BKGCAT']
-    if cfg.data_calib: extra_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+    if cfg.data_calib: 
+        extra_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+        if not cfg.evtType:
+            if "Jpsi" in cfg.evtType:
+                extra_variables.append("B_DTF_PV_Jpsi_MASS")
+                #loading_variables.append("B_DTF_PV_Jpsi_MASSERR")
+            elif "Ds" in cfg.evtType:
+                extra_variables.append("B_DTF_PV_Ds_MASS") 
+                #loading_variables.append("B_DTF_PV_Ds_MASSERR")
+
     if cfg.signal_weights: extra_variables += ["signal_weights"]
 
     loading_variables = features + selection_variables + extra_variables + run2_taggers_variables

@@ -63,9 +63,17 @@ if __name__ == '__main__':
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
     if cfg.data_calib: 
-        loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+        loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
         if cfg.signal_weights: 
             loading_variables += ["signal_weights"]
+        if not cfg.decayType:
+            if "Jpsi" in cfg.decayType:
+                loading_variables.append("B_DTF_PV_Jpsi_MASS")
+                #loading_variables.append("B_DTF_PV_Jpsi_MASSERR")
+            elif "Ds" in cfg.decayType:
+                loading_variables.append("B_DTF_PV_Ds_MASS") 
+                #loading_variables.append("B_DTF_PV_Ds_MASSERR")
+
     else: 
         loading_variables += ["B_TRUEID"]
     loading_variables = np.unique(loading_variables).tolist()
@@ -150,7 +158,14 @@ if __name__ == '__main__':
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
     save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
     if cfg.data_calib:
-        save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+        save_vars += ["FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
+        if "Jpsi" in cfg.decayType:
+            save_vars.append("B_DTF_PV_Jpsi_MASS")
+            #loading_variables.append("B_DTF_PV_Jpsi_MASSERR")
+        elif "Ds" in cfg.decayType:
+            save_vars.append("B_DTF_PV_Ds_MASS") 
+            #loading_variables.append("B_DTF_PV_Ds_MASSERR")
+
         if cfg.signal_weights: 
             save_vars += ["signal_weights"]
     with uproot.recreate(f"{cfg.taggedData}") as file:

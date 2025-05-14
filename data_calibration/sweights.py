@@ -70,8 +70,8 @@ if __name__ == '__main__':
     parser.add_argument('--simulation', action="store_true", help='If data are MC or real-data. If specified it is MC')
 
     # Arguments to use for mass fit or sweights
-    parser.add_argument('--decayType', help='Decay used for the calibration', type=str)
-    parser.add_argument('--obs', help='Observable to fit', type=str, default="B_DTF_PV_Jpsi_MASS")
+    parser.add_argument('--decayType', help='Decay used for the calibration', type=str, required=True)
+    parser.add_argument('--obs', help='Observable to fit', type=str, default=None)
     parser.add_argument('--range', help='Observable range', nargs="+", default=[5200, 5400])
     parser.add_argument('--output', help='Where fit results and plots will be stored', type=str)
     
@@ -81,7 +81,6 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     # pprint(cfg)
 
-    massname = cfg.obs
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
     outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}", "data_fit")
     os.makedirs(outputdir, exist_ok=True)
@@ -91,12 +90,26 @@ if __name__ == '__main__':
         treename = "BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree"
     elif cfg.decayType == "Bs2DsPi":
         treename ='BdToDsmPi_DsmToKpKmPim/DecayTree'
+    
+    if not cfg.obs: 
+        if "Jpsi" in cfg.decayType:
+            massname = "B_DTF_PV_Jpsi_MASS"
+            #loading_variables.append("B_DTF_PV_Jpsi_MASSERR")
+        elif "Ds" in cfg.decayType:
+            massname = "B_DTF_PV_Ds_MASS"
+            #loading_variables.append("B_DTF_PV_Ds_MASSERR")
+    else:
+        massname = cfg.obs 
 
+
+
+    vars = []
     if not cfg.simulation:
         taggers_dataframes = []  # List to store DataFrames for each tagger
         for tagger in cfg.tagger:
             print(tagger)
-            vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', "B_ID", 'entry', "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_CTAU"]
+            vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', "B_ID", 'entry', "FillNumber", "B_DTF_PV_CTAU"]
+            vars.append(massname)
             input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
             input_files = glob.glob(input_path)
             # Loop over all files
@@ -133,12 +146,23 @@ if __name__ == '__main__':
         print(f"Input files: {input_files}")
         # Loop over all files
         # Read all MC to make mass fit 
-        for file in input_files:
-            with uproot.open(file) as f:
-                _df = f[treename].arrays([massname], library="pd")
+        #for file in input_files:
+        #    with uproot.open(file) as f:
+        #        _df = f[treename].arrays([massname], library="pd")
+        #    df_data = pd.concat([df_data, _df], ignore_index = True)
+        
+        # New block for multi-candidates removal here as well
+        for i, f in enumerate(input_files):
+            print(f"Reading input file: {f}")
+            with uproot.open(f) as _f:
+                _df = _f[treename].arrays([massname], library="pd")
+            _df.dropna(inplace=True)
+            _df["SAMPLENUMBER"] = i
+            _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+            _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
             df_data = pd.concat([df_data, _df], ignore_index = True)
-
-
+    
+    
     df_data = df_data.query(f'{cfg.obs} < {mass_range[1]} and {cfg.obs} > {mass_range[0]}')
 
     masses = df_data[massname].values

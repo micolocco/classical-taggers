@@ -77,7 +77,8 @@ for decay, path_list in raw_data.items():
 
 rule all:
     input: 
-        tagged_data['Bs2DsPi']['SSKaon'],
+        raw_data['Bs2DsPi'],
+        #tagged_data['Bs2DsPi']['SSKaon'],
         #tagged_data['Bs2DsPi']['OSKaon'],
 
         #tagged_data['Bs2DsPi']['OSElectron'],
@@ -109,7 +110,7 @@ rule add_features_data:
     output:
         root =join(data, '{sample_type}/1_raw/{decay}/{id}.root')
     resources:
-        mem_mb = 20000, # Specify memory requirement in megabytes
+        mem_mb = 100000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
 
     run:
@@ -141,6 +142,7 @@ rule add_selection_data:
             '--cut_file', input.cut_file,
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
+            '--evtType {wildcards.decay}',
             '--data_calib',
             '--repo', repo,
             '&> {log}',
