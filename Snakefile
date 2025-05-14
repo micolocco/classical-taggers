@@ -237,8 +237,10 @@ weights = [
 ]
 rule all:
     input:
-        expand(join(out, 'Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nL}_nN{nN}/{weight}/training/model.pth'),
-               lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nL=intervals['numlayers'], nN=intervals['numneurons'], weight=weights),
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.1_bs2048_nL2_nN4/ones/training/model.pth'
+
+        # expand(join(out, 'Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nL}_nN{nN}/{weight}/training/model.pth'),
+        #        lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nL=intervals['numlayers'], nN=intervals['numneurons'], weight=weights),
 
 
 
@@ -432,24 +434,18 @@ def copy_to_scratch(paths):
     scratch_paths = []
 
     # check whether ceph-kernel is mounted. If yes, copy from there
-    kernel_live = False
+    to_replace = 'ceph/users'
     if os.path.exists(paths[0].replace("ceph", "ceph-kernel")):
         paths = [path.replace("ceph", "ceph-kernel") for path in paths]
-        kernel_live = True
+        to_replace = 'ceph-kernel/users'
 
 
     for path in paths:
-        if kernel_live:
-            # if ceph-kernel is mounted, copy from there
-            path_scratch = path.replace("ceph-kernel/users", "scratch")
-        else:
-            # if not, copy from ceph
-            # replace the ceph path with scratch path
-            path_scratch = path.replace("ceph/users", "scratch")
+        path_scratch = path.replace(to_replace, "scratch")
         #make sure path on scratch exists or is created
         shell(f'mkdir -p {os.path.dirname(path_scratch)}')
         #Copy data from ceph to scratch
-        shell(f'cp {path} {path_scratch}')
+        # shell(f'cp {path} {path_scratch}')
         scratch_paths.append(path_scratch)
     return scratch_paths
 
@@ -934,7 +930,7 @@ rule train_tagger_data:
         mem_mb = 60_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 8,#24, # long queue
+        MaxRunHours = 24, # long queue
     threads:
         len(hyper_par_chunk)+1     if batched else 1,
     run:

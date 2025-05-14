@@ -111,17 +111,12 @@ def get_architecture(config):
 # Moving pipeline to a function, to allow for Hyperparameter tuning in different file
 def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, treename, 
                       tagger, seed, features, config, decay_type, 
-                      repo, data_type, weight_type, num_threads = 1, clean = False, logfile = None, debug = True):
+                      repo, data_type, weight_type, num_threads = 1, clean = False, logfile = None):
     if logfile is not None:
         from scripts.batch_train_tagger import ThreadLocalStdout
         sys.stdout = ThreadLocalStdout()
         sys.stdout.set_log_file(logfile)
-
-    #Set Debug modes
-    torch.autograd.set_detect_anomaly(debug)
-    torch.autograd.profiler.emit_nvtx(debug)
-    torch.autograd.profiler.profile(debug)
-    
+   
 
     torch.jit.enable_onednn_fusion(True)
     

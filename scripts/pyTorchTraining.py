@@ -20,7 +20,7 @@ from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 import yaml
 import sys
-
+import psutil
 
 def recreate_directory(target_path, clean=False):
     '''Function to make sure that the ouptut directory exists and it's empty to 
@@ -123,6 +123,8 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
         stopped = False
         bestEpoch = 0
 
+               
+
         torch.set_num_threads(num_threads)
         training_start = time.time()
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
@@ -146,6 +148,7 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
             validationStep_loss = model.validate_model(validation_dl, sample_weights=val_weights)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
             print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
+            print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}')
             epochtimes.append((time.time()-epoch_start))
 
             if early_stopper.early_stop(validationEpoch_loss[-1]): 

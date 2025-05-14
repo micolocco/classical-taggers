@@ -48,12 +48,12 @@ class NeuralNetwork(nn.Module):
     def train_model(self, train_dl, epoch,n_epochs, sample_weights=None):
         n_total_steps = len(train_dl)
         stepLoss = []
-        self.train()
+        self.train() #Sets model to training mode
         # enumerate mini batches
 
         for i, (inputsTrain, targetsTrain, indices) in enumerate(train_dl):
             # Clear the gradients
-            self.optimizer.zero_grad(set_to_none=True) #TODO set_to_none=True ??
+            self.optimizer.zero_grad(set_to_none=True)
             # compute the model output
             yPredTrain = self(inputsTrain)
             if sample_weights is not None:
@@ -71,7 +71,7 @@ class NeuralNetwork(nn.Module):
         return stepLoss
     
     def validate_model(self, validation_dl, sample_weights=None):
-        self.eval()
+        self.eval() #Sets model to evaluation mode
         validationStep_loss = []
         for i, (inputsVal, targetsVal, indices) in enumerate(validation_dl):
     
@@ -83,7 +83,6 @@ class NeuralNetwork(nn.Module):
                 batch_weights = None
             with torch.no_grad():
                 validation_loss = self.calc_loss(yPredVal, targetsVal, sample_weights=batch_weights)
-            #print(f'validation loss requires gradient : {validation_loss.requires_grad}')  # TODO with torch.no_grad(): ??
             validationStep_loss.append(validation_loss.item())
         return validationStep_loss
     
