@@ -1,10 +1,10 @@
 activation_function: ELU
 dropout: 0.1
-learning_rate: 0.01
+learning_rate: 0.001
 min_delta: 0
-n_epochs: 20
+n_epochs: 10
 numlayers: 4
 numneurons: 8
 patience: 25
-train_batch_size: 1024
+train_batch_size: 16384
 train_val_split: 0.6

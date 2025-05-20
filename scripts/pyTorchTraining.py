@@ -2,7 +2,6 @@ import numpy as np
 import os
 import time
 import torch
-from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 import copy
 from matplotlib import pyplot as plt
@@ -21,6 +20,13 @@ matplotlib_lhcb_style(plt)
 import yaml
 import sys
 import psutil
+
+from torch.distributed import init_process_group, destroy_process_group
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, DistributedSampler
+import torch.multiprocessing as mp
+
 
 def recreate_directory(target_path, clean=False):
     '''Function to make sure that the ouptut directory exists and it's empty to 
@@ -78,7 +84,7 @@ def splitByEvent (df, seed, train_val_split):
     return train_df.query('selected==1'), val_df.query('selected==1'), test_df
     
 
-def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size, seed, test_batch_size = 1024):
+def prepare_data(train_df, val_df, seed, scalerPath, transformerPath): #, train_batch_size, test_batch_size = 1024, distributed = False
     # Load the dataset
     train_dataset = inputDataset(df=train_df) #scaler=PowerTransformer() 
     train_dataset.scale(test=False, scalerPath=scalerPath, transformerPath=transformerPath)
@@ -86,9 +92,18 @@ def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size
     val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # Prepare data loaders
     #torch.manual_seed(seed) # to ensure reproducibility
-    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False)
-    validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
-    return train_dl, validation_dl 
+
+    # if distributed:
+    #     train_sampler=DistributedSampler(train_dataset)
+    #     val_sampler=DistributedSampler(val_dataset)
+    # else:
+    #     train_sampler=None
+    #     val_sampler=None
+
+    # train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False, sampler=train_sampler)
+    # validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False, sampler=val_sampler)
+    # return train_dl, validation_dl 
+    return train_dataset, val_dataset
 
 
 def plot_features(data, features_list, target_path, name, flag, nbins=100):
@@ -111,21 +126,30 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
             plt.tight_layout()
             pos+=1
     plt.savefig(f"{target_path}/{name}.pdf")
-    
 
-def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config, train_weights = None, val_weights= None, num_threads=1):
+
+def ddp_setup(rank, world_size): #Create a way for the processes to communicate with each other
+    """
+    Args:
+        rank: Unique identifier of each process
+        world_size: Total number of processes
+    """
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
+    init_process_group(backend="gloo", rank=rank, world_size=world_size)
+    #above needs to be run before distributed sampler or DistributedDataParallel is created. 'gloo' is needed for CPU training. Rank is a unique 
+    #identifier for each process, and world_size is the total number of processes. 
+
+def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, return_dict, train_weights = None, val_weights= None, num_threads=1):
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
         lossValBest = 10000
-        rollingAverageNew = 0
-        rollingAverageOld = 10000 # just to be sure that the first rolling average value is lower than this
         stopped = False
         bestEpoch = 0
 
                
 
-        torch.set_num_threads(num_threads)
         training_start = time.time()
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
         
@@ -134,21 +158,46 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
             train_weights = torch.from_numpy(train_weights)
         if val_weights is not None:
             val_weights = torch.from_numpy(val_weights)
-        initial_validation_loss = model.validate_model(validation_dl, sample_weights=val_weights)
-        print(f"The initial Validation Loss: {np.array(np.array(initial_validation_loss).mean()).mean():.6f}")
+
+        if num_threads>1:
+            ddp_setup(rank, num_threads)
+            ddpmodel = DDP(model)
+
+            module = ddpmodel.module
+            train_sampler = DistributedSampler(train_ds, num_replicas=num_threads, rank=rank)
+            validation_sampler = DistributedSampler(validation_ds, num_replicas=num_threads, rank=rank)
+        else:
+            module = model
+            train_sampler = None
+            validation_sampler = None
+        
+        train_batch_size = int(config['train_batch_size']/num_threads) #Ensures same effective batch size regardless of number of threads
+        val_batch_size = int(config['train_batch_size']/num_threads) #Might want to change this to a seperate hyperparameter in the config file
+        
+        train_dl = DataLoader(train_ds, batch_size=train_batch_size, shuffle=False, sampler=train_sampler)
+        validation_dl = DataLoader(validation_ds, batch_size=val_batch_size, shuffle=False, sampler=validation_sampler)
+        
+        initial_validation_loss = module.validate_model(validation_dl, sample_weights=val_weights)
+        if rank == 0:
+            print(f"The initial Validation Loss: {np.array(np.array(initial_validation_loss).mean()).mean():.6f}")
         
         epochtimes = []
         for epoch in range(config['n_epochs']):
             epoch_start = time.time()
-            print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}-------------")
-            stepLoss = model.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)
+            if num_threads>1:
+                train_dl.sampler.set_epoch(epoch)
+                validation_dl.sampler.set_epoch(epoch)
+            if rank == 0:
+                print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
+            stepLoss = module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)
             # Train over mini-batches
             trainingEpoch_loss.append(np.array(stepLoss).mean())
             # Compute validation loss
-            validationStep_loss = model.validate_model(validation_dl, sample_weights=val_weights)
+            validationStep_loss = module.validate_model(validation_dl, sample_weights=val_weights)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
-            print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
-            print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}')
+            if rank == 0:
+                print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
+                print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
             epochtimes.append((time.time()-epoch_start))
 
             if early_stopper.early_stop(validationEpoch_loss[-1]): 
@@ -159,33 +208,31 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
                 lossTrainBest = trainingEpoch_loss[-1]
                 bestEpoch = epoch
                 # save_model(model, target_path)
-                bestModel = copy.deepcopy(model)
+                bestModel = copy.deepcopy(module)
             i +=1
-        training_time = round((time.time()- training_start) / 60 , 2)
-        #calculate standard deviation of epoch times
-        epochtimes_mean = np.mean(epochtimes)
-        epochtimes_std = np.std(epochtimes)
+        if num_threads>1:
+            destroy_process_group()
+    
 
-        print(f'Average time per epoch: {epochtimes_mean} +/- {epochtimes_std} seconds')
-        print(f"Training finished in {training_time} min, {i-1} epochs, early stopping: {stopped}")
-        return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
-            #if epoch > earlyStop:  # check the termination condition
-            #    rollingAverageNew = np.mean(validationEpoch_loss[-earlyStop:])
-            #    if validationEpoch_loss[-1] < lossValBest:
-            #        lossValBest = validationEpoch_loss[-1]
-            #        lossTrainBest = trainingEpoch_loss[-1]
-            #        bestEpoch = epoch
-            #        save_model(model, name_formatter)
-            #        bestModel = copy.deepcopy(model)
-            #        
-            #if epoch > (earlyStop +1):
-            #    if rollingAverageNew > rollingAverageOld:
-            #        stopped = True 
-            #        break
-            #    rollingAverageOld = rollingAverageNew 
-            
-        #return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, dtype=float)
 
+        #Getting around not being able to return from the DDP process
+        if rank == 0:
+            training_time = round((time.time()- training_start) / 60 , 2)
+            #calculate standard deviation of epoch times
+            epochtimes_mean = np.mean(epochtimes)
+            epochtimes_std = np.std(epochtimes)
+
+            print(f'Average time per epoch: {epochtimes_mean} +/- {epochtimes_std} seconds')
+            print(f"Training finished in {training_time} min, {i-1} epochs, early stopping: {stopped}")
+
+            return_dict['bestModel'] = bestModel
+            return_dict['trainingEpoch_loss'] = trainingEpoch_loss
+            return_dict['validationEpoch_loss'] = validationEpoch_loss
+            return_dict['bestEpoch'] = bestEpoch
+            return_dict['bestLosses'] = np.array([lossTrainBest, lossValBest], dtype=float)
+
+        
+        
 def save_model(model, target_path, filename = 'model.pth'):
     # target_path = name_formatter.assign_name(folder, target_path)
     torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/{filename}")

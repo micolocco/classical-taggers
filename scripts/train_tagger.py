@@ -22,6 +22,11 @@ matplotlib_lhcb_style(plt)
 import utils
 import psutil
 
+from torch.distributed import init_process_group, destroy_process_group
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, DistributedSampler
+import torch.multiprocessing as mp
 
 def stats_printout(tagger, decay_type, train_df, val_df, BID):
     '''
@@ -109,18 +114,15 @@ def get_architecture(config):
         return f'nL{nL}_nN{nN}_dp{dp}'
 
 # Moving pipeline to a function, to allow for Hyperparameter tuning in different file
-def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, treename, 
+def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, 
                       tagger, seed, features, config, decay_type, 
                       repo, data_type, weight_type, num_threads = 1, clean = False, logfile = None):
     if logfile is not None:
         from scripts.batch_train_tagger import ThreadLocalStdout
         sys.stdout = ThreadLocalStdout()
         sys.stdout.set_log_file(logfile)
-   
 
     torch.jit.enable_onednn_fusion(True)
-    
-
     start = datetime.datetime.now()
 
     print(f'Training started on {start.strftime("%Y-%m-%d %H:%M:%S")}')
@@ -153,8 +155,8 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
 
 
     
-    train_batch_size = config['train_batch_size']
-    val_batch_size = config['train_batch_size'] #Might want to change this to a seperate hyperparameter in the config file
+    train_batch_size = int(config['train_batch_size']/num_threads) #Ensures same effective batch size regardless of number of threads
+    val_batch_size = int(config['train_batch_size']/num_threads) #Might want to change this to a seperate hyperparameter in the config file
     weights_train = None
     weights_val = None
     if data_type == 'Data' and weight_label != 'ones': 
@@ -175,20 +177,47 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     print(train_df.drop(columns = columns_to_drop).columns)
     print(features)
     
-    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=train_batch_size, seed=seed, scalerPath=scalerPath, transformerPath=transformerPath, test_batch_size = val_batch_size)
     if config!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
     model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
 
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config = config, train_weights = weights_train, val_weights= weights_val, num_threads=num_threads)
+    train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), 
+                                                   seed=seed, scalerPath=scalerPath, transformerPath=transformerPath,)
     
+    
+
+
+    if num_threads>1:
+        return_dict = mp.Manager().dict()
+
+        mp.spawn(pyTrain.train_model_EarlyStopping, args=(model, train_ds, 
+                                          validation_ds, target_path, 
+                                          config, return_dict,
+                                          weights_train, weights_val, 
+                                          num_threads), nprocs=num_threads)
+        
+    else:
+        return_dict = {}
+        pyTrain.train_model_EarlyStopping(0, model, train_ds, 
+                                validation_ds, target_path, 
+                                config = config,
+                                return_dict = return_dict,
+                                train_weights = weights_train, 
+                                val_weights= weights_val, 
+                                num_threads=num_threads)
+    
+    print(return_dict)
+
+    bestModel = return_dict['bestModel']
     pyTrain.save_model(bestModel, target_path)
     
-    pyTrain.plot_losses(tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, target_path)
-    pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, target_path)
+    pyTrain.plot_losses(tagger, return_dict['trainingEpoch_loss'], return_dict['validationEpoch_loss'], return_dict['bestEpoch'], return_dict['bestLosses'], target_path)
+    pyTrain.save_losses(return_dict['trainingEpoch_loss'], return_dict['validationEpoch_loss'], return_dict['bestEpoch'], return_dict['bestLosses'], target_path)
     # Plot ROC curves for validation and train test
     bestModel.eval()
+    train_dl = DataLoader(train_ds, batch_size = train_batch_size, shuffle=False)
+    validation_dl = DataLoader(validation_ds, batch_size = val_batch_size, shuffle=False)
     val_df['yPred'], val_df['yTrue'] = bestModel.evaluate_model(validation_dl)
     train_df['yPred'], train_df['yTrue'] = bestModel.evaluate_model(train_dl)
     pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path)
@@ -266,8 +295,8 @@ if __name__ == '__main__':
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
 
-
     training_pipeline(train_df=train_df, val_df=val_df, vars=vars, weight_label=weight_label, BID=BID, 
-                      target_path=cfg.target_path, treename=cfg.treename, tagger=cfg.tagger, seed=cfg.seed, features=features, 
-                      config=cfg.config, decay_type=cfg.decay_type, clean=cfg.clean, repo=cfg.repo, data_type=cfg.data_type, 
-                      weight_type=cfg.weight_type, num_threads=cfg.num_threads)
+                      target_path=cfg.target_path, tagger=cfg.tagger, seed=cfg.seed, features=features, 
+                      config=cfg.config, decay_type=cfg.decay_type, repo=cfg.repo, data_type=cfg.data_type, 
+                      weight_type=cfg.weight_type, num_threads=cfg.num_threads, clean=cfg.clean)
+    

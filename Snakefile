@@ -856,7 +856,7 @@ rule train_tagger_MC:
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 24, # long queue
     threads:
-        len(hyper_par_chunk)+1 if batched else 1,
+        len(hyper_par_chunk)+1 if batched else 4,
     run:
         train_scratch = copy_to_scratch(input.train)
         val_scratch = copy_to_scratch(input.val)
@@ -894,11 +894,10 @@ rule train_tagger_MC:
             conditional_cmd = [
                 '--target_path', outpath,
                 '--config {input.config}',
+                '--num_threads {threads}',
                 '&> {log}',
             ]
-        print(cmd)
         cmd = cmd + conditional_cmd
-        print(cmd)
         shell(' '.join(cmd))
 
 rule train_tagger_data:
@@ -927,12 +926,12 @@ rule train_tagger_data:
         # chunk_log = join(out, 'Data/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/training_chunk.log')
         #     if batched else None,
     resources:
-        mem_mb = 60_000, # Specify memory requirement in megabytes 
+        mem_mb = 60_000 if batched else 35_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 24, # long queue
     threads:
-        len(hyper_par_chunk)+1     if batched else 1,
+        len(hyper_par_chunk)+1     if batched else 32,
     run:
         train_scratch = copy_to_scratch(input.train)
         val_scratch = copy_to_scratch(input.val)
@@ -972,10 +971,10 @@ rule train_tagger_data:
             conditional_cmd = [
                 '--target_path', outpath,
                 '--config {input.config}',
+                '--num_threads {threads}',
                 '&> {log}',
             ]
 
-        print('cmd:', cmd)
         cmd = cmd + conditional_cmd
         shell(' '.join(cmd))
 
