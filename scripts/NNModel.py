@@ -92,7 +92,7 @@ class NeuralNetwork(nn.Module):
         
         loss = torch.reshape(self.criterion(yPred, target), (-1,))
         
-        loss = torch.matmul(loss,sample_weights.float()) / torch.mean(sample_weights)
+        loss = torch.matmul(loss,sample_weights.float()) / torch.sum(sample_weights)
         return loss.mean()
 
     # Evaluate the model
