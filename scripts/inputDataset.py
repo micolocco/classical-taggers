@@ -4,6 +4,7 @@ from sklearn.preprocessing import StandardScaler, PowerTransformer
 from pickle import dump
 from pickle import load
 import numpy as np
+from torch import tensor
 
 # Dataset definition
 class inputDataset(Dataset):
@@ -24,7 +25,7 @@ class inputDataset(Dataset):
 
     # Get a row at an index
     def __getitem__(self, index):
-        return [self.X[index], self.y[index], index]
+        return [tensor(self.X[index]), tensor(self.y[index]), tensor(index)]
     
     # Apply scaling
     def scale (self, test, scalerPath, transformerPath):

@@ -108,33 +108,11 @@ def get_architecture(config):
         dp = config['dropout']
         return f'nL{nL}_nN{nN}_dp{dp}'
 
-# Moving pipeline to a function, to allow for Hyperparameter tuning in different file
-def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, treename, 
-                      tagger, seed, features, config, decay_type, 
-                      repo, data_type, weight_type, num_threads = 1, clean = False, logfile = None):
-    if logfile is not None:
-        from scripts.batch_train_tagger import ThreadLocalStdout
-        sys.stdout = ThreadLocalStdout()
-        sys.stdout.set_log_file(logfile)
-   
-
-    torch.jit.enable_onednn_fusion(True)
-    
-
-    start = datetime.datetime.now()
-
-    print(f'Training started on {start.strftime("%Y-%m-%d %H:%M:%S")}')
-
+def get_dataLoaders(train_df, val_df, config_name, target_path, data_type, weight_type, seed, tagger, decay_type, distributed = False):
     # Load YAML configuration file
-    with open(f'{config}', 'r') as file:
+    with open(f'{config_name}', 'r') as file:
         config = yaml.safe_load(file)
     
-    print(vars)
-
-    
-    print(f"The features used are: {features}", flush=True)
-    # Check and eventually make output directory where training info will be saved
-    pyTrain.recreate_directory(target_path, clean=clean)
     # Path to where the scaler parameters will be saved
     scalerPath = f"{target_path}/st_scaler.pkl"
     transformerPath = f"{target_path}/powerTransformer.pkl"
@@ -142,17 +120,9 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     if data_type == 'Data':
         weight_label = weight_type
 
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Device used: {device}")
-    
-
-
     train_df.sample(frac=1, random_state=seed).reset_index(drop=True)
     val_df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
-
-    
     train_batch_size = config['train_batch_size']
     val_batch_size = config['train_batch_size'] #Might want to change this to a seperate hyperparameter in the config file
     weights_train = None
@@ -160,7 +130,7 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     if data_type == 'Data' and weight_label != 'ones': 
         weights_train = train_df[weight_label].to_numpy()
         weights_val = val_df[weight_label].to_numpy()
-    
+
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
@@ -176,21 +146,17 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     print(features)
     
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=train_batch_size, seed=seed, scalerPath=scalerPath, transformerPath=transformerPath, test_batch_size = val_batch_size)
-    if config!='configs/config_test':
+    
+    if config_name!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
-    model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
-    print(f"\nThe NN architecture is: \n{model}\n")
+    
+    return train_dl, validation_dl, weights_train, weights_val
 
-    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config = config, train_weights = weights_train, val_weights= weights_val, num_threads=num_threads)
-    
-    pyTrain.save_model(bestModel, target_path)
-    
-    pyTrain.plot_losses(tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, target_path)
-    pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, target_path)
+def gen_training_plots(model, train_df, val_df, train_dl, validation_dl, target_path, tagger):
     # Plot ROC curves for validation and train test
-    bestModel.eval()
-    val_df['yPred'], val_df['yTrue'] = bestModel.evaluate_model(validation_dl)
-    train_df['yPred'], train_df['yTrue'] = bestModel.evaluate_model(train_dl)
+    model.eval()
+    val_df['yPred'], val_df['yTrue'] = model.evaluate_model(validation_dl)
+    train_df['yPred'], train_df['yTrue'] = model.evaluate_model(train_dl)
     pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path)
     # Fit with logistic regression and save it (non needed for the moment)
     #clf = pyTrain.logistic_regression(df=train_df, target_path=target_path)
@@ -208,9 +174,49 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path, t
     plt.yscale("log")
     plt.savefig(f"{target_path}/trainingSet_prob1distrib.pdf")
 
+
+def training(train_dl, validation_dl, vars,  weights_train, weights_val, target_path,  
+                      tagger, seed, features, config,  
+                      repo, num_threads = 1, clean = False, logfile = None):
+    if logfile is not None:
+        from scripts.batch_train_tagger import ThreadLocalStdout
+        sys.stdout = ThreadLocalStdout()
+        sys.stdout.set_log_file(logfile)
+        print(f'Trained in Batch mode')
+
+    torch.jit.enable_onednn_fusion(True)
+    
+
+    start = datetime.datetime.now()
+    print(f'Training started on {start.strftime("%Y-%m-%d %H:%M:%S")}')
+
+    # Load YAML configuration file
+    with open(f'{config}', 'r') as file:
+        config = yaml.safe_load(file)
+    print(vars)
+
+    
+    # Check and eventually make output directory where training info will be saved
+    pyTrain.recreate_directory(target_path, clean=clean)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Device used: {device}")
+
+    model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
+    print(f"\nThe NN architecture is: \n{model}\n")
+
+    bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config = config, train_weights = weights_train, val_weights= weights_val, num_threads=num_threads)
+    
+    pyTrain.save_model(bestModel, target_path)
+    
+    pyTrain.plot_losses(tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, target_path)
+    pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, target_path)
+
+    plt.savefig(f"{target_path}/trainingSet_prob1distrib.pdf")
+
     end = datetime.datetime.now()
     print(f'Training ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
     print(f'Training time: {end - start}')
+    return bestModel
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -265,9 +271,13 @@ if __name__ == '__main__':
     val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
+    train_dl, validation_dl, weights_train, weights_val = get_dataLoaders(train_df=train_df, val_df=val_df, config_name=cfg.config, 
+                                                                          target_path=cfg.target_path, data_type=cfg.data_type, 
+                                                                          weight_type=cfg.weight_type, seed=cfg.seed, tagger=cfg.tagger, 
+                                                                          decay_type=cfg.decay_type, distributed = False)
+    
+    model = training(train_dl=train_dl, validation_dl=validation_dl, vars=vars, weights_train=weights_train, 
+                                      weights_val=weights_val, target_path=cfg.target_path, tagger=cfg.tagger, seed=cfg.seed, 
+                                      features=features, config=cfg.config, repo=cfg.repo, num_threads=cfg.num_threads, clean=cfg.clean)
 
-
-    training_pipeline(train_df=train_df, val_df=val_df, vars=vars, weight_label=weight_label, BID=BID, 
-                      target_path=cfg.target_path, treename=cfg.treename, tagger=cfg.tagger, seed=cfg.seed, features=features, 
-                      config=cfg.config, decay_type=cfg.decay_type, clean=cfg.clean, repo=cfg.repo, data_type=cfg.data_type, 
-                      weight_type=cfg.weight_type, num_threads=cfg.num_threads)
+    gen_training_plots(model, train_df, val_df, train_dl, validation_dl, cfg.target_path, cfg.tagger)

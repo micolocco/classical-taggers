@@ -2,6 +2,8 @@ import argparse
 from pprint import pprint
 import scripts.pyTorchTraining as pyTrain
 from scripts.train_tagger import training_pipeline
+from scripts.train_tagger import training
+
 from scripts.train_tagger import read_files
 from scripts.NNModel import NeuralNetwork
 import datetime
@@ -9,7 +11,10 @@ import multiprocessing as mp
 import sys
 import threading
 from os.path import basename
-    
+import yaml
+import shutil
+from os.path import join
+
 #Define a custom stdout class to handle thread-local output to different log files
 class ThreadLocalStdout:
     def __init__(self):
@@ -92,11 +97,32 @@ if __name__ == '__main__':
     val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
+    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", BID]#, 'B_DTF_PV_Jpsi_MASS']
+    if cfg.data_type == 'Data' and weight_label != 'ones':
+        columns_to_drop.append(weight_label)
+
+    #get bs from configfile
+    with open(f'{cfg.configs[0]}', 'r') as file:
+        config = yaml.safe_load(file)
+    train_batch_size = config['train_batch_size']
+    val_batch_size = config['train_batch_size'] 
+
+    scalerPath = f"{cfg.pre_path}/chunk_logs/st_scaler.pkl" #TODO Change this to a sensible location
+    transformerPath = f"{cfg.pre_path}/chunk_logs/powerTransformer.pkl" #TODO Change this to a sensible location
+    train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=train_batch_size, seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath, test_batch_size = val_batch_size)
+
+    weights_train = None
+    weights_val = None
+    if cfg.data_type == 'Data' and weight_label != 'ones': 
+        weights_train = train_df[weight_label].to_numpy()
+        weights_val = val_df[weight_label].to_numpy()
+    
+
     mp.set_start_method('spawn')
     threads = []
     for config_path in cfg.configs:
         config_name = basename(config_path)[:-5]
-        print(f'Training of {config_name} begins {datetime.datetime.now().strftime("%H:%M:%S")}')
+        print(f'Training of {config_name} begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
         
         logfile = next((log for log in cfg.training_logs if config_name in log), None)
         if logfile is None and cfg.training_logs is not None:
@@ -109,14 +135,22 @@ if __name__ == '__main__':
             outpath = outpath + '/' + cfg.weight_type
         outpath = outpath +'/training/'
 
-        p = mp.Process(target=training_pipeline, args=(train_df, val_df, vars, weight_label, BID, outpath, cfg.treename, cfg.tagger, cfg.seed, features,
-                                                          config_path, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile))
+        shutil.copy2(transformerPath, join(outpath, 'powerTransformer.pkl'))
+        shutil.copy2(scalerPath, join(outpath, 'scaler.pkl'))
+
+
+        # p = mp.Process(target=training_pipeline, args=(train_df, val_df, vars, weight_label, BID, outpath, cfg.treename, cfg.tagger, cfg.seed, features,
+        #                                                   config_path, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile))
+        p = mp.Process(target=training, args=(train_dl, validation_dl, vars, weights_train, weights_val, outpath, cfg.tagger, cfg.seed, features,
+                                                          config_path, cfg.repo, 1, cfg.clean, logfile))
         threads.append(p)
         p.start()
 
-        
     for p in threads:
         p.join()
+    train_dl.dataset.unlink('shared_train')
+    validation_dl.dataset.unlink('shared_val')
+
     print(f'Batch ended on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     
 

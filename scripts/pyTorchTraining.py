@@ -12,6 +12,7 @@ import pickle
 from scipy.special import expit
 import json
 import scripts.pipeline
+from scripts.shareddataset import SharedDataset
 
 # Local imports
 from scripts.NNModel import EarlyStopper
@@ -86,8 +87,8 @@ def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size
     val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # Prepare data loaders
     #torch.manual_seed(seed) # to ensure reproducibility
-    train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False)
-    validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
+    train_dl = DataLoader(SharedDataset(train_dataset, 'shared_train'), batch_size = train_batch_size, shuffle=False,   )
+    validation_dl = DataLoader(SharedDataset(val_dataset, 'shared_val'), batch_size = test_batch_size, shuffle=False, )
     return train_dl, validation_dl 
 
 
@@ -147,8 +148,8 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
             # Compute validation loss
             validationStep_loss = model.validate_model(validation_dl, sample_weights=val_weights)
             validationEpoch_loss.append(np.array(validationStep_loss).mean())
-            print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
-            print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}')
+            print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s")
+            print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
             epochtimes.append((time.time()-epoch_start))
 
             if early_stopper.early_stop(validationEpoch_loss[-1]): 
