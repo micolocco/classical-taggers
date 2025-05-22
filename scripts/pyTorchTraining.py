@@ -84,11 +84,11 @@ def splitByEvent (df, seed, train_val_split):
     return train_df.query('selected==1'), val_df.query('selected==1'), test_df
     
 
-def prepare_data(train_df, val_df, seed, scalerPath, transformerPath): #, train_batch_size, test_batch_size = 1024, distributed = False
+def prepare_data(train_df, val_df, seed, scalerPath, transformerPath, indexed = True): #, train_batch_size, test_batch_size = 1024, distributed = False
     # Load the dataset
-    train_dataset = inputDataset(df=train_df) #scaler=PowerTransformer() 
+    train_dataset = inputDataset(df=train_df, indexed=indexed) #scaler=PowerTransformer() 
     train_dataset.scale(test=False, scalerPath=scalerPath, transformerPath=transformerPath)
-    val_dataset = inputDataset(df=val_df)
+    val_dataset = inputDataset(df=val_df, indexed=indexed)
     val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # Prepare data loaders
     #torch.manual_seed(seed) # to ensure reproducibility
@@ -140,10 +140,13 @@ def ddp_setup(rank, world_size): #Create a way for the processes to communicate 
     #above needs to be run before distributed sampler or DistributedDataParallel is created. 'gloo' is needed for CPU training. Rank is a unique 
     #identifier for each process, and world_size is the total number of processes. 
 
+def report_memory_distributed():
+    local_mem = torch.tensor([psutil.Process(os.getpid()).memory_info().rss / 1024**2], dtype=torch.float32)
+    dist.all_reduce(local_mem, op=dist.ReduceOp.SUM)
+    if dist.get_rank() == 0:
+        print(f"Total RAM used by all Processes: {local_mem.item():.2f} MiB")
+
 def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, return_dict, train_weights = None, val_weights= None, num_threads=1):
-        
-        trainingEpoch_loss = []
-        validationEpoch_loss = []
         lossValBest = 10000
         stopped = False
         bestEpoch = 0
@@ -177,9 +180,11 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         train_dl = DataLoader(train_ds, batch_size=train_batch_size, shuffle=False, sampler=train_sampler)
         validation_dl = DataLoader(validation_ds, batch_size=val_batch_size, shuffle=False, sampler=validation_sampler)
         
-        initial_validation_loss = module.validate_model(validation_dl, sample_weights=val_weights)
-        if rank == 0:
-            print(f"The initial Validation Loss: {np.array(np.array(initial_validation_loss).mean()).mean():.6f}")
+        trainingEpoch_loss = []
+        validationEpoch_loss = []
+        initialValidation_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean()
+        if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
+            print(f"The initial Validation Loss: {initialValidation_loss:.6f}")
         
         epochtimes = []
         for epoch in range(config['n_epochs']):
@@ -189,15 +194,18 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
                 validation_dl.sampler.set_epoch(epoch)
             if rank == 0:
                 print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
-            stepLoss = module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)
             # Train over mini-batches
-            trainingEpoch_loss.append(np.array(stepLoss).mean())
+            stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean()
+            trainingEpoch_loss.append(stepLoss)
             # Compute validation loss
-            validationStep_loss = module.validate_model(validation_dl, sample_weights=val_weights)
-            validationEpoch_loss.append(np.array(validationStep_loss).mean())
+            validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean()
+            validationEpoch_loss.append(validationStep_loss)
             if rank == 0:
-                print(f"Train:{np.array(stepLoss).mean():.6f}, Validation:{np.array(validationStep_loss).mean():.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
-                print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+                print(f"Train:{stepLoss:.6f}, Validation:{validationStep_loss:.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
+            if num_threads>1:
+                report_memory_distributed() #To print the memory usage of all processes
+            else:
+                print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
             epochtimes.append((time.time()-epoch_start))
 
             if early_stopper.early_stop(validationEpoch_loss[-1]): 

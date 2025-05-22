@@ -51,7 +51,7 @@ class NeuralNetwork(nn.Module):
         self.train() #Sets model to training mode
         # enumerate mini batches
 
-        for i, (inputsTrain, targetsTrain, indices) in enumerate(train_dl):
+        for i, ((inputsTrain, targetsTrain), indices) in enumerate(train_dl):
             # Clear the gradients
             self.optimizer.zero_grad(set_to_none=True)
             # compute the model output
@@ -73,7 +73,7 @@ class NeuralNetwork(nn.Module):
     def validate_model(self, validation_dl, sample_weights=None):
         self.eval() #Sets model to evaluation mode
         validationStep_loss = []
-        for i, (inputsVal, targetsVal, indices) in enumerate(validation_dl):
+        for i, ((inputsVal, targetsVal), indices) in enumerate(validation_dl):
     
             # Forward pass
             yPredVal = self(inputsVal)
@@ -98,7 +98,7 @@ class NeuralNetwork(nn.Module):
     # Evaluate the model
     def evaluate_model(self, test_dl):
         predictions, actuals = list(), list()
-        for i, (inputs, targets, _) in enumerate(test_dl):
+        for i, ((inputs, targets), _) in enumerate(test_dl):
             # evaluate the model on the test set
             yPred = self(inputs)
             # retrieve numpy array

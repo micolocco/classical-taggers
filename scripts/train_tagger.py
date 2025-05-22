@@ -21,6 +21,7 @@ from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 import utils
 import psutil
+from scripts.shareddataset import SharedDataset
 
 from torch.distributed import init_process_group, destroy_process_group
 import torch.distributed as dist
@@ -130,6 +131,8 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path,
     # Load YAML configuration file
     with open(f'{config}', 'r') as file:
         config = yaml.safe_load(file)
+
+    print(config)
     
     print(vars)
 
@@ -183,20 +186,25 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path,
     print(f"\nThe NN architecture is: \n{model}\n")
 
     train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), 
-                                                   seed=seed, scalerPath=scalerPath, transformerPath=transformerPath,)
-    
+                                                   seed=seed, scalerPath=scalerPath, transformerPath=transformerPath, indexed=num_threads==1)
     
 
 
+
+    print(f'{num_threads} threads will be used for training', flush=True)
     if num_threads>1:
         return_dict = mp.Manager().dict()
+        train_ds = SharedDataset(train_ds, 'train_set')
+        validation_ds = SharedDataset(validation_ds, 'validation_set')
 
         mp.spawn(pyTrain.train_model_EarlyStopping, args=(model, train_ds, 
                                           validation_ds, target_path, 
                                           config, return_dict,
                                           weights_train, weights_val, 
                                           num_threads), nprocs=num_threads)
-        
+        train_ds.unlink()
+        validation_ds.unlink()
+
     else:
         return_dict = {}
         pyTrain.train_model_EarlyStopping(0, model, train_ds, 
