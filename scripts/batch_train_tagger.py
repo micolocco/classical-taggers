@@ -2,6 +2,10 @@ import argparse
 from pprint import pprint
 import scripts.pyTorchTraining as pyTrain
 from scripts.train_tagger import training_pipeline
+from scripts.train_tagger import training
+from scripts.train_tagger import get_dataLoaders
+from scripts.shareddataset import SharedDataset
+
 from scripts.train_tagger import read_files
 from scripts.NNModel import NeuralNetwork
 import datetime
@@ -9,7 +13,10 @@ import multiprocessing as mp
 import sys
 import threading
 from os.path import basename
-    
+import yaml
+import shutil
+from os.path import join
+
 #Define a custom stdout class to handle thread-local output to different log files
 class ThreadLocalStdout:
     def __init__(self):
@@ -53,6 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--training_logs', help='Path to the log files of each individual training', type=str, nargs='+')
+    parser.add_argument('--num_threads', help='Number of threads used per process', type=int)
     
 
     cfg = parser.parse_args()
@@ -92,11 +100,21 @@ if __name__ == '__main__':
     val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
+
+    scalerPath = f"{cfg.pre_path}/chunk_logs/st_scaler.pkl" #is copied to the correct position in the loop
+    transformerPath = f"{cfg.pre_path}/chunk_logs/powerTransformer.pkl"
+    train_ds, validation_ds, weights_train, weights_val = get_dataLoaders(train_df=train_df, val_df=val_df, config_name=cfg.configs[0], 
+                                                                          target_path=f"{cfg.pre_path}/chunk_logs/", data_type=cfg.data_type, 
+                                                                          weight_type=cfg.weight_type, seed=cfg.seed, tagger=cfg.tagger, 
+                                                                          decay_type=cfg.decay_type, num_threads=cfg.num_threads)
+    train_ds = SharedDataset(train_ds, 'train_set')
+    validation_ds = SharedDataset(validation_ds, 'validation_set')
+
     mp.set_start_method('spawn')
     threads = []
     for config_path in cfg.configs:
         config_name = basename(config_path)[:-5]
-        print(f'Training of {config_name} begins {datetime.datetime.now().strftime("%H:%M:%S")}')
+        print(f'Training of {config_name} begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
         
         logfile = next((log for log in cfg.training_logs if config_name in log), None)
         if logfile is None and cfg.training_logs is not None:
@@ -109,14 +127,20 @@ if __name__ == '__main__':
             outpath = outpath + '/' + cfg.weight_type
         outpath = outpath +'/training/'
 
-        p = mp.Process(target=training_pipeline, args=(train_df, val_df, vars, weight_label, BID, outpath, cfg.treename, cfg.tagger, cfg.seed, features,
-                                                          config_path, cfg.decay_type, cfg.repo, cfg.data_type, cfg.weight_type, 1, cfg.clean, logfile))
+        shutil.copy2(transformerPath, join(outpath, 'powerTransformer.pkl'))
+        shutil.copy2(scalerPath, join(outpath, 'scaler.pkl'))
+
+
+        p = mp.Process(target=training, args=(train_ds, validation_ds, vars, weights_train, weights_val, outpath, cfg.tagger, cfg.seed, features,
+                                                          config_path, cfg.repo, cfg.num_threads, cfg.clean, logfile))
         threads.append(p)
         p.start()
 
-        
     for p in threads:
         p.join()
+    train_ds.unlink('shared_train')
+    validation_ds.unlink('shared_val')
+
     print(f'Batch ended on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     
 

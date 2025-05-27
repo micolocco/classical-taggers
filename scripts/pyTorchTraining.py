@@ -11,6 +11,7 @@ import pickle
 from scipy.special import expit
 import json
 import scripts.pipeline
+from scripts.shareddataset import SharedDataset
 
 # Local imports
 from scripts.NNModel import EarlyStopper

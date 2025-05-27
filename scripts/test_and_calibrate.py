@@ -30,7 +30,7 @@ def read_files_reduce_unselected(files, vars, treename):
 
     for i, f in enumerate(files):
         print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
-        print(f'Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} at {datetime.datetime.now().strftime("%H:%M:%S")}', flush = True)
+        print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB at {datetime.datetime.now().strftime("%H:%M:%S")}', flush = True)
 
         id = os.path.basename(f)[:-5]
         if id[-7:-2] == '.data':
@@ -82,14 +82,16 @@ def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path,
             features[i] = features[i].replace("BPVIP", "OWNPVIP")
             features[i] = features[i].replace("B_TRUEID", "B_ID")
 
+    print(f'1 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+
     
 
     #Load model
 
-    model_path = model_path
-
     bestModel = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo)
     pyTrain.load_model(model=bestModel, target_path=model_path)
+    bestModel.eval()
+    print(f'2 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
 
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
     if data_type == 'Data' :
@@ -105,38 +107,51 @@ def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path,
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     print(f'Columns:{test_df.columns}')
 
-    test_df_sel1 = test_df.query('selected==1').copy()
-
-    test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
-    test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    test_dl_sel1 = DataLoader(pyTrain.IndexedDataset(test_dataset_sel1), batch_size = 1024, shuffle=False)
-    print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
-    print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
-    
-    test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
-    
-    pyTrain.plot_ROC(tagger=tagger, val_df=test_df_sel1, target_path =target_path)
-    
-    plt.figure()
-    plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Test set: Probability of label 0, only selected")
-    plt.savefig(f"{target_path}/testSet_prob0distrib.pdf")
-    plt.figure()
-    plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Test set: Probability of label 1")
-    plt.savefig(f"{target_path}/testSet_prob1distrib.pdf")
-    pyTrain.plot_mistag(tagger=tagger, df=test_df_sel1, target_path=target_path, type = 'Test', BID = BID)
-    
+    # test_df_sel1 = test_df.query('selected==1').copy()
+    print(f'3 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    test_dl = DataLoader(pyTrain.IndexedDataset(test_dataset), batch_size = 1024, shuffle=False)
+    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
+    print(f'3.5 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+
+    # test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
+    # test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    # test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
     #test_df[f"{tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-    test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
-    test_df[f"{tagger}_Eta"] = 1 - test_df['predictedProb']
+    test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)#[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
+    test_df[f"{tagger}_Eta"] = 1 - test_df['yPred']
+    # test_df = test_df[['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID]]
+    test_df.drop(columns=test_df.columns.difference(['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred']), inplace=True)
 
-    test_df = test_df[['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID]]
+
+    print(f'4 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+
+
+    print(f"Test set has {np.sum(test_df['selected']==1)} tracks selected as tagging particles")
+    print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
+    print(f'5 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+    
+    # test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)
+    # print(f'6 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+    
+    pyTrain.plot_ROC(tagger=tagger, val_df=test_df[test_df['selected'] == 1], target_path =target_path)
+    
+    plt.figure()
+    plt.hist(1-test_df[test_df['selected'] == 1]['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Test set: Probability of label 0, only selected")
+    plt.savefig(f"{target_path}/testSet_prob0distrib.pdf")
+    plt.figure()
+    plt.hist(test_df[test_df['selected'] == 1]['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
+    plt.title(r"Test set: Probability of label 1")
+    plt.savefig(f"{target_path}/testSet_prob1distrib.pdf")
+    pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Test', BID = BID)
+    
+
+
+    
+    print(f'7 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
 
     #print(test_df.loc[test_df.selected == 1][f"{tagger}_Eta"]) 
 
@@ -149,26 +164,37 @@ def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path,
     test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_Eta"] *= -1
     test_df.loc[test_df[f"{tagger}_Eta"] < 0, f"{tagger}_Eta"] += 1
 
+
     if data_type == 'Data':
         test_df['signal_weights'] = sweights
-        
+    print(f'8 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+    
 
     df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
+    print(f'9 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+    
+    del test_df
+    print(f'10 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+    
     if data_type == 'Data':
         sweights_TagParticles = df_TagParticles['signal_weights'].to_numpy().astype(np.float64)
         df_TagParticles.drop(columns = ['signal_weights'], inplace = True)
     else:
         sweights_TagParticles = None
     #df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
+    print(f'11 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
     
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating", flush = True)
     pyTrain.plot_tagDec(tagger =tagger, df_TagParticles=df_TagParticles,  plot_name=f'{target_path}/Normalized_TagDec.pdf')
+    print(f'12 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
     
     # Calibrating the tagger and saving parameters
     mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, BID = BID, weights=sweights_TagParticles)
+    print(f'13 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
     
     # Try both calibration functions
     logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', BID = BID, weights=sweights_TagParticles)
+    print(f'14 Total RAM used in Megabites: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
 
     end = datetime.datetime.now()
     print(f'testing ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
