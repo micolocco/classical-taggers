@@ -82,8 +82,8 @@ run2_taggers_variables = [
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
         #'B_Run2_OSMuon_MVA',
-        'B_Run2_OSVertexCharge_Dec',
-        'B_Run2_OSVertexCharge_Omega',
+        #'B_Run2_OSVertexCharge_Dec',
+        #'B_Run2_OSVertexCharge_Omega',
     ]
 
 if __name__ == '__main__':
@@ -125,7 +125,7 @@ if __name__ == '__main__':
                 extra_variables.append("B_DTF_PV_Ds_MASS") 
                 #loading_variables.append("B_DTF_PV_Ds_MASSERR")
 
-    if cfg.signal_weights: extra_variables += ["signal_weights"]
+    if cfg.signal_weights: extra_variables += ["signal_weights", "reweighter_weights"]
 
     loading_variables = features + selection_variables + extra_variables + run2_taggers_variables
     # Remove eventual MC info

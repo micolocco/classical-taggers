@@ -167,7 +167,7 @@ if __name__ == '__main__':
             #loading_variables.append("B_DTF_PV_Ds_MASSERR")
 
         if cfg.signal_weights: 
-            save_vars += ["signal_weights"]
+            save_vars += ["signal_weights", "reweighter_weights"]
     with uproot.recreate(f"{cfg.taggedData}") as file:
         file["DecayTree"] = df_TagParticles[save_vars]
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]

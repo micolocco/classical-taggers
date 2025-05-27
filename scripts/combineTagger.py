@@ -41,15 +41,16 @@ if __name__ == '__main__':
         description='Combine the taggers',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--tagged_prePath', help='Folder where the files with the tagging decision are saved', default='/ceph/users/molocco/Data/withUT_MC_2024/4_tagged')
+    parser.add_argument('--tagged_prePath', help='Folder where the files with the tagging decision are saved', default='/ceph/users/molocco/FlavourTagging/data/reweighted/4_tagged') #/ceph/users/molocco/FlavourTagging/data/reweighted/
     parser.add_argument('--tagger', help='List of taggers/single tagger', nargs='+', required=True)
     parser.add_argument('--decayType', help='Decay used for the calibration', type=str)
     #parser.add_argument('--outputPath', help='Name of the output dir', type=str, default='/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024//')
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--cut', help='Cut desired', type=str,)
-    parser.add_argument('--features', help='Input features used for NN training',) 
+    parser.add_argument('--features', help='Input features used for NN training', default="union_PROBNN") 
     parser.add_argument('--run2', help='If Run2 tagger combination must be computed as well',  action='store_true') # action='store_true' means args.run2 will be set to True if the --run2 argument is provided on the command line.
     parser.add_argument('--combinationName', help='Name used for the output combination', type=str)
+    parser.add_argument('--unbalanced')
     parser.add_argument('--simulation', help='If data are MC or real-data. Used for the calibration',  action='store_true') # action='store_true' means args.simulation will be set to True if the --simulation argument is provided on the command line.
     parser.add_argument('--time-unit', type=str, default="c_ps",
                         help='Unit of the time branches')
@@ -63,9 +64,9 @@ if __name__ == '__main__':
     
     #outputPath =f'{cfg.outputPath}/{cfg.decayType}/combinations/'
     if cfg.simulation:
-        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/combinations/'
+        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/combinations/{cfg.cut}_{cfg.features}/'
     else:
-        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/block1_combinations/'
+        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/block1_combinations/{cfg.cut}_{cfg.features}/'
     os.makedirs(outputPath, exist_ok=True)
     
     vars = []
@@ -73,7 +74,7 @@ if __name__ == '__main__':
         B_ID_var = "B_TRUEID"
     else:
         B_ID_var = "B_ID"
-        vars.extend(['FillNumber', 'B_DTF_PV_CTAU', 'signal_weights'])
+        vars.extend(['FillNumber', 'B_DTF_PV_CTAU', 'signal_weights', 'reweighter_weights'])
     vars.extend(['RUNNUMBER', 'EVENTNUMBER', B_ID_var])
     vars.extend(run2_taggers_variables)
     taggers_dataframes = []  # List to store DataFrames for each tagger
@@ -81,13 +82,9 @@ if __name__ == '__main__':
     for tagger in cfg.tagger:
         loading_variables = []
         loading_variables = vars + [f'{tagger}_TagDec', f'{tagger}_Eta']
-        #input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
-        if cfg.simulation:
-            input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, '*.root')
-            input_files = glob.glob(input_path)
-        else:
-            input_files = os.path.join(cfg.tagged_prePath, cfg.decayType, 'data_fit/sweights.root')
-            print
+        input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
+        print(f'Input path: {input_path}')
+        input_files = glob.glob(input_path)
         # Loop over all files
         singleTagger_dataframes = []
         
@@ -95,6 +92,7 @@ if __name__ == '__main__':
             print(f"Reading input file: {f}")
             with uproot.open(f) as _f:
                 _df = _f[cfg.treename].arrays(loading_variables, library="pd")
+           
             _df.dropna(inplace=True)
             _df["SAMPLENUMBER"] = i
             _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
@@ -117,7 +115,9 @@ if __name__ == '__main__':
         print(single_df.shape)
         #df = pd.merge(df, single_df, on=['event_entry', 'B_TRUEID']+run2_taggers_variables, how='outer')   
         if cfg.simulation: df = pd.merge(df, single_df, on=['event_entry', B_ID_var,]+run2_taggers_variables, how='outer')
-        else:  df = pd.merge(df, single_df, on=['event_entry', B_ID_var, "FillNumber", "B_DTF_PV_CTAU", 'signal_weights']+run2_taggers_variables, how='outer')   
+        else:
+            weights =  'reweighter_weights'
+            df = pd.merge(df, single_df, on=['event_entry', B_ID_var, "FillNumber", "B_DTF_PV_CTAU"]+ weights+run2_taggers_variables, how='outer')   
         print(f'total:{df.shape}')
         #df = pd.merge(df, single_df, on=['event_entry',], how='outer')   
     print(df.shape)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
                                 dec_data = df[tagDec_column].tolist(), 
                                 B_ID =df[B_ID_var].tolist(), 
                                 mode = mode,
-                                weight=df["signal_weights"].to_numpy().astype(np.float64), 
+                                weight=df["reweighter_weights"].to_numpy().astype(np.float64), 
                                 tau_ps=df["time"].to_numpy().astype(np.float64),)
 
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
