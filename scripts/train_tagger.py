@@ -202,8 +202,8 @@ def training_pipeline(train_df, val_df, vars,  weight_label, BID, target_path,
                                           config, return_dict,
                                           weights_train, weights_val, 
                                           num_threads), nprocs=num_threads)
-        train_ds.unlink()
-        validation_ds.unlink()
+        train_ds.unlink('train_set')
+        validation_ds.unlink('validation_set')
 
     else:
         return_dict = {}
