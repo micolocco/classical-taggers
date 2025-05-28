@@ -114,11 +114,7 @@ def get_architecture(config):
         dp = config['dropout']
         return f'nL{nL}_nN{nN}_dp{dp}'
 
-def get_dataLoaders(train_df, val_df, config_name, target_path, data_type, weight_type, seed, tagger, decay_type, num_threads = 1):
-    # Load YAML configuration file
-    with open(f'{config_name}', 'r') as file:
-        config = yaml.safe_load(file)
-    
+def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_type, seed, tagger, decay_type, indexed = True):
     # Path to where the scaler parameters will be saved
     scalerPath = f"{target_path}/st_scaler.pkl"
     transformerPath = f"{target_path}/powerTransformer.pkl"
@@ -131,8 +127,6 @@ def get_dataLoaders(train_df, val_df, config_name, target_path, data_type, weigh
 
 
     
-    train_batch_size =config['train_batch_size']//num_threads #Ensures same effective batch size regardless of number of threads
-    val_batch_size = config['train_batch_size']//num_threads #Might want to change this to a seperate hyperparameter in the config file
     weights_train = None
     weights_val = None
     if data_type == 'Data' and weight_label != 'ones': 
@@ -153,7 +147,7 @@ def get_dataLoaders(train_df, val_df, config_name, target_path, data_type, weigh
     print(train_df.drop(columns = columns_to_drop).columns)
     print(features)
     
-    train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=train_batch_size, seed=seed, scalerPath=scalerPath, transformerPath=transformerPath, test_batch_size = val_batch_size)
+    train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), seed=seed, scalerPath=scalerPath, transformerPath=transformerPath, indexed=indexed)
     
     if config_name!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
@@ -201,8 +195,8 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_
                                           config, return_dict,
                                           weights_train, weights_val, 
                                           num_threads), nprocs=num_threads)
-        train_ds.unlink()
-        validation_ds.unlink()
+        train_ds.unlink('train_set')
+        validation_ds.unlink('validation_set')
 
     else:
         return_dict = {}
@@ -302,13 +296,16 @@ if __name__ == '__main__':
     val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
-    train_ds, validation_ds, weights_train, weights_val = get_dataLoaders(train_df=train_df, val_df=val_df, config_name=cfg.config, 
+    train_ds, validation_ds, weights_train, weights_val = get_dataSets(train_df=train_df, val_df=val_df, config_name=cfg.config, 
                                                                           target_path=cfg.target_path, data_type=cfg.data_type, 
                                                                           weight_type=cfg.weight_type, seed=cfg.seed, tagger=cfg.tagger, 
-                                                                          decay_type=cfg.decay_type, num_threads=cfg.num_threads, shared = False)
-    
-    model = training(train_dl=train_ds, validation_dl=validation_ds, vars=vars, weights_train=weights_train, 
+                                                                          decay_type=cfg.decay_type, indexed= cfg.num_threads == 1)
+
+    model = training(train_ds=train_ds, validation_ds=validation_ds, vars=vars, weights_train=weights_train, 
                                       weights_val=weights_val, target_path=cfg.target_path, tagger=cfg.tagger, seed=cfg.seed, 
                                       features=features, config=cfg.config, repo=cfg.repo, num_threads=cfg.num_threads, clean=cfg.clean)
+    #No shared memory needed for plot generation, as such the inputDataset must be indexed
+    train_ds.indexed = True
+    validation_ds.indexed = True
 
     gen_training_plots(model, train_df, val_df, train_ds, validation_ds, cfg.target_path, cfg.tagger)

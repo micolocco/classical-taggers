@@ -25,7 +25,7 @@ class inputDataset(Dataset):
         return len(self.X)
 
     # Get a row at an index
-    def __getitem__(self, index):
+    def __getitem__(self, index): #Shared dataset needs to receive exlusively torch tensors, index is returned in the shared dataset when that is used
         if self.indexed:
             return [self.X[index], self.y[index]], index
         else:

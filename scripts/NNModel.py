@@ -99,6 +99,10 @@ class NeuralNetwork(nn.Module):
     def evaluate_model(self, test_dl):
         predictions, actuals = list(), list()
         for i, ((inputs, targets), _) in enumerate(test_dl):
+            if isinstance(inputs, np.ndarray):
+                inputs = torch.from_numpy(inputs)
+                targets = torch.from_numpy(targets)
+
             # evaluate the model on the test set
             yPred = self(inputs)
             # retrieve numpy array
