@@ -105,7 +105,7 @@ ntuples_eos_withUT = {
 #Data files
 with open("data_calibration/block12_list.txt", "r") as f:
     files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2]
+files_s24c2 = [line.strip() for line in files_s24c2][:50]
 raw_path = os.path.dirname(files_s24c2[0])
 
 mc_ids = {}
@@ -812,7 +812,7 @@ def get_log(data_type):
     weight = "{weight_type}/" if data_type != 'MC' else ""
     logs = {}
     # logs['training_logs'] = list(get_chunk(data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log'))
-    logs = get_chunk(data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log_test.log')
+    logs = get_chunk(data_type + '/savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log')
     if batched:
         logs = list(logs)
         if data_type == 'MC':
