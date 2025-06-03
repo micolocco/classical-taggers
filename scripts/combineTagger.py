@@ -36,12 +36,16 @@ def setup_time_vars(time_unit, decay_time_branches, data, dm):
     data["time_mod_dm"] = data["time"] % (2 * np.pi / dm)
     return data
 
+"""
+On MC:
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSKaon --decayType Bs2DsPi --run2 --combinationName 'Bs2DsPi MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation
+"""
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Combine the taggers',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--tagged_prePath', help='Folder where the files with the tagging decision are saved', default='/ceph/users/molocco/FlavourTagging/data/reweighted/4_tagged') #/ceph/users/molocco/FlavourTagging/data/reweighted/
+    parser.add_argument('--tagged_prePath', help='Folder where the files with the tagging decision are saved', default='/ceph/users/molocco/FlavourTagging/data/reweighted/4_tagged') #/ceph/users/molocco/FlavourTagging/data/reweighted/4_tagged
     parser.add_argument('--tagger', help='List of taggers/single tagger', nargs='+', required=True)
     parser.add_argument('--decayType', help='Decay used for the calibration', type=str)
     #parser.add_argument('--outputPath', help='Name of the output dir', type=str, default='/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024//')
@@ -50,12 +54,13 @@ if __name__ == '__main__':
     parser.add_argument('--features', help='Input features used for NN training', default="union_PROBNN") 
     parser.add_argument('--run2', help='If Run2 tagger combination must be computed as well',  action='store_true') # action='store_true' means args.run2 will be set to True if the --run2 argument is provided on the command line.
     parser.add_argument('--combinationName', help='Name used for the output combination', type=str)
-    parser.add_argument('--unbalanced')
+    #parser.add_argument('--unbalanced')
     parser.add_argument('--simulation', help='If data are MC or real-data. Used for the calibration',  action='store_true') # action='store_true' means args.simulation will be set to True if the --simulation argument is provided on the command line.
     parser.add_argument('--time-unit', type=str, default="c_ps",
                         help='Unit of the time branches')
     parser.add_argument('--decay-time-branches', type=str, default=["B_DTF_PV_CTAU"], nargs="+",
                         help='Branche names of the decay-time variables (first decay time, second decay-time error).') # Just using decay time for now
+
 
 
     print(f'Combining taggers started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
@@ -83,7 +88,6 @@ if __name__ == '__main__':
         loading_variables = []
         loading_variables = vars + [f'{tagger}_TagDec', f'{tagger}_Eta']
         input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
-        print(f'Input path: {input_path}')
         input_files = glob.glob(input_path)
         # Loop over all files
         singleTagger_dataframes = []
@@ -125,26 +129,35 @@ if __name__ == '__main__':
     runs=['Run3']
     if cfg.run2:
         runs.append('Run2')
-  
-    if "Bu" in cfg.decayType:
-        mode = "Bu"
-    elif "Bd" in cfg.decayType:
-        mode = "Bd"
     
-    dm = ft.constants.DeltaM_s if mode != "Bd" else ft.constants.DeltaM_d
-    df = setup_time_vars(cfg.time_unit, cfg.decay_time_branches, df, dm)
+    if not cfg.simulation:
+        if "Bu" in cfg.decayType:
+            mode = "Bu"
+        elif "Bd" in cfg.decayType:
+            mode = "Bd"
+        elif "Bs" in cfg.decayType:
+            mode = "Bs"
+        dm = ft.constants.DeltaM_s if mode != "Bd" else ft.constants.DeltaM_d
+        df = setup_time_vars(cfg.time_unit, cfg.decay_time_branches, df, dm)
 
     for run in runs:
         os.makedirs(f'{outputPath}/{run}', exist_ok=True)
         taggers = ft.TaggerCollection()
-        for tagger in cfg.tagger:
+        for tagger in cfg.tagger+['OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
             # Adjust name columns
-            if run=='Run2':
-                eta_column = f'B_{run}_{tagger}_Omega'
-                tagDec_column = f'B_{run}_{tagger}_Dec'     
+            if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
+                eta_column = f'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
+                tagDec_column = f'B_Probability_Medium_0_Run2OSVertexCharge_Dec'     
+            elif tagger == 'OSVertexCharge':
+                eta_column = f'B_Run2_{tagger}_Omega'
+                tagDec_column = f'B_Run2_{tagger}_Dec'
             else:
-                eta_column = f'{tagger}_Eta'
-                tagDec_column = f'{tagger}_TagDec'
+                if run=='Run2':
+                    eta_column = f'B_{run}_{tagger}_Omega'
+                    tagDec_column = f'B_{run}_{tagger}_Dec'
+                else:
+                    eta_column = f'{tagger}_Eta'
+                    tagDec_column = f'{tagger}_TagDec'
             # Create taggers          
             if cfg.simulation:
                 

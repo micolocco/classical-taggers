@@ -9,6 +9,7 @@ import datetime
 import os
 import os, tempfile, subprocess
 
+'''
 def stage_remote(remote_url, max_retries=3):
     """Copy remote_url into /tmp (or $TMPDIR) and return the local path."""
     fn = os.path.basename(remote_url)
@@ -23,7 +24,7 @@ def stage_remote(remote_url, max_retries=3):
             elif attempt == max_retries:
                 raise RuntimeError(f"xrdcp failed after {max_retries} tries")
     return local
-
+'''
 
 
 def DeltaQ(df,Mass, prefix):
@@ -92,9 +93,9 @@ loading_variables = [
         'B_Tr_T_IPChi2BVTX',
         'B_Tr_T_Origin_Flag',
         'B_Tr_T_IsInTree',
+        'B_Tr_T_CHI2DOF',
         'B_ID',
         'B_BKGCAT',
-        'FillNumber',
         'B_Tr_T_TRUE_PARTICLE_ID',
         'B_Tr_T_OWNPV_Z',
         'B_OWNPV_Z',
@@ -110,6 +111,8 @@ loading_variables = [
         #'B_Tr_T_MC_GD_MOTHER_KEY',
         'B_Tr_T_MC_GD_GD_MOTHER_ID',
         #'B_Tr_T_MC_GD_GD_MOTHER_KEY',
+        ]
+run2_taggers_variables = [
         'B_Run2_SSPion_Dec',
         'B_Run2_SSPion_Omega',
         #'B_Run2_SSPion_MVA',
@@ -130,8 +133,9 @@ loading_variables = [
         #'B_Run2_OSMuon_MVA',
         'B_Run2_OSVertexCharge_Dec',
         'B_Run2_OSVertexCharge_Omega',
-        #'B_Run2_OSVertexCharge_MVA',
-        ]
+        #'B_Probability_Medium_0_Run2OSVertexCharge_Dec',
+        #'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
+    ]
 
 extra_vars = [
         'B_Tr_T_firstX',
@@ -170,11 +174,12 @@ if __name__ == '__main__':
     parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
     parser.add_argument('--batch_size', help='Size of the data batch to process at a time', type=int, default=250) #1000
-    parser.add_argument('--data_calib', action="store_true", default="False")
+    parser.add_argument('--data_calib', action="store_true", default=False)
     parser.add_argument('--signal_weights', action='store_true', help='store signal_weights if they are already in the NTuples') # action='store_true' means args.signal_weights will be set to True if the --signal_weights argument is provided on the command line.
     
     cfg = parser.parse_args()
-    
+    from pprint import pprint
+    pprint(cfg)
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
 
     B_abs_id_dic = {
@@ -202,9 +207,10 @@ if __name__ == '__main__':
                     'reweighter_weights_raw']
     #elif cfg.evtType == 'Bs2DsPi':
     #    weights = ['nSig_uo_kkpi_2022_Evts_sw']
+    loading_variables = loading_variables + run2_taggers_variables
     if cfg.data_calib:
         loading_variables = [v for v in loading_variables if "TRUE" not in v and "Flag" not in v and "MC" not in v and "BKGCAT" not in v]
-        
+        loading_variables += ['FillNumber']
         if cfg.signal_weights:
             loading_variables += weights
         loading_variables = np.unique(loading_variables).tolist()
@@ -216,8 +222,8 @@ if __name__ == '__main__':
             #loading_variables.append("B_DTF_PV_Ds_MASSERR")
         print("Loading variables are: ", loading_variables)
          # Equivalent for data of Origin_Flag != 0 (included later on in the pre-selections)
-        local_file = stage_remote(cfg.raw)
-        with uproot.open(local_file) as f:
+        #local_file = stage_remote(cfg.raw)
+        with uproot.open(cfg.raw) as f:
             df = f[cfg.treename].arrays(loading_variables, library="pd")
         df = df[df[f'{prefix}Tr_T_IsInTree'] != 1]
     # Replace B_ in the loading variables if there is a prefix

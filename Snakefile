@@ -6,7 +6,7 @@ from copy import deepcopy
 from snakemake.io import dynamic
 
 try:
-    raw_MC = config['MODIFIED_MC'] #RAW_MC isn't used as the folder structure is different
+    raw_MC = config['RAW_MC'] #RAW_MC isn't used as the folder structure is different
     modified_MC = config['MODIFIED_MC']
     repo = config['REPO']
 except:
@@ -79,7 +79,7 @@ for k,v in ntuples_raw_withUT.items():
 
 ntuples_added_features_withUT = {}
 for k,v in ntuples_raw_withUT.items():
-    ntuples_added_features_withUT.update({k: [f.replace('1_raw', '2_added_features') for f in v]})
+    ntuples_added_features_withUT.update({k: [f.replace(f'{raw_MC}', f'{modified_MC}').replace('1_raw', '2_added_features') for f in v]})
     #ntuples_added_features_withUT.update({k: [f.replace(f'{raw_MC}', f'{modified_MC}/withUT_MC_2024/2_added_features') for f in v]})
 
 ntuples_selected_withUT = {}
@@ -89,7 +89,7 @@ for decay, path_list in ntuples_raw_withUT.items():
     #print('-------')
     for tagger in taggers_conf[decay] :
         #ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{raw_MC}', f'{modified_MC}/withUT_MC_2024/3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
-        ntuples_selected_withUT[decay].update({tagger: [f.replace(f'1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
+        ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{raw_MC}', f'{modified_MC}').replace(f'1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
 
 ntuples_tagged_withUT = {}
 for decay, path_list in ntuples_raw_withUT.items():
@@ -97,7 +97,7 @@ for decay, path_list in ntuples_raw_withUT.items():
     for tagger in taggers_conf[decay]:
         # Filter the paths to only include those ending with '4_1.mc.root'
         filtered_paths = [
-            f.replace('1_raw', '4_tagged')
+            f.replace(f'{raw_MC}', f'{modified_MC}').replace('1_raw', '4_tagged')
             .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}')
             for f in path_list #if f.endswith('4_1.mc.root') #4_1.mc.root hold out sample
         ]
@@ -136,9 +136,10 @@ generated_paths_OSMuon = read_generated_paths(join(repo,'paths_for_snakemake/gen
 #print(expand(ntuples_selected_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK_balanced'], balanced=['balanced'],features=['union_PROBNN']),)
 
 #print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
-
+print(ntuples_added_features_withUT['Bs2DsPi'])
 rule all:
     input:
+        #ntuples_added_features_withUT['Bs2DsPi'],
         expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         expand(ntuples_tagged_withUT['Bs2DsPi']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         expand(ntuples_tagged_withUT['Bs2DsPi']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
@@ -244,7 +245,7 @@ rule add_features:
         script = join(repo, 'scripts/adding_features_v2.py'),
         #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
         #raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
-        raw = join(raw_MC, '{decay}/{id}.root')
+        raw = join(raw_MC, '{sample_type}/1_raw/{decay}/{id}.root')
 
     log: join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     output: 
@@ -259,7 +260,7 @@ rule add_features:
         cmd = [
             'python', input.script,
             '--raw {input.raw}',
-            '--output {output}',
+            '--output {output.root}',
             '--evtType {wildcards.decay}',
             '--treename', tree,
             '&> {log}',
@@ -323,6 +324,7 @@ rule add_selection:
             '--cut_file', input.cut_file,
             #join(modified_MC, '{wildcards.sample_type}/DT_outputs/{wildcards.cut_name}/balanced/cuts/{wildcards.decay}/{tagger}_preselections.txt')
             #'--cut_file', join(modified_MC, '{wildcards.sample_type}/DT_outputs/{wildcards.cut_name}/balanced/cuts/{wildcards.decay}/{tagger}_preselections.txt'),
+            '--evtType {wildcards.decay}',
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
             '--BKG0',

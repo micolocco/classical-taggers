@@ -3,10 +3,10 @@ from os import makedirs
 import numpy as np
 import os
 from copy import deepcopy
-
+from IPython import embed
 
 try:
-    raw_data = config['RAW_DATA']
+    raw_data = config['RAW_DATA']+'/reweighted/'
     modified_data = config['MODIFIED_DATA']+'/reweighted'
     modified_MC = config['MODIFIED_MC']
     repo = config['REPO']
@@ -59,8 +59,9 @@ ntuples_raw = {
 }
 
 print(ntuples_raw)
-for k,v in ntuples_raw.items():
-    ntuples_raw[k] = [f.replace(os.path.dirname(f), f'{raw_data}/{k}') for f in v]
+#for k,v in ntuples_raw.items():
+##    ntuples_raw[k] = [f.replace(os.path.dirname(f), f'{raw_data}/{k}') for f in v]
+#print(ntuples_raw)
 
 ntuples_added_features = {}
 for k,v in ntuples_raw.items():

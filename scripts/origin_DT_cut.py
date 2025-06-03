@@ -29,7 +29,7 @@ Origin Flag IDs:
 0 == Signal
 1 == SS Fragmentation
 2 == OS Decay (track has B0, B+, Bs, Bc+ mother)
-3 == OS Fragmentationfrom excited B
+3 == OS Fragmentation from excited B
 4 == OS Frag from b quark
 5 == Prompt
 100 == Tracks from other vertex

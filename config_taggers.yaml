@@ -4,7 +4,7 @@
     "RAW_DATA": "/ceph-kernel/FlavourTagging/NTuples/Run3/data",
     #"RAW_DATA":  "/ceph/users/molocco/FlavourTagging/data/",
     "MODIFIED_MC": "/ceph/users/molocco/FlavourTagging/MC",  
-    "MODIFIED_DATA": "/ceph/users/molocco/FlavourTagging/data/",  
+    "MODIFIED_DATA": "/ceph/users/molocco/FlavourTagging/data",  
     "REPO": "/home/molocco/classical-taggers",
     "nCPUs":      "1",
     "LOCALTMP": "/home/molocco/classical-taggers/outdir/tmp",

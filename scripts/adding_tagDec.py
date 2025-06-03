@@ -66,7 +66,7 @@ if __name__ == '__main__':
         loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
         if cfg.signal_weights: 
             loading_variables += ["signal_weights"]
-        if not cfg.decayType:
+        if cfg.decayType:
             if "Jpsi" in cfg.decayType:
                 loading_variables.append("B_DTF_PV_Jpsi_MASS")
                 #loading_variables.append("B_DTF_PV_Jpsi_MASSERR")

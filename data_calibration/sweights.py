@@ -18,7 +18,8 @@ from zfit.models.functor import SumPDF
 from hepstats.splot import compute_sweights
 
 
-# from scripts.preSelections import run2_taggers_variables
+from scripts.adding_features_v2  import run2_taggers_variables
+'''
 run2_taggers_variables = [
         'B_Run2_SSPion_Dec',
         'B_Run2_SSPion_Omega',
@@ -38,8 +39,12 @@ run2_taggers_variables = [
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
         #'B_Run2_OSMuon_MVA',
+        'B_Run2_OSVertexCharge_Dec',
+        'B_Run2_OSVertexCharge_Omega',
+        #'B_Probability_Medium_0_Run2OSVertexCharge_Dec',
+        #'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
     ]
-
+'''
 def signalname_from_decay(decayType):
     if decayType=="Bu2JpsiK":
         signalname = r"$B^+ \to J/\psi K^+$"

@@ -3,6 +3,7 @@ import uproot
 import re
 from scripts.adding_features_v2 import loading_variables
 import scripts.pyTorchTraining as pyTrain
+from scripts.adding_features_v2 import run2_taggers_variables
 import argparse
 import os
 
@@ -63,28 +64,6 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
     df.selected = df.selected.astype(int, copy=False)
     return df
 
-run2_taggers_variables = [
-        'B_Run2_SSPion_Dec',
-        'B_Run2_SSPion_Omega',
-        #'B_Run2_SSPion_MVA',
-        'B_Run2_SSKaon_Dec',
-        'B_Run2_SSKaon_Omega',
-        #'B_Run2_SSKaon_MVA',
-        'B_Run2_SSProton_Dec',
-        'B_Run2_SSProton_Omega',
-        #'B_Run2_SSProton_MVA',
-        'B_Run2_OSKaon_Dec',
-        'B_Run2_OSKaon_Omega',
-        #'B_Run2_OSKaon_MVA',
-        'B_Run2_OSElectron_Dec',
-        'B_Run2_OSElectron_Omega',
-        #'B_Run2_OSElectron_MVA',
-        'B_Run2_OSMuon_Dec',
-        'B_Run2_OSMuon_Omega',
-        #'B_Run2_OSMuon_MVA',
-        #'B_Run2_OSVertexCharge_Dec',
-        #'B_Run2_OSVertexCharge_Omega',
-    ]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -117,7 +96,7 @@ if __name__ == '__main__':
     if cfg.BKG0: extra_variables += ['B_BKGCAT']
     if cfg.data_calib: 
         extra_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
-        if not cfg.evtType:
+        if cfg.evtType:
             if "Jpsi" in cfg.evtType:
                 extra_variables.append("B_DTF_PV_Jpsi_MASS")
                 #loading_variables.append("B_DTF_PV_Jpsi_MASSERR")
