@@ -172,7 +172,7 @@ rule add_features_data:
 rule add_features:
 # For some NTuples it's necessary to run locally (snakemake only, not on condor)
     input:
-        script = join(repo, 'scripts/adding_features_v2.py'),
+        script = join(repo, 'scripts/adding_features_v3.py'),
         #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
         #raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
         raw = join(data, '{sample_type}/1_raw/{decay}/0000/{id}.root')

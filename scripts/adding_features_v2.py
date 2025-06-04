@@ -49,7 +49,7 @@ def min_dPhi(df, prefix):
     df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
     return df
  '''
-def min_dPhi(df, prefix):
+def dPhi(df, prefix):
     cos_Tr_T_Phi = np.cos(df[f'{prefix}Tr_T_Phi'])
     sin_Tr_T_Phi = np.sin(df[f'{prefix}Tr_T_Phi'])
     cos_Phi = np.cos(df[f'{prefix}PHI'])
@@ -59,7 +59,7 @@ def min_dPhi(df, prefix):
     y_arctan = cos_Tr_T_Phi * cos_Phi + sin_Phi * sin_Tr_T_Phi
     df[f'{prefix}Tr_T_PhiDistance'] = np.arctan2(x_arctan, y_arctan)
 
-    df[f'{prefix}Tr_T_minPhiDistance'] = df.groupby('entry')[f'{prefix}Tr_T_PhiDistance'].transform(lambda x: np.abs(x).min())
+    # df[f'{prefix}Tr_T_minPhiDistance'] = df.groupby('entry')[f'{prefix}Tr_T_PhiDistance'].transform(lambda x: np.abs(x).min())
     return df
 
 # Variables not used for pre-selections and training are included in extra_var array to speed up NTuples processing
@@ -264,7 +264,9 @@ if __name__ == '__main__':
         df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
    
     # Add some needed features
-    df = min_dPhi(df, prefix)
+    #df = min_dPhi(df, prefix)
+    df = dPhi(df, prefix)
+
     '''
     df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}OWNPV_Z - {prefix}Tr_T_OWNPV_Z)' , inplace = True)
     df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
@@ -279,6 +281,9 @@ if __name__ == '__main__':
     df.eval(f'{prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval(f'{prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)', inplace = True)
     '''
+    df[f'{prefix}OWNPV_Z'] = pd.to_numeric(df[f'{prefix}OWNPV_Z'], errors='coerce')
+    df[f'{prefix}Tr_T_OWNPV_Z'] = pd.to_numeric(df[f'{prefix}Tr_T_OWNPV_Z'], errors='coerce')
+
     df[f'{prefix}Tr_T_diff_z'] = np.abs(df[f'{prefix}OWNPV_Z'] - df[f'{prefix}Tr_T_OWNPV_Z'])
     df[f'{prefix}Tr_T_Signal_TagPart_PT'] = np.sqrt((df[f'{prefix}PX'] + df[f'{prefix}Tr_T_PX'])**2 + (df[f'{prefix}PY'] + df[f'{prefix}Tr_T_PY'])**2)
     df[f'{prefix}Tr_T_cos_PhiDistance'] = np.cos(df[f'{prefix}Tr_T_PhiDistance'])
@@ -336,4 +341,5 @@ if __name__ == '__main__':
 
     print(f'Modified NTuple processed and saved to {cfg.output}')
     print(f'Creation time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-    print("Memory usage (MB):", df.memory_usage(deep=True).sum() / 1e6)
+    print(f"Time required: {datetime.datetime.now() - datetime.datetime.fromtimestamp(os.path.getmtime(cfg.raw))}")
+    print(f"Memory usage (MB):", df.memory_usage(deep=True).sum() / 1e6)
