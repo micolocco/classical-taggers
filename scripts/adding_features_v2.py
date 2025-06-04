@@ -8,6 +8,7 @@ import datetime
 
 import os
 import os, tempfile, subprocess
+from IPython import embed
 
 '''
 def stage_remote(remote_url, max_retries=3):
@@ -33,6 +34,7 @@ def DeltaQ(df,Mass, prefix):
         return(DeltaQ)
 
 # Phi distance definition from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/src/Utils/TaggingHelpers.cpp?ref_type=heads#L43
+'''
 def min_dPhi(df, prefix):
     df.eval(f'{prefix}Tr_T_cos_Phi=cos({prefix}Tr_T_Phi)', inplace=True)
     df.eval(f'{prefix}Tr_T_sin_Phi=sin({prefix}Tr_T_Phi)', inplace=True)
@@ -46,7 +48,19 @@ def min_dPhi(df, prefix):
     df = pd.merge(df, _df, on='entry', how='left')
     df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
     return df
- 
+ '''
+def min_dPhi(df, prefix):
+    cos_Tr_T_Phi = np.cos(df[f'{prefix}Tr_T_Phi'])
+    sin_Tr_T_Phi = np.sin(df[f'{prefix}Tr_T_Phi'])
+    cos_Phi = np.cos(df[f'{prefix}PHI'])
+    sin_Phi = np.sin(df[f'{prefix}PHI'])
+
+    x_arctan = cos_Tr_T_Phi * sin_Phi - cos_Phi * sin_Tr_T_Phi
+    y_arctan = cos_Tr_T_Phi * cos_Phi + sin_Phi * sin_Tr_T_Phi
+    df[f'{prefix}Tr_T_PhiDistance'] = np.arctan2(x_arctan, y_arctan)
+
+    df[f'{prefix}Tr_T_minPhiDistance'] = df.groupby('entry')[f'{prefix}Tr_T_PhiDistance'].transform(lambda x: np.abs(x).min())
+    return df
 
 # Variables not used for pre-selections and training are included in extra_var array to speed up NTuples processing
 # List of variables (includes MC variables)
@@ -250,8 +264,8 @@ if __name__ == '__main__':
         df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
    
     # Add some needed features
-    # A bit of a hack to add the minimum distance
     df = min_dPhi(df, prefix)
+    '''
     df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}OWNPV_Z - {prefix}Tr_T_OWNPV_Z)' , inplace = True)
     df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
     df.eval(f'{prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)', inplace=True)
@@ -264,26 +278,62 @@ if __name__ == '__main__':
     df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
     df.eval(f'{prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval(f'{prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)', inplace = True)
+    '''
+    df[f'{prefix}Tr_T_diff_z'] = np.abs(df[f'{prefix}OWNPV_Z'] - df[f'{prefix}Tr_T_OWNPV_Z'])
+    df[f'{prefix}Tr_T_Signal_TagPart_PT'] = np.sqrt((df[f'{prefix}PX'] + df[f'{prefix}Tr_T_PX'])**2 + (df[f'{prefix}PY'] + df[f'{prefix}Tr_T_PY'])**2)
+    df[f'{prefix}Tr_T_cos_PhiDistance'] = np.cos(df[f'{prefix}Tr_T_PhiDistance'])
+    df[f'{prefix}Tr_T_EtaDistance'] = np.abs(df[f'{prefix}ETA'] - df[f'{prefix}Tr_T_Eta'])
+    df[f'{prefix}Tr_T_DeltaR'] = (df[f'{prefix}ETA'] - df[f'{prefix}Tr_T_Eta'])**2 + df[f'{prefix}Tr_T_PhiDistance']**2
+    df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df, 139.5706, prefix)
+    df[f'{prefix}Tr_T_DeltaQ_Muon'] = DeltaQ(df, 105.65837, prefix)
+    df[f'{prefix}Tr_T_DeltaQ_Electron'] = DeltaQ(df, 0.51100, prefix)
+    df[f'{prefix}Tr_T_DeltaQ_Proton'] = DeltaQ(df, 938.27208, prefix)
+    df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df, 493.677, prefix)
+    df[f'{prefix}Tr_T_OWNPVIPSig'] = np.sqrt(df[f'{prefix}Tr_T_OWNPVIPCHI2'])
+    df[f'{prefix}Tr_T_absOWNPV_IP'] = np.abs(df[f'{prefix}Tr_T_OWNPVIP'])
 
 
-
-    if not cfg.data_calib: # Avoid to read not used branches for data calibration, still needed for MC for the DT training to select features
-        df.eval(f'diff_P = abs({prefix}P - {prefix}Tr_T_P)', inplace = True)
-        df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
-        df.eval(f't = ({prefix}ENDV_X**2 + {prefix}ENDV_Y**2 + {prefix}ENDV_Z**2 - {prefix}ENDV_X*{prefix}Tr_T_X - {prefix}ENDV_Y*{prefix}Tr_T_Y - {prefix}ENDV_Z*{prefix}Tr_T_Z) / ({prefix}ENDV_X * {prefix}Tr_T_PX + {prefix}ENDV_Y * {prefix}Tr_T_PY + {prefix}ENDV_Z * {prefix}Tr_T_PZ)' , inplace = True)
-        df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
-        df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
-        df.eval('logEVIP = log(EVIP)', inplace = True)
-        df.eval('logP_proj = log(P_proj)', inplace = True)
-        df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
-
+    if not cfg.data_calib:
+        df['diff_P'] = np.abs(df[f'{prefix}P'] - df[f'{prefix}Tr_T_P'])
+        df['P_proj'] = df[f'{prefix}ENERGY'] * df[f'{prefix}Tr_T_ENERGY'] - (
+            df[f'{prefix}Tr_T_PX'] * df[f'{prefix}PX'] +
+            df[f'{prefix}Tr_T_PY'] * df[f'{prefix}PY'] +
+            df[f'{prefix}Tr_T_PZ'] * df[f'{prefix}PZ']
+        )
+        numerator = (
+            df[f'{prefix}ENDV_X']**2 + df[f'{prefix}ENDV_Y']**2 + df[f'{prefix}ENDV_Z']**2 -
+            df[f'{prefix}ENDV_X'] * df[f'{prefix}Tr_T_X'] -
+            df[f'{prefix}ENDV_Y'] * df[f'{prefix}Tr_T_Y'] -
+            df[f'{prefix}ENDV_Z'] * df[f'{prefix}Tr_T_Z']
+        )
+        denominator = (
+            df[f'{prefix}ENDV_X'] * df[f'{prefix}Tr_T_PX'] +
+            df[f'{prefix}ENDV_Y'] * df[f'{prefix}Tr_T_PY'] +
+            df[f'{prefix}ENDV_Z'] * df[f'{prefix}Tr_T_PZ']
+        )
+        df['t'] = numerator / denominator
+        df['EVIP'] = np.sqrt(
+            df[f'{prefix}Tr_T_X']**2 + df[f'{prefix}Tr_T_Y']**2 + df[f'{prefix}Tr_T_Z']**2 +
+            df['t']**2 * (df[f'{prefix}Tr_T_PX']**2 + df[f'{prefix}Tr_T_PY']**2 + df[f'{prefix}Tr_T_PZ']**2) +
+            2 * df['t'] * (df[f'{prefix}Tr_T_X'] * df[f'{prefix}Tr_T_PX'] + df[f'{prefix}Tr_T_Y'] * df[f'{prefix}Tr_T_PY'] + df[f'{prefix}Tr_T_Z'] * df[f'{prefix}Tr_T_PZ'])
+        )
+        df[f'{prefix}Tr_T_eoverP'] = df[f'{prefix}Tr_T_Charge'] / df[f'{prefix}Tr_T_P']
+        df['logEVIP'] = np.log(df['EVIP'])
+        df['logP_proj'] = np.log(df['P_proj'])
+        df[f'{prefix}Tr_T_atanPT_PZ'] = np.arctan2(df[f'{prefix}Tr_T_PT'], df[f'{prefix}Tr_T_PZ'])
+    
     df.columns = df.columns.str.replace(f'{prefix}', 'B_', regex=False)
     print(f'Total shape should be {df.shape[0]}')
+    
+    # Unsopported columns?
+    # Sanitize DataFrame before writing to ROOT
+    df.columns = df.columns.astype(str)  # Ensure column names are strings
 
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
+    df.reset_index(drop=True, inplace=True)
     with uproot.recreate(cfg.output) as f:
         f['Tuple/DecayTree'] = df
 
     print(f'Modified NTuple processed and saved to {cfg.output}')
     print(f'Creation time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-
+    print("Memory usage (MB):", df.memory_usage(deep=True).sum() / 1e6)
