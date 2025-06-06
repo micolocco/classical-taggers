@@ -8,52 +8,20 @@ import datetime
 
 import os
 import os, tempfile, subprocess
-from memory_profiler import profile
+from IPython import embed
+import ROOT
 
-'''
-def stage_remote(remote_url, max_retries=3):
-    """Copy remote_url into /tmp (or $TMPDIR) and return the local path."""
-    fn = os.path.basename(remote_url)
-    local = os.path.join(tempfile.gettempdir(), fn)
-    if not os.path.exists(local):
-        os.makedirs(os.path.dirname(local), exist_ok=True)
-        for attempt in range(1, max_retries+1):
-            print(f"Staging {remote_url} → {local} (attempt {attempt})")
-            ret = subprocess.call(["xrdcp", "-f", remote_url, local])
-            if ret == 0:
-                break
-            elif attempt == max_retries:
-                raise RuntimeError(f"xrdcp failed after {max_retries} tries")
-    return local
-'''
-
-
-def DeltaQ(df,Mass, prefix):
-        E =np.sqrt( Mass**2 + df[f'{prefix}Tr_T_PX']**2 + df[f'{prefix}Tr_T_PY']**2 + df[f'{prefix}Tr_T_PZ']**2)
-        DeltaQ = np.sqrt( (E + df[f'{prefix}ENERGY'])**2  - ((df[f'{prefix}Tr_T_PX'] + df[f'{prefix}PX'])**2 + (df[f'{prefix}Tr_T_PY'] + df[f'{prefix}PY'])**2 + (df[f'{prefix}Tr_T_PZ'] + df[f'{prefix}PZ'])**2 )   ) -df[f'{prefix}M']  - Mass
-        return(DeltaQ)
-
-# Phi distance definition from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/src/Utils/TaggingHelpers.cpp?ref_type=heads#L43
-def min_dPhi(df, prefix):
-    df.eval(f"""
-    {prefix}Tr_T_cos_Phi=cos({prefix}Tr_T_Phi)
-    {prefix}Tr_T_sin_Phi=sin({prefix}Tr_T_Phi)
-    {prefix}cos_Phi=cos({prefix}PHI)
-    {prefix}sin_Phi=sin({prefix}PHI)
-    """, inplace=True)
-
-    df.eval(f"""
-    x_arctan=({prefix}Tr_T_cos_Phi*{prefix}sin_Phi) - ({prefix}cos_Phi*{prefix}Tr_T_sin_Phi)
-    y_arctan=({prefix}Tr_T_cos_Phi*{prefix}cos_Phi) + ({prefix}sin_Phi*{prefix}Tr_T_sin_Phi)
-    """, inplace=True)
-    df.eval(f'{prefix}Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
-    # A bit of a hack to add the minimum distance
-    _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group[f'{prefix}Tr_T_PhiDistance']))).reset_index(name=f'{prefix}Tr_T_minPhiDistance')
-    df = pd.merge(df, _df, on='entry', how='left')
-    df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
-    return df
- 
-
+def deltaQ_expression(m, prefix='B_'):
+    return f"""
+    sqrt(
+        pow({prefix}ENERGY + sqrt(pow({prefix}Tr_T_PX,2) + pow({prefix}Tr_T_PY,2) + pow({prefix}Tr_T_PZ,2) + pow({m},2)), 2)
+        -
+        pow({prefix}Tr_T_PX + {prefix}PX, 2)
+        - pow({prefix}Tr_T_PY + {prefix}PY, 2)
+        - pow({prefix}Tr_T_PZ + {prefix}PZ, 2)
+    )
+    - {prefix}M - {m}
+    """
 # Variables not used for pre-selections and training are included in extra_var array to speed up NTuples processing
 # List of variables (includes MC variables)
 loading_variables = [
@@ -172,8 +140,8 @@ extra_vars = [
         'B_Tr_T_MINIPChi2',
         'B_Tr_T_ENERGY',
     ]
-@profile
-def main():
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add features used to select tracks and to train', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--raw', help='Raw file', type=str)
     parser.add_argument('--output', help='Name of the output file', type=str)
@@ -213,31 +181,36 @@ def main():
                     'reweighter_weights_raw']
     #elif cfg.evtType == 'Bs2DsPi':
     #    weights = ['nSig_uo_kkpi_2022_Evts_sw']
-    local_loading_variables = loading_variables + run2_taggers_variables
+    loading_variables = loading_variables + run2_taggers_variables
     if cfg.data_calib:
-        local_loading_variables = [v for v in local_loading_variables if "TRUE" not in v and "Flag" not in v and "MC" not in v and "BKGCAT" not in v]
-        local_loading_variables += ['FillNumber']
+        loading_variables = [v for v in loading_variables if "TRUE" not in v and "Flag" not in v and "MC" not in v and "BKGCAT" not in v]
+        loading_variables += ['FillNumber']
         if cfg.signal_weights:
-            local_loading_variables += weights
-        local_loading_variables = np.unique(local_loading_variables).tolist()
+            loading_variables += weights
+        loading_variables = np.unique(loading_variables).tolist()
         if "Jpsi" in cfg.evtType:
-            local_loading_variables.append("B_DTF_PV_Jpsi_MASS")
-            #local_loading_variables.append("B_DTF_PV_Jpsi_MASSERR")
+            loading_variables.append("B_DTF_PV_Jpsi_MASS")
+            #loading_variables.append("B_DTF_PV_Jpsi_MASSERR")
         elif "Ds" in cfg.evtType:
-            local_loading_variables.append("B_DTF_PV_Ds_MASS") 
-            #local_loading_variables.append("B_DTF_PV_Ds_MASSERR")
-        print("Loading variables are: ", local_loading_variables)
+            loading_variables.append("B_DTF_PV_Ds_MASS") 
+            #loading_variables.append("B_DTF_PV_Ds_MASSERR")
+        print("Loading variables are: ", loading_variables)
          # Equivalent for data of Origin_Flag != 0 (included later on in the pre-selections)
         #local_file = stage_remote(cfg.raw)
-        with uproot.open(cfg.raw) as f:
-            df = f[cfg.treename].arrays(local_loading_variables, library="pd")
-        df = df[df[f'{prefix}Tr_T_IsInTree'] != 1]
+        branches = ROOT.std.vector("string")()
+        for var in loading_variables:
+            branches.push_back(var)
+            # Create RDF with selected branches
+        df = ROOT.RDataFrame(cfg.treename, cfg.raw, branches)  
+        embed()
+        print(df.GetColumnType(f"{prefix}Tr_T_IsInTree"))
+        df = df.Filter(f'{prefix}Tr_T_IsInTree!= 1')
     # Replace B_ in the loading variables if there is a prefix
-    #local_loading_variables_withPrefix = [var.replace("B_", prefix) for var in local_loading_variables]
-    #print(f'{local_loading_variables_withPrefix}')
+    #loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
+    #print(f'{loading_variables_withPrefix}')
     
     print('Started processing')
-    #process_file_in_batches(cfg.raw, local_loading_variables_withPrefix, cfg.treename, prefix, abs_id, cfg.evtType, cfg.batch_size, cfg.output)
+    #process_file_in_batches(cfg.raw, loading_variables_withPrefix, cfg.treename, prefix, abs_id, cfg.evtType, cfg.batch_size, cfg.output)
     #print('Started reading')
 
     #Optimize memory usage by reading only the needed variable
@@ -246,61 +219,82 @@ def main():
 
     # drop the B mesons or other particles that are not of interest and perform operations on MC variables
     if not cfg.data_calib:
-        local_loading_variables = local_loading_variables + extra_vars
-        with uproot.open("{}".format(cfg.raw)) as f:
-            df = f[cfg.treename].arrays(local_loading_variables, library="pd")
+        loading_variables = loading_variables + extra_vars
+        branches = ROOT.std.vector("string")()
+        for var in loading_variables:
+            branches.push_back(var)
+            # Create RDF with selected branches
+        df = ROOT.RDataFrame(cfg.treename, cfg.raw, branches)
         abs_id = B_abs_id_dic[cfg.evtType]
-        df.drop(df[abs(df[f'{prefix}TRUEID']) != abs_id ].index , inplace = True)
-        df.reset_index(inplace=True, drop = False)
-        df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUE_PARTICLE_ID)', inplace = True)
-        df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
+        # Apply filters (only for MC)
+        df = df.Filter(f"abs({prefix}TRUEID) == {abs_id}")
+        df = df.Define(f"{prefix}Tr_T_absID", f"abs({prefix}Tr_T_TRUE_PARTICLE_ID)")
    
     # Add some needed features
-    # A bit of a hack to add the minimum distance
-    df = min_dPhi(df, prefix)
-    df.eval(f"""
-    {prefix}Tr_T_diff_z = abs({prefix}OWNPV_Z - {prefix}Tr_T_OWNPV_Z)
-    {prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)
-    {prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)
-    {prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)
-    {prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)
-    {prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)
-    """ , inplace = True)
+    #df = min_dPhi(df, prefix)
 
+    '''
+    df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}OWNPV_Z - {prefix}Tr_T_OWNPV_Z)' , inplace = True)
+    df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
+    df.eval(f'{prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)', inplace=True)
+    df.eval(f'{prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)', inplace = True)
     df.eval(f'{prefix}Tr_T_DeltaR= ({prefix}ETA - {prefix}Tr_T_Eta)**2 + {prefix}Tr_T_PhiDistance**2', inplace = True)
     df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Muon'] = DeltaQ(df,105.65837, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Electron'] = DeltaQ(df,0.51100, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
-  
+    df.eval(f'{prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)' , inplace = True) # IPSig == IPErr
+    df.eval(f'{prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)', inplace = True)
+    '''
 
 
+    # Define new variables
+    df = df.Define(f"{prefix}Tr_T_diff_z", f"abs({prefix}OWNPV_Z - {prefix}Tr_T_OWNPV_Z)")
+    df = df.Define(f"{prefix}Tr_T_Signal_TagPart_PT", f"sqrt(pow({prefix}PX + {prefix}Tr_T_PX, 2) + pow({prefix}PY + {prefix}Tr_T_PY, 2))")
+    df = df.Define(f"{prefix}Tr_T_cos_PhiDistance", f"cos({prefix}Tr_T_Phi - {prefix}PHI)")
+    df = df.Define(f"{prefix}Tr_T_EtaDistance", f"abs({prefix}ETA - {prefix}Tr_T_Eta)")
+    df = df.Define(f"{prefix}Tr_T_DeltaR", f"pow({prefix}Tr_T_EtaDistance, 2) + pow({prefix}Tr_T_Phi - {prefix}PHI, 2)")
+    df = df.Define(f"{prefix}Tr_T_OWNPVIPSig", f"sqrt({prefix}Tr_T_OWNPVIPCHI2)")
+    df = df.Define(f"{prefix}Tr_T_absOWNPV_IP", f"abs({prefix}Tr_T_OWNPVIP)")
 
-    if not cfg.data_calib: # Avoid to read not used branches for data calibration, still needed for MC for the DT training to select features
-        df.eval(f"""
-        diff_P = abs({prefix}P - {prefix}Tr_T_P)
-        P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ )
-        {prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)
-        {prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P
-        """, inplace = True)
-        df.eval(f't = ({prefix}ENDV_X**2 + {prefix}ENDV_Y**2 + {prefix}ENDV_Z**2 - {prefix}ENDV_X*{prefix}Tr_T_X - {prefix}ENDV_Y*{prefix}Tr_T_Y - {prefix}ENDV_Z*{prefix}Tr_T_Z) / ({prefix}ENDV_X * {prefix}Tr_T_PX + {prefix}ENDV_Y * {prefix}Tr_T_PY + {prefix}ENDV_Z * {prefix}Tr_T_PZ)' , inplace = True)
-        df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
-        df.eval("""
-        logEVIP = log(EVIP)
-        logP_proj = log(P_proj)""", inplace = True)
+    particles = {
+        'Pion': 139.5706,
+        'Muon': 105.65837,
+        'Electron': 0.51100,
+        'Proton': 938.27208,
+        'Kaon': 493.677
+    }
 
-    df.columns = df.columns.str.replace(f'{prefix}', 'B_', regex=False)
+    for name, mass in particles.items():
+        df = df.Define(f"{prefix}Tr_T_DeltaQ_{name}", deltaQ_expression(mass))
+
+    # Optional features for MC
+    if not cfg.data_calib:
+        df = df.Define("diff_P", f"abs({prefix}P - {prefix}Tr_T_P)")
+        df = df.Define("P_proj", f"{prefix}ENERGY * {prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX * {prefix}PX + {prefix}Tr_T_PY * {prefix}PY + {prefix}Tr_T_PZ * {prefix}PZ)")
+        df = df.Define("t", f"(({prefix}ENDV_X*{prefix}ENDV_X + {prefix}ENDV_Y*{prefix}ENDV_Y + {prefix}ENDV_Z*{prefix}ENDV_Z - {prefix}ENDV_X*{prefix}Tr_T_X - {prefix}ENDV_Y*{prefix}Tr_T_Y - {prefix}ENDV_Z*{prefix}Tr_T_Z) / ({prefix}ENDV_X*{prefix}Tr_T_PX + {prefix}ENDV_Y*{prefix}Tr_T_PY + {prefix}ENDV_Z*{prefix}Tr_T_PZ))")
+        df = df.Define("EVIP", f"sqrt(pow({prefix}Tr_T_X,2) + pow({prefix}Tr_T_Y,2) + pow({prefix}Tr_T_Z,2) + pow(t,2)*(pow({prefix}Tr_T_PX,2)+pow({prefix}Tr_T_PY,2)+pow({prefix}Tr_T_PZ,2)) + 2*t*({prefix}Tr_T_X*{prefix}Tr_T_PX + {prefix}Tr_T_Y*{prefix}Tr_T_PY + {prefix}Tr_T_Z*{prefix}Tr_T_PZ))")
+        df = df.Define(f"{prefix}Tr_T_eoverP", f"{prefix}Tr_T_Charge / {prefix}Tr_T_P")
+        df = df.Define("logEVIP", "log(EVIP)")
+        df = df.Define("logP_proj", "log(P_proj)")
+        df = df.Define(f"{prefix}Tr_T_atanPT_PZ", f"atan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)")
+
+    
+    
     print(f'Total shape should be {df.shape[0]}')
+    
+    # Unsopported columns?
+    # Sanitize DataFrame before writing to ROOT
+    df.columns = df.columns.astype(str)  # Ensure column names are strings
 
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
-    with uproot.recreate(cfg.output) as f:
-        f['Tuple/DecayTree'] = df
+    df.reset_index(drop=True, inplace=True)
+    #with uproot.recreate(cfg.output) as f:
+    #    f['Tuple/DecayTree'] = df
+    df.Snapshot('Tuple/DecayTree', cfg.output)
 
     print(f'Modified NTuple processed and saved to {cfg.output}')
     print(f'Creation time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-
-
-if __name__ == '__main__':
-    main()
-    #print(f'Finished adding features on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f"Time required: {datetime.datetime.now() - datetime.datetime.fromtimestamp(os.path.getmtime(cfg.raw))}")
+    print(f"Memory usage (MB):", df.memory_usage(deep=True).sum() / 1e6)

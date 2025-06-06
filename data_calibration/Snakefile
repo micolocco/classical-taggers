@@ -117,7 +117,8 @@ for decay, path_list in ntuples_raw_withUT.items():
 
 rule all:
     input: 
-        expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        ntuples_added_features_withUT['Bs2DsPi']
+        #expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #ntuples_raw_withUT['Bs2DsPi'],
         #tagged_data['Bs2DsPi']['SSKaon'],
         #tagged_data['Bs2DsPi']['OSKaon'],
