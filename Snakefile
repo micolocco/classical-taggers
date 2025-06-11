@@ -356,9 +356,9 @@ rule train_signal_classifier:
 
 def get_raw_paths(decay, id, data_type):
     if data_type == 'MC':
-        return join(MC, '{decay}/v1_taggers/{id}.root')
+        return join(MC, f'withUT_MC_2024/1_raw/{decay}/{id}.root')
     elif data_type == 'Data':
-        return join(data, f'{id[:8]}/{id[9:13]}' + '/{id}.root')
+        return join(data, f'{id[:8]}/{id[9:13]}' + f'/{id}.root')
     else:
         print(f"data type is {data_type} instead of MC or Data. Somethings broken")
         raise RuntimeError
@@ -512,25 +512,6 @@ rule MC_Mass_Fit:
             '&> {log}'
         ]
         shell(' '.join(cmd))
-
-def copy_to_scratch(paths):
-    scratch_paths = []
-
-    # check whether ceph-kernel is mounted. If yes, copy from there
-    to_replace = 'ceph/users'
-    if os.path.exists(paths[0].replace("ceph", "ceph-kernel")):
-        paths = [path.replace("ceph", "ceph-kernel") for path in paths]
-        to_replace = 'ceph-kernel/users'
-
-
-    for path in paths:
-        path_scratch = path.replace(to_replace, "scratch")
-        #make sure path on scratch exists or is created
-        shell(f'mkdir -p {os.path.dirname(path_scratch)}')
-        #Copy data from ceph to scratch
-        shell(f'cp {path} {path_scratch}')
-        scratch_paths.append(path_scratch)
-    return scratch_paths
 
 rule data_Mass_Fit: 
     input:
