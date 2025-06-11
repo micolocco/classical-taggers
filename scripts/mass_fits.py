@@ -217,7 +217,6 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df_data, comp
             signal = model_sig_ext.pdf( df_data[obs_name], obs) * sig_yield_val
             bkg = comb_ext.pdf( df_data[obs_name], obs) * bkg_yield_val
             df_data["pdf_ratio"] = signal/bkg
-            df_data["pdf_ratio"] = (df_data["pdf_ratio"]-np.min(df_data["pdf_ratio"]))/np.max(df_data["pdf_ratio"])
 
             df_data.reset_index(inplace=True)
             # df_data.drop(columns=['event_entry'], inplace = True)
