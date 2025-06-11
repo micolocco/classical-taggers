@@ -495,7 +495,7 @@ def propagate_and_round(values):
 
     if len(values) > 2:  # For TaggingPower_Cali and EffectiveMistag_Cali
         combined_error = np.sqrt(np.sum(np.square(values[1:])))
-        if combined_error in [np.nan, np.NAN, np.NaN]:
+        if combined_error not in [np.nan, np.NAN, np.NaN]:
             print('\n\n')
             print(type(combined_error))
             print(combined_error)
@@ -509,9 +509,13 @@ def propagate_and_round(values):
         return [rounded_value, rounded_error]
     else:  # For other data
         max_error = max(values[1:])
-        rounded_errors = [round(err, -int(np.floor(np.log10(max_error)))) for err in values[1:]]
-        
-        significant_digit = int(np.floor(np.log10(max_error)))
+        if max_error > 0:
+            rounded_errors = [round(err, -int(np.floor(np.log10(max_error)))) for err in values[1:]]
+            significant_digit = int(np.floor(np.log10(max_error)))
+
+        else:
+            rounded_errors = [round(err, 1) for err in values[1:]]
+            significant_digit = -1
         rounded_value = round(values[0], -significant_digit)
         
         return [rounded_value] + rounded_errors
