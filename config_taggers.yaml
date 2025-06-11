@@ -4,7 +4,7 @@
     "MC": "/ceph/FlavourTagging/NTuples/Run3/MC",
     "OUT": "/ceph/users/togasa/FlavourTagging/NTuples",
     "Mass_range_lower" : 5200,
-    "Mass_range_upper" : 5400,
+    "Mass_range_upper" : 5350,
     "REPO": "/ceph/users/togasa/classical-taggers",
     "nCPUs":      "1",
     "LOCALTMP": "/ceph/users/togasa/classical-taggers/outdir/tmp",

@@ -6,6 +6,8 @@ import argparse
 import awkward as ak
 import datetime
 
+from scripts.train_BDT import vars_by_decay
+
 data_vars_translation = {
      "B_Tr_T_zfirst": "B_Tr_T_firstZ",
 }
@@ -207,6 +209,40 @@ loading_variables = [
         'B_Run2_OSMuon_MVA',
         ]
 
+def get_loading_vars(evtType, data_calib):
+    prefix = evtType[:2] + "_" if not data_calib else "B_"
+
+    loading_variables_withPrefix = []
+    prx = "OWNPV_" if data_calib else "BPV"
+    prxip = "OWNPVIP" if data_calib else "BPVIP" 
+    endx = "ENDV_" if data_calib else "END_V"
+
+    # BPV -> OWNPV will need to be changed for everything in the future productions!!!!
+    if data_calib:
+        loading_variables_withPrefix.append("B_Tr_T_IsInTree")
+        loading_variables_withPrefix.append("B_ID")
+        loading_variables_withPrefix.append("B_DTF_PV_Jpsi_MASS")
+        loading_variables_withPrefix.append("B_DTF_PV_MASS")
+        loading_variables_withPrefix.append("FillNumber")
+        for v in loading_variables:
+            if "TRUE" in v or "BKGCAT" in v or "Origin_Flag" in v or "MC" in v: continue
+            if "BPV" in v: v=v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP")
+            if "END_V" in v: v=v.replace("END_V", "ENDV_")
+            loading_variables_withPrefix.append(v) if v not in data_vars_translation.keys() else loading_variables_withPrefix.append(data_vars_translation[v])
+        loading_variables_withPrefix.remove('B_Tr_T_OWNPVIP')
+        loading_variables_withPrefix.remove('B_Tr_T_OWNPVIPCHI2')
+
+        # loading_variables_withPrefix.append('B_Tr_T_BPVIP')
+        
+    else:
+        loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
+
+        loading_variables_withPrefix.append(f"{prefix}DTF_PV_Jpsi_MASS")
+        loading_variables_withPrefix.append(f"{prefix}DTF_PV_MASS")
+        print(loading_variables_withPrefix)
+    
+    return loading_variables_withPrefix
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add features used to select tracks and to train', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--raw', help='Raw file', type=str)
@@ -234,6 +270,7 @@ if __name__ == '__main__':
         # Modify the prefix based on evtType
         prefix = cfg.evtType[:2] + "_"
     '''
+
     prefix = cfg.evtType[:2] + "_" if not cfg.data_calib else "B_"
 
     loading_variables_withPrefix = []
@@ -241,29 +278,11 @@ if __name__ == '__main__':
     prxip = "OWNPVIP" if cfg.data_calib else "BPVIP" 
     endx = "ENDV_" if cfg.data_calib else "END_V"
 
-    # BPV -> OWNPV will need to be changed for everything in the future productions!!!!
-    if cfg.data_calib:
-        loading_variables_withPrefix.append("B_Tr_T_IsInTree")
-        loading_variables_withPrefix.append("B_ID")
-        loading_variables_withPrefix.append("B_DTF_PV_Jpsi_MASS")
-        loading_variables_withPrefix.append("B_DTF_PV_MASS")
-        loading_variables_withPrefix.append("FillNumber")
-        for v in loading_variables:
-            if "TRUE" in v or "BKGCAT" in v or "Origin_Flag" in v or "MC" in v: continue
-            if "BPV" in v: v=v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP")
-            if "END_V" in v: v=v.replace("END_V", "ENDV_")
-            loading_variables_withPrefix.append(v) if v not in data_vars_translation.keys() else loading_variables_withPrefix.append(data_vars_translation[v])
-        loading_variables_withPrefix.remove('B_Tr_T_OWNPVIP')
-        loading_variables_withPrefix.remove('B_Tr_T_OWNPVIPCHI2')
+    loading_variables_withPrefix = get_loading_vars(cfg.evtType, cfg.data_calib)
 
-        # loading_variables_withPrefix.append('B_Tr_T_BPVIP')
-        
-    else:
-        loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
-
-        loading_variables_withPrefix.append(f"{prefix}DTF_PV_Jpsi_MASS")
-        loading_variables_withPrefix.append(f"{prefix}DTF_PV_MASS")
-        print(loading_variables_withPrefix)
+   
+    loading_variables_withPrefix = loading_variables_withPrefix + ['signal_weights', 'background_weights', 'pdf_ratio', 'entry', 'subentry']
+    loading_variables_withPrefix = list(dict.fromkeys(loading_variables_withPrefix)) #removes duplicates
 
     print(f'{loading_variables_withPrefix}')
     print('Started processing')
@@ -280,6 +299,7 @@ if __name__ == '__main__':
         df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUEID)', inplace = True) # Is this to change with the reconstructed ID ? 
     # Add some needed features
     # A bit of a hack to add the minimum distance
+    print(df.head(10))
     df = min_dPhi(df, prefix)
     df.eval(f'{prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)', inplace=True)
     df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}{prx}Z - {prefix}Tr_T_{prx}Z)' , inplace = True)
