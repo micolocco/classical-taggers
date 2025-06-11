@@ -46,7 +46,7 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
         if weighted:
             return df.groupby('event_entry')['signal_weights'].first().sum()
         else:
-            return len(df['event_entry'].nunique())
+            return df['event_entry'].nunique()
 
     def count_tracks(df, selected=None, weighted=False):
         if selected is not None:
@@ -77,6 +77,7 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
 
     console = Console()
     table = Table(show_header=True)
+    table.width = 120
     table.add_column("", justify="left")
     table.add_column("Events", justify="left", style='cyan')
     table.add_column("Tracks", justify="left", style='green')
@@ -147,6 +148,7 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
         return f"{100*(a-b)/(a + b):.2f}%"
 
     table = Table(show_header=True)
+    table.width = 120
     table.add_column("", justify="left", width=12)
     table.add_column("l=1, B", justify="left", style='cyan', overflow="fold", width=8)
     table.add_column("l=1, antiB", justify="left", style='cyan', overflow="fold", width=8)
@@ -184,8 +186,13 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     table.add_row(*row)
     console.print(table)
 
-def read_files(files, vars, treename):
+
+
+def read_files(files, vars, treename, reduce = False, weight_label = None):
     df = pd.DataFrame(columns=vars)
+
+    additional_vars = ['RUNNUMBER', 'EVENTNUMBER']
+
 
     for i, f in enumerate(files):
         print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
@@ -198,10 +205,25 @@ def read_files(files, vars, treename):
             id = id[:-3]
 
         with uproot.open("{}".format(f)) as _f:
-            _df = _f[treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
+            _df = _f[treename].arrays(vars + additional_vars, library="pd")
+        
         _df.dropna(inplace = True)
         _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
         _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
+        if reduce: #Probably take this out after bkg rejection
+            df_event = _df.groupby("event_entry").first().reset_index()
+            n_keep = int(len(df_event) * 0.4)
+
+            # Get the indices of the rows with the highest weights
+            top_indices = df_event[weight_label].nlargest(n_keep).index
+
+            # Filter the DataFrame to keep only those rows, preserving original order
+            df_event = df_event.loc[df_event.index.isin(top_indices)]
+
+            _df = _df[_df['event_entry'].isin(df_event['event_entry'])].reset_index(drop=True)
+            del df_event
+
+
         df = pd.concat([df, _df], ignore_index = True)
 
     return df
@@ -217,6 +239,7 @@ def get_architecture(config):
 
 def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_type, seed, tagger, decay_type, indexed = True):
     # Path to where the scaler parameters will be saved
+    torch.manual_seed(seed=seed)
     scalerPath = f"{target_path}/st_scaler.pkl"
     transformerPath = f"{target_path}/powerTransformer.pkl"
 
@@ -244,6 +267,9 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]#, 'B_DTF_PV_Jpsi_MASS']
     if data_type == 'Data' and weight_label != 'ones':
         columns_to_drop.append(weight_label)
+        if weight_label != 'signal_weights':
+            columns_to_drop.append('signal_weights')
+
     
     print(train_df.drop(columns = columns_to_drop).columns)
     print(features)
@@ -254,6 +280,12 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
     
     return train_ds, validation_ds, weights_train, weights_val
+
+
+def find_free_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))
+        return s.getsockname()[1]
 
 def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_path,  
                       tagger, seed, features, config,  
@@ -287,17 +319,21 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_
     print(f'{num_threads} threads will be used for training', flush=True)
     if num_threads>1:
         return_dict = mp.Manager().dict()
+        train_ds_name = f'train_set{id(train_ds)}'
+        validation_ds_name = f'validation_set{id(validation_ds)}'
         if not isinstance(train_ds, SharedDataset):
-            train_ds = SharedDataset(train_ds, 'train_set')
-            validation_ds = SharedDataset(validation_ds, 'validation_set')
+            train_ds = SharedDataset(train_ds, train_ds_name)
+            validation_ds = SharedDataset(validation_ds, validation_ds_name)
+        
+        socket_port = find_free_port()
 
         mp.spawn(pyTrain.train_model_EarlyStopping, args=(model, train_ds, 
                                           validation_ds, target_path, 
                                           config, return_dict,
                                           weights_train, weights_val, 
-                                          num_threads), nprocs=num_threads)
-        train_ds.unlink('train_set')
-        validation_ds.unlink('validation_set')
+                                          num_threads, socket_port), nprocs=num_threads)
+        train_ds.unlink(train_ds_name)
+        validation_ds.unlink(validation_ds_name)
 
     else:
         return_dict = {}
@@ -363,9 +399,13 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--num_threads', help='Number of threads to use in training', type=int, default=1)
+    parser.add_argument('--reduce', help='Whether to drop data samples with low weights', action='store_true', default=False)
     
+
     cfg = parser.parse_args()
     pprint(cfg)
+
+    
 
     BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
 
@@ -391,12 +431,14 @@ if __name__ == '__main__':
     #Reading Data from files
     print(f'Reading of training files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.training_data)} files.", flush=True)
-    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename)
+    # train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, augmentation=False, reduce = False, weight_label=None)
+    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label)
     print(f'Reading of training files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     print(f'Reading of validation files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.validation_data)} files.", flush=True)
-    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename)
+    # val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, augmentation=False, reduce = False, weight_label=None)
+    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     train_ds, validation_ds, weights_train, weights_val = get_dataSets(train_df=train_df, val_df=val_df, config_name=cfg.config, 
