@@ -12,24 +12,25 @@ class inputDataset(Dataset):
     # load the dataset
     def __init__(self, df, indexed=True):
         self.indexed = indexed
-        self.X = df.values[:, :-1]
-        self.y = df.values[:, -1]
-        # ensure input data is floats
-        self.X = self.X.astype('float32')
-        # ensure output data is floats
-        self.y = self.y.astype('float32')
-        self.y = self.y.reshape((len(self.y), 1))
+        # Convert DataFrame to proper numpy arrays
+        self.X = df.values[:, :-1].astype(np.float32)
+        self.y = df.values[:,  -1].astype(np.float32).reshape(-1, 1)
+
+        # Convert to tensors once
+        # self.X = torch.from_numpy(self.X)
+
 
     # Length of the dataset
     def __len__(self):
         return len(self.X)
 
     # Get a row at an index
-    def __getitem__(self, index): #Shared dataset needs to receive exlusively torch tensors, index is returned in the shared dataset when that is used
+    def __getitem__(self, index):
         if self.indexed:
             return [self.X[index], self.y[index]], index
         else:
-            return [torch.from_numpy(self.X[index]), torch.from_numpy(self.y[index])]
+            # return [torch.from_numpy(self.X[index]), torch.from_numpy(self.y[index])]
+            return [self.X[index], self.y[index]]
     # Apply scaling
     def scale (self, test, scalerPath, transformerPath):
         if test:
@@ -37,13 +38,12 @@ class inputDataset(Dataset):
             transformer =load(open(transformerPath, 'rb'))
             self.X = transformer.transform(scaler.transform(self.X))
             #self.X = scaler.transform(self.X)
-
-        
         else:
             scaler = StandardScaler()
             transformer = PowerTransformer()
             self.X = transformer.fit_transform(scaler.fit_transform(self.X))
-            #self.X = scaler.fit_transform(self.X)
+
             dump(scaler, open(scalerPath, 'wb'))
             dump(transformer, open(transformerPath, 'wb'))
-        
+        self.X = torch.from_numpy(self.X)
+        self.y = torch.from_numpy(self.y)
