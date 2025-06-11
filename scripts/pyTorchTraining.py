@@ -12,7 +12,7 @@ from scipy.special import expit
 import json
 import scripts.pipeline
 from scripts.shareddataset import SharedDataset
-
+import traceback
 # Local imports
 from scripts.NNModel import EarlyStopper
 from scripts.inputDataset import inputDataset
@@ -129,14 +129,14 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     plt.savefig(f"{target_path}/{name}.pdf")
 
 
-def ddp_setup(rank, world_size): #Create a way for the processes to communicate with each other
+def ddp_setup(rank, world_size, socket_port): #Create a way for the processes to communicate with each other
     """
     Args:
         rank: Unique identifier of each process
         world_size: Total number of processes
     """
     os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "12355"
+    os.environ["MASTER_PORT"] = f"{socket_port}"
     init_process_group(backend="gloo", rank=rank, world_size=world_size)
     #above needs to be run before distributed sampler or DistributedDataParallel is created. 'gloo' is needed for CPU training. Rank is a unique 
     #identifier for each process, and world_size is the total number of processes. 
@@ -147,7 +147,8 @@ def report_memory_distributed():
     if dist.get_rank() == 0:
         print(f"Total RAM used by all Processes: {local_mem.item():.2f} MiB")
 
-def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, return_dict, train_weights = None, val_weights= None, num_threads=1):
+def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, return_dict, train_weights = None, 
+                              val_weights= None, num_threads=1, socket_port=None):
         lossValBest = 10000
         stopped = False
         bestEpoch = 0
@@ -164,7 +165,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             val_weights = torch.from_numpy(val_weights)
 
         if num_threads>1:
-            ddp_setup(rank, num_threads)
+            ddp_setup(rank, num_threads, socket_port=socket_port) 
             ddpmodel = DDP(model)
 
             module = ddpmodel.module
@@ -175,8 +176,8 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             train_sampler = None
             validation_sampler = None
         
-        train_batch_size = int(config['train_batch_size']/num_threads) #Ensures same effective batch size regardless of number of threads
-        val_batch_size = int(config['train_batch_size']/num_threads) #Might want to change this to a seperate hyperparameter in the config file
+        train_batch_size = config['train_batch_size']//num_threads #Ensures same effective batch size regardless of number of threads
+        val_batch_size = config['train_batch_size']//num_threads #Might want to change this to a seperate hyperparameter in the config file
         
         train_dl = DataLoader(train_ds, batch_size=train_batch_size, shuffle=False, sampler=train_sampler)
         validation_dl = DataLoader(validation_ds, batch_size=val_batch_size, shuffle=False, sampler=validation_sampler)
@@ -187,42 +188,44 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
             print(f"The initial Validation Loss: {initialValidation_loss:.6f}")
         
-        epochtimes = []
-        for epoch in range(config['n_epochs']):
-            epoch_start = time.time()
-            if num_threads>1:
-                train_dl.sampler.set_epoch(epoch)
-                validation_dl.sampler.set_epoch(epoch)
-            if rank == 0:
-                print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
-            # Train over mini-batches
-            stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean()
-            trainingEpoch_loss.append(stepLoss)
-            # Compute validation loss
-            validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean()
-            validationEpoch_loss.append(validationStep_loss)
-            if rank == 0:
-                print(f"Train:{stepLoss:.6f}, Validation:{validationStep_loss:.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
-            if num_threads>1:
-                report_memory_distributed() #To print the memory usage of all processes
-            else:
-                print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
-            epochtimes.append((time.time()-epoch_start))
+            epochtimes = []
+            for epoch in range(config['n_epochs']):
+                epoch_start = time.time()
+                if num_threads>1:
+                    train_dl.sampler.set_epoch(epoch)
+                    validation_dl.sampler.set_epoch(epoch)
+                if rank == 0:
+                    print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
+                # Train over mini-batches
+                stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean()
+                trainingEpoch_loss.append(stepLoss)
+                # Compute validation loss
+                validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean()
+                validationEpoch_loss.append(validationStep_loss)
+                if rank == 0:
+                    print(f"Train:{stepLoss:.6f}, Validation:{validationStep_loss:.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
+                if num_threads==1:
+                    print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
+                else:
+                    try:
+                       report_memory_distributed() #To print the memory usage of all processes
+                    except Exception as e:
+                        print(f'Memory report failed in rank {rank}')
+                epochtimes.append((time.time()-epoch_start))
 
-            if early_stopper.early_stop(validationEpoch_loss[-1]): 
-                stopped = True 
-                break
-            if early_stopper.counter == 0:
-                lossValBest = validationEpoch_loss[-1]
-                lossTrainBest = trainingEpoch_loss[-1]
-                bestEpoch = epoch
-                # save_model(model, target_path)
-                bestModel = copy.deepcopy(module)
-            i +=1
-        if num_threads>1:
-            destroy_process_group()
-    
-
+                if early_stopper.early_stop(validationEpoch_loss[-1]): 
+                    stopped = True 
+                    break
+                if early_stopper.counter == 0:
+                    lossValBest = validationEpoch_loss[-1]
+                    lossTrainBest = trainingEpoch_loss[-1]
+                    bestEpoch = epoch
+                    # save_model(model, target_path)
+                    bestModel = copy.deepcopy(module)
+                i +=1
+            if num_threads>1:
+                destroy_process_group()
+        
 
         #Getting around not being able to return from the DDP process
         if rank == 0:
@@ -471,10 +474,12 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
     taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins=10)
    
-    info_dict = {"TaggingEfficiency" : taggers[tagger].stats.tagging_efficiency(calibrated = False),
-    "TaggingPower" : taggers[tagger].stats.tagging_power(calibrated = False) ,
-    "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True), "TaggingPower_Cali" : taggers[tagger].stats.tagging_power(calibrated = True),
-    "EffectiveMistag_Cali" : taggers[tagger].stats.effective_mistag(calibrated = True) , "EffectiveMistag" : taggers[tagger].stats.effective_mistag(calibrated = False) }
+    info_dict = {"TaggingEfficiency"      : taggers[tagger].stats.tagging_efficiency(calibrated = False),
+                 "TaggingPower"           : taggers[tagger].stats.tagging_power(calibrated = False) ,
+                 "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True), 
+                 "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(calibrated = True),
+                 "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(calibrated = True) , 
+                 "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(calibrated = False) }
     with open(f"{target_path}/taggingInfo_{calibration_option}.json", "w") as f:
         json.dump(info_dict, f)
     print(f"Tagger parameters saved at {target_path}\n")
