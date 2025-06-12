@@ -1042,6 +1042,7 @@ rule train_tagger_data:
             '--weight_type {wildcards.weight_type}',
             '--repo', repo,
             '--data_type Data',
+            '--balance_dataset',
             #'--clean',
         ]
 

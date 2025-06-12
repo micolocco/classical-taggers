@@ -31,6 +31,9 @@ import torch.multiprocessing as mp
 import socket
 from rich.console import Console
 from rich.table import Table
+from io import StringIO
+import itertools
+
 
 def stats_printout(tagger, decay_type, train_df, val_df, BID):
     '''
@@ -118,6 +121,10 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
         fmt(stats["val_tracks_sweighted"], True) if use_weights else ""
     )
     console.print(table)
+    table_str = output.getvalue()
+    print(table_str)
+    output.close()
+
     print("\nThe train and the validation sets are made of tracks passing the preselection.")
     print("The calibration set contains both selected and not selected events. \n")
 
@@ -184,11 +191,15 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
             asymm(label_stats["B_wrong_train_sweighted"], label_stats["antiB_wrong_train_sweighted"])
         ]
     table.add_row(*row)
+    # console.print(table)
+
+    output = StringIO()
+    console = Console(file=output, width=200)
     console.print(table)
 
 
 
-def read_files(files, vars, treename, reduce = False, weight_label = None):
+def read_files(files, vars, treename, reduce = False, weight_label = None,balance_data= False):
     df = pd.DataFrame(columns=vars)
 
     additional_vars = ['RUNNUMBER', 'EVENTNUMBER']
@@ -222,6 +233,33 @@ def read_files(files, vars, treename, reduce = False, weight_label = None):
 
             _df = _df[_df['event_entry'].isin(df_event['event_entry'])].reset_index(drop=True)
             del df_event
+        if balance_data:
+            # Split dataset into track charge and BID and then balance number of tracks in each
+            BIDs = _df[BID].unique()
+            trCharges = _df["B_Tr_T_Charge"].unique()
+
+            #Sort by weight_label
+            _df.sort_values(weight_label, inplace=True)
+
+            #Get number of tracks in each combination of BID and track Charge
+            numTracks = [
+                len(_df[(_df[BID] == BIDs[0]) & (_df["B_Tr_T_Charge"] == trCharges[0])]),
+                len(_df[(_df[BID] == BIDs[0]) & (_df["B_Tr_T_Charge"] == trCharges[1])]),
+                len(_df[(_df[BID] == BIDs[1]) & (_df["B_Tr_T_Charge"] == trCharges[0])]),
+                len(_df[(_df[BID] == BIDs[1]) & (_df["B_Tr_T_Charge"] == trCharges[1])]),
+            ]
+            minTracks = np.min(numTracks)
+
+            #Drop events until all BID and Trackcharge combinations have 
+            #Drop events with lowest weight first
+            for b, c in itertools.product(BIDs, trCharges):
+                comb =_df[(_df[BID] == b) & (_df["B_Tr_T_Charge"] == c)]
+                if len(comb) > minTracks:
+                    idxs = comb[:-minTracks].index
+                    _df.drop(idxs, inplace=True)
+
+            _df.drop(columns=['B_Tr_T_Charge'], inplace=True)
+            _df = _df.sample(frac=1, random_state=42).reset_index(drop=True)
 
 
         df = pd.concat([df, _df], ignore_index = True)
