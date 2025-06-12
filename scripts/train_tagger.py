@@ -120,6 +120,10 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
         fmt(stats["val_evts_sweighted"], True) if use_weights else "",
         fmt(stats["val_tracks_sweighted"], True) if use_weights else ""
     )
+    # console.print(table)
+
+    output = StringIO()
+    console = Console(file=output, width=200)
     console.print(table)
     table_str = output.getvalue()
     print(table_str)
@@ -196,6 +200,9 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     output = StringIO()
     console = Console(file=output, width=200)
     console.print(table)
+    table_str = output.getvalue()
+    print(table_str)
+    output.close()
 
 
 
@@ -203,6 +210,9 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
     df = pd.DataFrame(columns=vars)
 
     additional_vars = ['RUNNUMBER', 'EVENTNUMBER']
+
+    if balance_data:
+        additional_vars.append('B_Tr_T_Charge')
 
 
     for i, f in enumerate(files):
