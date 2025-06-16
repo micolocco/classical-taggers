@@ -212,7 +212,7 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
     additional_vars = ['RUNNUMBER', 'EVENTNUMBER']
 
     if balance_data:
-        additional_vars.append('B_Tr_T_Charge')
+        additional_vars = additional_vars + ['B_Tr_T_Charge', 'BID_signal_weights']
 
 
     for i, f in enumerate(files):
@@ -243,37 +243,71 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
 
             _df = _df[_df['event_entry'].isin(df_event['event_entry'])].reset_index(drop=True)
             del df_event
-        if balance_data:
-            # Split dataset into track charge and BID and then balance number of tracks in each
-            BIDs = _df[BID].unique()
-            trCharges = _df["B_Tr_T_Charge"].unique()
-
-            #Sort by weight_label
-            _df.sort_values(weight_label, inplace=True)
-
-            #Get number of tracks in each combination of BID and track Charge
-            numTracks = [
-                len(_df[(_df[BID] == BIDs[0]) & (_df["B_Tr_T_Charge"] == trCharges[0])]),
-                len(_df[(_df[BID] == BIDs[0]) & (_df["B_Tr_T_Charge"] == trCharges[1])]),
-                len(_df[(_df[BID] == BIDs[1]) & (_df["B_Tr_T_Charge"] == trCharges[0])]),
-                len(_df[(_df[BID] == BIDs[1]) & (_df["B_Tr_T_Charge"] == trCharges[1])]),
-            ]
-            minTracks = np.min(numTracks)
-
-            #Drop events until all BID and Trackcharge combinations have 
-            #Drop events with lowest weight first
-            for b, c in itertools.product(BIDs, trCharges):
-                comb =_df[(_df[BID] == b) & (_df["B_Tr_T_Charge"] == c)]
-                if len(comb) > minTracks:
-                    idxs = comb[:-minTracks].index
-                    _df.drop(idxs, inplace=True)
-
-            _df.drop(columns=['B_Tr_T_Charge'], inplace=True)
-            _df = _df.sample(frac=1, random_state=42).reset_index(drop=True)
 
 
         df = pd.concat([df, _df], ignore_index = True)
+    del _df
+    
+    if balance_data:
+        BIDs = df[BID].unique()
+        trackCharges = df['B_Tr_T_Charge'].unique()
 
+        df_events = df.groupby('event_entry').first()
+        yield_by_ID = [np.sum(df_events[df_events[BID] == ID]['BID_signal_weights']) for ID in BIDs]
+        min_yield = min(yield_by_ID)
+
+        print(f"Before Event dropping:")
+        print(f"Yield by ID: {BIDs}")
+        print(f"Yield by ID: {yield_by_ID}")
+        print(f"Number of events with {BIDs[0]}: {len(df_events[df_events[BID] == BIDs[0]])}")
+        print(f"Number of events with {BIDs[1]}: {len(df_events[df_events[BID] == BIDs[1]])}", flush=True)
+
+        #Drop random events until the yield of both BIDs is roughly equal
+        for ID, ID_yield in zip(BIDs, yield_by_ID):
+            while ID_yield > min_yield:
+                # Randomly select an event to drop
+                event_to_drop = df_events[df_events[BID] == ID].sample(n=1, random_state=42).index[0]
+                df = df[df['event_entry'] != event_to_drop].reset_index(drop=True)
+                df_events = df.groupby('event_entry').first()
+                ID_yield = np.sum(df_events[df_events[BID] == ID]['BID_signal_weights'])
+
+        df_events = df.groupby('event_entry').first()
+        yield_by_ID = [np.sum(df_events[df_events[BID] == ID]['BID_signal_weights']) for ID in BIDs]
+
+        print(f"After Event dropping:")
+        print(f"IDs: {BIDs}")
+        print(f"Yield by ID: {yield_by_ID}")
+        print(f"Number of events with {BIDs[0]}: {len(df_events[df_events[BID] == BIDs[0]])}")
+        print(f"Number of events with {BIDs[1]}: {len(df_events[df_events[BID] == BIDs[1]])}", flush=True)
+        del df_events
+                
+        numTracks = [
+                len(df[(df[BID] == BIDs[0]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
+                len(df[(df[BID] == BIDs[0]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
+                len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
+                len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
+        ]
+        minTracks = np.min(numTracks)
+        print(numTracks)
+
+        #Drop random tracks until all BID and Trackcharge combinations have same number of tracks
+        for b, c in itertools.product(BIDs, trackCharges):
+            comb = df[(df[BID] == b) & (df["B_Tr_T_Charge"] == c)]
+            if len(comb) > minTracks:
+                idxs = comb.sample(n=len(comb) - minTracks, random_state=42).index
+                df.drop(idxs, inplace=True)
+
+        numTracks = [
+            len(df[(df[BID] == BIDs[0]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
+            len(df[(df[BID] == BIDs[0]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
+            len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
+            len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
+        ]
+        print(numTracks)
+
+
+        df.drop(columns=['B_Tr_T_Charge', 'BID_signal_weights'], inplace=True)
+        
     return df
 
 def get_architecture(config):
@@ -334,6 +368,8 @@ def find_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(('', 0))
         return s.getsockname()[1]
+    
+
 
 def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_path,  
                       tagger, seed, features, config,  
@@ -448,6 +484,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--num_threads', help='Number of threads to use in training', type=int, default=1)
     parser.add_argument('--reduce', help='Whether to drop data samples with low weights', action='store_true', default=False)
+    parser.add_argument('--balance_dataset', help='Whether to balance number of B_id and track charge tracks', action='store_true', default=False)
     
 
     cfg = parser.parse_args()
@@ -480,13 +517,13 @@ if __name__ == '__main__':
     print(f'Reading of training files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.training_data)} files.", flush=True)
     # train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, augmentation=False, reduce = False, weight_label=None)
-    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label)
+    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label, balance_data = cfg.balance_dataset)
     print(f'Reading of training files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     print(f'Reading of validation files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.validation_data)} files.", flush=True)
     # val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, augmentation=False, reduce = False, weight_label=None)
-    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label)
+    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label, balance_data = cfg.balance_dataset)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     train_ds, validation_ds, weights_train, weights_val = get_dataSets(train_df=train_df, val_df=val_df, config_name=cfg.config, 

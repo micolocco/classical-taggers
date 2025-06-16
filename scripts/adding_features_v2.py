@@ -281,7 +281,7 @@ if __name__ == '__main__':
     loading_variables_withPrefix = get_loading_vars(cfg.evtType, cfg.data_calib)
 
    
-    loading_variables_withPrefix = loading_variables_withPrefix + ['signal_weights', 'background_weights', 'pdf_ratio', 'entry', 'subentry']
+    loading_variables_withPrefix = loading_variables_withPrefix + ['signal_weights', 'background_weights', 'pdf_ratio', 'entry', 'subentry', 'BID_signal_weights', 'BID_background_weights']
     loading_variables_withPrefix = list(dict.fromkeys(loading_variables_withPrefix)) #removes duplicates
 
     print(f'{loading_variables_withPrefix}')

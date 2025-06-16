@@ -73,7 +73,7 @@ if __name__ == '__main__':
     df_data = df_data.reset_index()
     df_data = df_data[df_data["event_entry"].isin(df_weight["event_entry"])] #Drops all events that have not been selected in the mass_fit script
 
-    df_data = df_data.merge(df_weight.reset_index(), on=["event_entry", "B_DTF_PV_Jpsi_MASS", 'RUNNUMBER', 'EVENTNUMBER'], how='left')
+    df_data = df_data.merge(df_weight.reset_index(), on=["event_entry", "B_DTF_PV_Jpsi_MASS", 'RUNNUMBER', 'EVENTNUMBER', "B_ID"], how='left')
     print(df_data.head(10))
     print(df_data.columns)
     df_data.drop(columns=['event_entry'], inplace = True)

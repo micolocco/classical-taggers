@@ -101,7 +101,7 @@ if __name__ == '__main__':
     else:
         loading_variables += ["B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
 
-    loading_variables = loading_variables + ['signal_weights', 'background_weights', 'pdf_ratio']
+    loading_variables = loading_variables + ['signal_weights', 'background_weights', 'pdf_ratio', 'BID_signal_weights', 'BID_background_weights']
     loading_variables = list(dict.fromkeys(loading_variables)) #removes all duplicates
 
     # df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)[features + extra_variables + run2_taggers_variables + ['selected']]

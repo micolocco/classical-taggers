@@ -54,7 +54,7 @@ def get_tex_decay(decay):
         tex_decay = r"$B^{*0} \to J/\psi K^*$"
     return tex_decay
 
-def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df_data, compute_weights, generate_figures, obs_name):
+def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df, compute_weights, generate_figures, obs_name, prefix=''):
     if not simulation: # Fix signal shape from MC
         with open(sim_fit) as f:
             _pars = json.load(f)
@@ -74,9 +74,9 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df_data, comp
     # g_mu = zfit.Parameter("g_mean", 5300, 5200, 5400)
     sigma = zfit.Parameter("sigma", 8, 0.1, 20)
     g_sigma = zfit.Parameter("g_sigma", 8, 0.1, 20)
-    yield_signal = zfit.Parameter("yield_signal", len(df_data), 0, len(df_data))
+    yield_signal = zfit.Parameter("yield_signal", len(df), 0, len(df))
     sig_frac1 = zfit.Parameter("sig_frac1", 0.5, 0, 1)
-    # yield_gauss = zfit.Parameter("yield_signal_gauss", len(df_data), 0, len(df_data))
+    # yield_gauss = zfit.Parameter("yield_signal_gauss", len(df), 0, len(df))
 
     double_cb = DoubleCB(mean, sigma, alphaL, nL, alphaR, nR, obs=obs)
     # signal_dcb = double_cb.create_extended(yield_signal)
@@ -89,8 +89,8 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df_data, comp
     if not simulation:
         # Background (Exponential)
         lambda_ = zfit.Parameter("lambda", -0.001, -1.0, 0.0)
-        yield_min = len(df_data) * 0.01 if compute_weights else len(df_data) * 0.5 #compute_weights also means BDT selection happened
-        yield_bkg = zfit.Parameter("yield_bkg", yield_min, 0, len(df_data))
+        yield_min = len(df) * 0.01 if compute_weights else len(df) * 0.5 #compute_weights also means BDT selection happened
+        yield_bkg = zfit.Parameter("yield_bkg", yield_min, 0, len(df))
 
         # exp = Exponential(obs=obs, lambda_=lambda_)
         # comb=exp.create_extended(yield_bkg)
@@ -130,9 +130,22 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df_data, comp
     # gauss_scaled = gauss_yield_val * gauss_pdf_eval * binwidth
     total_signal_eval = signal_scaled
 
+    if not simulation:
+        background_pdf_eval = poly.pdf(x_plot, norm_range=obs)
+        # background_pdf_eval = exp.pdf(x_plot, norm_range=obs)
+        bkg_yield_val = params[yield_bkg]['value']
+        bkg_scaled = bkg_yield_val * background_pdf_eval * binwidth
+        total_pdf_eval = signal_scaled + bkg_scaled
+
+
     if generate_figures:
         # Plot the results
         fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [4, 1]}, sharex=True)
+
+        if not simulation:
+            ax1.plot(x_plot, bkg_scaled, label="Combinatorial", color="green", linestyle = "--", linewidth=2)
+            ax1.plot(x_plot, total_pdf_eval, label="Total Fit", color='red',linewidth=3)
+
 
 
         # Scatter plot of data points with errors
@@ -146,14 +159,7 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df_data, comp
         ax1.plot(x_plot, total_signal_eval, label=tex_decay, color="blue", linestyle = "--", linewidth=2)
 
 
-        if not simulation:
-            background_pdf_eval = poly.pdf(x_plot, norm_range=obs)
-            # background_pdf_eval = exp.pdf(x_plot, norm_range=obs)
-            bkg_yield_val = params[yield_bkg]['value']
-            bkg_scaled = bkg_yield_val * background_pdf_eval * binwidth
-            total_pdf_eval = signal_scaled + bkg_scaled
-            ax1.plot(x_plot, bkg_scaled, label="Combinatorial", color="green", linestyle = "--", linewidth=2)
-            ax1.plot(x_plot, total_pdf_eval, label="Total Fit", color='red',linewidth=3)
+
 
         ylabel = f"Events$~/~${binwidth}" + r"$[~\mathrm{MeV}/c^2]$"
         ax1.set_ylabel(ylabel)
@@ -198,39 +204,31 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df_data, comp
         plt.savefig(join(outputdir, filename))
         plt.close()
 
-        if compute_weights:
-            weights = compute_sweights(model, masses)
+    if compute_weights:
+        weights = compute_sweights(model, masses)
 
-            df_data["signal_weights"] = weights[yield_signal] 
-            df_data["background_weights"] = weights[yield_bkg] 
+        df[f"{prefix}signal_weights"] = weights[yield_signal] 
+        df[f"{prefix}background_weights"] = weights[yield_bkg] 
+        del weights
+        print(df)
 
-            plt.plot(masses, df_data["signal_weights"], marker=".", linestyle="None", color="red", markersize=0.1, label="signal")
-            plt.plot(masses, df_data["background_weights"], marker=".", linestyle="None", color="green", markersize=0.1, label="background weights")
-            plt.plot(masses, df_data["background_weights"] + df_data["signal_weights"], marker=".", linestyle="None", color="black", markersize=0.1, label="Sum of three")
+        if generate_figures:
+            plt.plot(masses, df[f"{prefix}signal_weights"], marker=".", linestyle="None", color="red", markersize=0.1, label="signal")
+            plt.plot(masses, df[f"{prefix}background_weights"], marker=".", linestyle="None", color="green", markersize=0.1, label="background weights")
+            plt.plot(masses, df[f"{prefix}background_weights"] + df[f"{prefix}signal_weights"], marker=".", linestyle="None", color="black", markersize=0.1, label="Sum of three")
             plt.xlabel("m($B^{+})~[MeV]/c^{2}$")
             plt.ylabel("weights")
             plt.legend()
             plt.savefig(join(outputdir,f"validate_sweights.png"))
             plt.close()
 
-            #Calculate and save the pdf_ratio
-            signal = model_sig_ext.pdf( df_data[obs_name], obs) * sig_yield_val
-            bkg = comb_ext.pdf( df_data[obs_name], obs) * bkg_yield_val
-            df_data["pdf_ratio"] = signal/bkg
-
-            df_data.reset_index(inplace=True)
-            # df_data.drop(columns=['event_entry'], inplace = True)
-
-            #Save weighted dataframe to disk
-            tree_dict = {col: np.array(df_data[col]) for col in df_data.columns}
-            print(df_data.columns)
-            del df_data
+        #Calculate and save the pdf_ratio
+        signal = model_sig_ext.pdf( df[obs_name], obs) * sig_yield_val
+        bkg = comb_ext.pdf( df[obs_name], obs) * bkg_yield_val
+        df["pdf_ratio"] = signal/bkg
 
 
-            with uproot.recreate(join(outputdir, 'weights.root')) as f:
-                f['DecayTree'] = tree_dict
-
-    return sig_yield_val
+            
             
 
 
@@ -271,7 +269,7 @@ if __name__ == '__main__':
     BDT = None
     if not cfg.simulation:
         #vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER',  "B_ID", 'entry', "FillNumber", "B_DTF_PV_Jpsi_MASS"] #f'{tagger}_TagDec', f'{tagger}_Eta',
-        vars = ['RUNNUMBER', 'EVENTNUMBER', massname]
+        vars = ['RUNNUMBER', 'EVENTNUMBER', massname, 'B_ID']
         
         input_files = cfg.data_files
         if isinstance(input_files, str):
@@ -297,7 +295,7 @@ if __name__ == '__main__':
             filenumber = int(filenumber[10:-9])
 
             with uproot.open(f) as _f:
-                _df = _f[cfg.treename].arrays([massname, 'RUNNUMBER', 'EVENTNUMBER']+bdt_features, library="pd")
+                _df = _f[cfg.treename].arrays(vars+bdt_features, library="pd")
             _df.dropna(inplace=True)
             _df["SAMPLENUMBER"] = filenumber
             _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
@@ -343,30 +341,49 @@ if __name__ == '__main__':
 
 
 
-    sig_yield = massfit(obs, masses, tex_decay, cfg.simulation, cfg.sim_fit, f"fit_res_before_cut.png", df_data, False, True, cfg.obs_name)
+    massfit(obs, masses, tex_decay, cfg.simulation, cfg.sim_fit, f"fit_res_before_cut.png", df_data, False, True, cfg.obs_name)
 
-    # sig_yield /= 20
     if BDT is not None:
-        # cut = 0.5 #seems like reasonable starting point
-        # sig_eff = -1
-        # while sig_eff< 0.95:
+        pd.set_option('display.max_columns', 15)
 
-        #     df_cut = df_data[:len(df_data)//20].copy() #only use 5% of the data to find cut value
 
-        #     df_cut = df_cut[df_cut['signalness'] > cut]
-        #     if len(df_cut) > 1:
-        #         masses = df_cut[massname].values
-        #         obs = zfit.Space("mass", limits=mass_range)
 
-        #         sig_yield_cut = massfit(obs, masses, tex_decay, cfg.simulation, cfg.sim_fit, None, df_data, True, False, cfg.obs_name)
-        #         sig_eff = sig_yield_cut/sig_yield
-        #     print(f'Cut: {cut} sig_eff: {sig_eff}')
-        #     cut -= 0.01
-        # print(f'chosen cut value = {cut}')
         df_data = df_data[df_data['signalness'] > cut]
+        df_data['BID_signal_weights'] = 0
+        df_data['BID_background_weights'] = 0
+        for id in df_data['B_ID'].unique():
+            print(f'Calculating Sweights for BID={id}')
+            df_fit = df_data[df_data['B_ID'] == id]
+            masses  = df_fit[massname].values
+            obs = zfit.Space("mass", limits=mass_range)
+            massfit(obs, masses, tex_decay, cfg.simulation, cfg.sim_fit, f"fit_after_cut.png", df_fit, 
+                    compute_weights= True, generate_figures= False, obs_name = cfg.obs_name, prefix='BID_')
+            
+            # print(df_data.head(10))
+
+            # print(df_data.loc[df_data['B_ID'] == id])
+            # print(df_fit['BID_signal_weights'].values)
+            df_data.loc[df_data['B_ID'] == id, 'BID_signal_weights'] = df_fit['BID_signal_weights'].values
+            df_data.loc[df_data['B_ID'] == id, 'BID_background_weights'] = df_fit['BID_background_weights'].values
+
+        print(f'Calculating total Sweights')
         masses  = df_data[massname].values
         obs = zfit.Space("mass", limits=mass_range)
         massfit(obs, masses, tex_decay, cfg.simulation, cfg.sim_fit, f"fit_after_cut.png", df_data, True, True, cfg.obs_name)
+
+        df_data.reset_index(inplace=True)
+        # df_data.drop(columns=['event_entry'], inplace = True)
+
+        #Save weighted dataframe to disk
+        tree_dict = {col: np.array(df_data[col]) for col in df_data.columns}
+        print(df_data.columns)
+        del df_data
+        print('Writing file to disk')
+
+
+        with uproot.recreate(join(outputdir, 'weights.root')) as f:
+            f['DecayTree'] = tree_dict
+
 
     print('Mass fit script ended')
     

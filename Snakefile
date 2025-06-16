@@ -16,12 +16,6 @@ try:
     repo = config['REPO']
 
     batched = config['use_batched'] 
-    # if batched:
-    #     ruleorder: batched_train_tagger_data > train_tagger_data 
-    #     ruleorder: batched_train_tagger_MC > train_tagger_MC 
-    # else:
-    #     ruleorder: train_tagger_data > batched_train_tagger_data
-    #     ruleorder: train_tagger_MC > batched_train_tagger_MC
 except:
     raise RuntimeError("Make sure to specify snakemake config")
 
