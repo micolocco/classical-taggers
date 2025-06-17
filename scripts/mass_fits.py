@@ -163,7 +163,7 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df, compute_w
 
         ylabel = f"Events$~/~${binwidth}" + r"$[~\mathrm{MeV}/c^2]$"
         ax1.set_ylabel(ylabel)
-        # ax1.set_yscale('log')
+        ax1.set_yscale('log')
         ax1.legend()
         # Save the results
         params = result.params  # Get the fitted parameters
@@ -201,7 +201,7 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df, compute_w
         ax1.set_ylim(1, 1.1*np.max(counts))
 
         plt.tight_layout()
-        plt.savefig(join(outputdir, filename))
+        plt.savefig(join(outputdir, prefix + filename))
         plt.close()
 
     if compute_weights:
@@ -219,7 +219,7 @@ def massfit(obs, masses, tex_decay, simulation, sim_fit, filename, df, compute_w
             plt.xlabel("m($B^{+})~[MeV]/c^{2}$")
             plt.ylabel("weights")
             plt.legend()
-            plt.savefig(join(outputdir,f"validate_sweights.png"))
+            plt.savefig(join(outputdir, prefix + f"validate_sweights.png"))
             plt.close()
 
         #Calculate and save the pdf_ratio
@@ -357,14 +357,14 @@ if __name__ == '__main__':
             masses  = df_fit[massname].values
             obs = zfit.Space("mass", limits=mass_range)
             massfit(obs, masses, tex_decay, cfg.simulation, cfg.sim_fit, f"fit_after_cut.png", df_fit, 
-                    compute_weights= True, generate_figures= False, obs_name = cfg.obs_name, prefix='BID_')
+                    compute_weights= True, generate_figures= True, obs_name = cfg.obs_name, prefix=f'BID{id}_')
             
             # print(df_data.head(10))
 
             # print(df_data.loc[df_data['B_ID'] == id])
             # print(df_fit['BID_signal_weights'].values)
-            df_data.loc[df_data['B_ID'] == id, 'BID_signal_weights'] = df_fit['BID_signal_weights'].values
-            df_data.loc[df_data['B_ID'] == id, 'BID_background_weights'] = df_fit['BID_background_weights'].values
+            df_data.loc[df_data['B_ID'] == id, 'BID_signal_weights'] = df_fit[f'BID{id}_signal_weights'].values
+            df_data.loc[df_data['B_ID'] == id, 'BID_background_weights'] = df_fit[f'BID{id}_background_weights'].values
 
         print(f'Calculating total Sweights')
         masses  = df_data[massname].values
