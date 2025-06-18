@@ -212,7 +212,9 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
     additional_vars = ['RUNNUMBER', 'EVENTNUMBER']
 
     if balance_data:
-        additional_vars = additional_vars + ['B_Tr_T_Charge', 'BID_signal_weights']
+        additional_vars = additional_vars + ['B_Tr_T_Charge']
+        if weight_label is not None:
+            additional_vars = additional_vars + ['BID_signal_weights']
 
 
     for i, f in enumerate(files):
@@ -230,7 +232,6 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
         
         _df.dropna(inplace = True)
         _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
         if reduce: #Probably take this out after bkg rejection
             df_event = _df.groupby("event_entry").first().reset_index()
             n_keep = int(len(df_event) * 0.4)
@@ -252,27 +253,43 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
         BIDs = df[BID].unique()
         trackCharges = df['B_Tr_T_Charge'].unique()
 
+        df.groupby('event_entry')
+
+        def num_events(df):
+            if 'BID_signal_weights' in df.columns:
+                return np.sum(df['BID_signal_weights'])
+            else:
+                return len(df)
+
         df_events = df.groupby('event_entry').first()
-        yield_by_ID = [np.sum(df_events[df_events[BID] == ID]['BID_signal_weights']) for ID in BIDs]
+        yield_by_ID = [num_events(df_events[df_events[BID] == ID]) for ID in BIDs]
         min_yield = min(yield_by_ID)
 
         print(f"Before Event dropping:")
-        print(f"Yield by ID: {BIDs}")
+        print(f"IDs: {BIDs}")
         print(f"Yield by ID: {yield_by_ID}")
         print(f"Number of events with {BIDs[0]}: {len(df_events[df_events[BID] == BIDs[0]])}")
         print(f"Number of events with {BIDs[1]}: {len(df_events[df_events[BID] == BIDs[1]])}", flush=True)
+
+        print(df.head(), flush=True)
 
         #Drop random events until the yield of both BIDs is roughly equal
         for ID, ID_yield in zip(BIDs, yield_by_ID):
             while ID_yield > min_yield:
                 # Randomly select an event to drop
-                event_to_drop = df_events[df_events[BID] == ID].sample(n=1, random_state=42).index[0]
-                df = df[df['event_entry'] != event_to_drop].reset_index(drop=True)
+
+                n = int(ID_yield - min_yield)
+                if n == 0:
+                    n = 1
+                event_to_drop = df_events[df_events[BID] == ID].sample(n=n, random_state=42).index
+                #Drop all events_entries in event_to_drop#
+                df = df[~df['event_entry'].isin(event_to_drop)]
+
                 df_events = df.groupby('event_entry').first()
-                ID_yield = np.sum(df_events[df_events[BID] == ID]['BID_signal_weights'])
+                ID_yield = num_events(df_events[df_events[BID] == ID])
 
         df_events = df.groupby('event_entry').first()
-        yield_by_ID = [np.sum(df_events[df_events[BID] == ID]['BID_signal_weights']) for ID in BIDs]
+        yield_by_ID = [num_events(df_events[df_events[BID] == ID]) for ID in BIDs]
 
         print(f"After Event dropping:")
         print(f"IDs: {BIDs}")
@@ -288,11 +305,12 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
                 len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
         ]
         minTracks = np.min(numTracks)
-        print(numTracks)
+        print(numTracks, flush=True)
 
         #Drop random tracks until all BID and Trackcharge combinations have same number of tracks
         for b, c in itertools.product(BIDs, trackCharges):
             comb = df[(df[BID] == b) & (df["B_Tr_T_Charge"] == c)]
+            print(f"Before dropping tracks for {b}, {c}: {len(comb)} tracks", flush=True)
             if len(comb) > minTracks:
                 idxs = comb.sample(n=len(comb) - minTracks, random_state=42).index
                 df.drop(idxs, inplace=True)
@@ -303,10 +321,10 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
             len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
             len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
         ]
-        print(numTracks)
+        print(numTracks, flush=True)
 
 
-        df.drop(columns=['B_Tr_T_Charge', 'BID_signal_weights'], inplace=True)
+        df.drop(columns=additional_vars, inplace=True)
         
     return df
 
@@ -504,6 +522,7 @@ if __name__ == '__main__':
             features[i] = features[i].replace("B_TRUEID", "B_ID")
 
     vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] #'B_Tr_T_Charge',
+    weight_label = None
     if cfg.data_type == 'Data':
         weight_label = cfg.weight_type
         if weight_label != 'ones':
