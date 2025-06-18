@@ -59,8 +59,8 @@ def read_files_reduce_unselected(files, vars, treename, seed):
 
     return df
 
-def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path, treename, tagger, features, config,
-                     decay_type, seed, repo, data_type, weight_type, model_path):
+def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, features, config,
+                     decay_type, seed, repo, data_type, model_path):
     start = datetime.datetime.now()
     print(f'Testing started on {start.strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
     # Load YAML configuration file
@@ -86,10 +86,7 @@ def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path,
 
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
     if data_type == 'Data' :
-        if weight_label != 'ones':
-            columns_to_drop.append(weight_label)
-        if weight_label != 'signal_weights':
-            columns_to_drop.append('signal_weights')
+        columns_to_drop.append('signal_weights')
 
     if data_type == 'Data':
         sweights = test_df['signal_weights']
@@ -143,9 +140,9 @@ def testing_pipeline(test_df, vars,  weight_label, BID, target_path, train_path,
     pyTrain.plot_tagDec(tagger =tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{target_path}/Not_Normalized_TagDec.pdf')
  
     # Eta Normalization [0, 0.5]
-    test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_TagDec"] *= -1
-    test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_Eta"   ] *= -1
-    test_df.loc[test_df[f"{tagger}_Eta"] < 0  , f"{tagger}_Eta"   ] +=  1
+    # test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_TagDec"] *= -1
+    # test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_Eta"   ] *= -1
+    # test_df.loc[test_df[f"{tagger}_Eta"] < 0  , f"{tagger}_Eta"   ] +=  1
 
     # Eta Normalization [0, 0.5]
     # tot = len(test_df)
@@ -199,7 +196,6 @@ if __name__ == '__main__':
     parser.add_argument('--seed', help='Random seed', default=45, type = int) 
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
-    parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--model_path', help='Path to trained model', type=str)
 
     cfg = parser.parse_args()
@@ -219,11 +215,7 @@ if __name__ == '__main__':
 
     vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] #'B_Tr_T_Charge',
     if cfg.data_type == 'Data':
-        weight_label = cfg.weight_type
-        if weight_label != 'ones':
-            vars = vars + [weight_label]
-        if weight_label != 'signal_weights':
-            vars = vars +['signal_weights']
+        vars = vars + ['signal_weights']
 
     print(vars, flush = True)
 
@@ -242,6 +234,6 @@ if __name__ == '__main__':
     print(f'Average number of tracks per event: {test_df.shape[0]/test_df.event_entry.nunique()}', flush = True)
     print(f'Average number of selected tracks per event: {test_df.selected.sum()/test_df[test_df.selected == 1].event_entry.nunique()}', flush = True)
 
-    testing_pipeline(test_df=test_df, vars=vars, weight_label=weight_label, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
-                     treename=cfg.treename, tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
-                     seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, weight_type=cfg.weight_type, model_path = cfg.model_path)
+    testing_pipeline(test_df=test_df, vars=vars, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
+                     tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
+                     seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, model_path = cfg.model_path)

@@ -851,6 +851,7 @@ rule train_tagger_MC:
             '--decay_type {wildcards.decay}',
             '--repo', repo,
             '--data_type MC',
+            '--balance_dataset',
             #'--clean',
         ]
 
@@ -958,10 +959,14 @@ rule train_tagger_data:
 
 rule test_and_calibrate_tagger_MC:
     input:
+        # testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
+        #     for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
+        #     if not f.endswith('4_1.mc.root')
+        # ],
         testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
-            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
-            if not f.endswith('4_1.mc.root')
+            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
+
         model = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
 
         script = join(repo, 'scripts/test_and_calibrate.py'),
@@ -997,7 +1002,8 @@ rule test_and_calibrate_tagger_MC:
             '--decay_type {wildcards.decay}',
             '--seed {wildcards.seed}',
             '--repo', repo,
-            '--data_type MC',
+            # '--data_type MC',
+            '--data_type Data',
             '--model_path', model_path,
             '&> {log}',
         ]
