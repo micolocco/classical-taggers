@@ -472,7 +472,13 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     if os.path.isdir(f'{target_path}') == False:
         os.system(f"mkdir {target_path}")
 
-    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins=10)
+    scale = (lambda x: x**3, lambda x: x**1/3)
+
+    # bins = np.linspace(np.min(df_tag[f"{tagger}_Eta"].tolist()),np.max(df_tag[f"{tagger}_Eta"].tolist()), 10)
+
+    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = 10, x_scale = scale, y_scale = scale)
+    # taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", bins = bins, x_scale = scale, y_scale = scale)
+    
    
     info_dict = {"TaggingEfficiency"      : taggers[tagger].stats.tagging_efficiency(calibrated = False),
                  "TaggingPower"           : taggers[tagger].stats.tagging_power(calibrated = False) ,
