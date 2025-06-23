@@ -231,6 +231,15 @@ weights = [
     'signal_weights',
     'pdf_ratio'
 ]
+
+wildcard_constraints:
+    sample_type = '(withUT_MC_2024|noUT_MC_2024)',
+    data_type   = '(MC|Data)',
+    decay       = '(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)',
+    tagger      = '(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)',
+    weight      = '|'.join(weights),
+
+
 rule all:
     input:
         expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/pdf_ratio/testing/logit/taggingInfo_logit.json', 
