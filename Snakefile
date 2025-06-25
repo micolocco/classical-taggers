@@ -315,7 +315,7 @@ rule get_optimized:
             for seed in seeds
             for config in all_configs]
     output:
-        join(repo, "best_tagger_candidates/{cut_name}/{data_type, (MC|Data)}/candidatedTaggers_logit.json")
+        join(repo, "best_tagger_candidates/{cut_name}/{data_type}/candidatedTaggers_logit.json")
     log: 
         join(repo, "best_tagger_candidates/{cut_name}/{data_type}/candidatedTaggers_logit.log")
     params:
@@ -389,7 +389,7 @@ rule add_features:
     log: 
         join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/.{id,.*}.log')
     output: 
-        root =join(out, '{data_type, (MC|Data)}/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{id,.*}.root'), 
+        root =join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{id,.*}.root'), 
     resources:
         mem_mb = 20_000, 
         MaxRunHours = 2, # short queue
@@ -417,8 +417,8 @@ rule train_DT:
         script = join(repo, 'scripts/origin_DT_cut.py'),
         #data = glob.glob(f'/ceph/users/qfuehring/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root')
     output:
-        pdf=join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf'),
-    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.log')
+        pdf=join(data, '{sample_type}/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf'),
+    log: join(data, '{sample_type}/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.log')
     params:
         target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/')
     resources:
@@ -437,9 +437,9 @@ rule train_DT:
         script = join(repo, 'scripts/origin_DT_cut.py'),
         data = join(out, 'MC/{sample_type}/2_added_features'),
     output:
-        pdf = join(out, 'MC/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.pdf'),
+        pdf = join(out, 'MC/{sample_type}/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.pdf'),
     log:
-        join(out, 'MC/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.log')
+        join(out, 'MC/{sample_type}/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.log')
     params:
         target_path = lambda wildcards: join(out, f'{wildcards.sample_type}/DT_outputs/notSamePV_noOSP')
     resources:
@@ -547,11 +547,11 @@ rule data_Mass_Fit:
 
         BDT = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/BDT/bdt_model.pkl')
     output:
-        # join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/model.dll'),
-        data_res = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_weighted/{decay}/{tagger}/data_fit/data_res.json'),
-        weights = join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_weighted/{decay}/{tagger}/data_fit/weights.root'),
+        # join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/model.dll'),
+        data_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/data_fit/data_res.json'),
+        weights = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/data_fit/weights.root'),
     log:
-        join(out, 'Data/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_weighted/{decay}/{tagger}/data_fit/data_res.log'),
+        join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/data_fit/data_res.log'),
     resources:
         mem_mb = 10_000, 
         MaxRunHours = 6,
