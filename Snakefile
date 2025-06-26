@@ -266,14 +266,28 @@ rule all:
         # expand(join(out, 'Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nL}_nN{nN}/{weight}/training/model.pth'),
         #        lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nL=intervals['numlayers'], nN=intervals['numneurons'], weight=weights),
 
+def kernel_available():
+    """
+    Check if the ceph-kernel is mounted.
+    """
+    return os.path.exists('/ceph-kernel/users')
+
+def path_to_kernel(path):
+    if isinstance(path, str):
+        return path.replace("ceph", "ceph-kernel")
+    elif isinstance(path, list):
+        return [path.replace("ceph", "ceph-kernel") for path in path]
+    else:
+        raise TypeError("Input must be a string or a list of strings.")
+
 def copy_to_scratch(paths):
     scratch_paths = []
 
 
     # check whether ceph-kernel is mounted. If yes, copy from there
     to_replace = 'ceph/users'
-    if os.path.exists(paths[0].replace("ceph", "ceph-kernel")):
-        paths = [path.replace("ceph", "ceph-kernel") for path in paths]
+    if kernel_available():
+        paths = path_to_kernel(paths)
         to_replace = 'ceph-kernel/users'
     
     if 'users' in paths[0]:
@@ -282,9 +296,6 @@ def copy_to_scratch(paths):
         to_replace = to_replace[:-6]
         replace_with = 'scratch/togasa'
 
-    print(paths[0])
-    print(to_replace)
-    print(replace_with)
     
     
     for path in paths:
@@ -295,6 +306,8 @@ def copy_to_scratch(paths):
         shell(f'cp -u {path} {path_scratch}')
         scratch_paths.append(path_scratch)
     return scratch_paths
+
+
 
 
 decays_to_tag = ['Bu2JpsiK', 'Bd2JpsiKst']
@@ -516,11 +529,16 @@ rule MC_Mass_Fit:
         tree = find_tree_name(wildcards.decay)
         out_path = os.path.dirname(os.path.dirname(output.mc_res))
 
+        if kernel_available():
+            raw = path_to_kernel(input.data_raw)
+        else:
+            raw = input.data_raw
+
 
         cmd = [
             'python {input.script}',
             # '--sim_files {input.selected}',
-            '--sim_files {input.raw}',
+            '--sim_files', ' '.join(raw),
             '--range {lowerMass} {upperMass}', 
             '--treename', tree,
             '--simulation',
@@ -565,16 +583,16 @@ rule data_Mass_Fit:
 
         out_path = os.path.dirname(os.path.dirname(output.data_res))
 
-
-        # selected_scratch = copy_to_scratch(input.data_selected)
+        #Use ceph-kernel if available to increase file reading performance
+        if kernel_available():
+            raw = path_to_kernel(input.data_raw)
+        else:
+            raw = input.data_raw
 
 
         cmd = [
             'python {input.script}',
-            # '--data_files {input.data_selected}',
-            '--data_files {input.data_raw}',
-            # '--data_files ', ' '.join(selected_scratch),
-            # '--sim_files {input.mc_selected}',
+            '--data_files ', ' '.join(raw),
             '--range {lowerMass} {upperMass}', 
             '--obs_name B_DTF_PV_Jpsi_MASS',
             '--treename', tree,
