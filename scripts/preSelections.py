@@ -8,8 +8,6 @@ import argparse
 import os
 
 from IPython import embed
-import re
-import numpy as np
 
 def extract_selection_var(cut_file):
     '''

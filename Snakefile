@@ -250,7 +250,6 @@ rule add_features:
         #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
         #raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
         raw = join(raw_MC, '{sample_type}/1_raw/{decay}/{id}.root')
-
     log: join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     output: 
         root =join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 

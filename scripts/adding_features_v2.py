@@ -7,8 +7,7 @@ import awkward as ak
 import datetime
 
 import os
-import os, tempfile, subprocess
-from memory_profiler import profile
+#from memory_profiler import profile
 
 '''
 def stage_remote(remote_url, max_retries=3):
@@ -172,7 +171,7 @@ extra_vars = [
         'B_Tr_T_MINIPChi2',
         'B_Tr_T_ENERGY',
     ]
-@profile
+#@profile
 def main():
     parser = argparse.ArgumentParser(description='Add features used to select tracks and to train', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--raw', help='Raw file', type=str)

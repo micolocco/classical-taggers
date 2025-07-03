@@ -1,25 +1,72 @@
 name: ft_env
 channels:
+  - conda-forge
   - pytorch
   - defaults
 dependencies:
-  - pip
-  - pytorch
-  - scikit-learn
-  # - numpy==1.21
-  - matplotlib==3.8.0
-  - pandas
   - python==3.9.19
-  # - uproot==4.3.7
-  # - awkward==1.10.2
+  - numpy==1.22.4
+  - pandas==1.4.4
+  - scikit-learn
+  - matplotlib
+  - pytorch
+  - uproot==4.3.7
+  - awkward==1.10.2
+  - awkward-cpp==30
   - pulp==2.7.0
-  - ipython
+  - seaborn==0.13.2
+  - htcondor==23.0.6
+  - uncertainties==3.2.2
+  - mplhep==0.3.43
   - numba==0.53
+  - ipython
+  - sympy
+  - graphviz
+  - joblib
+  - lightning==2.1.2
+  - pytorch-lightning==2.1.2
+  - networkx
+  - psutil
+  - smart-open
+  - brotli
+  - bottleneck
+  - certifi
+  - charset-normalizer
+  - cycler
+  - decorator
+  - filelock
+  - fonttools
+  - fsspec
+  - gitpython
+  - glob2
+  - gmpy2
+  - iminuit
+  - jinja2
+  - jsonschema
+  - matplotlib-inline
+  - packaging
+  - pillow
+  - prompt-toolkit
+  - pygments
+  - pyparsing
+  - python-dateutil
+  - pytz
+  - scipy==1.10.1
+  - six
+  - tornado
+  - traitlets
+  - zipp
+  - pip
   - pip:
-    - lhcb-ftcalib
-    - snakemake
-    - rich
-    - mplhep
-    - zstandard
-    - htcondor
-    - uncertainties
+    - lhcb-ftcalib==1.4.1
+    - snakemake==7.32.4
+    - rich==13.7.1
+    - zstandard==0.22.0
+    - reretry
+    - reretry==0.11.8
+    - yte==1.5.4
+    - reretry==0.11.8
+    - memory-profiler==0.61.0
+    - smart-open==7.0.3
+    - reretry==0.11.8
+    - memory-profiler==0.61.0
