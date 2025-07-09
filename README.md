@@ -41,7 +41,9 @@ python scripts/getOptimized.py --cut <cut_type>
 ```
 with costumized options as inputs.
 
-## Producing NTuples
+## Deltams analysis
+- preselections on `P`, `PT` and `ETA` of piplus, Ds, hplus, hminus, piminus. Pre-selections from https://gitlab.cern.ch/lhcb-b2oc/analyses/b2dx-early-measurements/-/blob/master/BranchesAndSelection2025.py?ref_type=heads#L300 (b2oc WG)
+- Adding the BDT decision to reject the combinatorial background. This is built on the top of the scripts/BDTs provided by the b2oc WG, that we would like to acknowledge for the help. Please refer to their repo for teh original set of scripts (https://gitlab.cern.ch/lhcb-b2oc/analyses/b2dx-early-measurements/-/tree/master?ref_type=heads).
 
 ## PyTorch C++ interface
 - The code implementation for loading PyTorch models into C++ refers to https://pytorch.org/tutorials/advanced/cpp_export.html.
