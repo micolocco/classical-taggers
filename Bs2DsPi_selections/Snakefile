@@ -1,0 +1,131 @@
+from os.path import join, exists, dirname, basename, splitext, split
+from os import makedirs
+import numpy as np
+import os
+from copy import deepcopy
+
+
+try:
+    data = config['RAW_DATA']
+    repo = config['REPO']
+    modified_data = config['MODIFIED_DATA']
+    modified_MC = config['MODIFIED_MC']
+except:
+    raise RuntimeError("Make sure to specify snakemake config")
+
+
+taggers_conf = {
+    #'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
+    #'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
+    'Bs2DsPi': ['SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
+    # 'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
+    # 'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
+}
+def find_tree_name(decay):
+    if decay == 'Bs2JpsiPhi':
+        return 'BsToJpsiPhi_Detached/DecayTree'
+    if decay == 'Bs2DsPi':
+        return 'BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
+    if decay == 'Bu2JpsiK':
+        return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
+    if decay == 'Bd2JpsiKst':
+        return 'BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree'
+    else:
+        return 'Tuple/DecayTree'
+
+# Extract decay used for training the tagger, used for the model path
+def extract_decay(tagger):
+    if tagger in ['OSKaon', 'OSMuon', 'OSElectron']:
+        return 'Bu2JpsiK'
+    elif tagger == 'SSKaon':
+        return 'Bs2DsPi'
+    elif tagger in ['SSPion', 'SSProton']:
+        return 'Bd2JpsiKst'
+    else:
+        raise ValueError(f"Unknown tagger: {tagger}")
+
+# Stripping s24c2 MagUp - Block 1 and 2
+# The txt files has been generated with ls /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/*.root > block12_list.txt
+def select_input_files(decay):
+    """Read block1_list_Nicolas_<decay>.txt and return
+    a list of full EOS URLs for that decay."""
+    eosdir = 'root://eoslhcb.cern.ch/'
+    txt = f"block12_list_{decay}.txt"
+    #txt = f"test_list.txt"
+    with open(txt, "r") as f:
+        lines = [line.strip() for line in f]
+    return [eosdir + path for path in lines]
+
+ntuples_raw_withUT = {
+    decay: [
+        join(data, 'withUT_MC_2024', '1_raw', decay, '0000', basename(path))
+        for path in select_input_files(decay)
+    ]
+    for decay in taggers_conf
+}
+#print(ntuples_raw_withUT)
+'''
+ntuples_raw_withUT = deepcopy(ntuples_eos_withUT)
+for k,v in ntuples_raw_withUT.items():
+    ntuples_raw_withUT[k] = [f.replace(os.path.dirname(f), f'{data}/withUT_MC_2024/1_raw/{k}') for f in v]
+
+ntuples_added_features= {}
+for k,v in ntuples_raw.items():
+    ntuples_added_features.update({k: [f.replace(f'{data}', f'{modified_data}').replace('1_raw', '2_added_features') for f in v]})
+    #ntuples_added_features_withUT.update({k: [f.replace(f'{data}', f'{modified_data}/withUT_MC_2024/2_added_features') for f in v]})
+
+selected_data = {}
+for decay, path_list in ntuples_raw.items():
+    selected_data.update({decay: {}})
+    for tagger in taggers_conf[decay] :
+        selected_data[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/allBKGCAT_notSamePV_noOSP_SSK/union_PROBNN') for f in path_list]})
+
+tagged_data = {}
+for decay, path_list in ntuples_raw_withUT.items():
+    tagged_data.update({decay: {}})
+    for tagger in taggers_conf[decay] :
+        tagged_data[decay].update({tagger: [f.replace('1_raw', f'4_tagged').replace(decay, f'{decay}/{tagger}/allBKGCAT_notSamePV_noOSP_SSK/union_PROBNN') for f in path_list]})
+'''
+ntuples_preselect = {}
+for k, v in ntuples_raw_withUT.items():
+    ntuples_preselect.update({k: [f.replace(f'{data}', f'{modified_data}').replace('1_raw', '1_raw_preselect').replace('/0000','') for f in v]})
+    #ntuples_preselect.update({k: [f.replace(f'{data}', f'{modified_data}/withUT_MC_2024/2_added_features') for f in v]})
+
+#print(ntuples_preselect)
+
+rule all:
+    input: 
+        ntuples_preselect['Bs2DsPi']
+        #expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #data['Bu2JpsiK'],
+        #data['Bd2JpsiKst'],
+        # Add taggers on Bs
+
+#phis ntuples are huge, they contain all the decays, so this first rule is to populate 1_raw directory with only the interesting decay
+RAW_SETTINGS = {
+    "Bu2JpsiK": "root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/",
+    "Bs2DsPi": "root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00267010/0000/",
+}
+
+
+rule preselect_signal:
+    input:
+        script = join(repo, 'scripts/signal_selections.py'),
+        raw = join(data, '{sample_type}/1_raw/{decay}/0000/{id}.root')
+    output:
+        root = join(modified_data, '{sample_type}/1_raw_preselect/{decay}/{id}.root')
+    log: join(modified_data, '{sample_type}/1_raw_preselect/{decay}/{id}.log')
+    resources:
+        #mem_mb = 20000, # Specify memory requirement in megabytes
+        MaxRunHours = 4, # medium queue
+    run:
+        tree = find_tree_name(wildcards.decay)
+        cmd = [
+            'python', input.script,
+            '--raw {input.raw}',
+            '--output {output.root}',
+            '--treename', tree,
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
