@@ -173,7 +173,7 @@ if __name__ == '__main__':
                                 dec_data = df[tagDec_column].tolist(), 
                                 B_ID =df[B_ID_var].tolist(), 
                                 mode = mode,
-                                weight=df["reweighter_weights"].to_numpy().astype(np.float64), 
+                                weight=df["reweighter_weights"]. to_numpy().astype(np.float64), 
                                 tau_ps=df["time"].to_numpy().astype(np.float64),)
 
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
