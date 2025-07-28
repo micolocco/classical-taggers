@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser.add_argument('--treename', help='Tree name of the weighted ntuples', type=str, default='DecayTree;1')
     parser.add_argument('--seed', help='Random seed', default=45, type = int) 
     parser.add_argument('--decayType', help='Event decay', type=str)
-    parser.add_argument('--config', help='Config yaml', type=str, default='configs/config_test') 
+    parser.add_argument('--config', help='Config yaml', type=str, default='configs/hyperpar_intervals.yaml') 
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton'))
     parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
     
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     print(f'Total: {len(df["event_entry"].unique())} events, {len(df)} tracks')
 
     #Split into train, validation and test Dataframes, train and validation only contains selected tracks
-    split_dfs = pyTrain.splitByEvent(df=df, seed=cfg.seed, train_val_split=config['train_val_split'])
+    split_dfs = pyTrain.splitByEvent(df=df, seed=cfg.seed, train_val_split=config['-train_val_split'])
 
     #Write each frame to file
     purposes = ['train', 'validation', 'test']
