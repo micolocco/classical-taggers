@@ -97,15 +97,18 @@ if __name__ == '__main__':
         loading_variables = [v for v in loading_variables if "TRUE" not in v and "Flag" not in v]
         loading_variables = [v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP") for v in loading_variables]
         loading_variables = [v.replace("END_V", "ENDV_") for v in loading_variables]
-        loading_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
-    else:
-        loading_variables += ["B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
+        loading_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber"]
+        loading_variables += ['signal_weights', 'background_weights', 'pdf_ratio', 'BID_signal_weights', 'BID_background_weights']
 
-    loading_variables = loading_variables + ['signal_weights', 'background_weights', 'pdf_ratio', 'BID_signal_weights', 'BID_background_weights']
+
+    loading_variables += ["B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
+
+
     loading_variables = list(dict.fromkeys(loading_variables)) #removes all duplicates
 
     # df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)[features + extra_variables + run2_taggers_variables + ['selected']]
     df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)
+    print(df.columns.tolist())
 
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
