@@ -9,6 +9,9 @@ import psutil
 import argparse
 import datetime    
 import pickle
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.model_selection import KFold
 
 from pprint import pprint
 from sklearn.model_selection import train_test_split
@@ -40,8 +43,99 @@ vars_by_decay = {'Bu2JpsiK': ['B_CHI2VXNDOF',
                               'hplus_OWNPV_IP',],
 }
 
+class KFoldBDT:
+    def __init__(self, bdtargs, n_folds=5):
+        self.n_folds = n_folds
+        self.classifiers = {}
+        for i in range(n_folds):
+            clf = xgb.XGBClassifier(**bdtargs)
+            self.classifiers[i] = clf
+        self.cls_trained_on = {} 
+
+    def fit(self, X, y, indices):
+        self.cls_trained_on = {}
+
+        skf = StratifiedKFold(n_splits=self.n_folds, shuffle=True, random_state=42)
+
+
+        for i, (train_index, val_index) in enumerate(skf.split(X, y)):
+            print(f"Training classifier {i+1}/{self.n_folds} on {len(train_index)} training samples and {len(val_index)} validation samples", flush=True)
+            X_train, X_val = X[train_index], X[val_index]
+            y_train, y_val = y[train_index], y[val_index]
+
+            self.classifiers[i].fit(
+                X_train, y_train,
+                eval_set=[(X_train, y_train), (X_val, y_val)],
+                verbose=10
+            )
+
+            self.cls_trained_on[i] = indices[train_index]
+
+
+        train_losses = []
+        val_losses = []
+        for idx, cls in self.classifiers.items():
+            train_losses.append(cls.evals_result()['validation_0']['logloss'])
+            val_losses.append(cls.evals_result()['validation_1']['logloss'])
+        
+        return train_losses, val_losses
+    
+    # def predict_proba(self, X, indices):
+    #     proba = []
+
+    #     for idx, x in zip(indices, X):
+
+    #         valid_classifiers = [
+    #             i for i in range(self.n_folds) if idx not in self.cls_trained_on[i]
+    #         ]
+
+    #         if not valid_classifiers:
+    #             raise ValueError(f"No classifiers for sample {idx}. It was used in the training of all classifiers. Index might not be unique.")
+
+    #         # Get predictions from the classifiers that did not see this sample
+    #         sample_probs = [self.classifiers[i].predict_proba([x])[:, 1] for i in valid_classifiers]
+    #         proba.append(np.mean(sample_probs))
+
+    #     return np.array(proba)
+
+    def predict_proba(self, X, indices):
+        index_to_pos = {idx: i for i, idx in enumerate(indices)}
+        from collections import defaultdict
+        proba_accumulator = defaultdict(list)  # idx -> list of probabilities
+
+        # Invert: for each classifier, get the indices it *can* predict (i.e., didn't train on)
+        for i in range(self.n_folds):
+            cls = self.classifiers[i]
+            trained_on = self.cls_trained_on[i]
+
+            # Find the indices this classifier *can* predict
+            eligible_idxs = [idx for idx in indices if idx not in trained_on]
+            if not eligible_idxs:
+                continue
+
+            pos_list = [index_to_pos[idx] for idx in eligible_idxs]
+            X_subset = X[pos_list]
+
+            # Batch prediction
+            probs = cls.predict_proba(X_subset)[:, 1]
+
+            # Assign predictions to corresponding index
+            for idx, prob in zip(eligible_idxs, probs):
+                proba_accumulator[idx].append(prob)
+
+        # Average the probabilities for each sample
+        result = []
+        for idx in indices:
+            if not proba_accumulator[idx]:
+                raise ValueError(f"No classifiers for sample {idx}. It was used in training of all classifiers.")
+            result.append(np.mean(proba_accumulator[idx]))
+
+        return np.array(result)
+
+
 def read_files(files, vars, treename, only_upper, massname):
     df = pd.DataFrame(columns=vars)
+    pd.set_option('display.max_columns', 15)
 
 
     for i, f in enumerate(files):
@@ -52,7 +146,7 @@ def read_files(files, vars, treename, only_upper, massname):
         if id[-7:-2] == '.data':
             id = id[:-7]
         else:
-            id = id[:-3]
+            id = id[:-3] + 'mc'
 
         with uproot.open("{}".format(f)) as _f:
             _df = _f[treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
@@ -60,9 +154,12 @@ def read_files(files, vars, treename, only_upper, massname):
         _df.dropna(inplace = True)
         _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
         _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
+        _df = _df.groupby("event_entry").first()
+        _df.reset_index(inplace=True)
+
         if only_upper: #Only take upper mass sideband from data as example of combinatorial background
             _df = _df[_df[massname] > 5350]
-
+        
 
         df = pd.concat([df, _df], ignore_index = True)
 
@@ -125,73 +222,48 @@ if __name__ == '__main__':
     df = pd.concat([data, MC])
     df= df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
-    print(df['label'].to_numpy())
-    print(df['label'].unique())
-
     print(f'num_rows: {len(df["event_entry"])} unique events: {df["event_entry"].nunique()}')
 
     plot_by_label(df, cfg.massname, cfg.target_path, 'before_classifier')
 
 
-    X_train, X_val, y_train, y_val = train_test_split(
-        df.drop(columns=[cfg.massname, 'label', 'event_entry']).to_numpy(), df['label'].to_numpy(), test_size=0.2, random_state=seed, stratify= df['label'].to_numpy()
-    )
-    
-    model = xgb.XGBClassifier(
-        objective='binary:logistic',
-        eval_metric='logloss',
-        tree_method='hist',
-        learning_rate=0.01,
-        max_depth=6,
-        seed=seed,
-        booster='gbtree',
-        n_estimators=500,
-        early_stopping_rounds=20,
-        n_jobs=cfg.num_threads,  # Use cfg.num_threads for parallelism
-        use_label_encoder=False,
-        verbosity=1,
-    )
+
+    bdtargs = {    
+        'objective':'binary:logistic',
+        'eval_metric':'logloss',
+        'tree_method':'hist',
+        'learning_rate':0.01,
+        'max_depth':6,
+        'seed':seed,
+        'booster':'gbtree',
+        'n_estimators':500,
+        'early_stopping_rounds':20,
+        'n_jobs':cfg.num_threads,  # Use cfg.num_threads for parallelism
+        'use_label_encoder':False,
+        'verbosity':1,
+    }
+
+    model = KFoldBDT(bdtargs, n_folds=5)
+    X = df.drop(columns=[cfg.massname, 'label', 'event_entry']).to_numpy()
+    y = df['label'].to_numpy()
+    indices = df['event_entry'].to_numpy()
 
     print(f'Training begins {datetime.datetime.now().strftime("%H:%M:%S")}')
-    model.fit(
-        X_train, y_train,
-        eval_set=[(X_train, y_train), (X_val, y_val)],
-        verbose=10
-    )
+    train_losses, val_losses = model.fit(X[:10000], y[:10000], indices[:10000])
     print(f'Training ends {datetime.datetime.now().strftime("%H:%M:%S")}')
-    del X_train, y_train
-
-    # params = {
-    #     'objective': 'binary:logistic',
-    #     'eval_metric': 'logloss',
-    #     'tree_method': 'hist',
-    #     'learning_rate': 0.01,
-    #     'max_depth': 6,
-    #     'seed': seed,
-    #     'booster': 'gbtree',
-    # }
-
-    # dtrain = xgb.DMatrix(X_train, label=y_train)
-    # dval = xgb.DMatrix(X_val, label=y_val)
-    # bst = xgb.train(
-    #     params,
-    #     dtrain,
-    #     num_boost_round=500,
-    #     evals=[(dtrain, 'train'), (dval, 'val')],
-    #     early_stopping_rounds=20,
-    #     verbose_eval=10
-    # )
 
 
 
-    
-    y_pred = model.predict_proba(X_val)[:,1]
-    auc = roc_auc_score(y_val, y_pred)
+    y_pred = model.predict_proba(X, indices)#[:,1]
+    print(f'Predicting ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+
+    print(y_pred)
+    auc = roc_auc_score(y, y_pred)
     print(f"Val ROC AUC: {auc:.4f}")
 
 
     # Plot ROC curve
-    fpr, tpr, thresholds = roc_curve(y_val, y_pred)
+    fpr, tpr, thresholds = roc_curve(y, y_pred)
     plt.figure()
     plt.plot(fpr, tpr, label=f'ROC curve (AUC = {auc:.4f})')
     plt.plot([0, 1], [0, 1], 'k--')
@@ -204,10 +276,12 @@ if __name__ == '__main__':
 
 
     # Plot loss
-    results = model.evals_result()
     plt.figure()
-    plt.plot(results['validation_0']['logloss'], label='Train Loss')
-    plt.plot(results['validation_1']['logloss'], label='Validation Loss')
+    plt.plot(train_losses[0], label='Train Loss',      color='blue',   alpha=0.3) 
+    plt.plot(val_losses[0],   label='Validation Loss', color='orange', alpha=0.3)
+    for train, val in zip(train_losses[1:], val_losses[1:]):
+        plt.plot(train, color='blue',   alpha=0.3)
+        plt.plot(val,   color='orange', alpha=0.3)
     plt.xlabel('Boosting Round')
     plt.ylabel('Log Loss')
     plt.title('Training and Val Loss')
@@ -219,11 +293,11 @@ if __name__ == '__main__':
     # Find BDT cut value that reduces label 1 count by 5%
 
     
-    tot_signal = y_val.sum()
+    tot_signal = y.sum()
 
     cut = 1.0
     while cut >= 0:
-        signal_after_cut = (y_val[y_pred>cut]).sum()
+        signal_after_cut = (y[y_pred>cut]).sum()
         if signal_after_cut >= 0.95*tot_signal:
             break
         cut -= 0.001
@@ -231,8 +305,7 @@ if __name__ == '__main__':
     cut = round(cut, 3)
     print(f"BDT cut value for 5% reduction in label 1: {cut}")
 
-    df['bdt_output'] = model.predict(df.drop(columns=[cfg.massname, 'label', 'event_entry']).to_numpy())
-    df = df[df['bdt_output'] > cut]
+    df = df[y_pred > cut]
 
     plot_by_label(df, cfg.massname, cfg.target_path, 'after_classifier')
 

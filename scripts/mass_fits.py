@@ -266,7 +266,19 @@ if __name__ == '__main__':
     outputdir = join(cfg.output, "mc_fit") if cfg.simulation else join(cfg.output, "data_fit")
     os.makedirs(outputdir, exist_ok=True)
 
+    zfit.run.set_n_cpu(n_cpu=cfg.num_threads)
+
+
+    print(f'Reading files started on {datetime.datetime.now().strftime("%H:%M:%S")}')
     BDT = None
+    bdt_features = vars_by_decay[cfg.decayType]
+
+    with open(cfg.BDT, 'rb') as f:
+        loaded_data = pickle.load(f)
+
+    BDT = loaded_data['model']        
+    cut   = loaded_data['cut']
+
     if not cfg.simulation:
         #vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER',  "B_ID", 'entry', "FillNumber", "B_DTF_PV_Jpsi_MASS"] #f'{tagger}_TagDec', f'{tagger}_Eta',
         vars = ['RUNNUMBER', 'EVENTNUMBER', massname, 'B_ID']
@@ -325,6 +337,10 @@ if __name__ == '__main__':
             _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
             
             _df = _df.groupby("event_entry").first()
+            _df.reset_index(inplace=True)
+            _df['signalness'] = BDT.predict_proba(_df[bdt_features].to_numpy(), _df["event_entry"].values)
+            _df.drop(columns=bdt_features, inplace=True)
+
 
             df_data = pd.concat([df_data, _df], ignore_index = True)
 
