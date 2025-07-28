@@ -495,6 +495,57 @@ rule MC_Mass_Fit:
             '--simulation',
             '--output ', out_path,
             '--decayType {wildcards.decay}',
+            '--num_threads {threads}',
+            '&> {log}'
+        ]
+        shell(' '.join(cmd))
+        
+
+rule thesis_mass_fit: #Plots without pulls for thesis 
+    input:
+        script = join(repo, 'scripts/no_pull_mass_plots.py'),
+        mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/mc_fit/mc_res_before_cut.json'),
+        data_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/data_fit/data_res_after_cut.json'),
+        
+        data_raw = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids],#[:1],
+
+        BDT = join(out, 'Data/{sample_type}/1_weighted/{decay}/BDT/bdt_model.pkl')
+    output:
+        png = join(out, 'Data/{sample_type}/1_weighted/{decay}/data_no_pull_plot/fit_after_cut.png'),
+    log:
+        join(out, 'Data/{sample_type}/1_weighted/{decay}/data_no_pull_plot/no_pulls.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 20_000, 
+        MaxRunHours = 6,
+    threads:
+        8,
+    run:
+        tree = find_tree_name(wildcards.decay)
+
+        out_path = os.path.dirname(os.path.dirname(output.png))
+
+        #Use ceph-kernel if available to increase file reading performance
+        if kernel_available():
+            raw = path_to_kernel(input.data_raw)
+        else:
+            raw = input.data_raw
+
+
+
+        cmd = [
+            'python {input.script}',
+            '--data_files ', ' '.join(raw),
+            '--range {lowerMass} {upperMass}', 
+            '--obs_name B_DTF_PV_Jpsi_MASS',
+            '--treename', tree,
+            '--output', out_path,
+            '--decayType {wildcards.decay}',
+            '--sim_fit {input.mc_res}',
+            '--data_fit {input.data_res}',
+            '--cut notSamePV_noOSP',
+            '--BDT {input.BDT}',
+            '--num_threads {threads}',
             '&> {log}'
         ]
         shell(' '.join(cmd))
