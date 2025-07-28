@@ -5,26 +5,108 @@ import utils
 from itertools import product
 from uncertainties import ufloat
 import argparse
-from scripts.generate_configFiles import learning_rates
-from scripts.generate_configFiles import train_batch_sizes
-from scripts.generate_configFiles import architectures
-from scripts.generate_configFiles import min_delta
-from scripts.replace_path import seeds
+import yaml
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 
+import numpy as np
 
 '''
-python scripts/getOptimized.py --cut <cutName>
+python scripts/getOptimized.py --cut <cutName> --decay_type <decayType> 
 '''
+
+def plot_hyperparams_vs_tagging_power(df, target_path, num_features):
+    """
+    Plots hyperparameters against tagging_power in a 2x2 subplot grid with linear regression lines.
+    
+    Parameters:
+        df (pd.DataFrame): DataFrame containing hyperparameters and 'tagging_power'.
+                           Expected columns: ['learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power']
+    """
+    print(f"Plotting hyperparameters vs tagging power")
+    hyperparams = ['learning_rate', 'num_layers', 'num_neurons']
+    xscale = ['log', 'linear', 'log']  
+    target = 'tagging_power'
+
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    axs = axs.flatten()
+
+    for i, hp in enumerate(hyperparams):
+        print(f"Plotting {hp} vs {target}")
+        ax = axs[i]
+        sns.scatterplot(data=df, x=hp, y=target, ax=ax, color='blue', alpha=0.6)
+
+        # Fit linear regression
+        X = df[[hp]].values
+        y = df[target].values
+        model = LinearRegression()
+        # model = PolynomialFeatures(degree=2)
+        model.fit(X, y)
+        
+        xfit = np.linspace(X.min(), X.max(), 50).reshape(-1, 1)
+        y_pred = model.predict(xfit)
+        # y_pred = model.transform(xfit)
+        
+
+        ax.plot(xfit, y_pred, color='red', linewidth=2)
+
+        ax.set_title(f'{hp} vs {target}')
+
+        ax.set_xscale(xscale[i])
+        ax.set_xlabel(hp)
+        ax.set_ylabel(target)
+
+    print(f"Plotting num_params vs {target}")
+    ax = axs[3]
+
+    df['num_params'] = df['num_layers'] * df['num_neurons'] * (df['num_neurons'] + 1)  # Assuming a fully connected layer with bias
+    df['num_params'] = df['num_params'] + num_features * df['num_layers'] + df['num_neurons']    # Adding the input and output layer parameters
+
+    hp = 'num_params'
+
+    sns.scatterplot(data=df, x=hp, y=target, ax=ax, color='blue', alpha=0.6)
+
+    # Fit linear regression
+    X = df[[hp]].values
+    y = df[target].values
+    model = LinearRegression()
+    # model = PolynomialFeatures(degree=2)
+    model.fit(X, y)
+    
+    xfit = np.linspace(X.min(), X.max(), 50).reshape(-1, 1)
+    y_pred = model.predict(xfit)
+    # y_pred = model.transform(xfit)
+    
+
+    ax.plot(xfit, y_pred, color='red', linewidth=2)
+
+    ax.set_title(f'{hp} vs {target}')
+    ax.set_xscale('log')
+    ax.set_xlabel(hp)
+    ax.set_ylabel(target)
+
+    
+
+    plt.tight_layout()
+    print(f"Saving plot to {target_path}")
+    plt.savefig(target_path)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Apply a preselection for the tagging particles',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024')
+    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/togasa/FlavourTagging/NTuples')
     parser.add_argument('--cut', help='Cut type to be used', type=str)
-    parser.add_argument('--output', help='Where the best tagger candidates configs will be saved', type=str, default='./best_tagger_candidates')
+    parser.add_argument('--outpath', help='Where the best tagger candidates configs will be saved', type=str, default='./best_tagger_candidates')
+    parser.add_argument('--plot_path', help='Where the plots will be saved', type=str, default='/ceph/users/togasa/FlavourTagging/NTuples')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
+    parser.add_argument('--data_type', help='Type of data to be used', type=str, choices=['MC', 'Data'])  # 'MC' or 'Data'
+    parser.add_argument('--tagger_input', help='File of the tagger inputs, only needed for num parameter plot', type=str, default='/ceph/users/togasa/classical-taggers/tagger_inputFeatures/union_PROBNN.yaml')
+
     
     cfg = parser.parse_args()
 
@@ -40,67 +122,111 @@ if __name__ == '__main__':
         "OSKaon": "Bu2JpsiK",
         "OSElectron": "Bu2JpsiK",
         "OSMuon": "Bu2JpsiK",
-        "SSPion": "Bd2JpsiKst",
-        "SSProton": "Bd2JpsiKst",
-        "SSKaon": "Bs2DsPi",
+        # "SSPion": "Bd2JpsiKst",
+        # "SSProton": "Bd2JpsiKst",
+        # "SSKaon": "Bs2DsPi",
     }
+
+    #open tagger input features
+    with open(cfg.tagger_input, 'r') as f:
+        tagger_input_features = yaml.safe_load(f)
+
+    print(tagger_input_features)
 
     # Generate all possible combinations of hyperparameters
     #architectures = ['simple']
 
-    combinations = list(product(seeds, learning_rates, train_batch_sizes, architectures, min_delta))
+    with open(f'configs/hyperpar_intervals.yaml', 'r') as file:
+        intervals = yaml.safe_load(file)
+    
+    
+    learning_rates = intervals['-learning_rate']
+    train_batch_size = intervals['-train_batch_size']
+    num_layers = intervals['-numlayers']
+    num_neurons = intervals['-numneurons']
+    seeds  = [12]
 
+    # learning_rates=[0.01, 0.001,]
+    # train_batch_sizes=[4096, 32768]
+    # num_layers = [2,4]
+    # num_neurons=[4,8]
+
+    # combinations = list(product(seeds, learning_rates, train_batch_sizes, num_layers, num_neurons))
+    combinations = list(product(seeds, learning_rates, num_layers, num_neurons))
+
+
+    full_df = pd.DataFrame(columns=['tagger', 'learning_rate', 'num_layers', 'num_neurons', 'tagging_power', 'link'])
     max_ratios = {}
-    link = 'logit' # 'mistag'
-    for tagger, decay in tagger_dict.items():
-        max_ratio = -np.inf
-        best_hyperparams = None
-        for seed, lr, bs, arch, dm in combinations:
+    for link in  ['logit', 'mistag']:
+        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'num_layers', 'num_neurons', 'tagging_power'])
+        for tagger, decay in tagger_dict.items():
+            max_ratio = -np.inf
+            best_hyperparams = None
+            for seed, lr, nl, nn in combinations:
 
-            # Read tagging power values from JSON files
-            results_folder = f"{cfg.model_prePath}/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed   
-            folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{arch}_dm{dm}")
+                # Read tagging power values from JSON files
+                results_folder = f"{cfg.model_prePath}/{cfg.data_type}/savedModels/withUT_MC_2024/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed
+                folder_path = os.path.join(results_folder, f"lr{lr}_bs{train_batch_size}_nL{nl}_nN{nn}")
 
-            json_file = os.path.join(folder_path, f"{link}/taggingInfo_{link}.json")
-            if os.path.exists(json_file):
-                data = utils.load_and_process_json(json_file)
-                tagging_power = data['TaggingPower_Cali']
-                if not np.isnan(tagging_power.nominal_value) and tagging_power.nominal_value != 0:
-                    try:
-                        ratio = tagging_power.nominal_value / tagging_power.std_dev
-                        ratio_precision =  tagging_power.std_dev / tagging_power.nominal_value 
-                    except ZeroDivisionError:
-                        print("Check std deviation or nominal value. They might be 0")
-                    #print(tagger, arch, lr, seed, bs)
-                    #print(tagging_power[0], tagging_power[1])
-                    #print(ratio
-                    
-                    if ratio > max_ratio:
-                        max_ratio = ratio
-                        best_hyperparams = {
-                            "calibrated tagging power": tagging_power,
-                            "seed": seed,
-                            "learning_rate": lr,
-                            "batch_size": bs,
-                            "architecture": arch,
-                            "min_delta": dm,
-                            "max_ratio": max_ratio,
-                            "precision": ratio_precision,
-                        }
-        
-        if best_hyperparams:
-            max_ratios[tagger] = best_hyperparams
+                if cfg.data_type == 'Data':
+                    folder_path = os.path.join(folder_path, 'pdf_ratio')
 
-    # Output the dictionary with the maximum ratios and corresponding hyperparameters
-    print(json.dumps(max_ratios,  indent=4, default=str))
-    # filename=f'{cfg.outputPath}/{cfg.cut}/candidatedTaggers_{link}.json'
-    # os.makedirs(os.path.dirname(filename), exist_ok=True)
+                json_file = os.path.join(folder_path, f"testing/{link}/taggingInfo_{link}.json")
+                
+                if os.path.exists(json_file):
+                    data = utils.load_and_process_json(json_file)
+                    tagging_power = data['TaggingPower_Cali']
+                    if not np.isnan(tagging_power.nominal_value) and tagging_power.nominal_value != 0:
+                        try:
+                            ratio = tagging_power.nominal_value / tagging_power.std_dev
+                            ratio_precision =  tagging_power.std_dev / tagging_power.nominal_value 
+                        except ZeroDivisionError:
+                            print("Check std deviation or nominal value. They might be 0")
+                        #print(tagger, arch, lr, seed, bs)
+                        #print(tagging_power[0], tagging_power[1])
+                        #print(ratio
+                        
+                        if ratio > max_ratio:
+                            max_ratio = ratio
+                            best_hyperparams = {
+                                "calibrated tagging power": tagging_power,
+                                "seed": seed,
+                                "learning_rate": lr,
+                                "numlayers": nl,
+                                "numneurons": nn,
+                                "max_ratio": max_ratio,
+                                "precision": ratio_precision,
+                            }
+                        print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}")
+                        performances.loc[len(performances)] = [tagger, lr, nl, nn, tagging_power.nominal_value]
 
-    filename = cfg.output
-    os.makedirs(os.path.dirname(os.path.dirname(filename)), exist_ok=True)
+            if best_hyperparams:
+                max_ratios[tagger] = best_hyperparams
+
+        # Output the dictionary with the maximum ratios and corresponding hyperparameters
+        print(json.dumps(max_ratios,  indent=4, default=str))
+        # filename=f'{cfg.outputPath}/{cfg.cut}/candidatedTaggers_{link}.json'
+        # os.makedirs(os.path.dirname(filename), exist_ok=True)
+        path_name = os.path.join(cfg.outpath, f'{cfg.cut}/{cfg.data_type}')
+        plot_path = os.path.join(cfg.plot_path, f'{cfg.data_type}/hyperparameters_plots/{cfg.cut}/{link}')
+        os.makedirs(plot_path, exist_ok=True)
+
+        for tagger, decay in tagger_dict.items():
+            plot_hyperparams_vs_tagging_power(performances[performances['tagger'] == tagger], os.path.join(plot_path, f'{tagger}_Hyperparams_vs_TaggingPower.png'), len(tagger_input_features[tagger]['features']))
+
+        performances['link'] = link
+        full_df = pd.concat([full_df, performances], ignore_index=True)
+
+        filename = os.path.join(path_name, f'candidatedTaggers_{link}.json')
+        os.makedirs(os.path.dirname(os.path.dirname(filename)), exist_ok=True)
 
 
-    with open(filename, 'w') as f:
-        json.dump(max_ratios, f, indent=4, default=str)  # `default=str` to handle non-serializable objects
-    print(f"Max ratios saved to {filename}")
+        with open(filename, 'w') as f:
+            json.dump(max_ratios, f, indent=4, default=str)  # `default=str` to handle non-serializable objects
+        print(f"Max ratios with link {link} saved to {filename}")
+
+    # Save the full DataFrame to a CSV file
+    full_df.to_csv(os.path.join(os.path.dirname(plot_path), 'performances.csv'), index=False)
+    
+    print(f"All results saved to {cfg.outpath}/{cfg.cut}/{cfg.data_type}/")
 
