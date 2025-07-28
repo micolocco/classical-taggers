@@ -303,10 +303,11 @@ rule train_signal_classifier:
         data = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids], 
         mc = lambda wildcards: [get_raw_paths(wildcards.decay, id[:-5], 'MC') for id in mc_ids[wildcards.decay]], 
     output:
-        BDT = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/BDT/bdt_model.pkl')
+        BDT = join(out, 'Data/{sample_type}/1_weighted/{decay}/BDT/bdt_model.pkl')
     log:
-        join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/BDT/BDT_train.log')
+        join(out, 'Data/{sample_type}/1_weighted/{decay}/BDT/BDT_train.log')
     resources:
+        max_retries=0,
         mem_mb = 20_000,
         MaxRunHours = 4,
     threads:
@@ -315,15 +316,17 @@ rule train_signal_classifier:
         out_path = os.path.dirname(output.BDT)
         tree = find_tree_name(wildcards.decay)
 
-        # scratch_data = copy_to_scratch(input.data)
-        # scratch_mc   = copy_to_scratch(input.mc)
-        scratch_data = input.data
-        scratch_mc   = input.mc
+        if kernel_available():
+            data = path_to_kernel(input.data)
+            mc   = path_to_kernel(input.mc)
+        else:
+            data = input.data
+            mc   = input.mc
 
         cmd = [
             'python', input.script,
-            '--real_data', ' '.join(scratch_data),
-            '--mc_data', ' '.join(scratch_mc),
+            '--real_data', ' '.join(data),
+            '--mc_data', ' '.join(mc),
             '--target_path', out_path,
             '--treename', tree,
             '--decay_type {wildcards.decay}',
@@ -349,17 +352,20 @@ rule add_features:
         script = join(repo, 'scripts/adding_features_v2.py'),
         #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
         # raw = lambda wildcards: get_raw_paths(wildcards.decay, wildcards.id, wildcards.data_type)
-        weighted = join(out, '{data_type}/{sample_type}/1_weighted/{decay}/{tagger}/weighted_files/{id}.root')
-    log: 
-        join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/.{id,.*}.log')
+        weighted = lambda wildcards: join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/{id}.root') 
+                                    #  if wildcards.data_type == 'Data' else get_raw_paths(wildcards.decay, wildcards.id, 'MC'),
+                                     if wildcards.data_type == 'Data' else  join(MC, '{decay}/v1_taggers/{id}.root')
+    log:                            
+        join(out, '{data_type}/{sample_type}/2_added_features/{decay}/.{id,.*}.log')
     output: 
-        root =join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{id,.*}.root'), 
+        root =join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{id,.*}.root'), 
     resources:
-        mem_mb = 20_000, 
+        max_retries=0,
+        mem_mb = 20_000,
         MaxRunHours = 2, # short queue
         #request_disk = 50000
     run:
-        tree = find_tree_name(wildcards.decay)
+        tree = find_tree_name(wildcards.decay) if wildcards.data_type == 'MC' else '"DecayTree;1"'
         dataCalib = '--data_calib' if wildcards.data_type == 'Data' else ''
 
         cmd = [
@@ -368,8 +374,7 @@ rule add_features:
             '--raw {input.weighted}',
             '--output {output}',
             '--evtType {wildcards.decay}',
-            '--treename "DecayTree;1"', 
-            # '--treename', tree,
+            '--treename', tree,
             f'{dataCalib}',
             '&> {log}',
         ]
@@ -386,6 +391,7 @@ rule train_DT:
     params:
         target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/')
     resources:
+        max_retries=0,
         mem_mb = 40000, # Specify memory requirement in megabytes 
     run:
         cmd = [
@@ -407,6 +413,7 @@ rule train_DT:
     params:
         target_path = lambda wildcards: join(out, f'{wildcards.sample_type}/DT_outputs/notSamePV_noOSP')
     resources:
+        max_retries=0,
         mem_mb = 20_000, # Specify memory requirement in megabytes
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 8, # medium queue
@@ -428,17 +435,17 @@ rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
         # added_features = join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{id}.root'),
-        added_features = join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{tagger}/{id}.root'),
+        added_features = join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{id}.root'),
 
-    output: join(out, '{data_type}/{sample_type}/3_selected/{decay}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
+    output: join(out, '{data_type}/{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id,.*}.root'),
     # output: join(data, '{sample_type}/3_selected/{decay}/{cut_name}/{id,.*}.root'),
-    log: join(out, '{data_type}/{sample_type}/3_selected/{decay}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
+    log: join(out, '{data_type}/{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/.{id,.*}.log')
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
     resources:
+        max_retries=0,
         mem_mb = 20_000, # Specify memory requirement in megabytes
         MaxRunHours = 2, # short queue
-
     run:
         # tree = find_tree_name(wildcards.decay)
         data_calib = '--data_calib' if wildcards.data_type == 'Data' else ''
@@ -448,11 +455,11 @@ rule add_selection:
             'python', input.script,
             '--added_features {input.added_features}',
             '--output {output}',
-            #'--treename', tree,
+            # '--treename', tree,
             '--cut_file', join(repo, 'cuts/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
-            '--evtType {decay}',
+            '--evtType {wildcards.decay}',
             data_calib, BKG0,
             '--repo', repo,
             '&> {log}',
@@ -464,26 +471,31 @@ rule MC_Mass_Fit:
         script = join(repo, 'scripts/mass_fits.py'),
         # selected = lambda wildcards: [
         #     f.replace('cutName', f'{wildcards.cut_name}')
-        #     for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+        #     for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcard'] 
         #     if not f.endswith('4_1.mc.root')
         # ],
-        raw = lambda wildcards: [get_raw_paths(wildcards.decay, id[:-5], 'MC') for id in mc_ids],
-
+        raw = lambda wildcards: [get_raw_paths(wildcards.decay, id[:-5], 'MC') for id in mc_ids[wildcards.decay]],#[:1],
+        BDT = join(out, 'Data/{sample_type}/1_weighted/{decay}/BDT/bdt_model.pkl')
     output:
-        mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/mc_fit/mc_res.json'),
+        join(out, 'Data/{sample_type}/1_weighted/{decay}/mc_fit/mc_res_before_cut.json'),
+        mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/mc_fit/mc_res_after_cut.json'),
     log:
-        join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/mc_fit/mc_res.log'),
+        join(out, 'Data/{sample_type}/1_weighted/{decay}/mc_fit/mc_res.log'),
     resources:
-        mem_mb = 10_000, # Specify memory requirement in megabytes
+        max_retries=0,
+        mem_mb = 20_000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
+    threads:
+        8,
     run:
         tree = find_tree_name(wildcards.decay)
         out_path = os.path.dirname(os.path.dirname(output.mc_res))
 
+        # raw = [f.replace(' /ceph/FlavourTagging/NTuples/Run3/MC/withUT_MC_2024/1_raw', '/scratch/togasa/MC/') for f in input.raw]
         if kernel_available():
-            raw = path_to_kernel(input.data_raw)
+            raw = path_to_kernel(input.raw)
         else:
-            raw = input.data_raw
+            raw = input.raw
 
 
         cmd = [
@@ -493,7 +505,8 @@ rule MC_Mass_Fit:
             '--range {lowerMass} {upperMass}', 
             '--treename', tree,
             '--simulation',
-            '--output ', out_path,
+            '--BDT {input.BDT}',
+            '--output', out_path,
             '--decayType {wildcards.decay}',
             '--num_threads {threads}',
             '&> {log}'
@@ -553,33 +566,24 @@ rule thesis_mass_fit: #Plots without pulls for thesis
 rule data_Mass_Fit: 
     input:
         script = join(repo, 'scripts/mass_fits.py'),
-        mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/mc_fit/mc_res.json'),
-        # mc_selected = lambda wildcards: [
-        #     f.replace('cutName', f'{wildcards.cut_name}')
-        #     for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] if not f.endswith('4_1.mc.root')
-        # ],
-        # data_selected = lambda wildcards: [
-        #     f.replace('cutName', f'{wildcards.cut_name}')
-        #     for f in selected_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-        # ],
+        mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/mc_fit/mc_res_before_cut.json'),
 
-        data_raw = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids],
 
-        BDT = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/BDT/bdt_model.pkl')
+        data_raw = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids],#[:1],
+
+        BDT = join(out, 'Data/{sample_type}/1_weighted/{decay}/BDT/bdt_model.pkl')
     output:
-        # join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/model.dll'),
-        data_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/data_fit/data_res.json'),
-        weights = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/data_fit/weights.root'),
+        # join(out, 'Data/{sample_type}/1_weighted/{decay}/{cut_name}/{features}/data_fit/model.dll'),
+        data_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/data_fit/data_res_after_cut.json'),
+        weights = join(out, 'Data/{sample_type}/1_weighted/{decay}/data_fit/weights.root'),
     log:
-        join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/data_fit/data_res.log'),
+        join(out, 'Data/{sample_type}/1_weighted/{decay}/data_fit/data_res.log'),
     resources:
-        mem_mb = 10_000, 
+        max_retries=0,
+        mem_mb = 20_000, 
         MaxRunHours = 6,
-        request_disk = 256_000,
-    params:
-        tagged_prePath = join(out, 'Data/withUT_MC_2024/5_weighted/'),
-        taggers = lambda wildcards: ' '.join(taggers_conf[wildcards.decay]),
-        # tree = lambda wildcards: find_tree_name(wildcards.decay),
+    threads:
+        8,
     run:
         tree = find_tree_name(wildcards.decay)
 
@@ -592,19 +596,19 @@ rule data_Mass_Fit:
             raw = input.data_raw
 
 
+
         cmd = [
             'python {input.script}',
             '--data_files ', ' '.join(raw),
             '--range {lowerMass} {upperMass}', 
             '--obs_name B_DTF_PV_Jpsi_MASS',
             '--treename', tree,
-            # '--treename "DecayTree;1"',
             '--output', out_path,
             '--decayType {wildcards.decay}',
-            # '--features union_PROBNN',
             '--sim_fit {input.mc_res}',
             '--cut notSamePV_noOSP',
-            '--BDT {input.BDT}'
+            '--BDT {input.BDT}',
+            '--num_threads {threads}',
             '&> {log}'
         ]
         shell(' '.join(cmd))
@@ -614,25 +618,26 @@ def get_memory_usage(ID):
     if ID_numb > 800:
         return 90_000  # IDs over 800 happen to be larger files in this case. No need to increase memory usage for smaller files
     else:
-        return 10_000  # For smaller IDs, use less memory
+        return 30_000  # For smaller IDs, use less memory
 
 rule add_weights:
     input:
         script = join(repo, 'scripts/add_weights.py'),
-        # selected = join(out, 'Data/{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}.data24.root'),
-        # selected = join(out, 'Data/{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}.data24.root'),
+        # selected = join(out, 'Data/{sample_type}/3_selected/{decay}/{cut_name}/{features}/{id}.data24.root'),
+        # selected = join(out, 'Data/{sample_type}/3_selected/{decay}/{cut_name}/{features}/{id}.data24.root'),
         data_raw = lambda wildcards: get_raw_paths(wildcards.decay, f'{wildcards.id}.data24', 'Data'),
 
-        # mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/{cut_name}/{features}/mc_fit/mc_res.json'),
-        # model = join(out,  'Data/{sample_type}/1_weighted/{decay}/{tagger}/{cut_name}/{features}/data_fit/data_res.json'),
-        weights = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/data_fit/weights.root'),
+        # mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/{cut_name}/{features}/mc_fit/mc_res.json'),
+        # model = join(out,  'Data/{sample_type}/1_weighted/{decay}/{cut_name}/{features}/data_fit/data_res.json'),
+        weights = join(out, 'Data/{sample_type}/1_weighted/{decay}/data_fit/weights.root'),
 
     output:
-        # join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/plots/validate_sweights_{id}.png'),
-        weighted = join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/weighted_files/{id}.data24.root'),
+        # join(out, 'Data/{sample_type}/1_weighted/{decay}/plots/validate_sweights_{id}.png'),
+        weighted = join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/{id}.data24.root'),
     log:
-        join(out, 'Data/{sample_type}/1_weighted/{decay}/{tagger}/weighted_files/{id}.data24.log'),
+        join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/{id}.data24.log'),
     resources:
+        max_retries=0,
         mem_mb = lambda wildcards: get_memory_usage(wildcards.id), 
         MaxRunHours = 2, 
     run:
@@ -679,11 +684,16 @@ def extract_best(tagger, cut, data_type,link='logit'):
     seed = int(data[tagger]['seed'])
     lr = float(data[tagger]['learning_rate'])
     bs = int(data[tagger]['batch_size'])
-    arch = data[tagger]['architecture']
-    dm = float(data[tagger]['min_delta'])
-    config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
-    return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'arch':arch, 'dm':dm, 'tagger':tagger, 'cut':cut, 'link':link}
-
+    if 'architecture' in data[tagger].keys():
+        arch = data[tagger]['architecture']
+        dm = float(data[tagger]['min_delta'])
+        config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
+        return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'arch':arch, 'dm':dm, 'tagger':tagger, 'cut':cut, 'link':link}
+    else:
+        nl = int(data[tagger]['numlayers'])
+        nn = int(data[tagger]['numneurons'])
+        config = f'lr{lr}_bs{bs}_nL{nl}_nN{nn}'
+        return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'numlayers':nl, 'numneurons':nn, 'tagger':tagger, 'cut':cut, 'link':link}
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
@@ -698,6 +708,7 @@ rule add_tagDec:
     log:
         join(out, '{data_type}/{sample_type}/5_weighted/{decay}/{tagger}/{cut_name}/{features}/{id}.log'),
     resources:
+        max_retries=0,
         mem_mb = 40_000, 
         MaxRunHours = 3, 
     params:
@@ -737,6 +748,7 @@ rule combine_tagger:
         pdf=join(out, '{data_type}/savedModels/{sample_type}/combinations/{decay}/{combinationName}_Calibration.pdf'),
     log: join(out, '{data_type}/savedModels/{sample_type}/combinations/{decay}/{combinationName}_log.log')
     resources:
+        max_retries=0,
         #mem_mb = 20_000, # Specify memory requirement in megabytes 
         ##gpus = 1,
         #OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
@@ -771,6 +783,7 @@ rule split_sample:
     log:
         join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
     resources:
+        max_retries=0,
         mem_mb = 15_000,
         MaxRunHours = 3,
     run:
@@ -843,6 +856,7 @@ rule train_tagger_MC:
         # chunk_log = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/training_chunk.log')
         #      if batched else None,
     resources:
+        max_retries=0,
         mem_mb = 30_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
@@ -850,8 +864,15 @@ rule train_tagger_MC:
     threads:
         len(hyper_par_chunk)+1 if batched else 4,
     run:
-        train_scratch = copy_to_scratch(input.train)
-        val_scratch = copy_to_scratch(input.val)
+        if kernel_available():
+            train_scratch = path_to_kernel(input.train)
+            val_scratch = path_to_kernel(input.val)
+        else:
+            train_scratch = input.train
+            val_scratch = input.val
+
+        # train_scratch = copy_to_scratch(input.train)
+        # val_scratch = copy_to_scratch(input.val)
 
         if not batched:
             outpath = os.path.dirname(output.model)
@@ -919,6 +940,7 @@ rule train_tagger_data:
         # chunk_log = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/training_chunk.log')
         #     if batched else None,
     resources:
+        max_retries=0,
         mem_mb = 60_000 if batched else 40_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         #OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
@@ -944,6 +966,7 @@ rule train_tagger_data:
             '--repo', repo,
             '--data_type Data',
             '--balance_dataset',
+            # '--domain B_ID',
             #'--clean',
         ]
 
@@ -994,6 +1017,7 @@ rule test_and_calibrate_tagger_MC:
         join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/testing_log.log')
 
     resources:
+        max_retries=0,
         mem_mb = 20_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 6,
@@ -1002,7 +1026,12 @@ rule test_and_calibrate_tagger_MC:
         outpath = os.path.dirname(output.ROC)
         model_path = os.path.dirname(input.model)
 
-        test_scratch = copy_to_scratch(input.testing)
+        if kernel_available():
+            test_scratch = path_to_kernel(input.testing)
+        else:
+            test_scratch = input.testing
+
+        # test_scratch = copy_to_scratch(input.testing)
 
         cmd = [
             'python', input.script,
@@ -1040,6 +1069,7 @@ rule test_and_calibrate_tagger_data:
     log: 
         join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/testing/testing_log.log')
     resources:
+        max_retries=0,
         mem_mb = 35_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 4,
@@ -1048,7 +1078,12 @@ rule test_and_calibrate_tagger_data:
         outpath = os.path.dirname(output.ROC)
         model_path = os.path.dirname(input.model)
 
-        test_scratch = copy_to_scratch(input.testing)
+        if kernel_available():
+            test_scratch = path_to_kernel(input.testing)
+        else:
+            test_scratch = input.testing
+
+        # test_scratch = copy_to_scratch(input.testing)
 
         cmd = [
             'python', input.script,
