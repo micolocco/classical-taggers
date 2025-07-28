@@ -71,18 +71,26 @@ if __name__ == '__main__':
     df_weight["event_entry"] =  df_weight["SAMPLENUMBER"].astype(str) + "_" + df_weight["RUNNUMBER"].astype(str) + "_" + df_weight["EVENTNUMBER"].astype(str)
 
     df_data = df_data.reset_index()
+    print(df_data.head())
+    print(df_data.shape)
     df_data = df_data[df_data["event_entry"].isin(df_weight["event_entry"])] #Drops all events that have not been selected in the mass_fit script
 
-    df_data = df_data.merge(df_weight.reset_index(), on=["event_entry", "B_DTF_PV_Jpsi_MASS", 'RUNNUMBER', 'EVENTNUMBER', "B_ID"], how='left')
-    print(df_data.head(10))
-    print(df_data.columns)
-    df_data.drop(columns=['event_entry'], inplace = True)
 
+
+    df_weight.drop(columns=["B_DTF_PV_Jpsi_MASS", 'RUNNUMBER', 'EVENTNUMBER', "B_ID"], inplace=True)
+    df_data = df_data.merge(df_weight.reset_index(), on=["event_entry"], how='left')
+    print(df_data.columns)
+   
+    print(df_data.head())
     print(df_data.shape)
+
+    df_data.drop(columns=['event_entry'], inplace=True)
 
     #Save weighted dataframe to disk
     tree_dict = {col: np.array(df_data[col]) for col in df_data.columns}
 
+    for col in tree_dict:
+        print(f'{col}: {tree_dict[col][0]} ({type(tree_dict[col][0])})')
 
     path = join(cfg.out_path, os.path.basename(cfg.data_file))
     print(f'writing to {path}')
