@@ -231,6 +231,7 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
             _df = _f[treename].arrays(vars + additional_vars, library="pd")
         
         _df.dropna(inplace = True)
+        print(f"Number of tracks in file {i+1}: {_df.shape[0]}", flush=True)
         _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
         if reduce: #Probably take this out after bkg rejection
             df_event = _df.groupby("event_entry").first().reset_index()
@@ -381,14 +382,6 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
     
     return train_ds, validation_ds, weights_train, weights_val
 
-
-def find_free_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('', 0))
-        return s.getsockname()[1]
-    
-
-
 def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_path,  
                       tagger, seed, features, config,  
                       repo, num_threads = 1, clean = False, logfile = None):
@@ -426,17 +419,15 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_
         if not isinstance(train_ds, SharedDataset):
             train_ds = SharedDataset(train_ds, train_ds_name)
             validation_ds = SharedDataset(validation_ds, validation_ds_name)
-        
-        socket_port = find_free_port()
 
         mp.spawn(pyTrain.train_model_EarlyStopping, args=(model, train_ds, 
                                           validation_ds, target_path, 
                                           config, return_dict,
                                           weights_train, weights_val, 
-                                          num_threads, socket_port), nprocs=num_threads)
+                                          num_threads), nprocs=num_threads)
         train_ds.unlink(train_ds_name)
         validation_ds.unlink(validation_ds_name)
-
+        os.remove(f"{target_path}/port.temp")
     else:
         return_dict = {}
         pyTrain.train_model_EarlyStopping(0, model, train_ds, 
@@ -508,7 +499,7 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     pprint(cfg)
 
-    
+    print(f"training with {cfg.num_threads} threads")
 
     BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
 
@@ -558,3 +549,5 @@ if __name__ == '__main__':
     validation_ds.indexed = True
 
     gen_training_plots(model, train_df, val_df, train_ds, validation_ds, cfg.target_path, cfg.tagger)
+
+    print(f"Training finished, model saved in {cfg.target_path}")

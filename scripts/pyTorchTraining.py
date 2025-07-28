@@ -27,7 +27,8 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, DistributedSampler
 import torch.multiprocessing as mp
-
+import socket
+import random
 
 def recreate_directory(target_path, clean=False):
     '''Function to make sure that the ouptut directory exists and it's empty to 
@@ -129,14 +130,43 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     plt.savefig(f"{target_path}/{name}.pdf")
 
 
-def ddp_setup(rank, world_size, socket_port): #Create a way for the processes to communicate with each other
+
+def find_free_port():
+    for _ in range(10):
+        port = random.randint(1024, 65535)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            print(f"Trying port {port}...", flush=True)
+            try:
+                s.bind(('localhost', port))
+                return port
+            except OSError:
+                continue
+    raise RuntimeError("Could not find a free port")
+
+def ddp_setup(rank, world_size, target_path): #Create a way for the processes to communicate with each other
     """
     Args:
         rank: Unique identifier of each process
         world_size: Total number of processes
     """
+    print('Setting up DDP for rank:', rank, 'of', world_size, flush=True)
+
+    if rank == 0:
+        #Get free port and write it to disk for the other processes to read
+        socket_port = find_free_port()
+        with open(f"{target_path}/port.temp", "w") as f:
+            f.write(str(socket_port))
+    else:
+        #Read the port from disk
+        while not os.path.exists(f"{target_path}/port.temp"):
+            time.sleep(0.1)
+        time.sleep(0.5)  # Ensure the file is fully written before reading
+        with open(f"{target_path}/port.temp", "r") as f:
+            socket_port = int(f.read().strip())
+
+
     os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = f"{socket_port}"
+    os.environ["MASTER_PORT"] = f"{socket_port}"    
     init_process_group(backend="gloo", rank=rank, world_size=world_size)
     #above needs to be run before distributed sampler or DistributedDataParallel is created. 'gloo' is needed for CPU training. Rank is a unique 
     #identifier for each process, and world_size is the total number of processes. 
@@ -147,8 +177,17 @@ def report_memory_distributed():
     if dist.get_rank() == 0:
         print(f"Total RAM used by all Processes: {local_mem.item():.2f} MiB")
 
+def format_loss(loss): #such that a float as well as a array (case of domain adaptation) can be handled
+    # print(type(loss))
+    if isinstance(loss, np.float64):
+        formatted_loss = f"{loss:.6f}"
+    else:
+        formatted_loss = ', '.join(f"{l:.6f}" for l in loss)
+    
+    return formatted_loss
+
 def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, return_dict, train_weights = None, 
-                              val_weights= None, num_threads=1, socket_port=None):
+                              val_weights= None, num_threads=1):
         lossValBest = 10000
         stopped = False
         bestEpoch = 0
@@ -165,7 +204,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             val_weights = torch.from_numpy(val_weights)
 
         if num_threads>1:
-            ddp_setup(rank, num_threads, socket_port=socket_port) 
+            ddp_setup(rank, num_threads, target_path) 
             ddpmodel = DDP(model)
 
             module = ddpmodel.module
@@ -186,7 +225,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         validationEpoch_loss = []
         initialValidation_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean()
         if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
-            print(f"The initial Validation Loss: {initialValidation_loss:.6f}")
+            print(f"The initial Validation Loss: {format_loss(initialValidation_loss)}")
         
             epochtimes = []
             for epoch in range(config['n_epochs']):
@@ -203,7 +242,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
                 validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean()
                 validationEpoch_loss.append(validationStep_loss)
                 if rank == 0:
-                    print(f"Train:{stepLoss:.6f}, Validation:{validationStep_loss:.6f}, Time:{round((time.time()-epoch_start) ,2)}s", flush=True)
+                    print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
                 if num_threads==1:
                     print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
                 else:
@@ -213,7 +252,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
                         print(f'Memory report failed in rank {rank}')
                 epochtimes.append((time.time()-epoch_start))
 
-                if early_stopper.early_stop(validationEpoch_loss[-1]): 
+                if early_stopper.early_stop(validationEpoch_loss[-1]): #Ensure that early stopping is not triggered too early
                     stopped = True 
                     break
                 if early_stopper.counter == 0:
