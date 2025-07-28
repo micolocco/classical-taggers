@@ -99,7 +99,7 @@ ntuples_eos_withUT = {
 #Data files
 with open("data_calibration/block12_list.txt", "r") as f:
     files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2]
+files_s24c2 = [line.strip() for line in files_s24c2]#[:100]
 raw_path = os.path.dirname(files_s24c2[0])
 data_ids = [os.path.basename(i)[:-5] for i in files_s24c2]
 
@@ -242,29 +242,12 @@ wildcard_constraints:
 
 rule all:
     input:
-        expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/pdf_ratio/testing/logit/taggingInfo_logit.json', 
-               lr=[0.01, 0.001], bs=[4096, 32768], nl = [2,4], nn=[4,8]),
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/withUT_MC_2024/3_selected/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/00266999_00000001_1.data24.root'
-        # join(out, 'Data/withUT_MC_2024/1_event_selected/Bu2JpsiK/12/BDT/bdt_model.pkl'),
+        expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/pdf_ratio/testing/logit/taggingInfo_logit.json',
+               tagger = ['OSElectron', 'OSKaon', 'OSMuon'], lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nl=intervals['numlayers'], nn=intervals['numneurons']),
+        expand('/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/testing/logit/taggingInfo_logit.json',
+               tagger = ['OSElectron', 'OSKaon', 'OSMuon'], lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nl=intervals['numlayers'], nn=intervals['numneurons']),
         
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/augmentation_test/pdf_ratio/training/model.pth',
-
         
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs32768_nL2_nN4/pdf_ratio/testing/logit/taggingInfo_logit.json',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs4096_nL4_nN4/pdf_ratio/testing/logit/taggingInfo_logit.json',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/config_test/pdf_ratio/training/model.pth',
-        
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs4096_nL2_nN4/pdf_ratio/training/model.pth',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs32768_nL2_nN4/pdf_ratio/training/model.pth',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs4096_nL2_nN4/pdf_ratio/training/model.pth',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs32768_nL2_nN4/pdf_ratio/training/model.pth',
-        
-
-        # expand(join(out, 'Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nL}_nN{nN}/{weight}/training/model.pth'),
-        #        lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nL=intervals['numlayers'], nN=intervals['numneurons'], weight=weights),
 
 def kernel_available():
     """
@@ -312,38 +295,6 @@ def copy_to_scratch(paths):
 
 decays_to_tag = ['Bu2JpsiK', 'Bd2JpsiKst']
 all_configs = [f[:-5] for f in os.listdir(join(repo, "configs/")) if f.startswith("lr")]
-
-
-from scripts.replace_path import seeds
-
-rule get_optimized:
-    input:
-        script = join(repo, 'scripts/getOptimized.py'),
-        modelPath = join(out, "{data_type}/savedModels/withUT_MC_2024"),
-        
-
-        tagging_infos = lambda wildcards : [out + "/{data_type}/" + f"savedModels/withUT_MC_2024/{decay}/{tagger}/{wildcards.cut_name}/union_PROBNN/{seed}/{config}/logit/taggingInfo_logit.json"
-            for decay in decays_to_tag
-            for tagger in taggers_conf[decay] 
-            for seed in seeds
-            for config in all_configs]
-    output:
-        join(repo, "best_tagger_candidates/{cut_name}/{data_type}/candidatedTaggers_logit.json")
-    log: 
-        join(repo, "best_tagger_candidates/{cut_name}/{data_type}/candidatedTaggers_logit.log")
-    params:
-    #     outpath = join(repo, "best_tagger_candidates")
-    run:       
-        cmd = [
-            'python', input.script,
-            f'--model_prePath {input.modelPath}',
-            f'--cut {wildcards.cut_name}',
-            f'--output {params.out}',
-            '--features union_PROBNN',
-            f'&> {log}',
-            #'--features',
-        ]
-        shell(' '.join(cmd))
 
 
 rule train_signal_classifier:
@@ -751,21 +702,6 @@ rule combine_tagger:
             '--target_path {params.target_path}',
             '--combinationName {wildcards.combinationName}',
             '--decayType {wildcards.decay}',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-
-rule gen_configs:
-    input:
-        script = join(repo, "scripts/generate_configFiles.py"),
-
-    output:
-        join(repo, 'configs/configs/lr{lr,(0.001|0.01|0.1)}_bs{bs,(32|128|1024|2048)}_{a, (simple|complex)}_dm{dm, (0.0|0.0001|0.001|0.01)}.yaml'),
-    log: 
-        join(repo, 'configs/generate_configs{lr,(0.001|0.01|0.1)}_bs{bs,(32|128|1024|2048)}_{a, (simple|complex)}_dm{dm, (0.0|0.0001|0.001|0.01)}.log'),
-    run:
-        cmd = [
-            'python', input.script,
             '&> {log}',
         ]
         shell(' '.join(cmd))
