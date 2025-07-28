@@ -484,8 +484,25 @@ def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins
     plt.savefig(f"{plot_name}")
     plt.close()
 
+def bins_by_yield(etas, weights, nbins):
+    # Sort etas and weights by eta
+    sorted_indices = np.argsort(etas)
+    sorted_etas = etas[sorted_indices]
+    sorted_weights = weights[sorted_indices]
 
-def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag', BID = 'B_TrueID',weights = None):
+    # Compute cumulative sum of weights
+    cum_weights = np.cumsum(sorted_weights)
+
+    # Total yield and target yield per bin
+    total_weight = cum_weights[-1]
+    target_yields = np.linspace(0, total_weight, nbins + 1)
+
+    # Interpolate to find the bin edges in eta space
+    bin_edges = np.interp(target_yields, cum_weights, sorted_etas)
+
+    return bin_edges
+
+def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag', BID = 'B_TrueID',nbins = 7, weights = None):
 
     #Calibration of the taggers and parameters saving
     import lhcb_ftcalib as ft
@@ -505,26 +522,55 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     else:
         print('Not a valid calibration function')
     taggers.retry_on_error(use_link_alternative=ft.link.logit) # use logit link function if minimization did not converge the first time
-    taggers.calibrate()
-    # Plotting of calibration curves
+
     target_path = f'{target_path}/{calibration_option}'
     if os.path.isdir(f'{target_path}') == False:
         os.system(f"mkdir {target_path}")
+    try:
+        taggers.calibrate()
 
-    scale = (lambda x: x**3, lambda x: x**1/3)
 
-    # bins = np.linspace(np.min(df_tag[f"{tagger}_Eta"].tolist()),np.max(df_tag[f"{tagger}_Eta"].tolist()), 10)
-
-    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = 10, x_scale = scale, y_scale = scale)
-    # taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", bins = bins, x_scale = scale, y_scale = scale)
+        # Plotting of calibration curves
+        scale = (lambda x: x**4, lambda x: x**1/4)
+        if weights is not None:
+            #distribute the such that each bin has the same yield, aka the same sum of weights 
+            bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
+            taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", bins = bins, x_scale = scale, y_scale = scale)
+        else:
+            taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
+        
     
-   
-    info_dict = {"TaggingEfficiency"      : taggers[tagger].stats.tagging_efficiency(calibrated = False),
-                 "TaggingPower"           : taggers[tagger].stats.tagging_power(calibrated = False) ,
-                 "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True), 
-                 "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(calibrated = True),
-                 "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(calibrated = True) , 
-                 "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(calibrated = False) }
+        info_dict = {"TaggingEfficiency"     : taggers[tagger].stats.tagging_efficiency(calibrated = False),
+                    "TaggingPower"           : taggers[tagger].stats.tagging_power(     calibrated = False),
+                    "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True ), 
+                    "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(     calibrated = True ),
+                    "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(  calibrated = True ), 
+                    "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False)}
+    except AssertionError as ae: #Mimumization did not converge -> model simply performed poorly
+        print(f"AssertionError during calibration: {ae}")
+        info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
+                    "TaggingPower"           : [np.nan, np.nan],
+                    "TaggingEfficiency_Cali" : [np.nan, np.nan], 
+                    "TaggingPower_Cali"      : [np.nan, np.nan],
+                    "EffectiveMistag_Cali"   : [np.nan, np.nan], 
+                    "EffectiveMistag"        : [np.nan, np.nan]}
+    except np.linalg.LinAlgError as lae: # Inversion of the Hessian matrix failed -> also poor performance
+        print(f"LinAlgError during calibration: {lae}")
+        info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
+                    "TaggingPower"           : [np.nan, np.nan],
+                    "TaggingEfficiency_Cali" : [np.nan, np.nan], 
+                    "TaggingPower_Cali"      : [np.nan, np.nan],
+                    "EffectiveMistag_Cali"   : [np.nan, np.nan], 
+                    "EffectiveMistag"        : [np.nan, np.nan]}
+    except Exception as e: # Catch all other exceptions
+        print(f"An unexpected error occurred during calibration: {e}")
+        info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
+                    "TaggingPower"           : [np.nan, np.nan],
+                    "TaggingEfficiency_Cali" : [np.nan, np.nan], 
+                    "TaggingPower_Cali"      : [np.nan, np.nan],
+                    "EffectiveMistag_Cali"   : [np.nan, np.nan], 
+                    "EffectiveMistag"        : [np.nan, np.nan]}
+        
     with open(f"{target_path}/taggingInfo_{calibration_option}.json", "w") as f:
         json.dump(info_dict, f)
     print(f"Tagger parameters saved at {target_path}\n")
@@ -541,34 +587,28 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
 # Function to propagate and round the errors and values
 def propagate_and_round(values):
-    values = np.array(values) * 100  # Multiply all values by 100
+    values = np.array(values) * 100  
 
-    if len(values) > 2:  # For TaggingPower_Cali and EffectiveMistag_Cali
-        combined_error = np.sqrt(np.sum(np.square(values[1:])))
-        if combined_error not in [np.nan, np.NAN, np.NaN]:
-            print('\n\n')
-            print(type(combined_error))
-            print(combined_error)
+    try:
+        if len(values) > 2:  # For TaggingPower_Cali and EffectiveMistag_Cali
+            combined_error = np.sqrt(np.sum(np.square(values[1:])))
             rounded_error = round(combined_error, -int(np.floor(np.log10(combined_error))))
             
             significant_digit = int(np.floor(np.log10(rounded_error)))
             rounded_value = round(values[0], -significant_digit)
-        else:
-            rounded_error = rounded_value = np.NaN
-
-        return [rounded_value, rounded_error]
-    else:  # For other data
-        max_error = max(values[1:])
-        if max_error > 0:
+            return [rounded_value, rounded_error]
+        else:  # For other data
+            max_error = max(values[1:])
             rounded_errors = [round(err, -int(np.floor(np.log10(max_error)))) for err in values[1:]]
             significant_digit = int(np.floor(np.log10(max_error)))
-
-        else:
-            rounded_errors = [round(err, 1) for err in values[1:]]
-            significant_digit = -1
-        rounded_value = round(values[0], -significant_digit)
-        
-        return [rounded_value] + rounded_errors
+            rounded_value = round(values[0], -significant_digit)
+            
+            return [rounded_value] + rounded_errors
+    except Exception as e:
+        print(f"Error in processing values: {values}. Error: {e}")
+        values = [str(v) for v in values]
+        values[-1] = f'{values[-1]} Error in Rounding'
+        return values  # Fallback for unexpected cases
 
 def print_taggingInfo(tag_file='taggingInfo.json'):
     # Read the data from the JSON file
