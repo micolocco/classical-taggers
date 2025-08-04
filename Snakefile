@@ -139,9 +139,12 @@ generated_paths_OSMuon = read_generated_paths(join(repo,'paths_for_snakemake/gen
 print(ntuples_added_features_withUT['Bs2DsPi'])
 rule all:
     input:
-        expand(ntuples_tagged_withUT['Bu2JpsiK']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        expand(ntuples_tagged_withUT['Bu2JpsiK']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        expand(ntuples_tagged_withUT['Bu2JpsiK']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        '/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/unbalanced/treeSchema.pdf',
+       #'/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/balanced/treeSchema.pdf',
+
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         
         #ntuples_added_features_withUT['Bs2DsPi'],
         #expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
@@ -272,7 +275,7 @@ rule add_features:
 
 all_taggers = sorted({t for taggers in taggers_conf.values() for t in taggers})
 
-'''
+
 rule train_DT:
     input:
         script = join(repo, 'scripts/origin_DT_cut.py'),
@@ -288,7 +291,7 @@ rule train_DT:
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 8, # medium queue
+       # MaxRunHours = 8, # medium queue
     run:
         cmd = (
             f'python {input.script} '
@@ -300,8 +303,7 @@ rule train_DT:
             f'&> {log}'  # Redirect stdout and stderr to log file
         )
         shell(cmd)
- '''    
-
+ 
 rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),

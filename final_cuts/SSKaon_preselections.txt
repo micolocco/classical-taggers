@@ -1,0 +1,1 @@
+(B_Tr_T_PROBNN_E <= 0.6606) & (B_Tr_T_PROBNN_MU <= 0.6472) & (B_Tr_T_diff_z <= 6.7063) & (B_Tr_T_PROBNN_PI <= 0.9496) & (B_Tr_T_IPChi2BVTX <= 9.2305) & (B_Tr_T_PROBNN_P <= 0.3049) & (B_Tr_T_Origin_Flag !=0)

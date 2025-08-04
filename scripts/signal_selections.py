@@ -29,10 +29,10 @@ def apply_preselections_and_save_all_branches(infile, tree_name, outfile, presel
     # Create output file and clone tree structure (empty)
     os.makedirs(os.path.dirname(outfile), exist_ok=True)
     outFile = ROOT.TFile(outfile, "RECREATE")
-    outTree = inTree.CloneTree(0)
 
     # Reactivate all branches for full event copy (but reading one-by-one)
     inTree.SetBranchStatus("*", 1)
+    outTree = inTree.CloneTree(0)
 
     # Compile the cut expression into a TTreeFormula
     cut_expr = " && ".join(preselections)
