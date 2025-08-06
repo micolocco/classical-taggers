@@ -11,7 +11,7 @@ plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not 
 plt.rcParams.update({'axes.unicode_minus' : False})
 
 '''
-python scripts/origin_checks.py >log_check_Bd_20.log
+python scripts/origin_checks.py >log_check.log
 '''
 def find_tree_name(decay):
     if decay == 'Bs2JpsiPhi':
@@ -23,14 +23,14 @@ def find_tree_name(decay):
 
 if __name__ == '__main__':
 
-    base_pattern = '/ceph/users/molocco/Data/withUT_MC_2024/2_added_features/'
+    base_pattern = '/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/2_added_features/'
     ##folders = ['Bs2DsPi']
     #folders = ['Bd2JpsiKst']
     #folders = ['Bu2JpsiK', 'Bd2JpsiKst', 'Bs2DsPi']
-    folders = ['Bu2JpsiK', 'Bd2JpsiKst',]
+    folders = ['Bu2JpsiK', 'Bd2JpsiKst', 'Bs2DsPi']
 
    # loading_variables = ['B_Tr_T_absID','B_Tr_T_Origin_Flag', 'B_TRUEID', 'B_Tr_T_Charge', 'B_Tr_T_MC_MOTHER_ID', 'B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
-    loading_variables = ['B_Tr_T_TRUEID','B_Tr_T_Origin_Flag', 'B_TRUEID', 'B_Tr_T_Charge', 'B_Tr_T_MC_MOTHER_ID', 'B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
+    loading_variables = ['B_Tr_T_Origin_Flag', 'B_Tr_T_absID', 'B_TRUEID', 'B_Tr_T_Charge', 'B_Tr_T_MC_MOTHER_ID', 'B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
 
     df = pd.DataFrame(columns=loading_variables)
 
@@ -43,7 +43,7 @@ if __name__ == '__main__':
             }
 
     for decay in folders:
-        pattern = f'{base_pattern}/{decay}/*.root'
+        pattern = f'{base_pattern}/{decay}/*1_1.mc.root'
         root_files = []
         root_files.extend(glob.glob(pattern))
         treename = find_tree_name(decay)
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         print(f'{decay} candidates: {df.shape[0]}')      
     
         df.B_Tr_T_Origin_Flag.astype(int)
-        df.eval(f'B_Tr_T_absID =abs(B_Tr_T_TRUEID)', inplace = True)
+        #df.eval(f'B_Tr_T_absID =abs(B_Tr_T_TRUEID)', inplace = True)
 
         conditions = [
         (df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==2), # OSKaon
@@ -123,10 +123,11 @@ if __name__ == '__main__':
             
             # Combine the counts and percentages into a single DataFrame for better display
             combined = pd.DataFrame({'Count': variety_counts, 'Percentage': variety_percentage})
+            print(f"this is the total: {combined['Percentage'].sum()}")
             # Name the first column as 'MOTHER_ID'
             combined.index.name = 'MOTHER_ID'
             # Print the combined DataFrame
-            print(combined[:100].to_string(index=True, float_format="%.1f"))
+            print(combined[:10].to_string(index=True, float_format="%.1f"))
         print('-----------------------------------------------------------------------------------------')
         print('\n')
             #print('Charge-B Flavour relation for MOTHER_ID=5:')

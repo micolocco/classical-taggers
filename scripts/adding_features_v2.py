@@ -34,23 +34,19 @@ def DeltaQ(df,Mass, prefix):
 
 # Phi distance definition from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/src/Utils/TaggingHelpers.cpp?ref_type=heads#L43
 def min_dPhi(df, prefix):
-    df.eval(f"""
-    {prefix}Tr_T_cos_Phi=cos({prefix}Tr_T_Phi)
-    {prefix}Tr_T_sin_Phi=sin({prefix}Tr_T_Phi)
-    {prefix}cos_Phi=cos({prefix}PHI)
-    {prefix}sin_Phi=sin({prefix}PHI)
-    """, inplace=True)
-
-    df.eval(f"""
-    x_arctan=({prefix}Tr_T_cos_Phi*{prefix}sin_Phi) - ({prefix}cos_Phi*{prefix}Tr_T_sin_Phi)
-    y_arctan=({prefix}Tr_T_cos_Phi*{prefix}cos_Phi) + ({prefix}sin_Phi*{prefix}Tr_T_sin_Phi)
-    """, inplace=True)
+    df.eval(f'{prefix}Tr_T_cos_Phi=cos({prefix}Tr_T_Phi)', inplace=True)
+    df.eval(f'{prefix}Tr_T_sin_Phi=sin({prefix}Tr_T_Phi)', inplace=True)
+    df.eval(f'{prefix}cos_Phi=cos({prefix}PHI)', inplace=True)
+    df.eval(f'{prefix}sin_Phi=sin({prefix}PHI)', inplace=True)
+    df.eval(f'x_arctan=({prefix}Tr_T_cos_Phi*{prefix}sin_Phi) - ({prefix}cos_Phi*{prefix}Tr_T_sin_Phi)', inplace=True)
+    df.eval(f'y_arctan=({prefix}Tr_T_cos_Phi*{prefix}cos_Phi) + ({prefix}sin_Phi*{prefix}Tr_T_sin_Phi)', inplace=True)
     df.eval(f'{prefix}Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
     # A bit of a hack to add the minimum distance
     _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group[f'{prefix}Tr_T_PhiDistance']))).reset_index(name=f'{prefix}Tr_T_minPhiDistance')
     df = pd.merge(df, _df, on='entry', how='left')
-    df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
+    df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1, inplace=True)
     return df
+
  
 
 # Variables not used for pre-selections and training are included in extra_var array to speed up NTuples processing
@@ -99,7 +95,6 @@ loading_variables = [
         'B_Tr_T_Origin_Flag',
         'B_Tr_T_IsInTree',
         'B_Tr_T_CHI2DOF',
-        'B_ID',
         'B_BKGCAT',
         'B_Tr_T_TRUE_PARTICLE_ID',
         'B_Tr_T_OWNPV_Z',
@@ -150,7 +145,6 @@ extra_vars = [
         'B_Tr_T_firstTY',
         'B_OWNPV_X',
         'B_OWNPV_Y',
-        'B_OWNPV_Z',
         'B_ENDV_X',
         'B_ENDV_Y',
         'B_ENDV_Z',
@@ -212,7 +206,7 @@ def main():
                     'reweighter_weights_raw']
     #elif cfg.evtType == 'Bs2DsPi':
     #    weights = ['nSig_uo_kkpi_2022_Evts_sw']
-    local_loading_variables = loading_variables + run2_taggers_variables
+    local_loading_variables = np.unique(loading_variables + run2_taggers_variables).tolist()
     if cfg.data_calib:
         local_loading_variables = [v for v in local_loading_variables if "TRUE" not in v and "Flag" not in v and "MC" not in v and "BKGCAT" not in v]
         local_loading_variables += ['FillNumber']
@@ -225,6 +219,7 @@ def main():
         elif "Ds" in cfg.evtType:
             local_loading_variables.append("B_DTF_PV_Ds_MASS") 
             #local_loading_variables.append("B_DTF_PV_Ds_MASSERR")
+        local_loading_variables = np.unique(local_loading_variables).tolist()
         print("Loading variables are: ", local_loading_variables)
          # Equivalent for data of Origin_Flag != 0 (included later on in the pre-selections)
         #local_file = stage_remote(cfg.raw)
@@ -245,7 +240,7 @@ def main():
 
     # drop the B mesons or other particles that are not of interest and perform operations on MC variables
     if not cfg.data_calib:
-        local_loading_variables = local_loading_variables + extra_vars
+        local_loading_variables = np.unique(local_loading_variables + extra_vars).tolist()
         with uproot.open("{}".format(cfg.raw)) as f:
             df = f[cfg.treename].arrays(local_loading_variables, library="pd")
         abs_id = B_abs_id_dic[cfg.evtType]
@@ -254,40 +249,41 @@ def main():
         df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUE_PARTICLE_ID)', inplace = True)
         df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
    
+   # Add this diagnostic line to see the data types
+    print("DataFrame dtypes after loading:")
+    print(df.dtypes)
+    
     # Add some needed features
     # A bit of a hack to add the minimum distance
     df = min_dPhi(df, prefix)
-    df.eval(f"""
-    {prefix}Tr_T_diff_z = abs({prefix}OWNPV_Z - {prefix}Tr_T_OWNPV_Z)
-    {prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)
-    {prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)
-    {prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)
-    {prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)
-    {prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)
-    """ , inplace = True)
-
+    df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}OWNPV_Z - {prefix}Tr_T_OWNPV_Z)' , inplace = True)
+    df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
+    df.eval(f'{prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)', inplace=True)
+    df.eval(f'{prefix}Tr_T_EtaDistance = abs({prefix}ETA - {prefix}Tr_T_Eta)', inplace = True)
     df.eval(f'{prefix}Tr_T_DeltaR= ({prefix}ETA - {prefix}Tr_T_Eta)**2 + {prefix}Tr_T_PhiDistance**2', inplace = True)
     df[f'{prefix}Tr_T_DeltaQ_Pion'] = DeltaQ(df,139.5706, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Muon'] = DeltaQ(df,105.65837, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Electron'] = DeltaQ(df,0.51100, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
+    df.eval(f'{prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)' , inplace = True) # IPSig == IPErr
+    df.eval(f'{prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)', inplace = True)
+
+
   
 
 
 
     if not cfg.data_calib: # Avoid to read not used branches for data calibration, still needed for MC for the DT training to select features
-        df.eval(f"""
-        diff_P = abs({prefix}P - {prefix}Tr_T_P)
-        P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ )
-        {prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)
-        {prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P
-        """, inplace = True)
+        df.eval(f'diff_P = abs({prefix}P - {prefix}Tr_T_P)', inplace = True)
+        df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
         df.eval(f't = ({prefix}ENDV_X**2 + {prefix}ENDV_Y**2 + {prefix}ENDV_Z**2 - {prefix}ENDV_X*{prefix}Tr_T_X - {prefix}ENDV_Y*{prefix}Tr_T_Y - {prefix}ENDV_Z*{prefix}Tr_T_Z) / ({prefix}ENDV_X * {prefix}Tr_T_PX + {prefix}ENDV_Y * {prefix}Tr_T_PY + {prefix}ENDV_Z * {prefix}Tr_T_PZ)' , inplace = True)
         df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
-        df.eval("""
-        logEVIP = log(EVIP)
-        logP_proj = log(P_proj)""", inplace = True)
+        df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
+        df.eval('logEVIP = log(EVIP)', inplace = True)
+        df.eval('logP_proj = log(P_proj)', inplace = True)
+        df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
+
 
     df.columns = df.columns.str.replace(f'{prefix}', 'B_', regex=False)
     print(f'Total shape should be {df.shape[0]}')

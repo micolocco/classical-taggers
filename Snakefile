@@ -119,7 +119,7 @@ def find_tree_name(decay):
     if decay == 'Bs2DsPi':
         return 'BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
     if decay == 'Bu2JpsiK':
-        return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
+        return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree' 
     if decay == 'Bd2JpsiKst':
         return 'BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree'
     else:
@@ -136,10 +136,13 @@ generated_paths_OSMuon = read_generated_paths(join(repo,'paths_for_snakemake/gen
 #print(expand(ntuples_selected_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK_balanced'], balanced=['balanced'],features=['union_PROBNN']),)
 
 #print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
-print(ntuples_added_features_withUT['Bs2DsPi'])
 rule all:
     input:
-        '/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/unbalanced/treeSchema.pdf',
+        ntuples_added_features_withUT['Bu2JpsiK'],
+        ntuples_added_features_withUT['Bd2JpsiKst'],
+        ntuples_added_features_withUT['Bs2DsPi']
+
+        #'/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/unbalanced/treeSchema.pdf',
        #'/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/balanced/treeSchema.pdf',
 
         #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
@@ -259,7 +262,7 @@ rule add_features:
         #request_disk = 50000
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes
-        MaxRunHours = 8, # medium queue
+        MaxRunHours = 4, # medium queue
 
     run:
         tree = find_tree_name(wildcards.decay)

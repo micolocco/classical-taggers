@@ -22,6 +22,7 @@ plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not 
 plt.rcParams.update({'axes.unicode_minus' : False})
 import DT_utils
 
+from IPython import embed
 '''
 Ref: https://gitlab.cern.ch/lhcb/Rec/-/blob/master/Phys/DaVinciMCKernel/src/Lib/MCTaggingHelper.cpp?ref_type=heads
 Origin Flag IDs:
@@ -76,7 +77,7 @@ if __name__ == '__main__':
     else:
         output_path = f'{cfg.target_path}'
 
-    features_added = ['B_Tr_T_minPhiDistance', 'B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
+    features_added = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
     load_extra = ['EVENTNUMBER','RUNNUMBER']
     features_noMC = [
         'B_OWNPV_X',
@@ -168,7 +169,7 @@ if __name__ == '__main__':
     df = pd.DataFrame(columns=loading_variables)
     
     for decay in folders:
-        pattern = f'{cfg.base_pattern}/{decay}/*1_1.mc.root'
+        pattern = f'{cfg.base_pattern}/{decay}/*01_1.mc.root'
         root_files = []
         root_files.extend(glob.glob(pattern))
         treename = find_tree_name(decay)
@@ -180,7 +181,6 @@ if __name__ == '__main__':
                 #print(f'Number of tracks per file: {_df.shape[0]}')
                 df = pd.concat([df, _df], ignore_index = True)
                 #print(f'Number of tracks in concatenated df {df.shape[0]}')
-
     df.dropna(inplace=True)
     print(f"Total number of tracks (all decays, all particles): {df.shape[0]}") 
 
