@@ -1,52 +1,32 @@
 {
     "OSKaon": {
-        "calibrated tagging power": "2.72+/-0.07",
+        "calibrated tagging power": "1.784+/-0.031",
         "seed": 12,
-        "learning_rate": 0.001,
-        "batch_size": 2048,
-        "architecture": "simple",
-        "min_delta": 0.001,
-        "max_ratio": 40.4670974260845,
-        "precision": 0.02471143382167594
+        "learning_rate": 0.0001,
+        "batch_size": 4096,
+        "numlayers": 6,
+        "numneurons": 256,
+        "max_ratio": 58.20791757130267,
+        "precision": 0.017179793432311588
     },
     "OSElectron": {
-        "calibrated tagging power": "0.632+/-0.035",
+        "calibrated tagging power": "0.439+/-0.015",
         "seed": 12,
-        "learning_rate": 0.01,
-        "batch_size": 1024,
-        "architecture": "simple",
-        "min_delta": 0.0001,
-        "max_ratio": 18.247669470926496,
-        "precision": 0.05480151871411701
+        "learning_rate": 0.001,
+        "batch_size": 8192,
+        "numlayers": 2,
+        "numneurons": 64,
+        "max_ratio": 28.40050929390264,
+        "precision": 0.035210636177383334
     },
     "OSMuon": {
-        "calibrated tagging power": "1.15+/-0.04",
-        "seed": 45,
-        "learning_rate": 0.01,
-        "batch_size": 1024,
-        "architecture": "simple",
-        "min_delta": 0.001,
-        "max_ratio": 27.356215452908486,
-        "precision": 0.03655476400679104
-    },
-    "SSPion": {
-        "calibrated tagging power": "1.33+/-0.08",
-        "seed": 2,
+        "calibrated tagging power": "0.863+/-0.021",
+        "seed": 12,
         "learning_rate": 0.001,
         "batch_size": 2048,
-        "architecture": "simple",
-        "min_delta": 0.0,
-        "max_ratio": 16.493342214677806,
-        "precision": 0.06063052515275387
-    },
-    "SSProton": {
-        "calibrated tagging power": "0.062+/-0.018",
-        "seed": 14,
-        "learning_rate": 0.001,
-        "batch_size": 2048,
-        "architecture": "simple",
-        "min_delta": 0.0,
-        "max_ratio": 3.4468370119584373,
-        "precision": 0.290121057807667
+        "numlayers": 4,
+        "numneurons": 256,
+        "max_ratio": 41.47847510300189,
+        "precision": 0.024108890153669797
     }
 }

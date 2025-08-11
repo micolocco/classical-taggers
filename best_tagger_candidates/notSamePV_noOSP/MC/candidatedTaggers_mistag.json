@@ -1,0 +1,32 @@
+{
+    "OSKaon": {
+        "calibrated tagging power": "1.365+/-0.028",
+        "seed": 12,
+        "learning_rate": 0.001,
+        "batch_size": 2048,
+        "numlayers": 6,
+        "numneurons": 256,
+        "max_ratio": 49.1876837343302,
+        "precision": 0.02033029254642574
+    },
+    "OSElectron": {
+        "calibrated tagging power": "0.370+/-0.015",
+        "seed": 12,
+        "learning_rate": 0.0001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 128,
+        "max_ratio": 25.48989442827564,
+        "precision": 0.039231233491917164
+    },
+    "OSMuon": {
+        "calibrated tagging power": "0.704+/-0.018",
+        "seed": 12,
+        "learning_rate": 0.01,
+        "batch_size": 4096,
+        "numlayers": 6,
+        "numneurons": 64,
+        "max_ratio": 38.93036938568872,
+        "precision": 0.025686887018534485
+    }
+}
