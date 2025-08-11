@@ -38,8 +38,9 @@ import json
 import numpy as np
 from uncertainties import ufloat
 
-def format_and_propagate(values):
-    values = np.array(values) * 100  # Multiply all values by 100
+def format_and_propagate(values, is_percentage=True):
+    if is_percentage:
+        values = np.array(values) * 100  # Multiply all percentage values by 100
 
     if np.any(np.isnan(values)) or np.any(np.isinf(values)):
         return ufloat(np.nan, np.nan)
@@ -123,7 +124,7 @@ def load_and_process_json(json_file):
             processed_data[key] = ufloat(np.nan, np.nan)
             continue
         
-        processed_data[key] = format_and_propagate(numeric_values)
+        processed_data[key] = format_and_propagate(numeric_values, 'Fitpar_' not in key)  
     
     return processed_data
 '''

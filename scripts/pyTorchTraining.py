@@ -532,45 +532,38 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
         # Plotting of calibration curves
         scale = (lambda x: x**4, lambda x: x**1/4)
+        scale = "linear"
         if weights is not None:
-            #distribute the such that each bin has the same yield, aka the same sum of weights 
+            #distribute the bins such that each bin has the same yield, aka the same sum of weights 
             bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
             taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", bins = bins, x_scale = scale, y_scale = scale)
         else:
             taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
-        
-    
+
+
         info_dict = {"TaggingEfficiency"     : taggers[tagger].stats.tagging_efficiency(calibrated = False),
                     "TaggingPower"           : taggers[tagger].stats.tagging_power(     calibrated = False),
                     "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True ), 
                     "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(     calibrated = True ),
                     "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(  calibrated = True ), 
-                    "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False)}
-    except AssertionError as ae: #Mimumization did not converge -> model simply performed poorly
-        print(f"AssertionError during calibration: {ae}")
-        info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
-                    "TaggingPower"           : [np.nan, np.nan],
-                    "TaggingEfficiency_Cali" : [np.nan, np.nan], 
-                    "TaggingPower_Cali"      : [np.nan, np.nan],
-                    "EffectiveMistag_Cali"   : [np.nan, np.nan], 
-                    "EffectiveMistag"        : [np.nan, np.nan]}
-    except np.linalg.LinAlgError as lae: # Inversion of the Hessian matrix failed -> also poor performance
-        print(f"LinAlgError during calibration: {lae}")
-        info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
-                    "TaggingPower"           : [np.nan, np.nan],
-                    "TaggingEfficiency_Cali" : [np.nan, np.nan], 
-                    "TaggingPower_Cali"      : [np.nan, np.nan],
-                    "EffectiveMistag_Cali"   : [np.nan, np.nan], 
-                    "EffectiveMistag"        : [np.nan, np.nan]}
-    except Exception as e: # Catch all other exceptions
+                    "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False),
+                    "Fitpar_p0"              : [taggers[tagger].stats.params.params_delta[0], taggers[tagger].stats.params.errors_delta[0]],
+                    "Fitpar_p1"              : [taggers[tagger].stats.params.params_delta[1], taggers[tagger].stats.params.errors_delta[1]],
+                    "Fitpar_deltap0"         : [taggers[tagger].stats.params.params_delta[2], taggers[tagger].stats.params.errors_delta[2]],
+                    "Fitpar_deltap1"         : [taggers[tagger].stats.params.params_delta[3], taggers[tagger].stats.params.errors_delta[3]],}
+    except Exception as e: # Catch exceptions. Often caused by convergence issues in the training of the tagger
         print(f"An unexpected error occurred during calibration: {e}")
+        print(traceback.format_exc())
         info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
                     "TaggingPower"           : [np.nan, np.nan],
                     "TaggingEfficiency_Cali" : [np.nan, np.nan], 
                     "TaggingPower_Cali"      : [np.nan, np.nan],
                     "EffectiveMistag_Cali"   : [np.nan, np.nan], 
-                    "EffectiveMistag"        : [np.nan, np.nan]}
-        
+                    "EffectiveMistag"        : [np.nan, np.nan],
+                    "Fitpar_p0"              : [np.nan, np.nan],
+                    "Fitpar_p1"              : [np.nan, np.nan],
+                    "Fitpar_deltap0"         : [np.nan, np.nan],
+                    "Fitpar_deltap1"         : [np.nan, np.nan],}
     with open(f"{target_path}/taggingInfo_{calibration_option}.json", "w") as f:
         json.dump(info_dict, f)
     print(f"Tagger parameters saved at {target_path}\n")
@@ -578,7 +571,7 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     # Process the data
     processed_data = {key: propagate_and_round(value) for key, value in info_dict.items()}
     # Format the output
-    formatted_data = {key: f"{values[0]} +- {values[1]}" for key, values in processed_data.items()}
+    formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
     # Print the formatted data
     for key, value in formatted_data.items():
         print(f"{key}: {value}")
