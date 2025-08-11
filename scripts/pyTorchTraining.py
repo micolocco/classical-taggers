@@ -168,6 +168,7 @@ def ddp_setup(rank, world_size, target_path): #Create a way for the processes to
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = f"{socket_port}"    
     init_process_group(backend="gloo", rank=rank, world_size=world_size)
+    print(f"Rank {rank} initialized with port {socket_port}", flush=True)
     #above needs to be run before distributed sampler or DistributedDataParallel is created. 'gloo' is needed for CPU training. Rank is a unique 
     #identifier for each process, and world_size is the total number of processes. 
 
@@ -182,8 +183,8 @@ def format_loss(loss): #such that a float as well as a array (case of domain ada
     if isinstance(loss, np.float64):
         formatted_loss = f"{loss:.6f}"
     else:
-        formatted_loss = ', '.join(f"{l:.6f}" for l in loss)
-    
+        formatted_loss = f'{np.round(loss[0], 6)}, {np.round(loss[1], 6)}'
+
     return formatted_loss
 
 def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, return_dict, train_weights = None, 
@@ -223,7 +224,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
-        initialValidation_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean()
+        initialValidation_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean(axis=0)
         if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
             print(f"The initial Validation Loss: {format_loss(initialValidation_loss)}")
         
@@ -236,10 +237,10 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
                 if rank == 0:
                     print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
                 # Train over mini-batches
-                stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean()
+                stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean(axis=0)
                 trainingEpoch_loss.append(stepLoss)
                 # Compute validation loss
-                validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean()
+                validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean(axis=0)
                 validationEpoch_loss.append(validationStep_loss)
                 if rank == 0:
                     print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
@@ -318,25 +319,56 @@ def save_losses(trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     os.makedirs(f'{folder}', exist_ok=True)
     np.savetxt(f"{folder}/test.csv", valLoss, delimiter=",")
     np.savetxt(f"{folder}/train.csv", trainLoss, delimiter=",")
-    np.savetxt(f"{folder}/best.csv", [bestEpoch,bestLosses[0],bestLosses[1]], delimiter=",")
+    if isinstance(bestLosses[0], np.float64):
+        np.savetxt(f"{folder}/best.csv", [bestEpoch ,bestLosses[0],bestLosses[1]], delimiter=",")
+    else:
+        np.savetxt(f"{folder}/best.csv", [[bestEpoch, 0],bestLosses[0],bestLosses[1]], delimiter=",") # 0 only for formatting purposes
+
+
 
 def plot_losses(tagger, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
-    
-    plt.figure()
-    plt.plot(trainLoss, label='Training', c = 'orange')
-    plt.plot(valLoss,label='Validation', c='blue')
-    plt.axvline(bestEpoch, linestyle='--', color='tab:gray', label="Best epoch")
-    plt.legend(loc = "best")
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.title(f"{tagger}", fontsize=24)
-    plt.savefig(f"{target_path}/Loss.pdf")
+    trainLoss = np.array(trainLoss)
+    valLoss = np.array(valLoss)
+
+
+    if not trainLoss.ndim == 2:
+        # Loss Plot
+        plt.figure(figsize=(8,8))
+        plt.plot(trainLoss, label='Training', c='orange')
+        plt.plot(valLoss, label='Validation', c='blue')
+        plt.axvline(bestEpoch, linestyle='--', color='tab:gray', label="Best epoch")
+        plt.legend(loc="best")
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.title(f"{tagger}", fontsize=24)
+        plt.savefig(f"{target_path}/Loss.pdf")
+        plt.close()
+    else:
+        # Subplots of class and domain loss
+        fig, axs = plt.subplots(1, 2, figsize=(16, 8), sharex=True)
+
+        loss_labels = ['Class Loss', 'Domain Loss']
+        colors = ['orange', 'blue']
+
+        for i in range(2):
+            axs[i].plot(trainLoss[:,i], label='Training', c=colors[0])
+            axs[i].plot(valLoss[:,i], label='Validation', c=colors[1])
+            axs[i].axvline(bestEpoch, linestyle='--', color='tab:gray', label="Best epoch")
+            axs[i].set_ylabel(loss_labels[i])
+            axs[i].legend(loc="best")
+            axs[i].set_title(f"{loss_labels[i]} over Epochs")
+
+        axs[1].set_xlabel("Epoch")
+        fig.suptitle(f"{tagger}", fontsize=24)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(f"{target_path}/Loss.pdf")
+        plt.close()
    
-def plot_ROC(tagger, val_df, target_path, train_df= None):
+def plot_ROC(tagger, val_df, target_path, train_df= None, trueLabel= 'yTrue', predLabel='yPred', fileLabel=''):
     
     plt.figure()
     lw  = 2
-    fpr_test, tpr_test,_ = roc_curve(val_df.yTrue, val_df.yPred)
+    fpr_test, tpr_test,_ = roc_curve(val_df[trueLabel], val_df[predLabel])
     roc_auc_test = round(auc(fpr_test, tpr_test),5)
 
     if train_df is not None: 
@@ -353,13 +385,13 @@ def plot_ROC(tagger, val_df, target_path, train_df= None):
     plt.legend(loc="lower right")
     plt.title(f"{tagger}", fontsize=24)
     if train_df is not None:
-        fpr, tpr,_ = roc_curve(train_df.yTrue, train_df.yPred)
+        fpr, tpr,_ = roc_curve(train_df[trueLabel], train_df[predLabel])
         roc_auc = round(auc(fpr, tpr),5)
         plt.plot(fpr, tpr, color='darkorange',lw=lw, label=f'Train (area = {roc_auc})' )
         plt.legend(loc="lower right")
-        plt.savefig(f"{target_path}/ROC_TRAIN_VAL.pdf")
+        plt.savefig(f"{target_path}/{fileLabel}ROC_TRAIN_VAL.pdf")
     else:
-        plt.savefig(f"{target_path}/ROC_TEST.pdf")
+        plt.savefig(f"{target_path}/{fileLabel}ROC_TEST.pdf")
 
 def logistic_regression(df, target_path):
     
@@ -422,36 +454,38 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, df['yPred'], df['yTru
     plt.close()
 '''
 
-def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbins=100, BID = 'B_TrueID'):
+def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbins=100, BID = 'B_TrueID', trueLabel= 'yTrue', 
+                predLabel='yPred', fileLabel='', correct_legend= "wrong tagging decision", wrong_legend= "correct tagging decision"):
     plt.figure()
     # plt.title("Mistag rate")
     plt.yscale("log")
+
     if clf:
-        y_predict_LR = clf.predict_proba(df.yPred)[:,0]
-        plt.hist(y_predict_LR[df.yTrue == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
-        plt.hist(y_predict_LR[df.yTrue == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
+        y_predict_LR = clf.predict_proba(df[predLabel])[:,0]
+        plt.hist(y_predict_LR[df[trueLabel] == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = correct_legend)
+        plt.hist(y_predict_LR[df[trueLabel] == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = wrong_legend)
         plt.title(f'{tagger} mistag after Logistic Regression', fontsize=24)
     else:
         if show_trueB:
-            plt.hist(1-df.yPred[(df.yTrue==0)&(df[BID]==-521)],bins = nbins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
-            plt.hist(1-df.yPred[(df.yTrue==0)&(df[BID]==521)],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
-            plt.hist(1-df.yPred[(df.yTrue==1)&(df[BID]==-521)],bins = nbins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
-            plt.hist(1-df.yPred[(df.yTrue==1)&(df[BID]==521)],bins = nbins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
+            plt.hist(1-df[(df[trueLabel]==0)&(df[BID]==-521)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
+            plt.hist(1-df[(df[trueLabel]==0)&(df[BID]==521)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
+            plt.hist(1-df[(df[trueLabel]==1)&(df[BID]==-521)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
+            plt.hist(1-df[(df[trueLabel]==1)&(df[BID]==521)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
    
         else:
-            plt.hist(1-df.yPred[df.yTrue == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
-            plt.hist(1-df.yPred[df.yTrue == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
-    data1=1-df.yPred[(df.yTrue==0)&(df[BID]==-521)]  
-    data2=1-df.yPred[(df.yTrue==0)&(df[BID]==521)]   
-    data3=1-df.yPred[(df.yTrue==1)&(df[BID]==-521)]  
-    data4=1-df.yPred[(df.yTrue==1)&(df[BID]==521)]
+            plt.hist(1-df[df[trueLabel] == 0][predLabel],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = correct_legend)
+            plt.hist(1-df[df[trueLabel] == 1][predLabel],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = wrong_legend)
+    data1=1-df[(df[trueLabel]==0)&(df[BID]==-521)][predLabel]  
+    data2=1-df[(df[trueLabel]==0)&(df[BID]==521)][predLabel]   
+    data3=1-df[(df[trueLabel]==1)&(df[BID]==-521)][predLabel]  
+    data4=1-df[(df[trueLabel]==1)&(df[BID]==521)][predLabel]
     plt.title(f"{tagger}", fontsize=24)
     plt.xlabel(r"1 - NN output", fontsize=24)
     #plt.annotate(f'{len(df.yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
     plt.grid()
     plt.ylabel("Normalized number of tracks", fontsize=24)
-    plt.legend(loc = "best", title=f'{type}:{len(df.yPred)} total tracks')
-    plt.savefig(f"{target_path}/NNoutput_{type}.pdf")
+    plt.legend(loc = "best", title=f'{type}:{len(df[predLabel])} total tracks')
+    plt.savefig(f"{target_path}/{fileLabel}NNoutput_{type}.pdf")
     fig, axs = plt.subplots(1, 2, figsize=(14, 7), sharex=True, sharey=True)
     fig.suptitle(f'{type}: {tagger}', fontsize=24)
     axs[0].hist(data1, bins=nbins, color='skyblue', density = True, histtype="stepfilled", label = f'true l=0, B',)
@@ -466,7 +500,7 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
         ax.set_ylabel('Normalized number of tracks', fontsize=22)
 
     plt.tight_layout()
-    plt.savefig(f"{target_path}/NNoutput_{type}_byTRUEID.pdf")
+    plt.savefig(f"{target_path}/{fileLabel}NNoutput_{type}_byTRUEID.pdf")
 
     
 def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins=100):
@@ -532,20 +566,24 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
         # Plotting of calibration curves
         scale = (lambda x: x**4, lambda x: x**1/4)
+        scale = "linear"
         if weights is not None:
-            #distribute the such that each bin has the same yield, aka the same sum of weights 
+            #distribute the bins such that each bin has the same yield, aka the same sum of weights 
             bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
             taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", bins = bins, x_scale = scale, y_scale = scale)
         else:
             taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
         
+        chi2ndof = taggers[tagger].minimizer.fmin.reduced_chi2
     
+        
         info_dict = {"TaggingEfficiency"     : taggers[tagger].stats.tagging_efficiency(calibrated = False),
                     "TaggingPower"           : taggers[tagger].stats.tagging_power(     calibrated = False),
                     "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True ), 
                     "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(     calibrated = True ),
                     "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(  calibrated = True ), 
-                    "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False)}
+                    "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False),
+                    "Calibration_Chi2ndof"   : [chi2ndof]}
     except AssertionError as ae: #Mimumization did not converge -> model simply performed poorly
         print(f"AssertionError during calibration: {ae}")
         info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
@@ -553,7 +591,8 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
                     "TaggingEfficiency_Cali" : [np.nan, np.nan], 
                     "TaggingPower_Cali"      : [np.nan, np.nan],
                     "EffectiveMistag_Cali"   : [np.nan, np.nan], 
-                    "EffectiveMistag"        : [np.nan, np.nan]}
+                    "EffectiveMistag"        : [np.nan, np.nan],
+                    "Calibration_Chi2ndof"   : [np.nan]}
     except np.linalg.LinAlgError as lae: # Inversion of the Hessian matrix failed -> also poor performance
         print(f"LinAlgError during calibration: {lae}")
         info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
@@ -561,7 +600,8 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
                     "TaggingEfficiency_Cali" : [np.nan, np.nan], 
                     "TaggingPower_Cali"      : [np.nan, np.nan],
                     "EffectiveMistag_Cali"   : [np.nan, np.nan], 
-                    "EffectiveMistag"        : [np.nan, np.nan]}
+                    "EffectiveMistag"        : [np.nan, np.nan],
+                    "Calibration_Chi2ndof"   : [np.nan]}
     except Exception as e: # Catch all other exceptions
         print(f"An unexpected error occurred during calibration: {e}")
         info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
@@ -569,7 +609,8 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
                     "TaggingEfficiency_Cali" : [np.nan, np.nan], 
                     "TaggingPower_Cali"      : [np.nan, np.nan],
                     "EffectiveMistag_Cali"   : [np.nan, np.nan], 
-                    "EffectiveMistag"        : [np.nan, np.nan]}
+                    "EffectiveMistag"        : [np.nan, np.nan],
+                    "Calibration_Chi2ndof"   : [np.nan]}
         
     with open(f"{target_path}/taggingInfo_{calibration_option}.json", "w") as f:
         json.dump(info_dict, f)
@@ -578,7 +619,7 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     # Process the data
     processed_data = {key: propagate_and_round(value) for key, value in info_dict.items()}
     # Format the output
-    formatted_data = {key: f"{values[0]} +- {values[1]}" for key, values in processed_data.items()}
+    formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
     # Print the formatted data
     for key, value in formatted_data.items():
         print(f"{key}: {value}")

@@ -27,11 +27,11 @@ def plot_hyperparams_vs_tagging_power(df, target_path, num_features):
                            Expected columns: ['learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power']
     """
     print(f"Plotting hyperparameters vs tagging power")
-    hyperparams = ['learning_rate', 'num_layers', 'num_neurons']
-    xscale = ['log', 'linear', 'log']  
+    hyperparams = ['learning_rate', 'batch_size', 'num_layers', 'num_neurons']
+    xscale = ['log', 'log', 'linear', 'log']  
     target = 'tagging_power'
 
-    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    fig, axs = plt.subplots(3, 2, figsize=(12, 10))
     axs = axs.flatten()
 
     for i, hp in enumerate(hyperparams):
@@ -60,7 +60,7 @@ def plot_hyperparams_vs_tagging_power(df, target_path, num_features):
         ax.set_ylabel(target)
 
     print(f"Plotting num_params vs {target}")
-    ax = axs[3]
+    ax = axs[4]
 
     df['num_params'] = df['num_layers'] * df['num_neurons'] * (df['num_neurons'] + 1)  # Assuming a fully connected layer with bias
     df['num_params'] = df['num_params'] + num_features * df['num_layers'] + df['num_neurons']    # Adding the input and output layer parameters
@@ -87,6 +87,19 @@ def plot_hyperparams_vs_tagging_power(df, target_path, num_features):
     ax.set_xscale('log')
     ax.set_xlabel(hp)
     ax.set_ylabel(target)
+
+    #Calculate the correlation coefficients and display them in subplot 6
+    ax = axs[5]
+    corr = df[hyperparams+ ['num_params', 'tagging_power']].corr()[target].drop(target)
+    print(corr)
+    sns.barplot(x=corr.index, y=corr.values, ax=ax, palette='viridis')
+    ax.set_title(f'Correlation with {target}')
+    ax.set_ylabel('Correlation Coefficient')
+    ax.set_xlabel('Hyperparameter')
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
+    #highlight the zero line
+    ax.axhline(0, color='black', linewidth=0.8, linestyle='-')
+
 
     
 
@@ -141,7 +154,7 @@ if __name__ == '__main__':
     
     
     learning_rates = intervals['-learning_rate']
-    train_batch_size = intervals['-train_batch_size']
+    train_batch_sizes = intervals['-train_batch_size']
     num_layers = intervals['-numlayers']
     num_neurons = intervals['-numneurons']
     seeds  = [12]
@@ -152,21 +165,21 @@ if __name__ == '__main__':
     # num_neurons=[4,8]
 
     # combinations = list(product(seeds, learning_rates, train_batch_sizes, num_layers, num_neurons))
-    combinations = list(product(seeds, learning_rates, num_layers, num_neurons))
+    combinations = list(product(seeds, learning_rates, train_batch_sizes, num_layers, num_neurons))
 
 
-    full_df = pd.DataFrame(columns=['tagger', 'learning_rate', 'num_layers', 'num_neurons', 'tagging_power', 'link'])
+    full_df = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'link'])
     max_ratios = {}
     for link in  ['logit', 'mistag']:
-        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'num_layers', 'num_neurons', 'tagging_power'])
+        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc'])
         for tagger, decay in tagger_dict.items():
             max_ratio = -np.inf
             best_hyperparams = None
-            for seed, lr, nl, nn in combinations:
+            for seed, lr, bs, nl, nn in combinations:
 
                 # Read tagging power values from JSON files
                 results_folder = f"{cfg.model_prePath}/{cfg.data_type}/savedModels/withUT_MC_2024/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed
-                folder_path = os.path.join(results_folder, f"lr{lr}_bs{train_batch_size}_nL{nl}_nN{nn}")
+                folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_nL{nl}_nN{nn}")
 
                 if cfg.data_type == 'Data':
                     folder_path = os.path.join(folder_path, 'pdf_ratio')
@@ -177,28 +190,30 @@ if __name__ == '__main__':
                     data = utils.load_and_process_json(json_file)
                     tagging_power = data['TaggingPower_Cali']
                     if not np.isnan(tagging_power.nominal_value) and tagging_power.nominal_value != 0:
-                        try:
-                            ratio = tagging_power.nominal_value / tagging_power.std_dev
-                            ratio_precision =  tagging_power.std_dev / tagging_power.nominal_value 
-                        except ZeroDivisionError:
-                            print("Check std deviation or nominal value. They might be 0")
-                        #print(tagger, arch, lr, seed, bs)
-                        #print(tagging_power[0], tagging_power[1])
-                        #print(ratio
-                        
-                        if ratio > max_ratio:
-                            max_ratio = ratio
-                            best_hyperparams = {
-                                "calibrated tagging power": tagging_power,
-                                "seed": seed,
-                                "learning_rate": lr,
-                                "numlayers": nl,
-                                "numneurons": nn,
-                                "max_ratio": max_ratio,
-                                "precision": ratio_precision,
-                            }
-                        print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}")
-                        performances.loc[len(performances)] = [tagger, lr, nl, nn, tagging_power.nominal_value]
+                        if tagging_power.std_dev > 1e-4 and tagging_power.nominal_value > 1e-4: # Make sure tagging power and uncertainty are realistic
+                            try:
+                                ratio = tagging_power.nominal_value / tagging_power.std_dev
+                                ratio_precision =  tagging_power.std_dev / tagging_power.nominal_value 
+                            except ZeroDivisionError:
+                                print("Check std deviation or nominal value. They might be 0")
+                            #print(tagger, arch, lr, seed, bs)
+                            #print(tagging_power[0], tagging_power[1])
+                            #print(ratio
+                            
+                            if ratio > max_ratio:
+                                max_ratio = ratio
+                                best_hyperparams = {
+                                    "calibrated tagging power": tagging_power,
+                                    "seed": seed,
+                                    "learning_rate": lr,
+                                    "batch_size": bs,
+                                    "numlayers": nl,
+                                    "numneurons": nn,
+                                    "max_ratio": max_ratio,
+                                    "precision": ratio_precision,
+                                }
+                            print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}")
+                            performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value]
 
             if best_hyperparams:
                 max_ratios[tagger] = best_hyperparams

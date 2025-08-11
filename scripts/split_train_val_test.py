@@ -38,8 +38,8 @@ if __name__ == '__main__':
     parser.add_argument('--decayType', help='Event decay', type=str)
     parser.add_argument('--config', help='Config yaml', type=str, default='configs/hyperpar_intervals.yaml') 
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton'))
-    parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
-    
+    parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
+
     cfg = parser.parse_args()
     pprint(cfg)
 
@@ -47,17 +47,26 @@ if __name__ == '__main__':
         config = yaml.safe_load(file)
 
     filename = os.path.basename(cfg.weighted)[:-5]
-    if filename[-7:-2] == '.data':
-        id = filename[:-7]
-    else:
-        id = filename[:-3]
+    if cfg.data_type != 'domain_adapted':
+        if filename[-7:-2] == '.data':
+            id = filename[:-7]
+        else:
+            id = filename[:-3]
 
     #Read File
     print(f"Reading file: {cfg.weighted}", flush=True)
     with uproot.open("{}".format(cfg.weighted)) as f:
         df = f[cfg.treename].arrays(library="pd")
-    df.dropna(inplace = True)
-    df["event_entry"] = id + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+    if cfg.data_type != 'domain_adapted': # for Domain adaptation nans are dropped previously and some columns are naturally assigned nans
+        df.dropna(inplace = True)
+    
+    if cfg.data_type != 'domain_adapted':
+        df["event_entry"] = id + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+    else:
+        # df["event_entry"] = df["file_id"].astype(str)
+
+        df.loc[df['domain'] == 0, 'event_entry'] = df["file_id"].astype(str) + "_" + "data" + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+        df.loc[df['domain'] == 1, 'event_entry'] = df["file_id"].astype(str) + "_" + "mc" + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
 
     #Shuffle samples
     print(df.head(10))
@@ -83,8 +92,11 @@ if __name__ == '__main__':
     df["label"] = df[f"{cfg.tagger}_TagDec"] * df[BID]/abs(df[BID]) 
 
     df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
-    
-    
+
+    #For domain adaptation data needs to unlabelled
+    if cfg.data_type == 'domain_adapted':
+        df.loc[df["domain"] == 0, "label"] = np.nan
+
     print(df.columns)
     print(df.head(10))
 
