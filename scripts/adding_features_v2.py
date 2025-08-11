@@ -290,7 +290,10 @@ if __name__ == '__main__':
     #print('Started reading')
     print(f'Reading {cfg.raw}')
     with uproot.open("{}".format(cfg.raw)) as f:
-        df = f[cfg.treename].arrays(loading_variables_withPrefix, library="pd")
+        dfak = f[cfg.treename].arrays(loading_variables_withPrefix, library="ak")
+    df = ak.to_dataframe(dfak)
+    del dfak
+    df.reset_index(inplace=True, drop=cfg.data_calib) # drop the index if data_calib is True
     if not cfg.data_calib:
         # drop the B mesons or other particles that are not of interest
         abs_id = B_abs_id_dic[cfg.evtType]
