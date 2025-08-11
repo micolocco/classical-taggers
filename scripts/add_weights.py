@@ -11,6 +11,7 @@ import argparse
 from hepstats.splot import compute_sweights
 import os
 import json
+import awkward as ak
 
 # from zfit.models.physics import DoubleCB
 # from zfit.models.functor import SumPDF
@@ -52,10 +53,12 @@ if __name__ == '__main__':
 
     #Load Dataset
     with uproot.open(cfg.data_file) as _f:
-        df_data = _f[cfg.treename].arrays(loading_variables_withPrefix, library="pd")
+        dfak = _f[cfg.treename].arrays(loading_variables_withPrefix, library="ak")
+    
+    df_data = ak.to_dataframe(dfak)
+    del dfak
     df_data.dropna(inplace=True)
     filenumber = os.path.basename(cfg.data_file)[:-5]
-    print(filenumber)
     print(filenumber[10:-9])
     filenumber = int(filenumber[10:-9])
 

@@ -66,15 +66,13 @@ class NeuralNetwork(nn.Module):
             else:
                 batch_weights = None
             training_loss = self.calc_loss(yPredTrain, targetsTrain, sample_weights=batch_weights)
+            stepLoss.append(training_loss.tolist())
             if isinstance(self, NNDomainAdapted):
-                for l in training_loss:
-                    l.backward()
-            else:
-                training_loss.backward()
+                training_loss = training_loss.sum() #Sum the losses for class and domain classifier
+            training_loss.backward()
             # update model weights
             self.optimizer.step()
             # Calculate per batch loss
-            stepLoss.append(training_loss.tolist())
             #if (i+1) % 1000 == 0:
                 #print (f'Epoch [{epoch+1}/{n_epochs}], Step [{i+1}/{n_total_steps}], Loss: {training_loss.item():.4f}')
         return stepLoss
@@ -95,21 +93,18 @@ class NeuralNetwork(nn.Module):
             validationStep_loss.append(validation_loss.tolist())
         return validationStep_loss
     
+    def BCELoss(self, yPred, target): #Testing purpose
+        x = torch.log(yPred)
+        y = torch.log(1 - yPred)
+
+        return -torch.mul(x, target.float()) - torch.mul(y, (1 - target).float())
+
     def calc_loss(self, yPred, target, sample_weights = None):
         if sample_weights is None:
             sample_weights = torch.ones(target.shape)
 
 
-        print(f'yPred: {yPred}')
-        print(f'target: {target}')
-
         loss = self.criterion(yPred.view(-1, 1), target.view(-1, 1)).view(-1)
-
-        print(f'loss: {loss}')
-        loss = self.criterion(yPred.view(1, -1), target.view(1, -1)).view(-1)
-        print(f'loss 2: {loss}')
-
-        # print(loss.shape)
 
         loss = torch.matmul(loss,sample_weights.float()) / torch.sum(sample_weights)
         return loss.mean()
@@ -123,10 +118,8 @@ class NeuralNetwork(nn.Module):
             # retrieve numpy array
             yPred = yPred.detach().numpy()
             actual = targets.numpy()
-            actual = actual.reshape((len(actual), 1))
+            actual = actual.reshape((-1, 1))
 
-            # round to class values
-            #yPred = yPred.round()
             # store
             predictions.append(yPred)
             actuals.append(actual)
@@ -145,7 +138,7 @@ class NeuralNetwork(nn.Module):
 class NNDomainAdapted(NeuralNetwork):
 
     def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, 
-                 loss=nn.CrossEntropyLoss(reduction='none'), repo_path="", alpha= 1.0): 
+                 loss=nn.BCELoss(reduction='none'), repo_path="", alpha= 1.0): 
         '''
         The loss function's reduce flag must be set to none to enable individual sample weighting.
         '''
@@ -187,13 +180,9 @@ class NNDomainAdapted(NeuralNetwork):
     
     def calc_loss(self, yPred, target, sample_weights = None):
 
-        print(f'Classloss')
         class_loss = super().calc_loss(yPred[:,0][target[:,1] == 1], target[:,0][target[:,1] == 1], None) #Only train label classifier on domain 1 (MC) samples
-        print(f'domloss')
         dom_loss = super().calc_loss(yPred[:,1], target[:,1], sample_weights)
 
-        print(f'class loss: {class_loss}')
-        print(f'dom loss: {dom_loss}')
         return torch.stack([class_loss, dom_loss])
 
     def __str__(self):
@@ -212,8 +201,12 @@ class EarlyStopper:
         self.min_validation_loss = float('inf')
 
     def early_stop(self, validation_loss):
-        if validation_loss < self.min_validation_loss - self.min_delta:
-            self.min_validation_loss = validation_loss
+        if isinstance(validation_loss, np.ndarray):
+            v_loss = validation_loss[0] # For domain adaptation use only class loss for early stopping
+        else:
+            v_loss = validation_loss
+        if v_loss < self.min_validation_loss - self.min_delta:
+            self.min_validation_loss = v_loss
             self.counter = 0
         else:
             self.counter += 1

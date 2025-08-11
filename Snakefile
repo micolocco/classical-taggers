@@ -238,16 +238,24 @@ wildcard_constraints:
     decay       = '(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)',
     tagger      = '(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)',
     weight      = '|'.join(weights),
+    cut_name = "[^/]+", #don't allow slashes in wildcards to avoid problems with paths
+    features = "[^/]+",
+    seed = '[^/]+',
+    config = '[^/]+',
 
 #In how many splits the combined DataFrame should be split when using domain adaptation
 combined_df_n_splits = 20
 
 rule all:
     input:
-        expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/pdf_ratio/testing/logit/taggingInfo_logit.json',
+        expand('/ceph/users/togasa/FlavourTagging/NTuples/domain_adapted/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/training/model.pth',
                tagger = ['OSElectron', 'OSKaon', 'OSMuon'], lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nl=intervals['numlayers'], nn=intervals['numneurons']),
-        expand('/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/testing/logit/taggingInfo_logit.json',
-               tagger = ['OSElectron', 'OSKaon', 'OSMuon'], lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nl=intervals['numlayers'], nn=intervals['numneurons']),
+        # '/ceph/users/togasa/FlavourTagging/NTuples/domain_adapted/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs4096_nL6_nN256/training/model.pth',
+        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/config_test/pdf_ratio/training/model.pth'
+
+
+        # expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/pdf_ratio/testing/logit/taggingInfo_logit.json',
+        #        tagger = ['OSElectron', 'OSKaon', 'OSMuon'], lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nl=intervals['numlayers'], nn=intervals['numneurons']),
         
         
 
@@ -363,7 +371,7 @@ rule add_features:
         root =join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{id,.*}.root'), 
     resources:
         max_retries=0,
-        mem_mb = lambda wildcards: 150_000 if wildcards.data_type == 'MC' else 20_000, # MC needs way more memory
+        mem_mb = lambda wildcards: 150_000 if wildcards.data_type == 'MC' else 20_000, # MC needs unreasonable amounts of memory TODO FIX??
         MaxRunHours = 2, # short queue
     run:
         tree = find_tree_name(wildcards.decay) if wildcards.data_type == 'MC' else '"DecayTree;1"'
@@ -1045,16 +1053,15 @@ rule train_tagger_data:
         cmd = cmd + conditional_cmd
         shell(' '.join(cmd))
 
-
 rule train_tagger_domain_adapted:
     input:
         script = join(repo, 'scripts/train_tagger.py'),
         train = lambda wildcards: 
             [join(out, f"domain_adapted/{wildcards.sample_type}/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/train/samples_{i}.root") 
-             for i in range(combined_df_n_splits)][:2], 
+             for i in range(combined_df_n_splits)], 
         val =   lambda wildcards: 
             [join(out, f"domain_adapted/{wildcards.sample_type}/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/validation/samples_{i}.root")
-             for i in range(combined_df_n_splits)][:2],
+             for i in range(combined_df_n_splits)],
 
         config = join(repo, 'configs/{config}.yaml'),
     output:
@@ -1066,15 +1073,17 @@ rule train_tagger_domain_adapted:
         join(out, 'domain_adapted/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
     resources:
         max_retries=0,
-        mem_mb = 40_000, 
-        MaxRunHours = 8, # long queue
+        mem_mb = 30_000, 
+        MaxRunHours = 16, # long queue
     threads:
-        8,
+        16,
     run:
         train_scratch = copy_to_scratch(input.train)
         val_scratch = copy_to_scratch(input.val)
 
         outpath = os.path.dirname(output.model)
+
+        shell('sleep $(($RANDOM%200))')  # Sleep for a random time to make race conditions less likely, up to 200 seconds
 
         cmd = [
             'python', input.script,

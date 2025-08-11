@@ -88,6 +88,19 @@ def plot_hyperparams_vs_tagging_power(df, target_path, num_features):
     ax.set_xlabel(hp)
     ax.set_ylabel(target)
 
+    #Calculate the correlation coefficients and display them in subplot 6
+    ax = axs[5]
+    corr = df[hyperparams+ ['num_params', 'tagging_power']].corr()[target].drop(target)
+    print(corr)
+    sns.barplot(x=corr.index, y=corr.values, ax=ax, palette='viridis')
+    ax.set_title(f'Correlation with {target}')
+    ax.set_ylabel('Correlation Coefficient')
+    ax.set_xlabel('Hyperparameter')
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
+    #highlight the zero line
+    ax.axhline(0, color='black', linewidth=0.8, linestyle='-')
+
+
     
 
     plt.tight_layout()

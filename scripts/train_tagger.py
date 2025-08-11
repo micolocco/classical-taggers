@@ -33,6 +33,7 @@ from rich.console import Console
 from rich.table import Table
 from io import StringIO
 import itertools
+import matplotlib
 
 from sklearn.metrics import accuracy_score
 
@@ -460,7 +461,7 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val,
 
     bestModel = return_dict['bestModel']
     pyTrain.save_model(bestModel, target_path)
-    
+
     pyTrain.plot_losses(tagger, return_dict['trainingEpoch_loss'], return_dict['validationEpoch_loss'], return_dict['bestEpoch'], return_dict['bestLosses'], target_path)
     pyTrain.save_losses(return_dict['trainingEpoch_loss'], return_dict['validationEpoch_loss'], return_dict['bestEpoch'], return_dict['bestLosses'], target_path)
 
@@ -474,7 +475,8 @@ def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_
     model.eval()
     print("Generating Plots")
 
-    print("Evaluating model on validation set", flush=True)
+    start = datetime.datetime.now()
+    print(f"Evaluating model on validation set {start.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
     if 'domain' in train_df.columns:
 
         pred, true = model.evaluate_model(validation_ds)
@@ -492,13 +494,42 @@ def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_
         train_df['yTrue'] = list(true[:,0])
         train_df['dTrue'] = list(true[:,1]) #Domain true
         del pred, true
-
-        print(f'Domain accuracy: {accuracy_score(val_df["dTrue"], val_df["dPred"]>0.5)}')
-        print(f'Class accuracy: {accuracy_score(val_df["yTrue"], val_df["yPred"]>0.5)}')
     else:
         val_df['yPred'], val_df['yTrue'] = model.evaluate_model(validation_ds)
         train_df['yPred'], train_df['yTrue'] = model.evaluate_model(train_ds)
-    print("Validation set evaluation done", flush=True)
+    
+    end = datetime.datetime.now()
+    print(f"Validation set evaluation done {end.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
+
+
+    if 'domain' in train_df.columns:
+        pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path, 
+                         trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_')
+        pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False, BID = BID, 
+                            trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_', correct_legend= "Domain 0", wrong_legend= "Domain 1")
+        plt.figure()
+        plt.hist(1-train_df['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
+        plt.title(r"Training set: Probability of label 0, only selected")
+        plt.yscale("log")
+        plt.savefig(f"{target_path}/domain_trainingSet_prob0distrib.pdf")
+        plt.figure()
+        plt.hist(train_df['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
+        plt.title(r"Training set: Probability of label 1, only selected")
+        plt.yscale("log")
+        plt.savefig(f"{target_path}/domain_trainingSet_prob1distrib.pdf")
+
+        # Calculate and print accuracies, both for domain and class
+        # make sure the accuracies are calculated with each domain / class being equally often represented
+        domain_weight = val_df['dTrue'].value_counts(normalize=True).to_dict()
+        domain_weight = {k: 1/v for k, v in domain_weight.items()}
+        class_weight = val_df['yTrue'].value_counts(normalize=True).to_dict()
+        class_weight = {k: 1/v for k, v in class_weight.items()}
+
+        print(f'Domain accuracy: {accuracy_score(val_df["dTrue"], val_df["dPred"]>0.5, sample_weight=val_df["dTrue"].map(domain_weight))}')
+        val_df.dropna(subset=['yTrue'], inplace=True)
+        train_df.dropna(subset=['yTrue'], inplace=True)    
+        print(f'Class accuracy: {accuracy_score(val_df["yTrue"], val_df["yPred"]>0.5, sample_weight=val_df["yTrue"].map(class_weight))}')
+
     pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path)
     # Fit with logistic regression and save it (non needed for the moment)
     #clf = pyTrain.logistic_regression(df=train_df, target_path=target_path)
@@ -556,6 +587,7 @@ if __name__ == '__main__':
 
     cfg = parser.parse_args()
     pprint(cfg)
+    matplotlib.rcParams.update({'axes.unicode_minus':False,})
 
     print(f"training with {cfg.num_threads} threads")
 
@@ -598,6 +630,17 @@ if __name__ == '__main__':
     # val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, augmentation=False, reduce = False, weight_label=None)
     val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label, balance_data = cfg.balance_dataset)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+
+    print(train_df.shape, flush=True)
+    print(val_df.shape, flush=True)
+
+    if 'domain' in train_df.columns:
+        print(f'number of label 0 in training set: {train_df[train_df.label==0].shape[0]}')
+        print(f'number of label 1 in training set: {train_df[train_df.label==1].shape[0]}')
+        print(f'number of BID 521 in training set: {train_df[train_df[BID]==521].shape[0]}')
+        print(f'number of BID -521 in training set: {train_df[train_df[BID]==-521].shape[0]}')
+        print(f'number of domain 0 in training set: {train_df[train_df.domain==0].shape[0]}')
+        print(f'number of domain 1 in training set: {train_df[train_df.domain==1].shape[0]}')
 
     train_ds, validation_ds, weights_train, weights_val = get_dataSets(train_df=train_df, val_df=val_df, config_name=cfg.config, 
                                                                           target_path=cfg.target_path, data_type=cfg.data_type, 

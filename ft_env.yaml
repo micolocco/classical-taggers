@@ -10,20 +10,19 @@ dependencies:
   - matplotlib==3.8.0
   - pandas==1.4.4
   - python==3.9.19
-  - uproot==4.3.7
+  - uproot
   - awkward==1.10.5
   - pulp==2.7.0
   - ipython
   - numba==0.53
   - pip:
-    - lhcb-ftcalib
+    - lhcb-ftcalib==1.4.5
     - snakemake
     - rich
     - mplhep
     - zstandard
     - htcondor
     - uncertainties
-    - awkward-pandas
     - zfit==0.25.0
     - tensorflow==2.18
     - scipy 1.11.1

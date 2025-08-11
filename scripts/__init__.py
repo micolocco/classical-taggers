@@ -17,7 +17,7 @@ def matplotlib_lhcb_style(plt):
     mplLHCb["font.size"] = 13
     mplLHCb["font.weight"] = 400
 
-    mplLHCb["text.usetex"] = False
+    mplLHCb["text.usetex"] = True
     mplLHCb["text.latex.preamble"] = r"\usepackage{amsmath}"
     mplLHCb["mathtext.fontset"] = "cm"
     mplLHCb["mathtext.rm"] = "Times New Roman"

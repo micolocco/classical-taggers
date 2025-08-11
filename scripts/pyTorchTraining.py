@@ -183,8 +183,8 @@ def format_loss(loss): #such that a float as well as a array (case of domain ada
     if isinstance(loss, np.float64):
         formatted_loss = f"{loss:.6f}"
     else:
-        formatted_loss = ', '.join(f"{l:.6f}" for l in loss)
-    
+        formatted_loss = f'{np.round(loss[0], 6)}, {np.round(loss[1], 6)}'
+
     return formatted_loss
 
 def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, return_dict, train_weights = None, 
@@ -224,7 +224,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
-        initialValidation_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights))
+        initialValidation_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean(axis=0)
         if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
             print(f"The initial Validation Loss: {format_loss(initialValidation_loss)}")
         
@@ -237,10 +237,10 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
                 if rank == 0:
                     print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
                 # Train over mini-batches
-                stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights))
+                stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean(axis=0)
                 trainingEpoch_loss.append(stepLoss)
                 # Compute validation loss
-                validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights))
+                validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean(axis=0)
                 validationEpoch_loss.append(validationStep_loss)
                 if rank == 0:
                     print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
@@ -319,19 +319,50 @@ def save_losses(trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     os.makedirs(f'{folder}', exist_ok=True)
     np.savetxt(f"{folder}/test.csv", valLoss, delimiter=",")
     np.savetxt(f"{folder}/train.csv", trainLoss, delimiter=",")
-    np.savetxt(f"{folder}/best.csv", [bestEpoch,bestLosses[0],bestLosses[1]], delimiter=",")
+    if isinstance(bestLosses[0], np.float64):
+        np.savetxt(f"{folder}/best.csv", [bestEpoch ,bestLosses[0],bestLosses[1]], delimiter=",")
+    else:
+        np.savetxt(f"{folder}/best.csv", [[bestEpoch, 0],bestLosses[0],bestLosses[1]], delimiter=",") # 0 only for formatting purposes
+
+
 
 def plot_losses(tagger, trainLoss, valLoss, bestEpoch, bestLosses, target_path):
-    
-    plt.figure()
-    plt.plot(trainLoss, label='Training', c = 'orange')
-    plt.plot(valLoss,label='Validation', c='blue')
-    plt.axvline(bestEpoch, linestyle='--', color='tab:gray', label="Best epoch")
-    plt.legend(loc = "best")
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.title(f"{tagger}", fontsize=24)
-    plt.savefig(f"{target_path}/Loss.pdf")
+    trainLoss = np.array(trainLoss)
+    valLoss = np.array(valLoss)
+
+
+    if not trainLoss.ndim == 2:
+        # Loss Plot
+        plt.figure(figsize=(8,8))
+        plt.plot(trainLoss, label='Training', c='orange')
+        plt.plot(valLoss, label='Validation', c='blue')
+        plt.axvline(bestEpoch, linestyle='--', color='tab:gray', label="Best epoch")
+        plt.legend(loc="best")
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.title(f"{tagger}", fontsize=24)
+        plt.savefig(f"{target_path}/Loss.pdf")
+        plt.close()
+    else:
+        # Subplots of class and domain loss
+        fig, axs = plt.subplots(1, 2, figsize=(16, 8), sharex=True)
+
+        loss_labels = ['Class Loss', 'Domain Loss']
+        colors = ['orange', 'blue']
+
+        for i in range(2):
+            axs[i].plot(trainLoss[:,i], label='Training', c=colors[0])
+            axs[i].plot(valLoss[:,i], label='Validation', c=colors[1])
+            axs[i].axvline(bestEpoch, linestyle='--', color='tab:gray', label="Best epoch")
+            axs[i].set_ylabel(loss_labels[i])
+            axs[i].legend(loc="best")
+            axs[i].set_title(f"{loss_labels[i]} over Epochs")
+
+        axs[1].set_xlabel("Epoch")
+        fig.suptitle(f"{tagger}", fontsize=24)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(f"{target_path}/Loss.pdf")
+        plt.close()
    
 def plot_ROC(tagger, val_df, target_path, train_df= None, trueLabel= 'yTrue', predLabel='yPred', fileLabel=''):
     
@@ -536,7 +567,9 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
         # Plotting of calibration curves
         scale = (lambda x: x**4, lambda x: x**1/4)
         scale = "linear"
+        scale = "linear"
         if weights is not None:
+            #distribute the bins such that each bin has the same yield, aka the same sum of weights 
             #distribute the bins such that each bin has the same yield, aka the same sum of weights 
             bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
             taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", bins = bins, x_scale = scale, y_scale = scale)
@@ -574,6 +607,7 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     # Process the data
     processed_data = {key: propagate_and_round(value) for key, value in info_dict.items()}
     # Format the output
+    formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
     formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
     # Print the formatted data
     for key, value in formatted_data.items():
