@@ -1105,6 +1105,56 @@ rule train_tagger_domain_adapted:
         shell(' '.join(cmd))
 
 
+rule calibrate_on_MC:
+    input:
+        testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
+            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
+            if not f.endswith('4_1.mc.root')
+        ],
+        model = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
+
+        script = join(repo, 'scripts/test_and_calibrate.py'),
+        config = join(repo, 'configs/{config}.yaml'),
+    output:
+        logit = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/logit/taggingInfo_logit.json'),
+        mistag = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/mistag/taggingInfo_mistag.json'),
+    log: 
+        join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/testing_log.log')
+    wildcard_constraints:
+        weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data trained taggers needs to represent the weight, for MC it is empty
+    resources:
+        max_retries=0,
+        mem_mb = 35_000, # Specify memory requirement in megabytes 
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 6,
+        # request_disk = 256_000
+    run:
+        outpath = os.path.dirname(os.path.dirname(output.logit))
+        model_path = os.path.dirname(input.model)
+
+        if kernel_available():
+            test_kernel = path_to_kernel(input.testing)
+        else:
+            test_kernel = input.testing
+
+
+        cmd = [
+            'python', input.script,
+            '--testing_data', ' '.join(test_kernel),
+            '--target_path', outpath,
+            '--train_path', model_path,
+            '--treename "DecayTree;1"',
+            '--tagger {wildcards.tagger}',
+            '--features {wildcards.features}',
+            '--config', input.config,
+            '--decay_type {wildcards.decay}',
+            '--seed {wildcards.seed}',
+            '--repo', repo,
+            '--data_type MC',
+            '--model_path', model_path,
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
 
 rule calibrate_on_data:
     input:
@@ -1116,10 +1166,10 @@ rule calibrate_on_data:
         script = join(repo, 'scripts/test_and_calibrate.py'),
         config = join(repo, 'configs/{config}.yaml'),
     output:
-        logit = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/logit/taggingInfo_logit.json'),
-        mistag = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/mistag/taggingInfo_mistag.json'),
+        logit = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/logit/taggingInfo_logit.json'),
+        mistag = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/mistag/taggingInfo_mistag.json'),
     log: 
-        join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/testing_log.log')
+        join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/testing_log.log')
     wildcard_constraints:
         weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data needs to represent the weight, for MC it is empty
     resources:
@@ -1142,7 +1192,7 @@ rule calibrate_on_data:
             'python', input.script,
             '--testing_data', ' '.join(test_kernel),
             '--target_path', outpath,
-            '--train_path', outpath.replace('testing', 'training'),
+            '--train_path', model_path,
             '--treename "DecayTree;1"',
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
