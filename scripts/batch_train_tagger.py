@@ -1,9 +1,9 @@
 import argparse
 from pprint import pprint
 import scripts.pyTorchTraining as pyTrain
-from scripts.train_tagger import training_pipeline
 from scripts.train_tagger import training
-from scripts.train_tagger import get_dataLoaders
+from scripts.train_tagger import gen_training_plots
+from scripts.train_tagger import get_dataSets
 from scripts.shareddataset import SharedDataset
 
 from scripts.train_tagger import read_files
@@ -38,6 +38,12 @@ class ThreadLocalStdout:
         else:
             sys.__stdout__.flush()
 
+def pipeline(train_ds, validation_ds, vars, weights_train, weights_val, outpath, tagger, 
+             seed, features, config_path, repo, num_threads, clean, logfile):
+    model = training(train_ds, validation_ds, vars, weights_train, weights_val, outpath, tagger, seed, features,
+                     config_path, repo, num_threads, clean, logfile)
+    gen_training_plots(model, train_df, val_df, train_ds, validation_ds, outpath, tagger)
+    
     
     
 
@@ -103,10 +109,10 @@ if __name__ == '__main__':
 
     scalerPath = f"{cfg.pre_path}/chunk_logs/st_scaler.pkl" #is copied to the correct position in the loop
     transformerPath = f"{cfg.pre_path}/chunk_logs/powerTransformer.pkl"
-    train_ds, validation_ds, weights_train, weights_val = get_dataLoaders(train_df=train_df, val_df=val_df, config_name=cfg.configs[0], 
+    train_ds, validation_ds, weights_train, weights_val = get_dataSets(train_df=train_df, val_df=val_df, config_name=cfg.configs[0], 
                                                                           target_path=f"{cfg.pre_path}/chunk_logs/", data_type=cfg.data_type, 
                                                                           weight_type=cfg.weight_type, seed=cfg.seed, tagger=cfg.tagger, 
-                                                                          decay_type=cfg.decay_type, num_threads=cfg.num_threads)
+                                                                          decay_type=cfg.decay_type, indexed= cfg.num_threads == 1)
     train_ds = SharedDataset(train_ds, 'train_set')
     validation_ds = SharedDataset(validation_ds, 'validation_set')
 
@@ -131,8 +137,8 @@ if __name__ == '__main__':
         shutil.copy2(scalerPath, join(outpath, 'scaler.pkl'))
 
 
-        p = mp.Process(target=training, args=(train_ds, validation_ds, vars, weights_train, weights_val, outpath, cfg.tagger, cfg.seed, features,
-                                                          config_path, cfg.repo, cfg.num_threads, cfg.clean, logfile))
+        p = mp.Process(target=pipeline, args=(train_ds, validation_ds, vars, weights_train, weights_val, outpath, cfg.tagger,
+                                              cfg.seed, features,config_path, cfg.repo, cfg.num_threads, cfg.clean, logfile))
         threads.append(p)
         p.start()
 
