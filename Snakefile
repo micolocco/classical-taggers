@@ -704,6 +704,7 @@ def extract_best(tagger, cut, data_type,link='logit'):
         nn = int(data[tagger]['numneurons'])
         config = f'lr{lr}_bs{bs}_nL{nl}_nN{nn}'
         return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'numlayers':nl, 'numneurons':nn, 'tagger':tagger, 'cut':cut, 'link':link}
+
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
@@ -1103,100 +1104,43 @@ rule train_tagger_domain_adapted:
 
         shell(' '.join(cmd))
 
-rule test_and_calibrate_tagger_MC:
-    input:
-        # testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
-        #     for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
-        #     if not f.endswith('4_1.mc.root')
-        # ],
-        testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
-            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-        ],
 
-        model = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
 
-        script = join(repo, 'scripts/test_and_calibrate.py'),
-        config = join(repo, 'configs/{config}.yaml'),
-    output:
-        ROC = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/ROC_TEST.pdf'),
-        logit = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/logit/taggingInfo_logit.json'),
-        mistag = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/mistag/taggingInfo_mistag.json'),
-    log: 
-        join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/testing_log.log')
-
-    resources:
-        max_retries=0,
-        mem_mb = 20_000, # Specify memory requirement in megabytes 
-        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 6,
-        request_disk = 256_000
-    run:
-        outpath = os.path.dirname(output.ROC)
-        model_path = os.path.dirname(input.model)
-
-        if kernel_available():
-            test_scratch = path_to_kernel(input.testing)
-        else:
-            test_scratch = input.testing
-
-        # test_scratch = copy_to_scratch(input.testing)
-
-        cmd = [
-            'python', input.script,
-            # '--testing_data {input.testing}',
-            '--testing_data', ' '.join(test_scratch),
-            '--target_path', outpath,
-            '--train_path', outpath.replace('testing', 'training'),
-            '--treename "DecayTree;1"',
-            '--tagger {wildcards.tagger}',
-            '--features {wildcards.features}',
-            '--config', input.config,
-            '--decay_type {wildcards.decay}',
-            '--seed {wildcards.seed}',
-            '--repo', repo,
-            # '--data_type MC',
-            '--data_type Data',
-            '--model_path', model_path,
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-
-rule test_and_calibrate_tagger_data:
+rule calibrate_on_data:
     input:
         testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
-        model = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/model.pth'),
+        model = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
 
         script = join(repo, 'scripts/test_and_calibrate.py'),
         config = join(repo, 'configs/{config}.yaml'),
     output:
-        ROC = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/testing/ROC_TEST.pdf'),
-        logit = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/testing/logit/taggingInfo_logit.json'),
-        mistag = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/testing/mistag/taggingInfo_mistag.json'),
+        logit = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/logit/taggingInfo_logit.json'),
+        mistag = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/mistag/taggingInfo_mistag.json'),
     log: 
-        join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/testing/testing_log.log')
+        join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/testing_log.log')
+    wildcard_constraints:
+        weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data needs to represent the weight, for MC it is empty
     resources:
         max_retries=0,
         mem_mb = 35_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 4,
+        MaxRunHours = 6,
         # request_disk = 256_000
     run:
-        outpath = os.path.dirname(output.ROC)
+        outpath = os.path.dirname(os.path.dirname(output.logit))
         model_path = os.path.dirname(input.model)
 
         if kernel_available():
-            test_scratch = path_to_kernel(input.testing)
+            test_kernel = path_to_kernel(input.testing)
         else:
-            test_scratch = input.testing
+            test_kernel = input.testing
 
-        # test_scratch = copy_to_scratch(input.testing)
 
         cmd = [
             'python', input.script,
-            # '--testing_data {input.testing}',
-            '--testing_data', ' '.join(test_scratch),
+            '--testing_data', ' '.join(test_kernel),
             '--target_path', outpath,
             '--train_path', outpath.replace('testing', 'training'),
             '--treename "DecayTree;1"',
