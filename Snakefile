@@ -238,6 +238,7 @@ wildcard_constraints:
     decay       = '(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)',
     tagger      = '(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)',
     weight      = '|'.join(weights),
+    data_type_or_adapted = '(Data|MC|domain_adapted)',
     cut_name = "[^/]+", #don't allow slashes in wildcards to avoid problems with paths
     features = "[^/]+",
     seed = '[^/]+',
@@ -830,14 +831,12 @@ rule split_sample:
         script = join(repo, 'scripts/split_train_val_test.py'),
         # to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/{"3_selected" if wildcards.data_type == "MC" else "1_weighted"}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
         to_split = lambda wildcards:  join(out, f'{wildcards.data_type_or_adapted}/{wildcards.sample_type}/{"3_selected" if wildcards.data_type_or_adapted != "domain_adapted" else "4_combined"}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
-                                      
-                                    #   join(out, f'{wildcards.data_type_or_adapted}/{wildcards.sample_type}//{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
 
         hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
     output:
-        train      = join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
-        validation = join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
-        test       = join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
+        train      = join(out, '{data_type_or_adapted}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
+        validation = join(out, '{data_type_or_adapted}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
+        test       = join(out, '{data_type_or_adapted}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
     log:
         join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
     resources:
