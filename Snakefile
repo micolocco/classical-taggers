@@ -785,15 +785,17 @@ rule combine_MC_Data: #Combines data and MC for domain adaptation
     input:
         script = join(repo, 'scripts/combine_MC_Data.py'),
         # data = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f in ntuples_tagged_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']],
-        data = lambda wildcards: [join(out, f'Data/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{id}.root') for id in data_ids],
+        data = lambda wildcards: [join(out, f'Data/{wildcards.sample_type}/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.data_portion}/{id}.root') for id in data_ids],
         MC = lambda wildcards: [
-            f.replace('cutName', f'{wildcards.cut_name}')
-            for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+            f.replace('cutName', f'{wildcards.cut_name}').replace('train', f'{wildcards.data_portion}')
+            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
         ],
     output:
-        root = [join(out, 'domain_adapted/{sample_type}/4_combined/{decay}/{tagger}/{cut_name}/{features}/' + f'samples_{i}.root') for i in range(combined_df_n_splits)],
+        root = [join(out, 'domain_adapted/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/{data_portion}', f'samples_{i}.root') for i in range(combined_df_n_splits)],
     log:
-        join(out, 'domain_adapted/{sample_type}/4_combined/{decay}/{tagger}/{cut_name}/{features}/samples.log'),
+        join(out, 'domain_adapted/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/{data_portion}/log.log'),
+    wildcard_constraints:
+        data_portion = 'train|validation',
     resources:
         max_retries=0,
         mem_mb = 25_000, 
@@ -830,16 +832,15 @@ rule combine_MC_Data: #Combines data and MC for domain adaptation
 rule split_sample:
     input:
         script = join(repo, 'scripts/split_train_val_test.py'),
-        # to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/{"3_selected" if wildcards.data_type == "MC" else "1_weighted"}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
-        to_split = lambda wildcards:  join(out, f'{wildcards.data_type_or_adapted}/{wildcards.sample_type}/{"3_selected" if wildcards.data_type_or_adapted != "domain_adapted" else "4_combined"}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
+        to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
 
         hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
     output:
-        train      = join(out, '{data_type_or_adapted}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
-        validation = join(out, '{data_type_or_adapted}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
-        test       = join(out, '{data_type_or_adapted}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
+        train      = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
+        validation = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
+        test       = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
     log:
-        join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
+        join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
     resources:
         max_retries=0,
         mem_mb = 15_000,
@@ -855,7 +856,7 @@ rule split_sample:
             '--decayType {wildcards.decay}',
             '--treename "DecayTree;1"',
             '--tagger {wildcards.tagger}',
-            '--data_type {wildcards.data_type_or_adapted}',
+            '--data_type {wildcards.data_type}',
             '&> {log}',
         ]
         shell(' '.join(cmd))
