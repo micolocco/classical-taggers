@@ -12,12 +12,12 @@ class inputDataset(Dataset):
     # load the dataset
     def __init__(self, df, indexed=True):
         self.indexed = indexed
-        # Convert DataFrame to proper numpy arrays
-        self.X = df.values[:, :-1].astype(np.float32)
-        self.y = df.values[:,  -1].astype(np.float32).reshape(-1, 1)
-
-        # Convert to tensors once
-        # self.X = torch.from_numpy(self.X)
+        if 'domain' in df.columns:
+            self.y = df[['label', 'domain']].astype(np.float32).to_numpy().reshape(-1, 2)
+            self.X = df.drop(columns=['label', 'domain']).astype(np.float32).to_numpy()
+        else:
+            self.y = df[['label']].astype(np.float32).to_numpy().reshape(-1, 1)
+            self.X = df.drop(columns=['label']).astype(np.float32).to_numpy()
 
 
     # Length of the dataset

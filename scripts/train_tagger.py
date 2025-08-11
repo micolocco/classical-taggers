@@ -17,6 +17,7 @@ import yaml
 # Local import
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
+from scripts.NNModel import NNDomainAdapted
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 import utils
@@ -28,11 +29,12 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, DistributedSampler
 import torch.multiprocessing as mp
-import socket
 from rich.console import Console
 from rich.table import Table
 from io import StringIO
 import itertools
+
+from sklearn.metrics import accuracy_score
 
 
 def stats_printout(tagger, decay_type, train_df, val_df, BID):
@@ -42,7 +44,6 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
 
     use_weights = 'signal_weights' in train_df.columns
     print(use_weights)
-
     def count_events(df, selected=None, weighted=False):
         if selected is not None:
             df = df[df.selected == selected]
@@ -216,23 +217,32 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
         if weight_label is not None:
             additional_vars = additional_vars + ['BID_signal_weights']
 
+    if 'domain' in vars:
+        additional_vars = additional_vars +['file_id']
 
     for i, f in enumerate(files):
         print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
         print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB')
 
-        id = os.path.basename(f)[:-5]
-        if id[-7:-2] == '.data':
-            id = id[:-7]
-        else:
-            id = id[:-3]
+        if 'domain' not in vars:
+            id = os.path.basename(f)[:-5]
+            if id[-7:-2] == '.data':
+                id = id[:-7]
+            else:
+                id = id[:-3]
+
 
         with uproot.open("{}".format(f)) as _f:
             _df = _f[treename].arrays(vars + additional_vars, library="pd")
         
-        _df.dropna(inplace = True)
         print(f"Number of tracks in file {i+1}: {_df.shape[0]}", flush=True)
-        _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+
+        if 'domain' not in vars:
+            _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        else:
+            _df.loc[_df['domain'] == 0, 'event_entry'] = _df["file_id"].astype(str) + "_" + "data" + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+            _df.loc[_df['domain'] == 1, 'event_entry'] = _df["file_id"].astype(str) + "_" + "mc" + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+
         if reduce: #Probably take this out after bkg rejection
             df_event = _df.groupby("event_entry").first().reset_index()
             n_keep = int(len(df_event) * 0.4)
@@ -325,7 +335,7 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
         print(numTracks, flush=True)
 
 
-        df.drop(columns=additional_vars, inplace=True)
+    df.drop(columns=additional_vars, inplace=True)
         
     return df
 
@@ -361,7 +371,10 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
-    stats_printout(tagger=tagger, decay_type=decay_type,train_df=train_df, val_df=val_df, BID=BID)
+    if 'domain' in train_df.columns:
+        stats_printout(tagger=tagger, decay_type=decay_type, train_df=train_df.loc[train_df.domain == 1], val_df=val_df.loc[val_df.domain == 1], BID=BID)
+    else:
+        stats_printout(tagger=tagger, decay_type=decay_type, train_df=train_df, val_df=val_df, BID=BID)
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     # Save test dataframe for calibration
     
@@ -382,9 +395,9 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
     
     return train_ds, validation_ds, weights_train, weights_val
 
-def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_path,  
-                      tagger, seed, features, config,  
-                      repo, num_threads = 1, clean = False, logfile = None):
+def training(train_ds, validation_ds, vars,  weights_train, weights_val, 
+             target_path, tagger, seed, features, config, data_type,
+             repo, num_threads = 1, clean = False, logfile = None):
     if logfile is not None:
         from scripts.batch_train_tagger import ThreadLocalStdout
         sys.stdout = ThreadLocalStdout()
@@ -408,7 +421,12 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device used: {device}")
 
-    model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
+    if data_type == 'domain_adapted':
+        model = NNDomainAdapted(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']},
+                               repo_path=repo, alpha=1).to(device)
+    else:
+        model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, 
+                              optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
 
     print(f'{num_threads} threads will be used for training', flush=True)
@@ -454,8 +472,33 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val, target_
 def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_path, tagger):
     # Plot ROC curves for validation and train test
     model.eval()
-    val_df['yPred'], val_df['yTrue'] = model.evaluate_model(validation_ds)
-    train_df['yPred'], train_df['yTrue'] = model.evaluate_model(train_ds)
+    print("Generating Plots")
+
+    print("Evaluating model on validation set", flush=True)
+    if 'domain' in train_df.columns:
+
+        pred, true = model.evaluate_model(validation_ds)
+
+
+        val_df['yPred'] = pred[:,0]
+        val_df['dPred'] = pred[:,1] #Domain Pred
+        val_df['yTrue'] = true[:,0]
+        val_df['dTrue'] = true[:,1] #Domain true
+
+
+        pred, true = model.evaluate_model(train_ds)
+        train_df['yPred'] = list(pred[:,0])
+        train_df['dPred'] = list(pred[:,1]) #Domain Pred
+        train_df['yTrue'] = list(true[:,0])
+        train_df['dTrue'] = list(true[:,1]) #Domain true
+        del pred, true
+
+        print(f'Domain accuracy: {accuracy_score(val_df["dTrue"], val_df["dPred"]>0.5)}')
+        print(f'Class accuracy: {accuracy_score(val_df["yTrue"], val_df["yPred"]>0.5)}')
+    else:
+        val_df['yPred'], val_df['yTrue'] = model.evaluate_model(validation_ds)
+        train_df['yPred'], train_df['yTrue'] = model.evaluate_model(train_ds)
+    print("Validation set evaluation done", flush=True)
     pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path)
     # Fit with logistic regression and save it (non needed for the moment)
     #clf = pyTrain.logistic_regression(df=train_df, target_path=target_path)
@@ -473,6 +516,22 @@ def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_
     plt.yscale("log")
     plt.savefig(f"{target_path}/trainingSet_prob1distrib.pdf")
 
+    if 'domain' in train_df.columns:
+        pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path, 
+                         trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_')
+        pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False, BID = BID, 
+                            trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_', correct_legend= "Domain 0", wrong_legend= "Domain 1")
+        plt.figure()
+        plt.hist(1-train_df['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
+        plt.title(r"Training set: Probability of label 0, only selected")
+        plt.yscale("log")
+        plt.savefig(f"{target_path}/domain_trainingSet_prob0distrib.pdf")
+        plt.figure()
+        plt.hist(train_df['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
+        plt.title(r"Training set: Probability of label 1, only selected")
+        plt.yscale("log")
+        plt.savefig(f"{target_path}/domain_trainingSet_prob1distrib.pdf")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Train the tagger on the specified decay',
@@ -489,12 +548,11 @@ if __name__ == '__main__':
     parser.add_argument('--decay_type', help='Event decay', type=str)
     parser.add_argument('--clean', help='Decide whatever cleaning the directories before running, w=False, a=True', action='store_true')
     parser.add_argument('--repo', help="Path to repository")
-    parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
+    parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--num_threads', help='Number of threads to use in training', type=int, default=1)
     parser.add_argument('--reduce', help='Whether to drop data samples with low weights', action='store_true', default=False)
     parser.add_argument('--balance_dataset', help='Whether to balance number of B_id and track charge tracks', action='store_true', default=False)
-    
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -521,6 +579,11 @@ if __name__ == '__main__':
         if weight_label != 'signal_weights':
             vars = vars + ['signal_weights']
 
+    if cfg.data_type == 'domain_adapted':
+        vars = vars + ['domain']
+
+    print(vars)
+
 
 
     #Reading Data from files
@@ -541,7 +604,7 @@ if __name__ == '__main__':
                                                                           weight_type=cfg.weight_type, seed=cfg.seed, tagger=cfg.tagger, 
                                                                           decay_type=cfg.decay_type, indexed= cfg.num_threads == 1)
 
-    model = training(train_ds=train_ds, validation_ds=validation_ds, vars=vars, weights_train=weights_train, 
+    model = training(train_ds=train_ds, validation_ds=validation_ds, vars=vars, weights_train=weights_train, data_type=cfg.data_type,
                                       weights_val=weights_val, target_path=cfg.target_path, tagger=cfg.tagger, seed=cfg.seed, 
                                       features=features, config=cfg.config, repo=cfg.repo, num_threads=cfg.num_threads, clean=cfg.clean)
     #No shared memory needed for plot generation, as such the inputDataset must be indexed

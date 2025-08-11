@@ -239,6 +239,8 @@ wildcard_constraints:
     tagger      = '(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)',
     weight      = '|'.join(weights),
 
+#In how many splits the combined DataFrame should be split when using domain adaptation
+combined_df_n_splits = 20
 
 rule all:
     input:
@@ -768,19 +770,68 @@ rule combine_tagger:
         ]
         shell(' '.join(cmd))
 
+
+rule combine_MC_Data: #Combines data and MC for domain adaptation
+    input:
+        script = join(repo, 'scripts/combine_MC_Data.py'),
+        # data = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f in ntuples_tagged_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']],
+        data = lambda wildcards: [join(out, f'Data/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{id}.root') for id in data_ids],
+        MC = lambda wildcards: [
+            f.replace('cutName', f'{wildcards.cut_name}')
+            for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+        ],
+    output:
+        root = [join(out, 'domain_adapted/{sample_type}/4_combined/{decay}/{tagger}/{cut_name}/{features}/' + f'samples_{i}.root') for i in range(combined_df_n_splits)],
+    log:
+        join(out, 'domain_adapted/{sample_type}/4_combined/{decay}/{tagger}/{cut_name}/{features}/samples.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 25_000, 
+        MaxRunHours = 2, # short queue
+    run:
+        out_path = os.path.dirname(output.root[0])
+
+        #Use ceph-kernel if available to increase file reading performance
+        if kernel_available():
+            data = path_to_kernel(input.data)
+            MC   = path_to_kernel(input.MC)
+        else:
+            data = input.data
+            MC   = input.MC
+
+        cmd = [
+            'python {input.script}',
+            '--data_files', ' '.join(data),
+            '--mc_files', ' '.join(MC),
+            '--target_path', out_path,
+            '--splits ', str(combined_df_n_splits),
+            # '--decayType {wildcards.decay}',
+            # '--tagger {wildcards.tagger}',
+            # '--cut_name {wildcards.cut_name}',
+            # '--features {wildcards.features}',
+            '&> {log}'
+        ]
+        shell(' '.join(cmd))
+
+
+
+
+
 rule split_sample:
     input:
         script = join(repo, 'scripts/split_train_val_test.py'),
         # to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/{"3_selected" if wildcards.data_type == "MC" else "1_weighted"}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
-        to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
-        
+        to_split = lambda wildcards:  join(out, f'{wildcards.data_type_or_adapted}/{wildcards.sample_type}/{"3_selected" if wildcards.data_type_or_adapted != "domain_adapted" else "4_combined"}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
+                                      
+                                    #   join(out, f'{wildcards.data_type_or_adapted}/{wildcards.sample_type}//{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
+
         hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
     output:
-        train      = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
-        validation = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
-        test       = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
+        train      = join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
+        validation = join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
+        test       = join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
     log:
-        join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
+        join(out, '{data_type_or_adapted, (Data|MC|domain_adapted)}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
     resources:
         max_retries=0,
         mem_mb = 15_000,
@@ -796,7 +847,7 @@ rule split_sample:
             '--decayType {wildcards.decay}',
             '--treename "DecayTree;1"',
             '--tagger {wildcards.tagger}',
-            '--data_type {wildcards.data_type}',
+            '--data_type {wildcards.data_type_or_adapted}',
             '&> {log}',
         ]
         shell(' '.join(cmd))
@@ -826,7 +877,7 @@ def get_log(data_type):
         logs = logs + [join(out, data_type + '/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/chunk_logs/' + weight_name + '_lr{learning_rate}_bs{batch_size}_training_chunk.log')]
     return logs
 
-rule train_tagger_MC:
+rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
     #If the batched flag from the config file is set to True, this rule trains a chunk of hyperparameters, if False it trains only one hyperparameter configuration 
     input:
         script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
@@ -992,6 +1043,56 @@ rule train_tagger_data:
             ]
 
         cmd = cmd + conditional_cmd
+        shell(' '.join(cmd))
+
+
+rule train_tagger_domain_adapted:
+    input:
+        script = join(repo, 'scripts/train_tagger.py'),
+        train = lambda wildcards: 
+            [join(out, f"domain_adapted/{wildcards.sample_type}/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/train/samples_{i}.root") 
+             for i in range(combined_df_n_splits)][:2], 
+        val =   lambda wildcards: 
+            [join(out, f"domain_adapted/{wildcards.sample_type}/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/validation/samples_{i}.root")
+             for i in range(combined_df_n_splits)][:2],
+
+        config = join(repo, 'configs/{config}.yaml'),
+    output:
+        model=       join(out, 'domain_adapted/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
+        scaler=      join(out, 'domain_adapted/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
+        transformer= join(out, 'domain_adapted/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
+
+    log:
+        join(out, 'domain_adapted/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 40_000, 
+        MaxRunHours = 8, # long queue
+    threads:
+        8,
+    run:
+        train_scratch = copy_to_scratch(input.train)
+        val_scratch = copy_to_scratch(input.val)
+
+        outpath = os.path.dirname(output.model)
+
+        cmd = [
+            'python', input.script,
+            '--training_data', ' '.join(train_scratch),
+            '--validation_data', ' '.join(val_scratch),
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
+            '--decay_type {wildcards.decay}',
+            '--repo', repo,
+            '--data_type domain_adapted',
+            '--balance_dataset',
+            '--target_path', outpath,
+            '--config {input.config}',
+            '--num_threads {threads}',
+            '&> {log}',
+        ]
+
         shell(' '.join(cmd))
 
 rule test_and_calibrate_tagger_MC:
