@@ -361,9 +361,8 @@ rule add_features:
         root =join(out, '{data_type}/{sample_type}/2_added_features/{decay}/{id,.*}.root'), 
     resources:
         max_retries=0,
-        mem_mb = 20_000,
+        mem_mb = lambda wildcards: 150_000 if wildcards.data_type == 'MC' else 20_000, # MC needs way more memory
         MaxRunHours = 2, # short queue
-        #request_disk = 50000
     run:
         tree = find_tree_name(wildcards.decay) if wildcards.data_type == 'MC' else '"DecayTree;1"'
         dataCalib = '--data_calib' if wildcards.data_type == 'Data' else ''
