@@ -1157,7 +1157,7 @@ rule calibrate_on_data:
     input:
         testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-        ][:5],
+        ],
         model = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
 
         script = join(repo, 'scripts/test_and_calibrate.py'),
