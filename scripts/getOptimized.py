@@ -112,10 +112,10 @@ if __name__ == '__main__':
         description='Apply a preselection for the tagging particles',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/togasa/FlavourTagging/NTuples')
+    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph-kernel/users/togasa/FlavourTagging/NTuples')
     parser.add_argument('--cut', help='Cut type to be used', type=str)
     parser.add_argument('--outpath', help='Where the best tagger candidates configs will be saved', type=str, default='./best_tagger_candidates')
-    parser.add_argument('--plot_path', help='Where the plots will be saved', type=str, default='/ceph/users/togasa/FlavourTagging/NTuples')
+    parser.add_argument('--plot_path', help='Where the plots will be saved', type=str, default='/ceph-kernel/users/togasa/FlavourTagging/NTuples')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--data_type', help='Type of data to be used', type=str, choices=['MC', 'Data'])  # 'MC' or 'Data'
     parser.add_argument('--tagger_input', help='File of the tagger inputs, only needed for num parameter plot', type=str, default='/ceph/users/togasa/classical-taggers/tagger_inputFeatures/union_PROBNN.yaml')
@@ -168,10 +168,10 @@ if __name__ == '__main__':
     combinations = list(product(seeds, learning_rates, train_batch_sizes, num_layers, num_neurons))
 
 
-    full_df = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'link'])
+    full_df = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc', 'link'])
     max_ratios = {}
     for link in  ['logit', 'mistag']:
-        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc'])
+        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc'])
         for tagger, decay in tagger_dict.items():
             max_ratio = -np.inf
             best_hyperparams = None
@@ -184,10 +184,12 @@ if __name__ == '__main__':
                 if cfg.data_type == 'Data':
                     folder_path = os.path.join(folder_path, 'pdf_ratio')
 
-                json_file = os.path.join(folder_path, f"testing/{link}/taggingInfo_{link}.json")
-                
-                if os.path.exists(json_file):
-                    data = utils.load_and_process_json(json_file)
+                json_file_data = os.path.join(folder_path, f"testing/Data/{link}/taggingInfo_{link}.json")
+                json_file_mc = os.path.join(folder_path, f"testing/MC/{link}/taggingInfo_{link}.json")
+                # print(f"{folder_path} Data exists: {os.path.exists(json_file_data)} MC exists: {os.path.exists(json_file_mc)}")
+                # print(json_file_mc)
+                if os.path.exists(json_file_data) and os.path.exists(json_file_mc):
+                    data = utils.load_and_process_json(json_file_data)
                     tagging_power = data['TaggingPower_Cali']
                     deltap1 = data['Fitpar_deltap1']
                     deltap0 = data['Fitpar_deltap0']
@@ -195,6 +197,10 @@ if __name__ == '__main__':
                     if np.abs(deltap1.nominal_value) > 1 or np.abs(deltap0.nominal_value) > 1: #Ignore insensible result
                         print(f"Skipping {tagger} with lr={lr}, bs={bs}, nl={nl}, nn={nn} due to high deltap1 or deltap0")
                         continue
+
+                    data_mc = utils.load_and_process_json(json_file_mc)
+                    tagging_power_mc = data_mc['TaggingPower_Cali']
+                
 
 
                     if not np.isnan(tagging_power.nominal_value) and tagging_power.nominal_value != 0:
@@ -212,6 +218,7 @@ if __name__ == '__main__':
                                 max_ratio = ratio
                                 best_hyperparams = {
                                     "calibrated tagging power": tagging_power,
+                                    "calibrated tagging power MC": tagging_power_mc,
                                     "seed": seed,
                                     "learning_rate": lr,
                                     "batch_size": bs,
@@ -221,7 +228,7 @@ if __name__ == '__main__':
                                     "precision": ratio_precision,
                                 }
                             print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}")
-                            performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value, tagging_power.std_dev]
+                            performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value, tagging_power.std_dev, tagging_power_mc.nominal_value, tagging_power_mc.std_dev]
 
             if best_hyperparams:
                 max_ratios[tagger] = best_hyperparams

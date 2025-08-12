@@ -1,6 +1,7 @@
 {
     "OSKaon": {
         "calibrated tagging power": "1.784+/-0.031",
+        "calibrated tagging power MC": "2.45+/-0.06",
         "seed": 12,
         "learning_rate": 0.0001,
         "batch_size": 4096,
@@ -11,6 +12,7 @@
     },
     "OSElectron": {
         "calibrated tagging power": "0.439+/-0.015",
+        "calibrated tagging power MC": "0.559+/-0.031",
         "seed": 12,
         "learning_rate": 0.001,
         "batch_size": 8192,
@@ -21,6 +23,7 @@
     },
     "OSMuon": {
         "calibrated tagging power": "0.863+/-0.021",
+        "calibrated tagging power MC": "0.90+/-0.04",
         "seed": 12,
         "learning_rate": 0.001,
         "batch_size": 2048,
