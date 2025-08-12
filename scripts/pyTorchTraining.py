@@ -605,7 +605,7 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     print(f"Tagger parameters saved at {target_path}\n")
     print(f"Tagging information in a presentation-friendly format:\n")
     # Process the data
-    processed_data = {key: propagate_and_round(value) for key, value in info_dict.items()}
+    processed_data = {key: propagate_and_round(value, 'Fitpar' not in key) for key, value in info_dict.items()}
     # Format the output
     formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
     formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
@@ -616,8 +616,8 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     return info_dict
 
 # Function to propagate and round the errors and values
-def propagate_and_round(values):
-    values = np.array(values) * 100  
+def propagate_and_round(values, is_percentage=False):
+    values = np.array(values) * 100 if is_percentage else np.array(values)
 
     try:
         if len(values) > 2:  # For TaggingPower_Cali and EffectiveMistag_Cali
