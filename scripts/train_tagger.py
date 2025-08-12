@@ -547,21 +547,6 @@ def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_
     plt.yscale("log")
     plt.savefig(f"{target_path}/trainingSet_prob1distrib.pdf")
 
-    if 'domain' in train_df.columns:
-        pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path, 
-                         trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_')
-        pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False, BID = BID, 
-                            trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_', correct_legend= "Domain 0", wrong_legend= "Domain 1")
-        plt.figure()
-        plt.hist(1-train_df['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
-        plt.title(r"Training set: Probability of label 0, only selected")
-        plt.yscale("log")
-        plt.savefig(f"{target_path}/domain_trainingSet_prob0distrib.pdf")
-        plt.figure()
-        plt.hist(train_df['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
-        plt.title(r"Training set: Probability of label 1, only selected")
-        plt.yscale("log")
-        plt.savefig(f"{target_path}/domain_trainingSet_prob1distrib.pdf")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
