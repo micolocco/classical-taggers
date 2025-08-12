@@ -29,6 +29,8 @@ from torch.utils.data import DataLoader, DistributedSampler
 import torch.multiprocessing as mp
 import socket
 import random
+import fcntl
+
 
 def recreate_directory(target_path, clean=False):
     '''Function to make sure that the ouptut directory exists and it's empty to 
@@ -131,17 +133,62 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
 
 
 
-def find_free_port():
+def find_free_port(path):
+    used_ports_path = f'/scratch/{path.split("/")[3]}/used_ports.txt' #Gets the path to the used ports file
+
+    
     for _ in range(10):
         port = random.randint(1024, 65535)
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             print(f"Trying port {port}...", flush=True)
             try:
+                #Check if port is already in use by own process
+                if os.path.exists(used_ports_path):
+                    with open(used_ports_path, 'r') as f:
+                        fcntl.flock(f, fcntl.LOCK_SH)  # Shared lock for reading
+                        try:
+                            used_ports = f.read().splitlines()
+                            if str(port) in used_ports:
+                                continue
+                        finally:
+                            fcntl.flock(f, fcntl.LOCK_UN)
+
+                # Try to bind the socket to the port
                 s.bind(('localhost', port))
-                return port
+            
+                
+
+                # write the port to the file, making sure only one process writes to it at a time
+                with open(used_ports_path, 'a') as f:
+                    #Lock file
+                    fcntl.flock(f, fcntl.LOCK_EX)
+                    try:
+                        #Write the port to the file
+                        f.write(f"{port}\n")
+                    finally:
+                        #Release file
+                        fcntl.flock(f, fcntl.LOCK_UN)
+                        return port
             except OSError:
+                print(traceback.format_exc(), flush=True)
                 continue
     raise RuntimeError("Could not find a free port")
+
+def release_port(path, port):
+    used_ports_path = f'/scratch/{path.split("/")[3]}/used_ports.txt' #Gets the path to the used ports file
+    with open(used_ports_path, 'r+') as f:
+        fcntl.flock(f, fcntl.LOCK_EX)  # Exclusive lock for writing
+        try:
+            used_ports = f.read().splitlines()
+            if str(port) in used_ports:
+                used_ports.remove(str(port))
+                f.seek(0)
+                f.truncate()  # Clear the file
+                f.write('\n'.join(used_ports))  # Write back the remaining ports
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)  # Release the lock
+
+
 
 def ddp_setup(rank, world_size, target_path): #Create a way for the processes to communicate with each other
     """
@@ -153,7 +200,7 @@ def ddp_setup(rank, world_size, target_path): #Create a way for the processes to
 
     if rank == 0:
         #Get free port and write it to disk for the other processes to read
-        socket_port = find_free_port()
+        socket_port = find_free_port(target_path)
         with open(f"{target_path}/port.temp", "w") as f:
             f.write(str(socket_port))
     else:
@@ -171,6 +218,7 @@ def ddp_setup(rank, world_size, target_path): #Create a way for the processes to
     print(f"Rank {rank} initialized with port {socket_port}", flush=True)
     #above needs to be run before distributed sampler or DistributedDataParallel is created. 'gloo' is needed for CPU training. Rank is a unique 
     #identifier for each process, and world_size is the total number of processes. 
+    return socket_port
 
 def report_memory_distributed():
     local_mem = torch.tensor([psutil.Process(os.getpid()).memory_info().rss / 1024**2], dtype=torch.float32)
@@ -205,7 +253,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             val_weights = torch.from_numpy(val_weights)
 
         if num_threads>1:
-            ddp_setup(rank, num_threads, target_path) 
+            port = ddp_setup(rank, num_threads, target_path) 
             ddpmodel = DDP(model)
 
             module = ddpmodel.module
@@ -265,6 +313,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
                 i +=1
             if num_threads>1:
                 destroy_process_group()
+                release_port(target_path, port)
         
 
         #Getting around not being able to return from the DDP process
