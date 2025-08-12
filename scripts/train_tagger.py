@@ -424,7 +424,7 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val,
 
     if data_type == 'domain_adapted':
         model = NNDomainAdapted(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']},
-                               repo_path=repo, alpha=1).to(device)
+                               repo_path=repo, alpha=config['alpha']).to(device)
     else:
         model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, 
                               optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)

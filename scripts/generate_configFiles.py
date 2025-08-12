@@ -3,12 +3,16 @@ import os
 from itertools import product
 import numpy as np
 
-def generate_yaml_file(config):
+def generate_yaml_file(config, use_alpha=False):
         # Create directory if it doesn't exist
     # if not os.path.exists('../configs'):
     #     os.makedirs('../configs')
 
     file_name = f'configs/lr{config["learning_rate"]}_bs{config["train_batch_size"]}_nL{config["numlayers"]}_nN{config["numneurons"]}.yaml'
+
+    if use_alpha:
+        file_name = file_name.replace('.yaml', f'_alpha{config["alpha"]}.yaml')
+
     with open(file_name, 'w') as file:
         yaml.dump(config, file)
     print(f"Generated {file_name}")
@@ -45,25 +49,34 @@ if __name__ == '__main__':
     with open(f'configs/hyperpar_intervals.yaml', 'r') as file:
         intervals = yaml.safe_load(file)
 
-    lists = []
-    for value in intervals.values():
-        if isinstance(value, list):
-            lists.append(value)
-        else:
-            lists.append([value])
+    for use_alpha in [False, True]:
+        lists = []
+        for key, value in intervals.items():
+            if key != '-alpha' or use_alpha:
+                if isinstance(value, list):
+                    lists.append(value)
+                else:
+                    lists.append([value])
 
 
-    combinations = product(*lists)
+        combinations = product(*lists)
 
-    result = list(combinations)
+        result = list(combinations)
 
-    # Print result
-    for idx, comb in enumerate(result):        
-        config = {}
-        for i, key in enumerate(intervals.keys()):
-            config[key[1:]] = comb[i]
+        # Print result
+        for idx, comb in enumerate(result):        
+            config = {}
+            keys = intervals.keys()
+            if not use_alpha:
+                keys = [key for key in keys if key != '-alpha']
+            for i, key in enumerate(keys):
+                config[key[1:]] = comb[i]
 
-        #Generate config file
-        generate_yaml_file(config)
-        #Generate architecture file if not already present
-        generate_architecture_yaml_file(config)
+            # print(config)
+
+            #Generate config file
+            generate_yaml_file(config, use_alpha=use_alpha)
+
+            #Generate architecture file if not already present
+            if not use_alpha: #Agnostic to alpha -> Only needs to be generated once
+                generate_architecture_yaml_file(config)
