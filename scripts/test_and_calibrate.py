@@ -18,6 +18,7 @@ import yaml
 import scripts.pyTorchTraining as pyTrain
 from scripts.train_tagger import get_architecture
 from scripts.NNModel import NeuralNetwork
+from scripts.NNModel import NNDomainAdapted
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 import utils
@@ -60,7 +61,7 @@ def read_files_reduce_unselected(files, vars, treename, seed):
     return df
 
 def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, features, config,
-                     decay_type, seed, repo, data_type, model_path):
+                     decay_type, seed, repo, data_type, model_path, domain_adapted=False):
     start = datetime.datetime.now()
     print(f'Testing started on {start.strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
     # Load YAML configuration file
@@ -81,7 +82,14 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
     #Load model
     bestModel = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo)
-    pyTrain.load_model(model=bestModel, target_path=model_path)
+    
+    
+    print(type(bestModel))
+    if not domain_adapted:
+        pyTrain.load_model(model=bestModel, target_path=model_path)
+    else:
+        pyTrain.load_model_without_domain_classifier(model=bestModel, target_path=model_path)
+
     bestModel.eval()
 
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
@@ -106,7 +114,18 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     # test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
     #test_df[f"{tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
+
+    # if not domain_adapted:
     test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)#[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values   
+    # else:
+    #     pred, true = bestModel.evaluate_model(test_dl)
+    #     test_df['yPred'] = pred[:,0]
+    #     test_df['dPred'] = pred[:,1] #Domain Pred
+    #     test_df['yTrue'] = true[:,0]
+    #     test_df['dTrue'] = true[:,1] #Domain true
+
+        # del pred, true
+
     test_df[f"{tagger}_Eta"] = 1 - test_df['yPred']
     # test_df = test_df[['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID]]
     test_df.drop(columns=test_df.columns.difference(['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred']), inplace=True)
@@ -118,7 +137,11 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
     
     pyTrain.plot_ROC(tagger=tagger, val_df=test_df[test_df['selected'] == 1], target_path =target_path)
+    # if domain_adapted:
+    #     pyTrain.plot_ROC(tagger=tagger, val_df=test_df[test_df['selected'] == 1], target_path =target_path, 
+    #                      trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_')
     
+
     plt.figure()
     plt.hist(1-test_df[test_df['selected'] == 1]['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 0, only selected")
@@ -127,7 +150,23 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     plt.hist(test_df[test_df['selected'] == 1]['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 1")
     plt.savefig(f"{target_path}/testSet_prob1distrib.pdf")
+    # if domain_adapted:
+    #     plt.figure()
+    #     plt.hist(1-test_df[test_df['selected'] == 1]['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
+    #     plt.title(r"Training set: Probability of label 0, only selected")
+    #     plt.yscale("log")
+    #     plt.savefig(f"{target_path}/domain_trainingSet_prob0distrib.pdf")
+    #     plt.figure()
+    #     plt.hist(test_df[test_df['selected'] == 1]['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
+    #     plt.title(r"Training set: Probability of label 1, only selected")
+    #     plt.yscale("log")
+    #     plt.savefig(f"{target_path}/domain_trainingSet_prob1distrib.pdf")
+
+
     pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Test', BID = BID)
+    # if domain_adapted:
+    #     pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Training', show_trueB=False, BID = BID, 
+    #                         trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_', correct_legend= "Domain 0", wrong_legend= "Domain 1")
     
 
 
@@ -137,6 +176,7 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
     test_df.loc[test_df.selected == 0, f"{tagger}_TagDec"] = 0  # classic
     test_df.loc[test_df.selected == 0, f"{tagger}_Eta"] = 0.5  # classic
+
     pyTrain.plot_tagDec(tagger =tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{target_path}/Not_Normalized_TagDec.pdf')
  
     # Eta Normalization [0, 0.5]
@@ -197,6 +237,7 @@ if __name__ == '__main__':
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
     parser.add_argument('--model_path', help='Path to trained model', type=str)
+    parser.add_argument('--domain_adapted', action='store_true', help='Model is domain adapted', )
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -236,4 +277,5 @@ if __name__ == '__main__':
 
     testing_pipeline(test_df=test_df, vars=vars, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
                      tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
-                     seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, model_path = cfg.model_path)
+                     seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, model_path = cfg.model_path,
+                     domain_adapted=cfg.domain_adapted)

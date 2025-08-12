@@ -249,15 +249,11 @@ combined_df_n_splits = 20
 
 rule all:
     input:
-        expand('/ceph/users/togasa/FlavourTagging/NTuples/domain_adapted/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/training/model.pth',
-               tagger = ['OSElectron', 'OSKaon', 'OSMuon'], lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nl=intervals['numlayers'], nn=intervals['numneurons']),
-        # '/ceph/users/togasa/FlavourTagging/NTuples/domain_adapted/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs4096_nL6_nN256/training/model.pth',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/config_test/pdf_ratio/training/model.pth'
+        expand('/ceph/users/togasa/FlavourTagging/NTuples/domain_adapted/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json',
+               lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nl=intervals['numlayers'], nn=intervals['numneurons']),
 
-
-        # expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs{bs}_nL{nl}_nN{nn}/pdf_ratio/testing/logit/taggingInfo_logit.json',
-        #        tagger = ['OSElectron', 'OSKaon', 'OSMuon'], lr=intervals['learning_rate'], bs=intervals['train_batch_size'], nl=intervals['numlayers'], nn=intervals['numneurons']),
         
+                
         
 
 def kernel_available():
@@ -1075,7 +1071,7 @@ rule train_tagger_domain_adapted:
     resources:
         max_retries=0,
         mem_mb = 30_000, 
-        MaxRunHours = 16, # long queue
+        MaxRunHours = 7, # long queue
     threads:
         16,
     run:
@@ -1161,7 +1157,7 @@ rule calibrate_on_data:
     input:
         testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-        ],
+        ][:5],
         model = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
 
         script = join(repo, 'scripts/test_and_calibrate.py'),
@@ -1203,6 +1199,7 @@ rule calibrate_on_data:
             '--repo', repo,
             '--data_type Data',
             '--model_path', model_path,
+            '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
             '&> {log}',
         ]
         shell(' '.join(cmd))

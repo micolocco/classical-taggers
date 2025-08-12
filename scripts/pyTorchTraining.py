@@ -312,6 +312,43 @@ def load_model(model, target_path):
     model.load_state_dict(torch.load(model_name))
     print(f"The model used is {model_name}")
 
+def load_model_without_domain_classifier(model, target_path):
+    model_name = f"{target_path}/model.pth"
+
+    full_dict = torch.load(model_name)
+
+    class_dict = {key: value for key, value in full_dict.items() if 'domain_classifier' not in key}
+
+    i = 0
+
+    num_feature_extractor_layers = len([k for k in class_dict if 'feature_extract' in k])//2 #includes weights and bias
+    num_class_classifier_layers = len([k for k in class_dict if 'class_classifier' in k])//2 #includes weights and bias
+
+    for j in range(num_feature_extractor_layers):
+        for p in ['weight', 'bias']:
+            k_old = f"feature_extract.{j*3}.{p}"
+            k_new = f"NN.{i}.{p}"
+            class_dict[k_new] = class_dict.pop(k_old)
+
+        i += 3
+
+    for j in range(num_class_classifier_layers):
+        for p in ['weight', 'bias']:
+            k_old = f"class_classifier.{j*3}.{p}"
+            k_new = f"NN.{i}.{p}"
+            class_dict[k_new] = class_dict.pop(k_old)
+
+        i += 3
+
+    
+
+
+    model.load_state_dict(class_dict)
+    
+    print(f"The model used is {model_name}")
+
+
+
 
 def save_losses(trainLoss, valLoss, bestEpoch, bestLosses, target_path):
     
