@@ -825,37 +825,37 @@ rule combine_MC_Data: #Combines data and MC for domain adaptation
 
 
 
-# rule split_sample:
-#     input:
-#         script = join(repo, 'scripts/split_train_val_test.py'),
-#         to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
+rule split_sample:
+    input:
+        script = join(repo, 'scripts/split_train_val_test.py'),
+        to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
 
-#         hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
-#     output:
-#         train      = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
-#         validation = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
-#         test       = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
-#     log:
-#         join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
-#     resources:
-#         max_retries=0,
-#         mem_mb = 15_000,
-#         MaxRunHours = 3,
-#     run:
-#         out_path = os.path.dirname(os.path.dirname(output.train))
+        hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
+    output:
+        train      = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
+        validation = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
+        test       = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
+    log:
+        join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 15_000,
+        MaxRunHours = 3,
+    run:
+        out_path = os.path.dirname(os.path.dirname(output.train))
 
-#         cmd = [
-#             'python', input.script,
-#             '--weighted {input.to_split}',
-#             '--target_path', out_path,
-#             '--config {input.hyper_int}',
-#             '--decayType {wildcards.decay}',
-#             '--treename "DecayTree;1"',
-#             '--tagger {wildcards.tagger}',
-#             '--data_type {wildcards.data_type}',
-#             '&> {log}',
-#         ]
-#         shell(' '.join(cmd))
+        cmd = [
+            'python', input.script,
+            '--weighted {input.to_split}',
+            '--target_path', out_path,
+            '--config {input.hyper_int}',
+            '--decayType {wildcards.decay}',
+            '--treename "DecayTree;1"',
+            '--tagger {wildcards.tagger}',
+            '--data_type {wildcards.data_type}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
 
 
 def get_chunk(middle_path, filename):
@@ -882,173 +882,173 @@ def get_log(data_type):
         logs = logs + [join(out, data_type + '/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/chunk_logs/' + weight_name + '_lr{learning_rate}_bs{batch_size}_training_chunk.log')]
     return logs
 
-# rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
-#     #If the batched flag from the config file is set to True, this rule trains a chunk of hyperparameters, if False it trains only one hyperparameter configuration 
-#     input:
-#         script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
-#         train = lambda wildcards: [
-#             f.replace('cutName', f'{wildcards.cut_name}')
-#             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-#             # if not f.endswith('4_1.mc.root')
-#         ],
-#         val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
-#             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
-#             # if not f.endswith('4_1.mc.root')
-#         ],
+rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
+    #If the batched flag from the config file is set to True, this rule trains a chunk of hyperparameters, if False it trains only one hyperparameter configuration 
+    input:
+        script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
+        train = lambda wildcards: [
+            f.replace('cutName', f'{wildcards.cut_name}')
+            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+            # if not f.endswith('4_1.mc.root')
+        ],
+        val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
+            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
+            # if not f.endswith('4_1.mc.root')
+        ],
         
-#         config = [join(repo, 'configs/lr{learning_rate}_bs{batch_size}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk] if batched
-#                  else join(repo, 'configs/{config}.yaml'),
-#     output:
-#         # ROC=         get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/ROC_TRAIN_VAL.pdf'),
-#         model=       get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/model.pth'),
-#         scaler=      get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/st_scaler.pkl'),
-#         transformer= get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/powerTransformer.pkl'),
-#     params:
-#         pre_path = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}')
-#     log:
-#         get_log('MC'),
-#         # get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/training_log.log'),
-#         # chunk_log = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/training_chunk.log')
-#         #      if batched else None,
-#     resources:
-#         max_retries=0,
-#         mem_mb = 30_000, # Specify memory requirement in megabytes 
-#         #gpus = 1,
-#         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-#         MaxRunHours = 24, # long queue
-#     threads:
-#         len(hyper_par_chunk)+1 if batched else 4,
-#     run:
-#         if kernel_available():
-#             train_scratch = path_to_kernel(input.train)
-#             val_scratch = path_to_kernel(input.val)
-#         else:
-#             train_scratch = input.train
-#             val_scratch = input.val
+        config = [join(repo, 'configs/lr{learning_rate}_bs{batch_size}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk] if batched
+                 else join(repo, 'configs/{config}.yaml'),
+    output:
+        # ROC=         get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/ROC_TRAIN_VAL.pdf'),
+        model=       get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/model.pth'),
+        scaler=      get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/st_scaler.pkl'),
+        transformer= get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/powerTransformer.pkl'),
+    params:
+        pre_path = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}')
+    log:
+        get_log('MC'),
+        # get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/training_log.log'),
+        # chunk_log = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/training_chunk.log')
+        #      if batched else None,
+    resources:
+        max_retries=0,
+        mem_mb = 30_000, # Specify memory requirement in megabytes 
+        #gpus = 1,
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 24, # long queue
+    threads:
+        len(hyper_par_chunk)+1 if batched else 4,
+    run:
+        if kernel_available():
+            train_scratch = path_to_kernel(input.train)
+            val_scratch = path_to_kernel(input.val)
+        else:
+            train_scratch = input.train
+            val_scratch = input.val
 
-#         # train_scratch = copy_to_scratch(input.train)
-#         # val_scratch = copy_to_scratch(input.val)
+        # train_scratch = copy_to_scratch(input.train)
+        # val_scratch = copy_to_scratch(input.val)
 
-#         if not batched:
-#             outpath = os.path.dirname(output.model)
+        if not batched:
+            outpath = os.path.dirname(output.model)
 
-#         cmd = [
-#             'python', input.script,
-#             '--training_data', ' '.join(train_scratch),
-#             '--validation_data', ' '.join(val_scratch),
-#             '--tagger {wildcards.tagger}',
-#             '--seed {wildcards.seed}',
-#             '--features {wildcards.features}',
-#             '--decay_type {wildcards.decay}',
-#             '--repo', repo,
-#             '--data_type MC',
-#             '--balance_dataset',
-#             #'--clean',
-#         ]
+        cmd = [
+            'python', input.script,
+            '--training_data', ' '.join(train_scratch),
+            '--validation_data', ' '.join(val_scratch),
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
+            '--decay_type {wildcards.decay}',
+            '--repo', repo,
+            '--data_type MC',
+            '--balance_dataset',
+            #'--clean',
+        ]
 
-#         if batched:
-#             logs = list(log)
-#             training_logs = logs[:-1]
-#             chunk_log = logs[len(logs)-1]
+        if batched:
+            logs = list(log)
+            training_logs = logs[:-1]
+            chunk_log = logs[len(logs)-1]
 
-#             conditional_cmd =[
-#                 # '--training_logs', ' '.join(log.training_logs),
-#                 '--training_logs', ' '.join(training_logs),
-#                 '--pre_path', params.pre_path,
-#                 '--configs', ' '.join(input.config),
-#                 # '&>',  log.chunk_log,
-#                 '&>',  chunk_log,
-#             ]
-#         else:
-#             conditional_cmd = [
-#                 '--target_path', outpath,
-#                 '--config {input.config}',
-#                 '--num_threads {threads}',
-#                 '&> {log}',
-#             ]
-#         cmd = cmd + conditional_cmd
-#         shell(' '.join(cmd))
+            conditional_cmd =[
+                # '--training_logs', ' '.join(log.training_logs),
+                '--training_logs', ' '.join(training_logs),
+                '--pre_path', params.pre_path,
+                '--configs', ' '.join(input.config),
+                # '&>',  log.chunk_log,
+                '&>',  chunk_log,
+            ]
+        else:
+            conditional_cmd = [
+                '--target_path', outpath,
+                '--config {input.config}',
+                '--num_threads {threads}',
+                '&> {log}',
+            ]
+        cmd = cmd + conditional_cmd
+        shell(' '.join(cmd))
 
-# rule train_tagger_data:
-#     input:
-#         script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
-#         train = lambda wildcards: [
-#             f.replace('cutName', f'{wildcards.cut_name}')
-#             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-#         ],
-#         val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
-#             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-#         ],
+rule train_tagger_data:
+    input:
+        script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
+        train = lambda wildcards: [
+            f.replace('cutName', f'{wildcards.cut_name}')
+            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+        ],
+        val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
+            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
+        ],
 
-#         config = [join(repo, 'configs/lr{learning_rate}_bs{batch_size}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk] if batched
-#                  else join(repo, 'configs/{config}.yaml'),
-#     output:
-#         # ROC=         get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/ROC_TRAIN_VAL.pdf'),
-#         model=       get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/model.pth'),
-#         scaler=      get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/st_scaler.pkl'),
-#         transformer= get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/powerTransformer.pkl'),
-#     params:
-#         pre_path = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}')
-#     log:
-#         get_log('Data'),
-#         # get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/training_log.log'),
-#         # chunk_log = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/training_chunk.log')
-#         #     if batched else None,
-#     resources:
-#         max_retries=0,
-#         mem_mb = 60_000 if batched else 40_000, # Specify memory requirement in megabytes 
-#         #gpus = 1,
-#         #OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-#         MaxRunHours = 8, # long queue
-#     threads:
-#         len(hyper_par_chunk)+1     if batched else 8,
-#     run:
-#         train_scratch = copy_to_scratch(input.train)
-#         val_scratch = copy_to_scratch(input.val)
+        config = [join(repo, 'configs/lr{learning_rate}_bs{batch_size}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk] if batched
+                 else join(repo, 'configs/{config}.yaml'),
+    output:
+        # ROC=         get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/ROC_TRAIN_VAL.pdf'),
+        model=       get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/model.pth'),
+        scaler=      get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/st_scaler.pkl'),
+        transformer= get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/powerTransformer.pkl'),
+    params:
+        pre_path = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}')
+    log:
+        get_log('Data'),
+        # get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/training_log.log'),
+        # chunk_log = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/training_chunk.log')
+        #     if batched else None,
+    resources:
+        max_retries=0,
+        mem_mb = 60_000 if batched else 40_000, # Specify memory requirement in megabytes 
+        #gpus = 1,
+        #OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 8, # long queue
+    threads:
+        len(hyper_par_chunk)+1     if batched else 8,
+    run:
+        train_scratch = copy_to_scratch(input.train)
+        val_scratch = copy_to_scratch(input.val)
 
-#         if not batched:
-#             outpath = os.path.dirname(output.model)
+        if not batched:
+            outpath = os.path.dirname(output.model)
 
-#         cmd = [
-#             'python', input.script,
-#             '--training_data', ' '.join(train_scratch),
-#             '--validation_data', ' '.join(val_scratch),
-#             '--tagger {wildcards.tagger}',
-#             '--seed {wildcards.seed}',
-#             '--features {wildcards.features}',
-#             '--decay_type {wildcards.decay}',
-#             '--weight_type {wildcards.weight_type}',
-#             '--repo', repo,
-#             '--data_type Data',
-#             '--balance_dataset',
-#             # '--domain B_ID',
-#             #'--clean',
-#         ]
+        cmd = [
+            'python', input.script,
+            '--training_data', ' '.join(train_scratch),
+            '--validation_data', ' '.join(val_scratch),
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
+            '--decay_type {wildcards.decay}',
+            '--weight_type {wildcards.weight_type}',
+            '--repo', repo,
+            '--data_type Data',
+            '--balance_dataset',
+            # '--domain B_ID',
+            #'--clean',
+        ]
 
-#         if batched:
-#             logs = list(log)
-#             chunk_log = logs[len(logs)-1]
-#             training_logs = logs[:-1]
+        if batched:
+            logs = list(log)
+            chunk_log = logs[len(logs)-1]
+            training_logs = logs[:-1]
 
-#             conditional_cmd =[
-#                 # '--training_logs', ' '.join(log.training_logs),
-#                 '--training_logs', ' '.join(training_logs),
-#                 '--pre_path', params.pre_path,
-#                 '--configs', ' '.join(input.config),
-#                 # '&>',  log.chunk_log,
-#                 '&>',  chunk_log,
-#             ]
+            conditional_cmd =[
+                # '--training_logs', ' '.join(log.training_logs),
+                '--training_logs', ' '.join(training_logs),
+                '--pre_path', params.pre_path,
+                '--configs', ' '.join(input.config),
+                # '&>',  log.chunk_log,
+                '&>',  chunk_log,
+            ]
 
-#         else:
-#             conditional_cmd = [
-#                 '--target_path', outpath,
-#                 '--config {input.config}',
-#                 '--num_threads {threads}',
-#                 '&> {log}',
-#             ]
+        else:
+            conditional_cmd = [
+                '--target_path', outpath,
+                '--config {input.config}',
+                '--num_threads {threads}',
+                '&> {log}',
+            ]
 
-#         cmd = cmd + conditional_cmd
-#         shell(' '.join(cmd))
+        cmd = cmd + conditional_cmd
+        shell(' '.join(cmd))
 
 rule train_tagger_domain_adapted:
     input:
