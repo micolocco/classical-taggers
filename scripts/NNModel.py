@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score
 import yaml
 
 
+
 from scripts.gradient_reversal.module import GradientReversal
 import copy
 
@@ -111,10 +112,12 @@ class NeuralNetwork(nn.Module):
 
     # Evaluate the model
     def evaluate_model(self, test_dl):
+        self.eval()
         predictions, actuals = list(), list()
         for i, ((inputs, targets), _) in enumerate(test_dl):
             # evaluate the model on the test set
-            yPred = self(inputs)
+            with torch.no_grad():
+                yPred = self(inputs)
             # retrieve numpy array
             yPred = yPred.detach().numpy()
             actual = targets.numpy()
@@ -132,7 +135,6 @@ class NeuralNetwork(nn.Module):
         else:
             shape = (-1,1)
         predictions, actuals = np.array(predictions).reshape(shape), np.array(actuals).reshape(shape)
-        # calculate accuracy
         return np.array([predictions, actuals])
 
 class NNDomainAdapted(NeuralNetwork):
