@@ -102,7 +102,43 @@ ranges = {
         "B_Tr_T_EtaDistance": (0, 4),
     }
 '''
+<<<<<<< HEAD
 
+=======
+ranges = {
+    "B_nTracks": (0, 600),
+    "B_Tr_T_P": (0, 60000),
+    "B_Tr_T_PT": (0, 10000),
+    "B_nPVs": (0, 18),
+    "B_PT": (0, 60000),
+    "B_Tr_T_OWNPVIPSig": (0, 1),
+    "B_Tr_T_CHI2DOF": (0, 5),
+    "B_Tr_T_PROBNN_K": (0, 1),
+    "B_Tr_T_PROBNN_P": (0, 1),
+    "B_Tr_T_PROBNN_E": (0, 1),
+    "B_Tr_T_PROBNN_MU": (0, 1),
+    "B_Tr_T_PROBNN_PI": (0, 1),
+    "B_Tr_T_GHOSTPROB": (0, 1),
+    "B_Tr_T_absOWNPV_IP": (0, 2),
+    "B_Tr_T_eoverP": (-0.001, 0.001),
+    "B_Tr_T_DeltaR": (0, 20),
+    "B_Tr_T_DeltaQ_Kaon": (0, 2e4),
+    "B_Tr_T_DeltaQ_Muon": (0, 2e3),
+    "B_Tr_T_DeltaQ_Pion": (0, 10000),
+    "B_Tr_T_DeltaQ_Electron": (0, 1e3),
+    "B_Tr_T_DeltaQ_Proton": (0, 1e3),
+    "B_Tr_T_Signal_TagPart_PT": (0, 1e4),
+    "B_Tr_T_PhiDistance": (-3.14, 3.14),
+    "B_Tr_T_EtaDistance": (-4, 4),
+
+    # DT-used extra features
+    "B_Tr_T_diff_z": (-200, 200),          # mm
+    "B_Tr_T_PIDK": (-100, 100),            # DLL(K-π)
+    "B_Tr_T_IPChi2BVTX": (0, 100),         # χ²_IP to PV_best(B)
+    "B_Tr_T_OWNPVIPCHI2": (0, 100)         # χ²_IP to ownPV
+}
+
+>>>>>>> 281b2fd (adjusting for producing plots)
 '''
 nice_names = {
         "B_nTracks": r'$\mathrm{nTracks}$',
@@ -155,6 +191,7 @@ nice_names = {
     "B_Tr_T_ISMUON": r"$\mathrm{isMuon}(\mathrm{tag})$",
 
     # Tag track IP variables
+<<<<<<< HEAD
     #"B_Tr_T_OWNPVIP": r"$\mathrm{IP}(\mathrm{tag})_{\mathrm{ownPV}}~[\mathrm{mm}]$",
     #"B_Tr_T_OWNPVIPSig": r"$\sqrt{\chi^{2}_{\mathrm{IP}}(\mathrm{tag})_{\mathrm{ownPV}}}$",
     #"B_Tr_T_OWNPVIPCHI2": r"$\chi^{2}_{\mathrm{IP}}(\mathrm{tag})_{\mathrm{ownPV}}$",
@@ -167,6 +204,15 @@ nice_names = {
     "B_Tr_T_absOWNPV_IP": r"$|\mathrm{IP}(\mathrm{tag}, \mathrm{PV}_{\mathrm{own}})|~[\mathrm{mm}]$",
     "B_Tr_T_IPChi2BVTX": r"$\chi^{2}_{\mathrm{IP}}(\mathrm{tag}, \mathrm{PV}_{\mathrm{best}}(B))$",
     "B_Tr_T_IPBVTX": r"$\mathrm{IP}(\mathrm{tag}, \mathrm{PV}_{\mathrm{best}}(B))~[\mathrm{mm}]$",
+=======
+    "B_Tr_T_OWNPVIP": r"$\mathrm{IP}(\mathrm{tag})_{\mathrm{ownPV}}~[\mathrm{mm}]$",
+    "B_Tr_T_OWNPVIPSig": r"$\sqrt{\chi^{2}_{\mathrm{IP}}(\mathrm{tag})_{\mathrm{ownPV}}}$",
+    "B_Tr_T_OWNPVIPCHI2": r"$\chi^{2}_{\mathrm{IP}}(\mathrm{tag})_{\mathrm{ownPV}}$",
+    "B_Tr_T_absOWNPV_IP": r"$|\mathrm{IP}(\mathrm{tag})|_{\mathrm{ownPV}}~[\mathrm{mm}]$",
+    "B_Tr_T_IPChi2BVTX": r"$\chi^{2}_{\mathrm{IP}}(\mathrm{tag},\mathrm{PV}_{\mathrm{best}}(B))$",
+    "B_Tr_T_IPBVTX": r"$\mathrm{IP}(\mathrm{tag},\mathrm{PV}_{\mathrm{best}}(B))~[\mathrm{mm}]$",
+    "B_Tr_T_absIP": r'$|\mathrm{IP}|(tag)$',
+>>>>>>> 281b2fd (adjusting for producing plots)
 
     # Tag track kinematics
     "B_Tr_T_ENERGY": r"$E(\mathrm{tag})~[\mathrm{MeV}]$",
@@ -219,8 +265,13 @@ nice_names = {
     "B_Tr_T_eoverP": r"$Q_{e}/p(\mathrm{tag})~[c/\mathrm{MeV}]$",
     "diff_P": r"$\Delta p~[\mathrm{MeV}/c]$",
     "P_proj": r"$p_{\mathrm{proj}}~[\mathrm{MeV}/c]$",
+<<<<<<< HEAD
     "t": r"$t_{\mathrm{POCA}}[mm]$",
     "EVIP": r"$\mathrm{EVIP}[mm]$",
+=======
+    "t": r"$t~[\mathrm{ps}]$",
+    "EVIP": r"$\mathrm{EVIP}$",
+>>>>>>> 281b2fd (adjusting for producing plots)
     "logEVIP": r"$\log(\mathrm{EVIP})$",
     "logP_proj": r"$\log(p_{\mathrm{proj}})$",
     "B_Tr_T_atanPT_PZ": r"$\arctan\frac{p_{T}}{p_{z}}(\mathrm{tag})$",
@@ -228,11 +279,19 @@ nice_names = {
 
 ranges = {
     # PV info
+<<<<<<< HEAD
     "B_OWNPV_X": (0.2, 0.6),      # mm
     "B_OWNPV_Y": (-0.2, 0.2),      # mm
     "B_OWNPV_Z": (-300, 300),      # mm
     "B_ENDV_X": (-7.5, 7.5),         # mm
     "B_ENDV_Y": (-7.5, 7.5),         # mm
+=======
+    "B_OWNPV_X": (-0.5, 0.5),      # mm
+    "B_OWNPV_Y": (-0.5, 0.5),      # mm
+    "B_OWNPV_Z": (-300, 300),      # mm
+    "B_ENDV_X": (-10, 10),         # mm
+    "B_ENDV_Y": (-10, 10),         # mm
+>>>>>>> 281b2fd (adjusting for producing plots)
     "B_ENDV_Z": (-300, 300),       # mm
 
     # B kinematics
@@ -241,12 +300,21 @@ ranges = {
     "B_M": (5000, 5600),           # MeV/c²
     "B_P": (0, 5e5),               # MeV/c
     "B_PHI": (-3.14, 3.14),
+<<<<<<< HEAD
     "B_PT": (0, 6e4),              # MeV/c
     "B_PX": (-5e4, 5e4),
     "B_PY": (-5e4, 5e4),
     "B_PZ": (0, 5e5),
     "B_nPVs": (0, 17),
     "B_nTracks": (0, 600),
+=======
+    "B_PT": (0, 1e5),              # MeV/c
+    "B_PX": (-5e4, 5e4),
+    "B_PY": (-5e4, 5e4),
+    "B_PZ": (0, 5e5),
+    "B_nPVs": (0, 20),
+    "B_nTracks": (0, 1000),
+>>>>>>> 281b2fd (adjusting for producing plots)
 
     # Tag track basic info
     "B_Tr_T_TRACKISLONG": (0, 1),
@@ -254,16 +322,25 @@ ranges = {
     "B_Tr_T_ISMUON": (0, 1),
 
     # IP-related
+<<<<<<< HEAD
     "B_Tr_T_OWNPVIP": (0, 2),              # mm
     "B_Tr_T_OWNPVIPSig": (0, 30),
     "B_Tr_T_OWNPVIPCHI2": (0, 700),
     "B_Tr_T_absOWNPV_IP": (0, 2),
     "B_Tr_T_IPChi2BVTX": (0, 1000),
+=======
+    "B_Tr_T_OWNPVIP": (0, 5),              # mm
+    "B_Tr_T_OWNPVIPSig": (0, 50),
+    "B_Tr_T_OWNPVIPCHI2": (0, 2500),
+    "B_Tr_T_absOWNPV_IP": (0, 5),
+    "B_Tr_T_IPChi2BVTX": (0, 2500),
+>>>>>>> 281b2fd (adjusting for producing plots)
     "B_Tr_T_IPBVTX": (0, 5),
     "B_Tr_T_absIP": (0, 5),
 
     # Tag kinematics
     "B_Tr_T_ENERGY": (0, 1e5),             # MeV
+<<<<<<< HEAD
     "B_Tr_T_P": (0, 8e4),                  # MeV/c
     "B_Tr_T_PT": (0, 8e3),                 # MeV/c
     "B_Tr_T_PX": (-7e3, 7e3),
@@ -271,19 +348,38 @@ ranges = {
     "B_Tr_T_PZ": (0, 1e5),
     "B_Tr_T_X": (-2.5, 2.5),                 # mm
     "B_Tr_T_Y": (-2.5, 2.5),                 # mm
+=======
+    "B_Tr_T_P": (0, 1e5),                  # MeV/c
+    "B_Tr_T_PT": (0, 2e4),                 # MeV/c
+    "B_Tr_T_PX": (-2e4, 2e4),
+    "B_Tr_T_PY": (-2e4, 2e4),
+    "B_Tr_T_PZ": (0, 1e5),
+    "B_Tr_T_X": (-10, 10),                 # mm
+    "B_Tr_T_Y": (-10, 10),                 # mm
+>>>>>>> 281b2fd (adjusting for producing plots)
     "B_Tr_T_Z": (-300, 300),               # mm
     "B_Tr_T_Eta": (1.5, 5.0),
 
     # Track quality
+<<<<<<< HEAD
     "B_Tr_T_MINIP": (0, 2),                 # mm
     "B_Tr_T_MINIPChi2": (0, 700),
+=======
+    "B_Tr_T_MINIP": (0, 5),                 # mm
+    "B_Tr_T_MINIPChi2": (0, 2500),
+>>>>>>> 281b2fd (adjusting for producing plots)
     "B_Tr_T_CHI2DOF": (0, 5),
     "B_Tr_T_GHOSTPROB": (0, 1),
 
     # PID
     "B_Tr_T_PIDK": (-100, 100),
+<<<<<<< HEAD
     "B_Tr_T_PIDe": (-50, 50),
     "B_Tr_T_PIDmu": (-25, 25),
+=======
+    "B_Tr_T_PIDe": (-100, 100),
+    "B_Tr_T_PIDmu": (-100, 100),
+>>>>>>> 281b2fd (adjusting for producing plots)
     "B_Tr_T_PIDP": (-100, 100),
     "B_Tr_T_PROBNN_GHOST": (0, 1),
     "B_Tr_T_PROBNN_E": (0, 1),
@@ -295,6 +391,7 @@ ranges = {
     # Δ variables & angular distances
     "B_Tr_T_PhiDistance": (-3.14, 3.14),
     "B_Tr_T_cos_PhiDistance": (-1, 1),
+<<<<<<< HEAD
     "B_Tr_T_EtaDistance": (0, 4),
     "B_Tr_T_DeltaR": (0, 10),
     "B_Tr_T_diff_z": (0, 150),           # mm
@@ -305,12 +402,25 @@ ranges = {
     "B_Tr_T_DeltaQ_Muon": (0, 3e3),
     "B_Tr_T_DeltaQ_Pion": (0, 3e3),
     "B_Tr_T_DeltaQ_Proton": (0, 3e3),
+=======
+    "B_Tr_T_EtaDistance": (-4, 4),
+    "B_Tr_T_DeltaR": (0, 10),
+    "B_Tr_T_diff_z": (-200, 200),           # mm
+
+    # ΔQ
+    "B_Tr_T_DeltaQ_Kaon": (0, 2e4),
+    "B_Tr_T_DeltaQ_Electron": (0, 1e3),
+    "B_Tr_T_DeltaQ_Muon": (0, 2e3),
+    "B_Tr_T_DeltaQ_Pion": (0, 1e4),
+    "B_Tr_T_DeltaQ_Proton": (0, 1e3),
+>>>>>>> 281b2fd (adjusting for producing plots)
 
     # Tag+signal
     "B_Tr_T_Signal_TagPart_PT": (0, 2e4),
 
     # Other features
     "B_Tr_T_eoverP": (-0.001, 0.001),
+<<<<<<< HEAD
     "diff_P": (0, 3e5),
     "P_proj": (0, 1e5),
     "t": (-0.1, 0.1),                           # ps
@@ -318,4 +428,13 @@ ranges = {
     "logEVIP": (0, 6),
     "logP_proj": (0, 12),
     "B_Tr_T_atanPT_PZ": (0, 0.5)
+=======
+    "diff_P": (-1e5, 1e5),
+    "P_proj": (0, 1e5),
+    "t": (0, 15),                           # ps
+    "EVIP": (0, 2500),
+    "logEVIP": (0, 8),
+    "logP_proj": (0, 12),
+    "B_Tr_T_atanPT_PZ": (0, 3.14)
+>>>>>>> 281b2fd (adjusting for producing plots)
 }

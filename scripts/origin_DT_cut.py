@@ -331,7 +331,11 @@ if __name__ == '__main__':
         "B_Tr_T_OWNPVIPCHI2",
         "B_Tr_T_PROBNN_P"
         ]
+<<<<<<< HEAD
         #DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
+=======
+        DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
+>>>>>>> 281b2fd (adjusting for producing plots)
         DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path, nbins=50)   
 
         exit()

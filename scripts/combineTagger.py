@@ -146,8 +146,13 @@ if __name__ == '__main__':
     for run in runs:
         os.makedirs(f'{outputPath}/{run}', exist_ok=True)
         taggers = ft.TaggerCollection()
+<<<<<<< HEAD
        # for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
         for tagger in cfg.tagger:
+=======
+        for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
+        #for tagger in cfg.tagger:
+>>>>>>> 281b2fd (adjusting for producing plots)
            # Adjust name columns
             if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
                 eta_column = f'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
