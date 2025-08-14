@@ -39,6 +39,8 @@ def setup_time_vars(time_unit, decay_time_branches, data, dm):
 """
 On MC:
 python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSKaon --decayType Bs2DsPi --run2 --combinationName 'Bs2DsPi MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton --decayType Bd2JpsiKst --run2 --combinationName 'Bd2JpsiKst MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation
+
 """
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -82,6 +84,7 @@ if __name__ == '__main__':
         vars.extend(['FillNumber', 'B_DTF_PV_CTAU', 'signal_weights', 'reweighter_weights'])
     vars.extend(['RUNNUMBER', 'EVENTNUMBER', B_ID_var])
     vars.extend(run2_taggers_variables)
+    print("Run2 taggers variables:", run2_taggers_variables)
     taggers_dataframes = []  # List to store DataFrames for each tagger
     # Loop over all taggers
     for tagger in cfg.tagger:
@@ -143,8 +146,9 @@ if __name__ == '__main__':
     for run in runs:
         os.makedirs(f'{outputPath}/{run}', exist_ok=True)
         taggers = ft.TaggerCollection()
-        for tagger in cfg.tagger+['OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
-            # Adjust name columns
+        for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
+        #for tagger in cfg.tagger:
+           # Adjust name columns
             if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
                 eta_column = f'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
                 tagDec_column = f'B_Probability_Medium_0_Run2OSVertexCharge_Dec'     

@@ -17,7 +17,7 @@ def in_data(data_path, list_of_files):
 
 taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSKaon', 'SSProton'],
-    'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
+    'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon', 'SSKaon'],
     'Bs2DsPi': ['SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
     'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
     'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
@@ -99,7 +99,7 @@ for decay, path_list in ntuples_raw_withUT.items():
         filtered_paths = [
             f.replace(f'{raw_MC}', f'{modified_MC}').replace('1_raw', '4_tagged')
             .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}')
-            for f in path_list #if f.endswith('4_1.mc.root') #4_1.mc.root hold out sample
+            for f in path_list if f.endswith('01_1.mc.root') #4_1.mc.root hold out sample
         ]
         ntuples_tagged_withUT[decay].update({tagger: filtered_paths})
 
@@ -138,9 +138,45 @@ generated_paths_OSMuon = read_generated_paths(join(repo,'paths_for_snakemake/gen
 #print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
 rule all:
     input:
-        ntuples_added_features_withUT['Bu2JpsiK'],
-        ntuples_added_features_withUT['Bd2JpsiKst'],
-        ntuples_added_features_withUT['Bs2DsPi']
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/training_inputFeatures.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/training_inputFeatures.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/training_inputFeatures.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/training_inputFeatures.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/training_inputFeatures.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/training_inputFeatures.pdf'),
+
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bs2DsPi']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bs2DsPi']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bs2DsPi']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+
+        #ntuples_added_features_withUT['Bu2JpsiK'],
+        #ntuples_added_features_withUT['Bd2JpsiKst'],
+        #ntuples_added_features_withUT['Bs2DsPi']
+
+
+
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+
+        #ntuples_added_features_withUT['Bu2JpsiK'],
+        #ntuples_added_features_withUT['Bd2JpsiKst'],
+        #ntuples_added_features_withUT['Bs2DsPi']
 
         #'/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/unbalanced/treeSchema.pdf',
        #'/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/balanced/treeSchema.pdf',
@@ -278,7 +314,7 @@ rule add_features:
 
 all_taggers = sorted({t for taggers in taggers_conf.values() for t in taggers})
 
-
+'''
 rule train_DT:
     input:
         script = join(repo, 'scripts/origin_DT_cut.py'),
@@ -306,7 +342,8 @@ rule train_DT:
             f'&> {log}'  # Redirect stdout and stderr to log file
         )
         shell(cmd)
- 
+'''
+'''
 rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
@@ -340,7 +377,7 @@ rule add_selection:
             '&> {log}',
         ]
         shell(' '.join(cmd))
-
+'''
 rule train_tagger:
     input:
         #selected = lambda wildcards: [f.replace('cut_Run2Summer2017Opt_v2_noProbNN_IPSig', f'{wildcards.cut_name}') for f  in ntuples_selected_withUT[f'{wildcards.decay}']],
@@ -354,7 +391,9 @@ rule train_tagger:
         ],
         script = join(repo, 'scripts/pipeline.py'),
     output:
-        pdf=join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
+        #pdf=join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
+        # Replaced with this to profuce only input features plot
+        pdf=join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/training_inputFeatures.pdf'),
     log: join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/training_log.log')
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes 
@@ -377,6 +416,7 @@ rule train_tagger:
             '--decayType {wildcards.decay}',
             #'--clean',
             '--repo {repo}',
+            '--only_plot',
             '&> {log}',
         ]
         shell(' '.join(cmd))

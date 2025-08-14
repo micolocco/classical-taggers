@@ -133,8 +133,8 @@ run2_taggers_variables = [
         #'B_Run2_OSMuon_MVA',
         'B_Run2_OSVertexCharge_Dec',
         'B_Run2_OSVertexCharge_Omega',
-        #'B_Probability_Medium_0_Run2OSVertexCharge_Dec',
-        #'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
+        'B_Probability_Medium_0_Run2OSVertexCharge_Dec',
+        'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
     ]
 
 extra_vars = [

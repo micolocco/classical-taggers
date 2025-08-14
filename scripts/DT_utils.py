@@ -7,11 +7,11 @@ matplotlib_lhcb_style(plt)
 plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
 plt.rcParams.update({'axes.unicode_minus' : False})
 
-def plot_features_byOrigin(data, features, particle_type, target_path, nbins=100):
+def plot_features_byOrigin(data, features, target_path, nbins=100):
     # Plot input features 
     plt.figure(figsize=(100,100))
     for i, col in enumerate(features):
-        plt.subplot(10, 8, i + 1)
+        plt.subplot(10, 7, i + 1)
         # Ranges and names must be adapted
         #plt.hist(data[col][data['particle']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=)
         #plt.hist(data[col][data['particle']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
@@ -22,14 +22,16 @@ def plot_features_byOrigin(data, features, particle_type, target_path, nbins=100
        
 
         #plt.hist(data[col][data['particle']==6], density = True, bins=nbins, label = f"{particle_type[6]}", histtype='step', color='r', )
-        if col in nice_names.keys():
+        if col in nice_names.keys(): #uGly hack
             plt.xlabel(nice_names[col])
             plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=ranges[col])
             plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
             plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
             plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
             plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-            #plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
+            plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
+            plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
+        
         else:
             plt.xlabel(col)
             plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, )
@@ -37,11 +39,28 @@ def plot_features_byOrigin(data, features, particle_type, target_path, nbins=100
             plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, )
             plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, )
             plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, )
-            #plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, )
-            plt.hist(data[col][data['particle']=='OSProton'], density = True, bins=nbins, label = f"OSProton", histtype='step', color='orange', lw=2, )
+            plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, )
+            plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
         plt.legend() 
         plt.tight_layout()
     plt.savefig(f"{target_path}/DT_features_byOrigin.pdf")
+
+def plot_used_features(data, features, target_path, nbins=100):
+    plt.figure(figsize=(100,100))
+    for i, col in enumerate(features):
+        plt.subplot(3, 3, i + 1)
+        plt.xlabel(nice_names[col])
+        plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=ranges[col])
+        plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
+        plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
+        plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
+        plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
+        plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
+        plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
+    
+    plt.legend() 
+    plt.tight_layout()
+    plt.savefig(f"{target_path}/onlyUsed_DT_features_byOrigin.pdf")
 
 def plot_features_byParticle(data, features, nbins=100):
    

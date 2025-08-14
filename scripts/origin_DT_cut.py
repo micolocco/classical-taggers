@@ -318,8 +318,23 @@ if __name__ == '__main__':
 
     else:
         # Plot features
-       # print("Plotting features...")
-       # DT_utils.plot_features_byOrigin(df_filtered, features, particle_type, target_path=cfg.target_path, nbins=50)   
+        print("Plotting features...")
+        # Post training: to make a plot of only the features used
+        features_DT_used = [
+        "B_Tr_T_PROBNN_E",
+        "B_Tr_T_PROBNN_MU",
+        "B_Tr_T_diff_z",
+        "B_Tr_T_PROBNN_PI",
+        "B_Tr_T_PIDK",
+        "B_Tr_T_IPChi2BVTX",
+        "B_Tr_T_PROBNN_K",
+        "B_Tr_T_OWNPVIPCHI2",
+        "B_Tr_T_PROBNN_P"
+        ]
+        DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
+        DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path, nbins=50)   
+
+        exit()
         print("Start fitting")
         start_fit = time.time()
         clf = tree.DecisionTreeClassifier(max_depth = 6,class_weight=weights, min_impurity_decrease=0.009)
