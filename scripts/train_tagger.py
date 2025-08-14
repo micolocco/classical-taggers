@@ -432,6 +432,9 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val,
 
     print(f'{num_threads} threads will be used for training', flush=True)
     if num_threads>1:
+        if os.path.exists(f"{target_path}/port.temp"):#Remove port file if it remained after previous failed execution
+            os.remove(f"{target_path}/port.temp")
+
         return_dict = mp.Manager().dict()
         train_ds_name = f'train_set{id(train_ds)}'
         validation_ds_name = f'validation_set{id(validation_ds)}'
