@@ -68,6 +68,8 @@ if __name__ == '__main__':
     df_mc = read_files(cfg.mc_files, cfg.treename)
     df_mc.drop(columns=['B_Tr_T_Origin_Flag', 'B_BKGCAT'], inplace=True)
 
+    df_data = df_data[:len(df_mc)] #Make sure not too much data in dataset
+
     #Rename columns to match
     rename_dict = {
         'B_ID' : 'B_TRUEID', 
