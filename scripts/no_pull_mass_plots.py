@@ -30,7 +30,7 @@ import pickle
 
 def get_tex_decay(decay):
     if "Bu2JpsiK" == decay:
-        tex_decay = r"$B^+ \to J/\psi K^+$"
+        tex_decay = r"$B^{\pm} \to J/\psi K^{\pm}$"
     if "Bd2JpsiKst" == decay:
         tex_decay = r"$B^{0} \to J/\psi K^*$"
     return tex_decay
