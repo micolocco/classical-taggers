@@ -17,7 +17,8 @@ from pprint import pprint
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
-
+from scripts import matplotlib_lhcb_style
+matplotlib_lhcb_style(plt)
 
 #Bu2JpsiK classifier from sin2beta ananote
 # B_Vtx_Chi2NDOF                     -> B_CHI2VXNDOF
@@ -169,13 +170,15 @@ def read_files(files, vars, treename, only_upper, massname):
 def plot_by_label(df, massname, outpath, filename, xlim=(5200, 5600), bins = 40):
     bins = np.linspace(xlim[0], xlim[1], bins+1)
 
+    texify_dict = {'B_DTF_PV_Jpsi_MASS' : r'$m(J/\psi K^{\pm}$'}
+
     plt.figure(figsize=(8, 6))
     for label, group in df.groupby('label'):
         plt.hist(group[massname], bins=bins, alpha=0.5, label=f'Label {label}')
-    plt.xlabel(f'{massname} in MeV')
+    plt.xlabel(fr'{texify_dict[massname]} in MeV')
     plt.ylabel('counts per $10$MeV')
     plt.legend()
-    plt.title(f'Histogram of {massname} split by label')
+    # plt.title(f'Histogram of {massname} split by label')
     plt.savefig(f'{outpath}/{filename}.pdf')
 
 
@@ -252,7 +255,9 @@ if __name__ == '__main__':
     train_losses, val_losses = model.fit(X[:10000], y[:10000], indices[:10000])
     print(f'Training ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
-
+    
+    # X = X[10000:20000]
+    # y = y[10000:20000]
 
     y_pred = model.predict_proba(X, indices)#[:,1]
     print(f'Predicting ends {datetime.datetime.now().strftime("%H:%M:%S")}')
