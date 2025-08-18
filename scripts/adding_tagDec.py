@@ -20,7 +20,6 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 matplotlib_lhcb_style(plt)
 from scripts.preSelections import run2_taggers_variables
-from scripts.adding_features_v2 import data_vars_translation
 
 def plot_tagDec(tagger, df_TagParticles, plotPath):
     plt.figure()
@@ -76,7 +75,8 @@ if __name__ == '__main__':
                 #loading_variables.append("B_DTF_PV_Ds_MASSERR")
 
     else: 
-        loading_variables += ["B_TRUEID"]
+        # loading_variables += ["B_TRUEID"]
+        loading_variables += ["B_ID"]
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
 
@@ -91,12 +91,19 @@ if __name__ == '__main__':
     arch = data[cfg.tagger]['architecture']
     dm = float(data[cfg.tagger]['min_delta'])
     config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
-    model_path = join(cfg.modelPrePath, f"{seed}/{config}")
+    # model_path = join(cfg.modelPrePath, f"{seed}/{config}")
+    model_path = join(cfg.modelPrePath)
     # Load YAML configuration file
     with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:
         config = yaml.safe_load(file)
-    bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr}, repo_path=cfg.repo)
-    pyTrain.load_model(model=bestModel, target_path=model_path)
+    # bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr}, repo_path=cfg.repo)
+    # bestModel = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo)
+    # pyTrain.load_model(model=bestModel, target_path=model_path)
+    # bestModel.eval()
+    model_path = f"{model_path}/model.pth"
+
+    # Load the entire model (with preprocessing already inside)
+    bestModel = torch.load(model_path)
     bestModel.eval()
 
     ## To be removed
@@ -123,19 +130,22 @@ if __name__ == '__main__':
     #   - calibration: B_ID = reconstructed ID when moving to data!
 
     # Now the label is needed for the scaling, but in the future must be removed before scaling in the training so that it'ds not necessary here 
-    id_var = "B_TRUEID" if not cfg.data_calib else "B_ID"
+    # id_var = "B_TRUEID" if not cfg.data_calib else "B_ID"
+    id_var = "B_ID" if not cfg.data_calib else "B_ID"
     test_df["label"] = test_df[f"{cfg.tagger}_TagDec"] * test_df[id_var]/abs(test_df[id_var])     
     test_df.loc[test_df.label == -1, "label"] = 0 # shifting the label from -1 to 0
+    test_df = test_df.query('selected==1')
     
     # Data pre-processing 
-    scalerPath = f"{model_path}/st_scaler.pkl"
-    transformerPath = f"{model_path}/powerTransformer.pkl"
-    columns_to_drop = ['entry', id_var,'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
+    # scalerPath = f"{model_path}/st_scaler.pkl"
+    # transformerPath = f"{model_path}/powerTransformer.pkl"
+    # columns_to_drop = ['entry', id_var,'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
+    columns_to_drop = ['entry', id_var,'B_Tr_T_Charge', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
     pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path= os.path.dirname(cfg.taggedData), flag='label', name=f'training_inputFeatures')
 
     #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset = inputDataset(df=test_df[features+['label']])
-    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    # test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     print('Adding tagging decision')
@@ -143,21 +153,22 @@ if __name__ == '__main__':
     test_df[f'{cfg.tagger}_Eta'] = 1 - bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
 
     # Assign tagging decision = 0 for tracks that don't pass the pre-selection
-    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
-    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
+    # test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
+    # test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
     
     # Eta Normalization [0, 0.5]
-    test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
-    test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
-    test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
+    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
+    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
+    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
 
     # Take only tagging track with best mistag
-    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry', 'RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
+    # df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry', 'RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
+    df_TagParticles = test_df.query('selected==1')
     plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, plotPath=f'{os.path.dirname(cfg.taggedData)}')
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
-    save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
+    save_vars = ['entry', 'selected', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
     if cfg.data_calib:
         save_vars += ["FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
         if "Jpsi" in cfg.decayType:
@@ -170,7 +181,7 @@ if __name__ == '__main__':
         if cfg.signal_weights: 
             save_vars += ["signal_weights", "reweighter_weights"]
     with uproot.recreate(f"{cfg.taggedData}") as file:
-        file["DecayTree"] = df_TagParticles[save_vars]
+        file["DecayTree"] = df_TagParticles[save_vars].query('selected==1')
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
         
     print(f'File created at {cfg.taggedData}')

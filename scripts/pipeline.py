@@ -20,6 +20,11 @@ from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 import utils
+
+# Scaler and PowerTransformer implemented in pyTorch
+from preprocessing import fit_freeze_preprocessing
+
+
 '''
 For testing purposes:
 python scripts/pipeline.py --selected NTuple_test_<tagger>.root --tagger <tagger> --decayType <decayType> where NTuple_test_tagger.root is whatever NTuple with this name
@@ -186,9 +191,11 @@ if __name__ == '__main__':
     #train_df.drop(columns = columns_to_drop, inplace = True)
     #val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=config['train_batch_size'], seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath)
+    # Added Scaler and PowerTransformer as pyTorch layers
+    preprocess_module = fit_freeze_preprocessing(train_dl)
     if cfg.config!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
-    model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)
+    model = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
@@ -228,7 +235,7 @@ if __name__ == '__main__':
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     test_df_sel1 = test_df.query('selected==1').copy()
     test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
-    test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    # test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
     print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
@@ -247,7 +254,7 @@ if __name__ == '__main__':
     
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
-    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    # test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     #test_df[f"{cfg.tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
