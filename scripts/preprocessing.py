@@ -4,49 +4,60 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler, PowerTransformer
 from torch.utils.data import DataLoader
 
+import torch
+import torch.nn as nn
+
 class StandardScalerLayer(nn.Module):
     """
     A PyTorch layer that mimics sklearn's StandardScaler with frozen mean & scale.
+    Works with any input shape, scaling along the last dimension.
     """
     def __init__(self, mean, scale):
         super().__init__()
-        self.register_buffer("mean", torch.tensor(mean, dtype=torch.float32))
-        self.register_buffer("scale", torch.tensor(scale, dtype=torch.float32))
+        mean = torch.as_tensor(mean, dtype=torch.float32)
+        scale = torch.as_tensor(scale, dtype=torch.float32)
+        self.register_buffer("mean", mean)
+        self.register_buffer("scale", scale)
 
     def forward(self, x):
-        return (x - self.mean) / self.scale
+        # ensure broadcasting only along the last dimension
+        return (x - self.mean.view((1,) * (x.ndim - 1) + (-1,))) / \
+               self.scale.view((1,) * (x.ndim - 1) + (-1,))
 
 
 class PowerTransformerLayer(nn.Module):
     """
     A PyTorch layer that mimics sklearn's PowerTransformer with frozen lambdas.
-    Only implements the Yeo-Johnson method.
+    Yeo-Johnson only. Batch-safe for any input shape (..., features).
     """
-
     def __init__(self, lambdas):
         super().__init__()
-        lambdas = torch.tensor(lambdas, dtype=torch.float32)
+        lambdas = torch.as_tensor(lambdas, dtype=torch.float32)
         self.register_buffer("lambdas", lambdas)
+
     def forward(self, x):
-        out = torch.empty_like(x)
-        n_features = x.shape[1]
+        # reshape lambdas for broadcasting to last dim
+        lam_shape = (1,) * (x.ndim - 1) + (-1,)
+        lambdas = self.lambdas.view(lam_shape)
 
-        for j in range(n_features):
-            lam = self.lambdas[j]
-            col = x[:, j]
-            pos = col >= 0
+        col_is_pos = x >= 0
 
-            if lam != 0:
-                out[pos, j] = ((col[pos] + 1).pow(lam) - 1) / lam
-            else:
-                out[pos, j] = torch.log(col[pos] + 1)
+        # positive branch
+        pos_out = torch.where(
+            lambdas != 0,
+            ((x + 1).pow(lambdas) - 1) / lambdas,
+            torch.log(x + 1)
+        )
 
-            if lam != 2:
-                out[~pos, j] = -(((-col[~pos] + 1).pow(2 - lam) - 1) / (2 - lam))
-            else:
-                out[~pos, j] = -torch.log(-col[~pos] + 1)
+        # negative branch
+        neg_out = torch.where(
+            lambdas != 2,
+            -(((-x + 1).pow(2 - lambdas) - 1) / (2 - lambdas)),
+            -torch.log(-x + 1)
+        )
 
-        return out
+        # combine
+        return torch.where(col_is_pos, pos_out, neg_out)
 
 def fit_freeze_preprocessing(train_dl):
     """

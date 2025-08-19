@@ -61,7 +61,8 @@ if __name__ == '__main__':
     pprint(cfg)
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
+    # loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
+    loading_variables = features + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
     if cfg.data_calib: 
         loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
         if cfg.signal_weights: 
@@ -168,7 +169,8 @@ if __name__ == '__main__':
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
-    save_vars = ['entry', 'selected', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
+    # save_vars = ['entry', 'selected', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
+    save_vars = ['entry', 'selected', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]
     if cfg.data_calib:
         save_vars += ["FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
         if "Jpsi" in cfg.decayType:
