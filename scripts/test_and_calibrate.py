@@ -66,7 +66,7 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     print(f'Testing started on {start.strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
     # Load YAML configuration file
     with open(f'{config}', 'r') as file:
-        config = yaml.safe_load(file)
+        config_dict = yaml.safe_load(file)
 
 
     # Path to where the scaler parameters will be saved
@@ -81,10 +81,9 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     test_df.sample(frac=1, random_state=cfg.seed).reset_index(drop=True)
 
     #Load model
-    bestModel = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo)
+    bestModel = NeuralNetwork(features=features, architecture=get_architecture(config_dict), seed=seed, optimizer_kwargs={"lr" : config_dict['learning_rate']}, repo_path=repo)
     
     
-    print(type(bestModel))
     if not domain_adapted:
         pyTrain.load_model(model=bestModel, target_path=model_path)
     else:
@@ -110,21 +109,8 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
 
-    # test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
-    # test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    # test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
-    #test_df[f"{tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-
-    # if not domain_adapted:
     test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)#[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values   
-    # else:
-    #     pred, true = bestModel.evaluate_model(test_dl)
-    #     test_df['yPred'] = pred[:,0]
-    #     test_df['dPred'] = pred[:,1] #Domain Pred
-    #     test_df['yTrue'] = true[:,0]
-    #     test_df['dTrue'] = true[:,1] #Domain true
-
-        # del pred, true
+    
 
     test_df[f"{tagger}_Eta"] = 1 - test_df['yPred']
     # test_df = test_df[['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID]]
@@ -137,9 +123,6 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
     
     pyTrain.plot_ROC(tagger=tagger, val_df=test_df[test_df['selected'] == 1], target_path =target_path)
-    # if domain_adapted:
-    #     pyTrain.plot_ROC(tagger=tagger, val_df=test_df[test_df['selected'] == 1], target_path =target_path, 
-    #                      trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_')
     
 
     plt.figure()
@@ -150,24 +133,9 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     plt.hist(test_df[test_df['selected'] == 1]['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 1")
     plt.savefig(f"{target_path}/testSet_prob1distrib.pdf")
-    # if domain_adapted:
-    #     plt.figure()
-    #     plt.hist(1-test_df[test_df['selected'] == 1]['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
-    #     plt.title(r"Training set: Probability of label 0, only selected")
-    #     plt.yscale("log")
-    #     plt.savefig(f"{target_path}/domain_trainingSet_prob0distrib.pdf")
-    #     plt.figure()
-    #     plt.hist(test_df[test_df['selected'] == 1]['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
-    #     plt.title(r"Training set: Probability of label 1, only selected")
-    #     plt.yscale("log")
-    #     plt.savefig(f"{target_path}/domain_trainingSet_prob1distrib.pdf")
 
 
     pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Test', BID = BID)
-    # if domain_adapted:
-    #     pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Training', show_trueB=False, BID = BID, 
-    #                         trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_', correct_legend= "Domain 0", wrong_legend= "Domain 1")
-    
 
 
     
@@ -212,6 +180,9 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     
     # Try both calibration functions
     logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', BID = BID, weights=sweights_TagParticles)
+
+    # Try both calibration functions
+    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='rlogit', BID = BID, weights=sweights_TagParticles)
 
     end = datetime.datetime.now()
     print(f'testing ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
