@@ -6,6 +6,8 @@ import uproot
 import numpy as np
 from IPython import embed
 
+""" python data_calibration/data_calib.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton  --decayType Bd2JpsiKst --run2 --combinationName 'Bd2JpsiKst OS+SS, data'  --cut allBKGCAT_notSamePV_noOSP_SSK 
+"""
 def setup_time_vars(time_unit, decay_time_branches, data, dm):
     data["time"] = data[decay_time_branches[0]]
    #data["time_err"] = data[decay_time_branches[1]]
@@ -148,7 +150,7 @@ if __name__ == '__main__':
         tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
         ## And calibrate this tagger again
         tagger_combination.calibrate()
-        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=10)
+        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=20)
         ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}', nbins=20)
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}')
         print(f'{run} combination created at {outputPath}')

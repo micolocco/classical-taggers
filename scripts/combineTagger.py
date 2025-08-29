@@ -146,8 +146,8 @@ if __name__ == '__main__':
     for run in runs:
         os.makedirs(f'{outputPath}/{run}', exist_ok=True)
         taggers = ft.TaggerCollection()
-        for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
-        #for tagger in cfg.tagger:
+       # for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
+        for tagger in cfg.tagger:
            # Adjust name columns
             if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
                 eta_column = f'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
@@ -177,7 +177,8 @@ if __name__ == '__main__':
                                 dec_data = df[tagDec_column].tolist(), 
                                 B_ID =df[B_ID_var].tolist(), 
                                 mode = mode,
-                                weight=df["reweighter_weights"]. to_numpy().astype(np.float64), 
+                                #weight=df["reweighter_weights"]. to_numpy().astype(np.float64),
+                                weight=df["signal_weights"]. to_numpy().astype(np.float64), 
                                 tau_ps=df["time"].to_numpy().astype(np.float64),)
 
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
