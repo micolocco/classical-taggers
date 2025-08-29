@@ -60,6 +60,91 @@ def read_files_reduce_unselected(files, vars, treename, seed):
 
     return df
 
+def study_eta_omega_dist(df, split_by, prefix, target_path, tagger, data_type):
+    bins = pyTrain.bins_by_yield(etas=df[f"{tagger}_Eta"].to_numpy(), weights=None, nbins= 100)
+    
+    #Remove any duplicate bin edges. May happen with very strong bunching around eta = 0.5
+    bins = np.unique(bins)
+
+
+    print(bins)
+    plt.figure(figsize=(10, 6))
+
+    if len(bins) > 2: #If there is only one or no bin the tagger is especially bad and does not need to be considered
+        bin_contents = {}
+        for split in np.unique(df[split_by]):
+            
+
+            bin_eta_means = []
+            bin_eta_devs = []
+            bin_omega_means = []
+            bin_omega_devs = []
+            for lower ,upper  in zip(bins[:-1], bins[1:]):
+                mistags = 1-df.loc[(df[f"{tagger}_Eta"] > lower) & (df[f"{tagger}_Eta"] <= upper) & (df[split_by] == split), 'label'         ].to_numpy()
+                etas =    df.loc[(df[f"{tagger}_Eta"] > lower) & (df[f"{tagger}_Eta"] <= upper) & (df[split_by] == split), f"{tagger}_Eta" ].to_numpy()
+                if data_type == 'Data':
+                    weights = df.loc[(df[f"{tagger}_Eta"] > lower) & (df[f"{tagger}_Eta"] <= upper) & (df[split_by] == split), "signal_weights"].to_numpy()
+                else:
+                    weights = np.ones_like(etas)
+
+                    
+
+
+                if np.sum(weights) != 0:
+                    omega_mean = np.average(mistags, weights=weights)
+                    omega_std_dev = np.sqrt(omega_mean*(1-omega_mean)/np.sum(weights))
+
+                    eta_mean = np.average(etas, weights=weights)
+                    eta_std_dev = np.sqrt(np.average((etas - eta_mean)**2, weights=weights))
+                else:
+                    omega_mean = np.nan
+                    omega_std_dev = np.nan
+                    eta_mean = np.nan
+                    eta_std_dev = np.nan
+
+                bin_omega_means.append(omega_mean)
+                bin_omega_devs.append(omega_std_dev)
+                bin_eta_means.append(eta_mean)
+                bin_eta_devs.append(eta_std_dev)
+
+            # prefix = 'B_' if split > 0 else 'Bbar_'
+            bin_contents[f'{split}_eta_means'] =       bin_eta_means
+            bin_contents[f'{split}_eta_means_unc'] =   bin_eta_devs
+            bin_contents[f'{split}_omega_means'] =     bin_omega_means
+            bin_contents[f'{split}_omega_means_unc'] = bin_omega_devs
+
+
+
+            plt.errorbar(x=bin_eta_means, y=bin_omega_means, xerr=bin_eta_devs, yerr=bin_omega_devs, fmt='o', label=f'{split_by} {split}')
+
+            # bin_omega_means = np.array(bin_omega_means)
+            # bin_omega_devs = np.array(bin_omega_devs)
+
+            # #Calculate increase per bin and uncertainty of it
+            # increases = bin_omega_means[1:] - bin_omega_means[:-1]
+            # increases_unc = np.sqrt(bin_omega_devs[1:]**2 + bin_omega_devs[:-1]**2)
+
+            # bin_increases_by_id[str(split)] = increases
+            # bin_increases_by_id[str(split) + '_unc'] = increases_unc
+        
+            # print(f'increases of {split_by}: {increases} +/- {increases_unc}')
+
+        plt.legend()
+        plt.xlabel(r'Predicted mistag $\eta$')
+        plt.ylabel(r'Measured mistag $\omega$')
+        plt.tight_layout()
+        plt.savefig(f"{target_path}/{prefix}_eta_omega_bins.pdf")
+        plt.clf()
+    else: #If there are only one or no bins give out nan as the increases
+        labels = ['B_eta_means',    'B_eta_means_unc',    'B_omega_means',    'B_omega_means_unc',
+                  'Bbar_eta_means', 'Bbar_eta_means_unc', 'Bbar_omega_means', 'Bbar_omega_means_unc']
+        bin_contents =  {str(split): np.nan for split in labels}
+
+    #dump bin_increases_by_id in yaml file. Later used to reject taggers where omega does not strictly rise with eta
+    with open(f"{target_path}/{prefix}_eta_omega_bins.pkl", "wb") as f:
+        pickle.dump(bin_contents, f)
+
+
 def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, features, config,
                      decay_type, seed, repo, data_type, model_path, domain_adapted=False):
     start = datetime.datetime.now()
@@ -160,6 +245,24 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
     if data_type == 'Data':
         test_df['signal_weights'] = sweights
+
+
+    # Check if measured mistag is stricly rising depending on predicted mistag -> only then a good tagger
+
+    study_eta_omega_dist(test_df, BID               , f'{BID}_allTracks_'  , target_path, tagger, data_type)
+    study_eta_omega_dist(test_df, f"{tagger}_TagDec", f'Tag_dec_allTracks_', target_path, tagger, data_type)
+    study_eta_omega_dist(test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), BID               , f'{BID}_bestTracks_'  , target_path, tagger, data_type)
+    study_eta_omega_dist(test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), f"{tagger}_TagDec", f'Tag_dec_bestTracks_', target_path, tagger, data_type)
+    def sample_with_equal_trackCharge_chances(group):
+        # pick a tag_dec uniformly among unique ones
+        chosen_tag = np.random.choice(group[f"{tagger}_Eta"].unique())
+        # now pick one row uniformly from that tag_dec subset
+        return group[group[f"{tagger}_Eta"] == chosen_tag].sample(n=1)
+
+    study_eta_omega_dist(test_df.groupby("event_entry", group_keys=False).apply(sample_with_equal_trackCharge_chances), BID               , f'{BID}_randTracks_'  , target_path, tagger, data_type)
+    study_eta_omega_dist(test_df.groupby("event_entry", group_keys=False).apply(sample_with_equal_trackCharge_chances), f"{tagger}_TagDec", f'Tag_dec_randTracks_', target_path, tagger, data_type)
+
+    
     
 
     df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
@@ -167,14 +270,18 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     
     if data_type == 'Data':
         sweights_TagParticles = df_TagParticles['signal_weights'].to_numpy().astype(np.float64)
-        df_TagParticles.drop(columns = ['signal_weights'], inplace = True)
     else:
         sweights_TagParticles = None
     #df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
     
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating", flush = True)
     pyTrain.plot_tagDec(tagger =tagger, df_TagParticles=df_TagParticles,  plot_name=f'{target_path}/Normalized_TagDec.pdf')
+
+
     
+    
+
+
     # Calibrating the tagger and saving parameters
     mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, BID = BID, weights=sweights_TagParticles)
     
@@ -237,6 +344,8 @@ if __name__ == '__main__':
     print(f"Reading a total of {len(cfg.testing_data)} files.", flush=True)
     test_df = read_files_reduce_unselected(cfg.testing_data, vars = vars, treename=cfg.treename, seed=cfg.seed)
     print(f'Reading of test files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush = True)
+
+
 
 
     print(f'Number of Tracks in test set: {test_df.shape[0]}', flush = True)
