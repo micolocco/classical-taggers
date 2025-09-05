@@ -18,7 +18,7 @@ import yaml
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
-matplotlib_lhcb_style(plt)
+#matplotlib_lhcb_style(plt)
 import utils
 
 # Scaler and PowerTransformer implemented in pyTorch
@@ -199,7 +199,7 @@ if __name__ == '__main__':
         if cfg.only_plot:
             sys.exit(0)
 
-    model = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)
+    model = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)   
     print(f"\nThe NN architecture is: \n{model}\n")
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)

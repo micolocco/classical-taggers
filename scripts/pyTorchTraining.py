@@ -16,7 +16,7 @@ import scripts.pipeline
 from scripts.NNModel import EarlyStopper
 from scripts.inputDataset import inputDataset
 from scripts import ranges, nice_names, matplotlib_lhcb_style
-matplotlib_lhcb_style(plt)
+#matplotlib_lhcb_style(plt)
 import yaml
 
 
