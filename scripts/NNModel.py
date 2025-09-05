@@ -9,11 +9,12 @@ import yaml
 
 class NeuralNetwork(nn.Module):
 
-    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(), repo_path=""): 
+    def __init__(self, features, architecture, preprocess=None, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, loss=nn.BCELoss(), repo_path=""):
         super().__init__()
         torch.manual_seed(seed) # needed to be sure the result is reproducible
         self.features = features
         self.criterion = loss
+        self.preprocess = preprocess  # this is the new preprocessing module
         self.NN = self.create_network(architecture, repo_path=repo_path)
         self.optimizer = optimizer(self.parameters(), **optimizer_kwargs)
        # self.train_batch_size = train_batch_size
@@ -32,7 +33,9 @@ class NeuralNetwork(nn.Module):
             layers.append(layer_class(**layer_params))
         return nn.Sequential(*layers)
 
-    def forward(self, x): # from the input tensor x it gives the output tensor of the NN
+    def forward(self, x):
+        if self.preprocess is not None:
+            x = self.preprocess(x)  # apply frozen scaling/transform
         return self.NN(x)
 
     def __str__(self):

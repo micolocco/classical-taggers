@@ -79,9 +79,9 @@ def splitByEvent (df, seed, train_val_split):
 def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size, seed, test_batch_size = 1024):
     # Load the dataset
     train_dataset = inputDataset(df=train_df) #scaler=PowerTransformer() 
-    train_dataset.scale(test=False, scalerPath=scalerPath, transformerPath=transformerPath)
+    # train_dataset.scale(test=False, scalerPath=scalerPath, transformerPath=transformerPath)
     val_dataset = inputDataset(df=val_df)
-    val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    # val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # Prepare data loaders
     #torch.manual_seed(seed) # to ensure reproducibility
     train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False)
@@ -170,7 +170,8 @@ def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, confi
 
 def save_model(model, target_path):
     # target_path = name_formatter.assign_name(folder, target_path)
-    torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/model.pth")
+    # torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/model.pth")
+    torch.save(copy.deepcopy(model), f"{target_path}/model.pth")
     #save_hyperparameters(model, target_path)
 
 def save_hyperparameters(model, target_path):
