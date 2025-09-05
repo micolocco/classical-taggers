@@ -196,14 +196,10 @@ if __name__ == '__main__':
     preprocess_module = fit_freeze_preprocessing(train_dl)
     if cfg.config!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
-<<<<<<< HEAD
         if cfg.only_plot:
             sys.exit(0)
 
-    model = NeuralNetwork(features=features, architecture=config['architecture'], seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)
-=======
     model = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)
->>>>>>> e3c15c3 (WIP, sorry for this very much WIP commit, no idea how many days I still have to work on it. I implemented the scaling and power transformers as additional layers of the NN, that was also tested and the trained seemed pretty ok. The majority of the work needed now is on adding the tagging decision. I removed for testing purpose the 1-tagDec if mistag > 0.5 option, as I haven't implemented in DV yet, and I am saving the mistag for all the tagging tracks, again to compare it with DV)
     print(f"\nThe NN architecture is: \n{model}\n")
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
