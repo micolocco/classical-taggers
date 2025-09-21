@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
-    if ("Bd" or "Bs" or "Bu" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
+    if ("Bd" in cfg.decayType or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
         test_df[f"{cfg.tagger}_TagDec"] = test_df[f"B_Tr_T_Charge"]
     else:
         test_df[f"{cfg.tagger}_TagDec"] = test_df[f"B_Tr_T_Charge"] * (-1)
