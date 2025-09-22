@@ -9,7 +9,6 @@ import os
 import argparse
 from pprint import pprint
 import lhcb_ftcalib as ft
-import lhcb_ftcalib.constants as calib_const
 import datetime
 import glob
 # Local import
@@ -154,15 +153,10 @@ if __name__ == '__main__':
             df_calib= df[df[B_ID_var]>0]
             embed()
             # Override the default
-            calib_const.ignore_mistag_asymmetry_for_apply = False #Set to False to consider the asymmetry in the mistag
         elif (species=='Bm') | (species=='B0bar') | (species=='B0sbar'):
             df_calib= df[df[B_ID_var]<0]
-            # Override the default
-            calib_const.ignore_mistag_asymmetry_for_apply = False       
         else:
             df_calib= df
-            # Override the default
-            calib_const.ignore_mistag_asymmetry_for_apply = False #Set to True to ignore the asymmetry in the mistag
 
         print(f'Calibrating species: {species}, with {df_calib.shape[0]} events')
         for run in runs:
