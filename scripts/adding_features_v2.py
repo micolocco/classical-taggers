@@ -285,7 +285,12 @@ def main():
         df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
 
 
+    if not cfg.data_calib: df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
+
     df.columns = df.columns.str.replace(f'{prefix}', 'B_', regex=False)
+    if cfg.data_calib:
+        # Equivalent for data of Origin_Flag != 0
+        df = df[df['B_Tr_T_IsInTree'] != 1]
     print(f'Total shape should be {df.shape[0]}')
 
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
