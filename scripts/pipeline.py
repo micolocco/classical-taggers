@@ -70,14 +70,14 @@ def stats_printout(df, tagger, decayType, train_df, val_df, test_df):
         ID=511
     if decayType[:2]=='Bs':
         ID=531
-    B_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==-ID)].shape[0]
-    antiB_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==ID)].shape[0]
-    B_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==-ID)].shape[0]
-    antiB_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==ID)].shape[0]
-    B_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==-ID)].shape[0]
-    antiB_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==ID)].shape[0]
-    B_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==-ID)].shape[0]
-    antiB_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==ID)].shape[0]
+    B_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==ID)].shape[0]
+    antiB_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==-ID)].shape[0]
+    B_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==ID)].shape[0]
+    antiB_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==-ID)].shape[0]
+    B_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==ID)].shape[0]
+    antiB_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==-ID)].shape[0]
+    B_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==ID)].shape[0]
+    antiB_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==-ID)].shape[0]
     table = Table(show_header=True)
     table.add_column("", justify="left")
     table.add_column("l=1, B", justify="left", style='cyan', overflow="fold")
@@ -198,6 +198,7 @@ if __name__ == '__main__':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
         if cfg.only_plot:
             sys.exit(0)
+    pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
 
     model = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)   
     print(f"\nThe NN architecture is: \n{model}\n")

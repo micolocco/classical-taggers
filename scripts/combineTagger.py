@@ -146,13 +146,8 @@ if __name__ == '__main__':
     for run in runs:
         os.makedirs(f'{outputPath}/{run}', exist_ok=True)
         taggers = ft.TaggerCollection()
-<<<<<<< HEAD
-       # for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
-        for tagger in cfg.tagger:
-=======
         for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
         #for tagger in cfg.tagger:
->>>>>>> 281b2fd (adjusting for producing plots)
            # Adjust name columns
             if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
                 eta_column = f'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
@@ -195,6 +190,9 @@ if __name__ == '__main__':
         tagger_combination.calibrate()
         taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=10)
         ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}')
+        os.makedirs(f'{outputPath}/{run}/splitted', exist_ok=True)
+        ft.plotting.draw_split_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}/splitted')
+
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}')
         print(f'{run} combination created at {outputPath}')
 

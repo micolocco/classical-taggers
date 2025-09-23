@@ -10,13 +10,14 @@ from sklearn.linear_model import LogisticRegression
 import pickle
 from scipy.special import expit
 import json
+import pandas as pd
 import scripts.pipeline
 
 # Local imports
 from scripts.NNModel import EarlyStopper
 from scripts.inputDataset import inputDataset
 from scripts import ranges, nice_names, matplotlib_lhcb_style
-#matplotlib_lhcb_style(plt)
+matplotlib_lhcb_style(plt)
 import yaml
 
 
@@ -62,19 +63,80 @@ def get_features(tagger, yaml_file, repo_path):
 #     return features
 
 
-def splitByEvent (df, seed, train_val_split):
-    '''Function to random split by events (not by index) the dataset into training and test set
-    Use random.Random(2) to reproduce same shuffling''' 
+#def splitByEvent (df, seed, train_val_split):
+#    '''Function to random split by events (not by index) the dataset into training and test set
+#    Use random.Random(2) to reproduce same shuffling''' 
+#    import random
+#    events_list = np.unique(df.event_entry)
+#    random.Random(3).shuffle(events_list) # cfg.seed
+#    n_train_val = int(train_val_split*len(events_list)) # Divide
+#    n_train = int(0.8 * n_train_val)
+#    train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
+#    val_df = df[df.event_entry.isin(events_list[n_train:n_train_val])].copy()
+#    test_df = df[df.event_entry.isin(events_list[n_train_val:])].copy()
+#    return train_df.query('selected==1'), val_df.query('selected==1'), test_df
+
+
+def _balance_four_bins(df, random_state=42):
+    """
+    Downsample df so that the four categories have equal counts:
+      (TRUEID<0 & label=0), (TRUEID>0 & label=0),
+      (TRUEID<0 & label=1), (TRUEID>0 & label=1)
+    Returns a shuffled, balanced dataframe.
+    """
+    # Build category key
+    g = pd.Series(np.where(df["B_TRUEID"] > 0, "pos", "neg"), index=df.index) + "_" + df["label"].astype(int).astype(str)
+
+    # Ensure all four categories exist
+    needed = {"neg_0", "pos_0", "neg_1", "pos_1"}
+    present = set(g.unique())
+    missing = needed - present
+    if missing:
+        raise ValueError(f"Cannot balance: missing categories in this split: {sorted(missing)}")
+
+    # Target = smallest group size
+    sizes = g.value_counts()
+    k = int(sizes.min())
+
+    # Sample k from each category
+    parts = []
+    rng = np.random.RandomState(random_state)
+    for key in ["neg_0", "pos_0", "neg_1", "pos_1"]:
+        idx = g[g == key].index
+        pick = rng.choice(idx, size=k, replace=False)
+        parts.append(df.loc[pick])
+
+    balanced = pd.concat(parts).sample(frac=1.0, random_state=random_state)  # shuffle
+    return balanced
+
+def splitByEvent(df, seed, train_val_split):
+    """
+    Random split by events into train/val/test, then balance train/val so each has
+    equal counts across the four categories defined by TRUEID sign and label.
+    """
     import random
+    seed=3 # for reproducibility
+    # Split by event
     events_list = np.unique(df.event_entry)
-    random.Random(3).shuffle(events_list) # cfg.seed
-    n_train_val = int(train_val_split*len(events_list)) # Divide
+    random.Random(seed).shuffle(events_list)
+
+    n_train_val = int(train_val_split * len(events_list))
     n_train = int(0.8 * n_train_val)
+
     train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
-    val_df = df[df.event_entry.isin(events_list[n_train:n_train_val])].copy()
-    test_df = df[df.event_entry.isin(events_list[n_train_val:])].copy()
-    return train_df.query('selected==1'), val_df.query('selected==1'), test_df
-    
+    val_df   = df[df.event_entry.isin(events_list[n_train:n_train_val])].copy()
+    test_df  = df[df.event_entry.isin(events_list[n_train_val:])].copy()
+
+    # Apply your selected==1 filter for train/val (keep test as-is like you had)
+    train_sel = train_df.query('selected==1').copy()
+    val_sel   = val_df.query('selected==1').copy()
+
+    # Balance inside each split (downsample to the smallest bin)
+    train_bal = _balance_four_bins(train_sel, random_state=seed)
+    val_bal   = _balance_four_bins(val_sel,   random_state=seed)
+
+    return train_bal, val_bal, test_df
+
 
 def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size, seed, test_batch_size = 1024):
     # Load the dataset
@@ -364,14 +426,18 @@ def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins
     plt.close()
 
 
-def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag'):
+def calibration(tagger, df_tag, eventType, target_path, B_ID= 'B_TRUEID',calibration_option='mistag', nbins=10, weights=None):
 
     #Calibration of the taggers and parameters saving
     import lhcb_ftcalib as ft
 
     taggers = ft.TaggerCollection()
+    # Define array of 1 is there are no weights (sweights on data)
+    if weights is None:
+        weights = np.ones(len(df_tag))
+
     
-    taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), B_ID = df_tag.B_TRUEID.tolist(),mode = 'Bu' ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
+    taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), B_ID = df_tag[B_ID].tolist(),mode = 'Bu', weight=weights ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
     
     if calibration_option=='logit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
@@ -386,8 +452,28 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     if os.path.isdir(f'{target_path}') == False:
         os.system(f"mkdir {target_path}")
 
-    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins=10)
-   
+    
+    taggers.calibrate()
+    # Plotting of calibration curves
+    scale = (lambda x: x**4, lambda x: x**1/4)
+    scale = "linear"
+    #distribute the bins such that each bin has the same yield, aka the same sum of weights
+    # bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
+    # print(bins)
+    # if any(bins[:-1] == bins[1:]):
+    #     print("Warning: Bins are not unique, using linspace instead.")
+    #     bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
+
+    class_indices = df_tag[B_ID].values
+    class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: '$\overline{B}^0$', 531: '$B_s^0$', -531: '$\overline{B}_s^0$'}
+
+    taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+                                            file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
+                                            nbins = nbins, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
+
+    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
+
+
     info_dict = {"TaggingEfficiency" : taggers[tagger].stats.tagging_efficiency(calibrated = False),
     "TaggingPower" : taggers[tagger].stats.tagging_power(calibrated = False) ,
     "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True), "TaggingPower_Cali" : taggers[tagger].stats.tagging_power(calibrated = True),
