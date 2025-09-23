@@ -81,23 +81,6 @@ class KFoldBDT:
         
         return train_losses, val_losses
     
-    # def predict_proba(self, X, indices):
-    #     proba = []
-
-    #     for idx, x in zip(indices, X):
-
-    #         valid_classifiers = [
-    #             i for i in range(self.n_folds) if idx not in self.cls_trained_on[i]
-    #         ]
-
-    #         if not valid_classifiers:
-    #             raise ValueError(f"No classifiers for sample {idx}. It was used in the training of all classifiers. Index might not be unique.")
-
-    #         # Get predictions from the classifiers that did not see this sample
-    #         sample_probs = [self.classifiers[i].predict_proba([x])[:, 1] for i in valid_classifiers]
-    #         proba.append(np.mean(sample_probs))
-
-    #     return np.array(proba)
 
     def predict_proba(self, X, indices):
         index_to_pos = {idx: i for i, idx in enumerate(indices)}
@@ -170,7 +153,7 @@ def read_files(files, vars, treename, only_upper, massname):
 def plot_by_label(df, massname, outpath, filename, xlim=(5200, 5600), bins = 40):
     bins = np.linspace(xlim[0], xlim[1], bins+1)
 
-    texify_dict = {'B_DTF_PV_Jpsi_MASS' : r'$m(J/\psi K^{\pm}$'}
+    texify_dict = {'B_DTF_PV_Jpsi_MASS' : r'$m(J/\psi K^{\pm})$'}
 
     plt.figure(figsize=(8, 6))
     for label, group in df.groupby('label'):
@@ -256,8 +239,6 @@ if __name__ == '__main__':
     print(f'Training ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     
-    # X = X[10000:20000]
-    # y = y[10000:20000]
 
     y_pred = model.predict_proba(X, indices)#[:,1]
     print(f'Predicting ends {datetime.datetime.now().strftime("%H:%M:%S")}')
@@ -294,7 +275,6 @@ if __name__ == '__main__':
     plt.savefig(os.path.join(cfg.target_path, 'loss_curve.pdf'))
     plt.close()
 
-    # dmatrix_all = xgb.DMatrix(df.drop(columns=[cfg.massname, 'label', 'event_entry']))
     # Find BDT cut value that reduces label 1 count by 5%
 
     

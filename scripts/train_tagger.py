@@ -602,6 +602,11 @@ if __name__ == '__main__':
     if cfg.data_type == 'domain_adapted':
         vars = vars + ['domain']
 
+    #Test if weird asymmetric behavior is due to tracks not being properly selected, i.e. Electrons that don't come from b-hadron decays
+    # if cfg.data_type == 'MC':
+    #     vars += ['B_Tr_T_Origin_Flag']
+        # vars += ['B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
+
     print(vars)
 
 
@@ -618,6 +623,25 @@ if __name__ == '__main__':
     # val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, augmentation=False, reduce = False, weight_label=None)
     val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label, balance_data = cfg.balance_dataset)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+    
+
+    # if cfg.data_type == 'MC':
+    #     train_df = train_df.loc[train_df.B_Tr_T_Origin_Flag > 1] 
+    #     train_df = train_df.loc[train_df.B_Tr_T_Origin_Flag < 5] 
+
+    #     val_df = val_df.loc[val_df.B_Tr_T_Origin_Flag > 1] 
+    #     val_df = val_df.loc[val_df.B_Tr_T_Origin_Flag < 5] 
+    #     train_df.drop(columns=['B_Tr_T_Origin_Flag'], inplace=True)
+    #     val_df.drop(columns=['B_Tr_T_Origin_Flag'], inplace=True)
+
+
+        # mask = train_df[['B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']].abs().apply(lambda x: (x == 5) | x.between(500, 600) | x.between(5000, 6000)).any(axis=1)
+        # train_df = train_df[mask]
+        # mask = val_df[['B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']].abs().apply(lambda x: (x == 5) | x.between(500, 600) | x.between(5000, 6000)).any(axis=1)
+        # val_df = val_df[mask]
+        # train_df.drop(columns=['B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID'], inplace=True)
+        # val_df.drop(columns=['B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID'], inplace=True)
+
 
     print(train_df.shape, flush=True)
     print(val_df.shape, flush=True)

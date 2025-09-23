@@ -99,6 +99,8 @@ if __name__ == '__main__':
         loading_variables = [v.replace("END_V", "ENDV_") for v in loading_variables]
         loading_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber"]
         loading_variables += ['signal_weights', 'background_weights', 'pdf_ratio', 'BID_signal_weights', 'BID_background_weights']
+    else:
+        loading_variables += ['B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
 
 
     loading_variables += ["B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]

@@ -28,9 +28,9 @@ from scripts.train_BDT import KFoldBDT
 import pickle
 
 
-def get_tex_decay(decay):
+def get_tex_decay(decay , charge = r'\pm'):
     if "Bu2JpsiK" == decay:
-        tex_decay = r"$B^{\pm} \to J/\psi K^{\pm}$"
+        tex_decay = r"$B^{%s} \to J/\psi K^{%s}$" % (charge, charge)
     if "Bd2JpsiKst" == decay:
         tex_decay = r"$B^{0} \to J/\psi K^*$"
     return tex_decay
@@ -38,7 +38,7 @@ def get_tex_decay(decay):
 # def get_mc_names(bdt_features):
 
 
-def massfit(obs, masses, tex_decay, outname, sim_fit, data_fit, filename, df, compute_weights, generate_figures, obs_name, prefix=''):
+def massfit(obs, masses, tex_decay, outname, sim_fit, data_fit, filename, df, compute_weights, generate_figures, obs_name, prefix='', charge = r'\pm'):
 
     with open(sim_fit) as f:
         _pars = json.load(f)
@@ -152,7 +152,7 @@ def massfit(obs, masses, tex_decay, outname, sim_fit, data_fit, filename, df, co
         bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])  
         errors = np.sqrt(counts)
         lab = "Data"
-        ax1.errorbar(bin_centers, counts, yerr=errors, fmt='o', color='black', label=lab, markersize=1, elinewidth=1.0)
+        ax1.errorbar(bin_centers, counts, yerr=errors, fmt='o', color='black', label=lab, markersize=3, elinewidth=1.0, capsize=3, capthick=1.0)
 
         # Compute fit curve
 
@@ -161,7 +161,7 @@ def massfit(obs, masses, tex_decay, outname, sim_fit, data_fit, filename, df, co
 
 
 
-        ylabel = f"Events$~/~${binwidth}" + r"$[~\mathrm{MeV}/c^2]$"
+        ylabel = f"Candidates$~/~${binwidth}" + r"$~\mathrm{MeV}\!/c^2$"
         ax1.set_ylabel(ylabel)
         ax1.set_yscale('log')
         ax1.legend()
@@ -170,9 +170,9 @@ def massfit(obs, masses, tex_decay, outname, sim_fit, data_fit, filename, df, co
 
 
         if "Bu2JpsiK" in cfg.decayType:
-            xlabel = r"$ m(J/ψK^{\pm})~[\mathrm{MeV}/c^2]$"
+            xlabel = r"$ m(J/\psi K^{%s})~[\mathrm{MeV}/c^2]$" % charge
         elif "Bd2JpsiKst" in cfg.decayType:
-            xlabel = r"$ m(J/ψK^{*})~[\mathrm{MeV}/c^2]$"
+            xlabel = r"$ m(J/\psi K^{*})~[\mathrm{MeV}/c^2]$"
         else:
             raise ValueError(f"Unknown decay type: {cfg.decayType}")
 
@@ -182,7 +182,7 @@ def massfit(obs, masses, tex_decay, outname, sim_fit, data_fit, filename, df, co
         y_min = np.min(bkg_scaled)
         if y_min <= 2:
             y_min = 2
-        ax1.set_ylim(y_min/2, np.max(counts)*2)
+        ax1.set_ylim(y_min/2, np.max(total_pdf_eval)*2)
 
         plt.tight_layout()
         save_path = join(outputdir, prefix + filename)
@@ -286,14 +286,14 @@ if __name__ == '__main__':
     obs = zfit.Space("mass", limits=mass_range)
 
 
-    tex_decay = get_tex_decay(cfg.decayType)
+    tex_decay = get_tex_decay(cfg.decayType, )
 
 
     data_fit = cfg.data_fit.replace('after_cut', 'before_cut') 
     print(data_fit)
 
     res_name = "data_res"
-    massfit(obs, masses, tex_decay, res_name+'_before_cut', cfg.sim_fit, data_fit, f"fit_res_before_cut.png", df_data, 
+    massfit(obs, masses, tex_decay, res_name+'_before_cut', cfg.sim_fit, data_fit, f"fit_res_before_cut.pdf", df_data, 
             compute_weights=False, generate_figures=True, obs_name=cfg.obs_name)
 
 
@@ -309,18 +309,21 @@ if __name__ == '__main__':
     df_data['BID_background_weights'] = 0
     for id in df_data['B_ID'].unique():
         print(f'Calculating Sweights for BID={id}')
-        data_fit = cfg.data_fit.replace('after_cut', 'after_cut_BID' + str(id)) 
+        charge = "+" if id > 0 else "-"
+        tex_decay = get_tex_decay(cfg.decayType, charge=charge)
+        data_fit = cfg.data_fit.replace('after_cut', 'after_cut_BID' + str(id))
 
         df_fit = df_data[df_data['B_ID'] == id]
 
         
         masses  = df_fit[massname].values
-        massfit(obs, masses, tex_decay, res_name+f'_after_cut_BID{id}', sim_fit_after_cut,data_fit, f"fit_after_cut.png", df_fit, 
-                compute_weights= True, generate_figures= True, obs_name = cfg.obs_name, prefix=f'BID{id}_', )
+        massfit(obs, masses, tex_decay, res_name+f'_after_cut_BID{id}', sim_fit_after_cut,data_fit, f"fit_after_cut.pdf", df_fit, 
+                compute_weights= True, generate_figures= True, obs_name = cfg.obs_name, prefix=f'BID{id}_', charge=charge)
     del df_fit
 
     masses  = df_data[massname].values
-    massfit(obs, masses, tex_decay, res_name+'_after_cut', sim_fit_after_cut,cfg.data_fit, f"fit_after_cut.png", df_data, True, True, cfg.obs_name, )
+    tex_decay = get_tex_decay(cfg.decayType, )
+    massfit(obs, masses, tex_decay, res_name+'_after_cut', sim_fit_after_cut,cfg.data_fit, f"fit_after_cut.pdf", df_data, True, True, cfg.obs_name, )
 
 
     print(f'Mass fit script ended on {datetime.datetime.now().strftime("%H:%M:%S")}')

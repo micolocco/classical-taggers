@@ -21,6 +21,7 @@ from scripts.NNModel import NeuralNetwork
 matplotlib_lhcb_style(plt)
 from scripts.preSelections import run2_taggers_variables
 from scripts.adding_features_v2 import data_vars_translation
+from scripts.train_tagger import get_architecture
 
 def plot_tagDec(tagger, df_TagParticles, plotPath):
     plt.figure()
@@ -51,27 +52,23 @@ if __name__ == '__main__':
     parser.add_argument('--link', help='Link fucntion used for calibration', type=str, default='logit', choices=('mistag','logit'))
     parser.add_argument('--taggedData', help='Name of data (tagged data)', type=str)
     parser.add_argument('--model', help='Path to where the NN models are saved up to cut type', type=str)
-    parser.add_argument('--modelPrePath', help='Path to where the NN models are saved up to cut type', type=str)
     parser.add_argument('--decayType', help='Event decay for calibration', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--features', help='Input features used for NN training',) 
-    parser.add_argument('--arch', help='NN architecture', type=str, default='[64,64,64]')
     parser.add_argument('--seed', help='Seed for reproducibility', type=int, default=42)
-    parser.add_argument('--lr', help='Learning rate', type=float, default=1e-3)
     parser.add_argument('--scaler', help='Path to the scaler', type=str)
     parser.add_argument('--transformer', help='Path to the transformer', type=str)
-    
-    # parser.add_argument('--jsonPath', help='Where the best tagger candidates configs are saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
-    parser.add_argument('--data_calib', action="store_true")
+    parser.add_argument('--data_type', help='Type of data: Data or MC', type=str, choices=('Data', 'MC'))
     parser.add_argument('--repo', help="Path to repository")
+    parser.add_argument('--domain_adapted', help='If the model is domain adapted', action='store_true') 
 
     cfg = parser.parse_args()
     pprint(cfg)
 
     _features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     features = []
-    if cfg.data_calib:
+    if cfg.data_type == 'Data':
         for v in _features:
             if "BPV" in v: v=v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP")
             if "END_V" in v: v=v.replace("END_V", "ENDV_")
@@ -80,7 +77,7 @@ if __name__ == '__main__':
         features = _features
 
     loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
-    if cfg.data_calib: loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
+    if cfg.data_type == 'Data': loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
     else: loading_variables += ["B_TRUEID"]
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
@@ -88,21 +85,28 @@ if __name__ == '__main__':
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
     json_file=f'candidatedTaggers_{cfg.link}.json'
     #Read the best tagger candidate config from json file with the best hyperparameter combination
-    trainOn = "Data" if cfg.data_calib else "MC"
-    with open(f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{trainOn}/{json_file}', 'r') as f:
-        data = json.load(f)
-    seed = int(data[cfg.tagger]['seed'])
-    lr = float(data[cfg.tagger]['learning_rate'])
-    bs = int(data[cfg.tagger]['batch_size'])
-    arch = data[cfg.tagger]['architecture']
-    dm = float(data[cfg.tagger]['min_delta'])
-    config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
-    model_path = join(cfg.modelPrePath, f"{seed}/{config}")
+    # trainOn = "Data" if cfg.data_type == 'Data' else "MC"
+    # with open(f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{trainOn}/{json_file}', 'r') as f:
+    #     data = json.load(f)
+    # seed = int(data[cfg.tagger]['seed'])
+    # lr = float(data[cfg.tagger]['learning_rate'])
+    # bs = int(data[cfg.tagger]['batch_size'])
+    # arch = data[cfg.tagger]['architecture']
+    # dm = float(data[cfg.tagger]['min_delta'])
+    # config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
+
+
     # Load YAML configuration file
-    with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:
+    with open(cfg.config, 'r') as file:
         config = yaml.safe_load(file)
-    bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr}, repo_path=cfg.repo)
-    pyTrain.load_model(model=bestModel, target_path=model_path)
+
+    bestModel = NeuralNetwork(features=features, architecture=get_architecture(config), seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo)
+
+    if not cfg.domain_adapted:
+        pyTrain.load_model(model=bestModel, target_path=os.path.dirname(cfg.model))
+    else:
+        pyTrain.load_model_without_domain_classifier(model=bestModel, target_path=os.path.dirname(cfg.model))
+
     bestModel.eval()
 
     ## To be removed
@@ -129,13 +133,15 @@ if __name__ == '__main__':
     #   - calibration: B_ID = reconstructed ID when moving to data!
 
     # Now the label is needed for the scaling, but in the future must be removed before scaling in the training so that it'ds not necessary here 
-    id_var = "B_TRUEID" if not cfg.data_calib else "B_ID"
+    id_var = "B_TRUEID" if not cfg.data_type == 'Data' else "B_ID"
     test_df["label"] = test_df[f"{cfg.tagger}_TagDec"] * test_df[id_var]/abs(test_df[id_var]) 
     test_df.loc[test_df.label == -1, "label"] = 0 # shifting the label from -1 to 0
     
     # Data pre-processing 
-    scalerPath = f"{model_path}/st_scaler.pkl"
-    transformerPath = f"{model_path}/powerTransformer.pkl"
+    scalerPath = cfg.scaler
+    transformerPath = cfg.transformer
+
+
     columns_to_drop = ['entry', id_var, 'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
     pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path= os.path.dirname(cfg.taggedData), flag='label', name=f'training_inputFeatures')
 
@@ -153,9 +159,9 @@ if __name__ == '__main__':
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
     
     # Eta Normalization [0, 0.5]
-    test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
-    test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
-    test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
+    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
+    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
+    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
 
     # Take only tagging track with best mistag
     df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry', 'RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
@@ -164,7 +170,7 @@ if __name__ == '__main__':
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
     save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
-    if cfg.data_calib:
+    if cfg.data_type == 'Data':
         save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
     with uproot.recreate(f"{cfg.taggedData}") as file:
         file["DecayTree"] = df_TagParticles[save_vars]

@@ -22,6 +22,7 @@ import yaml
 import sys
 import psutil
 
+from torch.distributed import all_gather_object
 from torch.distributed import init_process_group, destroy_process_group
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -164,7 +165,7 @@ def find_free_port(path):
                     fcntl.flock(f, fcntl.LOCK_EX)
                     try:
                         #Write the port to the file
-                        f.write(f"{port}\n")
+                        f.write(f"\n{port}")
                     finally:
                         #Release file
                         fcntl.flock(f, fcntl.LOCK_UN)
@@ -276,45 +277,45 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
             print(f"The initial Validation Loss: {format_loss(initialValidation_loss)}")
         
-            epochtimes = []
-            for epoch in range(config['n_epochs']):
-                epoch_start = time.time()
-                if num_threads>1:
-                    train_dl.sampler.set_epoch(epoch)
-                    validation_dl.sampler.set_epoch(epoch)
-                if rank == 0:
-                    print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
-                # Train over mini-batches
-                stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean(axis=0)
-                trainingEpoch_loss.append(stepLoss)
-                # Compute validation loss
-                validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean(axis=0)
-                validationEpoch_loss.append(validationStep_loss)
-                if rank == 0:
-                    print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
-                if num_threads==1:
-                    print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
-                else:
-                    try:
-                       report_memory_distributed() #To print the memory usage of all processes
-                    except Exception as e:
-                        print(f'Memory report failed in rank {rank}')
-                epochtimes.append((time.time()-epoch_start))
-
-                if early_stopper.early_stop(validationEpoch_loss[-1]): #Ensure that early stopping is not triggered too early
-                    stopped = True 
-                    break
-                if early_stopper.counter == 0:
-                    lossValBest = validationEpoch_loss[-1]
-                    lossTrainBest = trainingEpoch_loss[-1]
-                    bestEpoch = epoch
-                    # save_model(model, target_path)
-                    bestModel = copy.deepcopy(module)
-                i +=1
+        epochtimes = []
+        for epoch in range(config['n_epochs']):
+            epoch_start = time.time()
             if num_threads>1:
-                destroy_process_group()
-                release_port(target_path, port)
-        
+                train_dl.sampler.set_epoch(epoch)
+                validation_dl.sampler.set_epoch(epoch)
+            if rank == 0:
+                print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
+            # Train over mini-batches
+            stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean(axis=0)
+            trainingEpoch_loss.append(stepLoss)
+            # Compute validation loss
+            validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean(axis=0)
+            validationEpoch_loss.append(validationStep_loss)
+            if rank == 0:
+                print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
+            if num_threads==1:
+                print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
+            else:
+                try:
+                    report_memory_distributed() #To print the memory usage of all processes
+                except Exception as e:
+                    print(f'Memory report failed in rank {rank}')
+            epochtimes.append((time.time()-epoch_start))
+
+            if early_stopper.early_stop(validationEpoch_loss[-1]): #Ensure that early stopping is not triggered too early
+                stopped = True 
+                break
+            if early_stopper.counter == 0:
+                lossValBest = validationEpoch_loss[-1]
+                lossTrainBest = trainingEpoch_loss[-1]
+                bestEpoch = epoch
+                # save_model(model, target_path)
+                bestModel = copy.deepcopy(module)
+            i +=1
+        if num_threads>1:
+            destroy_process_group()
+            release_port(target_path, port)
+    
 
         #Getting around not being able to return from the DDP process
         if rank == 0:
@@ -332,7 +333,40 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             return_dict['bestEpoch'] = bestEpoch
             return_dict['bestLosses'] = np.array([lossTrainBest, lossValBest], dtype=float)
 
-        
+
+def eval_model_multiprocessed(rank, model, ds, target_path, return_dict, num_threads=4):
+    if num_threads == 1:
+        raise Exception("This function is meant to be run in a multi-threaded environment. Use evaluate_model of model directly instead.")
+    port = ddp_setup(rank, num_threads, target_path) 
+    ddpmodel = DDP(model)
+    module = ddpmodel.module
+
+    sampler = DistributedSampler(ds, num_replicas=num_threads, rank=rank, drop_last=False)
+
+
+    dl = DataLoader(ds, batch_size=1024, shuffle=False, sampler=sampler, drop_last=False)
+
+    predictions, actuals = module.evaluate_model(dl)
+
+    
+    # Gather lists from all ranks
+    all_preds, all_actuals = [None for _ in range(num_threads)], [None for _ in range(num_threads)]
+    all_gather_object(all_preds, predictions)
+    all_gather_object(all_actuals, actuals)
+
+    # Only rank 0 merges them
+    if rank == 0:
+        predictions = np.concatenate(all_preds)[:len(ds)] #Remove padding
+        actuals = np.concatenate(all_actuals)[:len(ds)]
+        return_dict['predictions'] = predictions
+        return_dict['actuals'] = actuals
+
+    torch.distributed.barrier()
+    destroy_process_group()
+    release_port(target_path, port)
+    
+
+
         
 def save_model(model, target_path, filename = 'model.pth'):
     # target_path = name_formatter.assign_name(folder, target_path)
@@ -388,8 +422,6 @@ def load_model_without_domain_classifier(model, target_path):
             class_dict[k_new] = class_dict.pop(k_old)
 
         i += 3
-
-    
 
 
     model.load_state_dict(class_dict)
@@ -605,6 +637,9 @@ def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins
     plt.close()
 
 def bins_by_yield(etas, weights, nbins):
+    if weights is None:
+        weights = np.ones_like(etas)
+
     # Sort etas and weights by eta
     sorted_indices = np.argsort(etas)
     sorted_etas = etas[sorted_indices]
@@ -635,11 +670,21 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     
     taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), weight = weights, B_ID = df_tag[BID].tolist(),mode = eventType[:2] )
 
+    npar = 3 #normally 3, 2 to reproce micols results.
     if calibration_option=='logit':
-        taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
+        taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
     elif calibration_option=='mistag':
-        taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.mistag)) 
-    else:
+        taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.mistag)) 
+    elif calibration_option=='rlogit':
+        taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.rlogit))
+    # npar = 5
+    # if calibration_option=='logit':
+    #     taggers.set_calibration(ft.BSplineCalibration(npar=npar, link=ft.link.logit))
+    # elif calibration_option=='mistag':
+    #     taggers.set_calibration(ft.BSplineCalibration(npar=npar, link=ft.link.mistag)) 
+    # elif calibration_option=='rlogit':
+    #     taggers.set_calibration(ft.BSplineCalibration(npar=npar, link=ft.link.rlogit))
+
         print('Not a valid calibration function')
     taggers.retry_on_error(use_link_alternative=ft.link.logit) # use logit link function if minimization did not converge the first time
 
@@ -654,11 +699,29 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
         scale = (lambda x: x**4, lambda x: x**1/4)
         scale = "linear"
         scale = "linear"
+
+
+
+
         if weights is not None:
-            #distribute the bins such that each bin has the same yield, aka the same sum of weights 
-            #distribute the bins such that each bin has the same yield, aka the same sum of weights 
-            bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
-            taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", bins = bins, x_scale = scale, y_scale = scale)
+            #distribute the bins such that each bin has the same yield, aka the same sum of weights
+            # bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
+            # print(bins)
+            # if any(bins[:-1] == bins[1:]):
+            #     print("Warning: Bins are not unique, using linspace instead.")
+            #     bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
+
+            class_indices = df_tag[BID].values
+            class_label_dict = {521: '$B^+$', -521: '$B^-$'}
+
+
+            taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+                                                 file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
+                                                 nbins = nbins, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
+
+            taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
+
+
         else:
             taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
 
@@ -668,11 +731,11 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
                     "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True ), 
                     "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(     calibrated = True ),
                     "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(  calibrated = True ), 
-                    "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False),
-                    "Fitpar_p0"              : [taggers[tagger].stats.params.params_delta[0], taggers[tagger].stats.params.errors_delta[0]],
-                    "Fitpar_p1"              : [taggers[tagger].stats.params.params_delta[1], taggers[tagger].stats.params.errors_delta[1]],
-                    "Fitpar_deltap0"         : [taggers[tagger].stats.params.params_delta[2], taggers[tagger].stats.params.errors_delta[2]],
-                    "Fitpar_deltap1"         : [taggers[tagger].stats.params.params_delta[3], taggers[tagger].stats.params.errors_delta[3]],}
+                    "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False),}
+        for i in range(npar):
+            info_dict[f"Fitpar_p{i}"]      = [taggers[tagger].stats.params.params_delta[i],      taggers[tagger].stats.params.errors_delta[i]]
+            info_dict[f"Fitpar_deltap{i}"] = [taggers[tagger].stats.params.params_delta[i+npar], taggers[tagger].stats.params.errors_delta[i+npar]]
+
     except Exception as e: # Catch exceptions. Often caused by convergence issues in the training of the tagger
         print(f"An unexpected error occurred during calibration: {e}")
         print(traceback.format_exc())
@@ -681,11 +744,11 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
                     "TaggingEfficiency_Cali" : [np.nan, np.nan], 
                     "TaggingPower_Cali"      : [np.nan, np.nan],
                     "EffectiveMistag_Cali"   : [np.nan, np.nan], 
-                    "EffectiveMistag"        : [np.nan, np.nan],
-                    "Fitpar_p0"              : [np.nan, np.nan],
-                    "Fitpar_p1"              : [np.nan, np.nan],
-                    "Fitpar_deltap0"         : [np.nan, np.nan],
-                    "Fitpar_deltap1"         : [np.nan, np.nan],}
+                    "EffectiveMistag"        : [np.nan, np.nan],}
+        for i in range(npar):
+            info_dict[f"Fitpar_p{i}"]      = [np.nan, np.nan]
+            info_dict[f"Fitpar_deltap{i}"] = [np.nan, np.nan]
+            
     with open(f"{target_path}/taggingInfo_{calibration_option}.json", "w") as f:
         json.dump(info_dict, f)
     print(f"Tagger parameters saved at {target_path}\n")
