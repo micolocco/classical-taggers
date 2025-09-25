@@ -13,7 +13,7 @@ OSKaon:
     - B_Tr_T_PIDmu
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_absIP
-    - B_Tr_T_eoverP
+    - B_Tr_T_EoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Kaon
 
@@ -33,7 +33,7 @@ OSElectron:
     - B_Tr_T_PIDmu
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_absIP
-    - B_Tr_T_eoverP
+    - B_Tr_T_EoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Electron
 
@@ -53,7 +53,7 @@ OSMuon:
     - B_Tr_T_PIDmu
     - B_Tr_T_GHOSTPROB
     - B_Tr_T_absIP
-    - B_Tr_T_eoverP
+    - B_Tr_T_EoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Muon
 

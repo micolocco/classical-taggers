@@ -12,10 +12,10 @@ OSKaon:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU
     - B_Tr_T_PROBNN_PI
-#     - B_Tr_T_PROBNN_GHOST
-    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_PROBNN_GHOST
+  #  - B_Tr_T_GHOSTPROB
     - B_Tr_T_absOWNPV_IP
-    - B_Tr_T_eoverP
+    - B_Tr_T_EoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Kaon
 
@@ -34,10 +34,10 @@ OSElectron:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU
     - B_Tr_T_PROBNN_PI
-#     - B_Tr_T_PROBNN_GHOST
-    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_PROBNN_GHOST
+ #   - B_Tr_T_GHOSTPROB
     - B_Tr_T_absOWNPV_IP
-    - B_Tr_T_eoverP
+    - B_Tr_T_EoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Electron
 
@@ -56,12 +56,13 @@ OSMuon:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU
     - B_Tr_T_PROBNN_PI
-#     - B_Tr_T_PROBNN_GHOST
-    - B_Tr_T_GHOSTPROB
+    - B_Tr_T_PROBNN_GHOST
+  #  - B_Tr_T_GHOSTPROB
     - B_Tr_T_absOWNPV_IP
-    - B_Tr_T_eoverP
     - B_Tr_T_DeltaR
     - B_Tr_T_DeltaQ_Muon
+    - B_Tr_T_EoverP
+
 
 
  
@@ -70,7 +71,7 @@ SSPion:
     - B_Tr_T_P
     - B_Tr_T_PT
     - B_Tr_T_OWNPVIPSig
-    - B_Tr_T_GHOSTPROB
+   # - B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
     - B_Tr_T_DeltaR
@@ -81,7 +82,7 @@ SSPion:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU
     - B_Tr_T_PROBNN_PI
-#     - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs
@@ -96,7 +97,7 @@ SSProton:
     - B_Tr_T_P
     - B_Tr_T_PT
     - B_Tr_T_OWNPVIPSig
-    - B_Tr_T_GHOSTPROB
+   # - B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
     - B_Tr_T_DeltaR
@@ -107,7 +108,7 @@ SSProton:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU    
     - B_Tr_T_PROBNN_PI
-#     - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs
@@ -120,7 +121,7 @@ SSKaon:
     - B_Tr_T_P
     - B_Tr_T_PT
     - B_Tr_T_OWNPVIPSig
-    - B_Tr_T_GHOSTPROB
+    #- B_Tr_T_GHOSTPROB
     - B_Tr_T_PhiDistance
     - B_Tr_T_EtaDistance
     - B_Tr_T_DeltaR
@@ -131,7 +132,7 @@ SSKaon:
     - B_Tr_T_PROBNN_E
     - B_Tr_T_PROBNN_MU     
     - B_Tr_T_PROBNN_PI
-#     - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_GHOST
     - B_Tr_T_CHI2DOF
     - B_Tr_T_Signal_TagPart_PT
     - B_nPVs

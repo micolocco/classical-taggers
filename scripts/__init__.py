@@ -93,7 +93,7 @@ ranges = {
         "B_Tr_T_PIDe": (-30, 30),
         "B_Tr_T_PIDmu": (-40, 40),
         "B_Tr_T_ISMUON": (0,1),
-        #"B_Tr_T_eoverP": (),
+        #"B_Tr_T_EoverP": (),
         #"B_Tr_T_DeltaQ_Electron": r'$\Delta\mathrm{Q}_{e}$',
         "B_Tr_T_DeltaQ_Pion": (0, 1000),
         "B_Tr_T_DeltaR": (0, 20),
@@ -122,7 +122,7 @@ nice_names = {
         "B_Tr_T_absIP": r'$|\mathrm{IP}|(tag)$',
         "B_Tr_T_PhiDistance": r'$\mathrm{\Delta}\mathrm{\Phi}(tag, signal)$' ,
         "B_Tr_T_EtaDistance": r'$\mathrm{\Delta}\mathrm{\eta}(tag, signal)$' ,
-        #"B_Tr_T_eoverP": r'$E/p(tag)$',
+        #"B_Tr_T_EoverP": r'$E/p(tag)$',
         #"B_Tr_T_DeltaQ_Electron": r'$\Delta\mathrm{Q}_{e}$',
         "B_Tr_T_DeltaQ_Pion": r'$\mathrm{\Delta}\mathrm{Q}_{pi}$',
         "B_Tr_T_DeltaR": r'$\mathrm{\Delta}\mathrm{R}$',
@@ -216,7 +216,7 @@ nice_names = {
     "B_Tr_T_Signal_TagPart_PT": r"$p_{T}(\mathrm{tag}+\mathrm{B})~[\mathrm{MeV}/c]$",
 
     # Other physics-motivated features
-    "B_Tr_T_eoverP": r"$Q_{e}/p(\mathrm{tag})~[c/\mathrm{MeV}]$",
+    "B_Tr_T_EoverP": r"$Q_{e}/p(\mathrm{tag})~[c/\mathrm{MeV}]$",
     "diff_P": r"$\Delta p~[\mathrm{MeV}/c]$",
     "P_proj": r"$p_{\mathrm{proj}}~[\mathrm{MeV}/c]$",
     "t": r"$t_{\mathrm{POCA}}[mm]$",
@@ -310,7 +310,7 @@ ranges = {
     "B_Tr_T_Signal_TagPart_PT": (0, 2e4),
 
     # Other features
-    "B_Tr_T_eoverP": (-0.001, 0.001),
+    "B_Tr_T_EoverP": (-0.001, 0.001),
     "diff_P": (0, 3e5),
     "P_proj": (0, 1e5),
     "t": (-0.1, 0.1),                          

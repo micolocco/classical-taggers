@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     # Now the label is needed for the scaling, but in the future must be removed before scaling in the training so that it'ds not necessary here 
     # id_var = "B_TRUEID" if not cfg.data_calib else "B_ID"
-    id_var = "B_ID" if not cfg.data_calib else "B_ID"
+    id_var = "B_TRUEID" if not cfg.data_calib else "B_ID"
     test_df["label"] = test_df[f"{cfg.tagger}_TagDec"] * test_df[id_var]/abs(test_df[id_var])     
     test_df.loc[test_df.label == -1, "label"] = 0 # shifting the label from -1 to 0
     test_df = test_df.query('selected==1')

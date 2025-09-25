@@ -77,7 +77,7 @@ if __name__ == '__main__':
     else:
         output_path = f'{cfg.target_path}'
 
-    features_added = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_eoverP', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
+    features_added = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_EoverP', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
     load_extra = ['EVENTNUMBER','RUNNUMBER']
     features_noMC = [
         'B_OWNPV_X',
@@ -331,11 +331,7 @@ if __name__ == '__main__':
         "B_Tr_T_OWNPVIPCHI2",
         "B_Tr_T_PROBNN_P"
         ]
-<<<<<<< HEAD
-        #DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
-=======
         DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
->>>>>>> 281b2fd (adjusting for producing plots)
         DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path, nbins=50)   
 
         exit()

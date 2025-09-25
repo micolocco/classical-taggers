@@ -17,7 +17,7 @@ import scripts.pipeline
 from scripts.NNModel import EarlyStopper
 from scripts.inputDataset import inputDataset
 from scripts import ranges, nice_names, matplotlib_lhcb_style
-#matplotlib_lhcb_style(plt)
+matplotlib_lhcb_style(plt)
 import yaml
 
 
@@ -173,7 +173,7 @@ def splitByEvent(df, seed=3, asym_level='asym_level1', train_val_split=0.8, true
         Balancing mode (see description above).
     train_val_split : float, optional
         Fraction of events assigned to the train+val split (default=0.8).
-        The remaining fraction is used for test.
+        The remaining fraction is used for test (calibration sample).
     trueid_col : str, optional
         Name of the column holding the true B hadron ID (default="B_TRUEID").
     label_col : str, optional

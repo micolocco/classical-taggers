@@ -70,7 +70,7 @@ def process_chunk(df, prefix, is_data):
             df['t']**2 * (df[f'{prefix}Tr_T_PX']**2 + df[f'{prefix}Tr_T_PY']**2 + df[f'{prefix}Tr_T_PZ']**2) +
             2 * df['t'] * (df[f'{prefix}Tr_T_X'] * df[f'{prefix}Tr_T_PX'] + df[f'{prefix}Tr_T_Y'] * df[f'{prefix}Tr_T_PY'] + df[f'{prefix}Tr_T_Z'] * df[f'{prefix}Tr_T_PZ'])
         )
-        df.loc[:,f'{prefix}Tr_T_eoverP'] = df[f'{prefix}Tr_T_Charge'] / df[f'{prefix}Tr_T_P']
+        df.loc[:,f'{prefix}Tr_T_EoverP'] = df[f'{prefix}Tr_T_Charge'] / df[f'{prefix}Tr_T_P']
         df.loc[:,'logEVIP'] = np.log(df['EVIP'])
         df.loc[:,'logP_proj'] = np.log(df['P_proj'])
         df.loc[:,f'{prefix}Tr_T_atanPT_PZ'] = np.arctan2(df[f'{prefix}Tr_T_PT'], df[f'{prefix}Tr_T_PZ'])

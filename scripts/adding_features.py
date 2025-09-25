@@ -153,7 +153,7 @@ if __name__ == '__main__':
     df[f'B_Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208, prefix)
     df[f'B_Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
     df.eval(f'B_Tr_T_Signal_TagPart_PT = sqrt((B_PX + B_Tr_T_PX) **2 + (B_PY + B_Tr_T_PY)**2)', inplace = True)
-    df.eval(f'B_Tr_T_eoverP = B_Tr_T_Charge/B_Tr_T_P', inplace = True)
+    df.eval(f'B_Tr_T_EoverP = B_Tr_T_Charge/B_Tr_T_P', inplace = True)
     df.eval(f'B_Tr_T_absID =abs(B_Tr_T_TRUEID)', inplace = True)
     df.eval('EVIP = log(EVIP)', inplace = True)
     df.eval(f'B_Tr_T_BVIPSig = sqrt(B_Tr_T_BPVIPCHI2)' , inplace = True) # IPSig == IPErr

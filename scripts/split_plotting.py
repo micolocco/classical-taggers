@@ -36,7 +36,7 @@ for tagger in taggers_dict.keys():
 
     decay = taggers_dict[tagger]
     pre_path_full = join(pre_path, f"{decay}/{tagger}/{cut}")
-    model_path = join(pre_path_full, f"{seed}/{config}")
+    model_path = join(pre_path_full, f"{seed}/{config}/asym_level2")
     model= f"{model_path}/model.pth"
 
     testSetPath = f"{model_path}/testSet.csv"

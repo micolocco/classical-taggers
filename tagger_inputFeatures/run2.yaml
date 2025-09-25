@@ -16,7 +16,7 @@ OSElectron:
     - B_Tr_T_PT
     - B_nTracks
     - B_PT
-    - B_Tr_T_eoverP
+    - B_Tr_T_EoverP
     - B_Tr_T_absIP
     - B_Tr_T_BVIPSig
     - B_Tr_T_GHOSTPROB

@@ -119,7 +119,7 @@ if __name__ == '__main__':
     # set2 --> collects the pre-selections features used in run2 (except SSKaon). See https://gitlab.cern.ch/lhcb/Phys/-/tree/run2-patches/Phys/FlavourTagging/python/FlavourTagging
     features_set1 = ['B_Tr_T_PIDK', 'B_Tr_T_PIDe', 'B_Tr_T_PIDmu', 'B_Tr_T_PIDP', 'B_Tr_T_BVIPSig'] 
     features_set2 = ['B_Tr_T_P' , 'B_Tr_T_TRACKISLONG', 'B_Tr_T_CHI2DOF', 'B_Tr_T_minPhiDistance', 'B_Tr_T_ISMUON', 'B_Tr_T_GHOSTPROB', 'B_Tr_T_absIP', \
-                    'B_Tr_T_eoverP', 'B_Tr_T_BPVIPCHI2', 'B_Tr_T_PT', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_EtaDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_DeltaR', 'B_Tr_T_Charge'] 
+                    'B_Tr_T_EoverP', 'B_Tr_T_BPVIPCHI2', 'B_Tr_T_PT', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_EtaDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_DeltaR', 'B_Tr_T_Charge'] 
     # set3 --> on the top of set1 and set2 adds other variables from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/python/FlavourTagging/DevelopmentTaggerConf.py
     features_set3 = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_PX', 'B_Tr_T_PY', 'B_Tr_T_PZ', 'B_Tr_T_ENERGY', 'B_Tr_T_Eta', 'B_Tr_T_Phi', 'B_Tr_T_BPVIP', 'B_PT', 'B_nTracks', 'B_Tr_T_MINIP', 'B_Tr_T_MINIPChi2', 'B_nPVs', 'B_Tr_T_atanPT_PZ'] 
     features_set4 = ['B_Tr_T_BPVX', 'B_Tr_T_BPVY','B_Tr_T_BPVZ',]
