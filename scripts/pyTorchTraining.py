@@ -17,7 +17,7 @@ import scripts.pipeline
 from scripts.NNModel import EarlyStopper
 from scripts.inputDataset import inputDataset
 from scripts import ranges, nice_names, matplotlib_lhcb_style
-matplotlib_lhcb_style(plt)
+#matplotlib_lhcb_style(plt)
 import yaml
 
 
@@ -77,45 +77,129 @@ def get_features(tagger, yaml_file, repo_path):
 #    return train_df.query('selected==1'), val_df.query('selected==1'), test_df
 
 
-def _balance_four_bins(df, random_state=42):
+import numpy as np
+import pandas as pd
+
+def _balance_four_bins(df, trueid_col="B_TRUEID", label_col="label", random_state=42, strict=True,):
     """
     Downsample df so that the four categories have equal counts:
       (TRUEID<0 & label=0), (TRUEID>0 & label=0),
       (TRUEID<0 & label=1), (TRUEID>0 & label=1)
     Returns a shuffled, balanced dataframe.
     """
-    # Build category key
-    g = pd.Series(np.where(df["B_TRUEID"] > 0, "pos", "neg"), index=df.index) + "_" + df["label"].astype(int).astype(str)
+    if df.empty:
+        return df
 
-    # Ensure all four categories exist
+    sign = np.where(df[trueid_col] > 0, "pos", "neg")
+    g = pd.Series(sign, index=df.index) + "_" + df[label_col].astype(int).astype(str)
+
     needed = {"neg_0", "pos_0", "neg_1", "pos_1"}
     present = set(g.unique())
     missing = needed - present
     if missing:
-        raise ValueError(f"Cannot balance: missing categories in this split: {sorted(missing)}")
+        if strict:
+            raise ValueError(f"Cannot balance: missing categories: {sorted(missing)}")
+        # Soft mode: drop missing bins from the target set
+        needed = needed - missing
+        if not needed:
+            return df  # nothing to balance
 
-    # Target = smallest group size
     sizes = g.value_counts()
-    k = int(sizes.min())
+    k = int(sizes.loc[list(needed)].min())
 
-    # Sample k from each category
-    parts = []
     rng = np.random.RandomState(random_state)
+    parts = []
     for key in ["neg_0", "pos_0", "neg_1", "pos_1"]:
+        if key not in needed:
+            continue
         idx = g[g == key].index
         pick = rng.choice(idx, size=k, replace=False)
         parts.append(df.loc[pick])
 
-    balanced = pd.concat(parts).sample(frac=1.0, random_state=random_state)  # shuffle
+    balanced = pd.concat(parts).sample(frac=1.0, random_state=random_state)
     return balanced
 
-def splitByEvent(df, seed, train_val_split):
+def balance_by_label(df, label_col="label", random_state=3):
+    if df.empty:
+        return df
+    counts = df[label_col].value_counts()
+    k = counts.min()
+    rng = np.random.RandomState(random_state)
+    parts = []
+    for y in [0, 1]:
+        idx = df[df[label_col] == y].index
+        pick = rng.choice(idx, size=k, replace=False)
+        parts.append(df.loc[pick])
+    return pd.concat(parts).sample(frac=1.0, random_state=random_state)
+
+def splitByEvent(df, seed=3, asym_level='asym_level1', train_val_split=0.8, trueid_col="B_TRUEID", label_col="label", strict_balance=True):
     """
-    Random split by events into train/val/test, then balance train/val so each has
-    equal counts across the four categories defined by TRUEID sign and label.
+    Split a dataset into training, validation, and test sets **by event ID**, 
+    with optional balancing of classes.
+
+    The split is performed at the event level (using `event_entry`) so that
+    all tracks from the same event end up in the same subset. Each subset is
+    then further processed according to the chosen `asym_level`:
+
+    - `asym_level='asym_level0'`:
+        Training, validation, and test subsets are balanced across the four
+        categories defined by (`sign(B_TRUEID)`, `label`):
+          (TRUEID > 0, label=0), (TRUEID > 0, label=1),
+          (TRUEID < 0, label=0), (TRUEID < 0, label=1).
+        Only rows with `selected==1` are balanced. Test rows with `selected==0`
+        are kept unchanged and appended back afterwards.
+
+    - `asym_level='asym_level1'` (default):
+        Training and validation subsets are balanced across the same four
+        categories as above (only `selected==1` rows).  
+        The test subset is left unbalanced: all `selected==1` rows are kept
+        without modification, and `selected==0` rows are appended.
+
+    - `asym_level='asym_level2'`:
+        No four-bin balancing is applied. Instead, training and validation
+        subsets are balanced **only by label (0 vs 1)**, ignoring
+        the B/anti-B distinction.  
+        The test subset is left unbalanced (`selected==1` kept as-is,
+        `selected==0` appended).
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Input dataframe containing at least `event_entry`, `selected`,
+        `B_TRUEID`, and `label`.
+    seed : int, optional
+        Random seed for reproducibility (default=3).
+    asym_level : {'asym_level0', 'asym_level1', 'asym_level2'}, optional
+        Balancing mode (see description above).
+    train_val_split : float, optional
+        Fraction of events assigned to the train+val split (default=0.8).
+        The remaining fraction is used for test.
+    trueid_col : str, optional
+        Name of the column holding the true B hadron ID (default="B_TRUEID").
+    label_col : str, optional
+        Name of the column holding the binary classification label (default="label").
+    strict_balance : bool, optional
+        If True, raise an error if one of the required bins is missing when balancing.
+
+    Returns
+    -------
+    train_df : pandas.DataFrame
+        Balanced training set (only `selected==1` rows).
+    val_df : pandas.DataFrame
+        Balanced validation set (only `selected==1` rows).
+    test_df : pandas.DataFrame
+        Test set containing all `selected==0` rows plus either balanced or
+        unbalanced `selected==1` rows depending on `asym_level`.
+
+    Notes
+    -----
+    - Balancing is performed by **downsampling** to the smallest bin size,
+      so some tracks may be discarded.
+    - The split is done at the event level to avoid leakage of tracks
+      from the same event across train/val/test.
     """
     import random
-    seed=3 # for reproducibility
+    seed=3
     # Split by event
     events_list = np.unique(df.event_entry)
     random.Random(seed).shuffle(events_list)
@@ -127,15 +211,36 @@ def splitByEvent(df, seed, train_val_split):
     val_df   = df[df.event_entry.isin(events_list[n_train:n_train_val])].copy()
     test_df  = df[df.event_entry.isin(events_list[n_train_val:])].copy()
 
-    # Apply your selected==1 filter for train/val (keep test as-is like you had)
-    train_sel = train_df.query('selected==1').copy()
-    val_sel   = val_df.query('selected==1').copy()
+    # --- Train ---
+    train_sel1 = train_df.query('selected==1').copy()
+        # --- Val ---
+    val_sel1 = val_df.query('selected==1').copy()
+    # --- Test ---
+    test_sel1 = test_df.query('selected==1').copy()
+    test_sel0 = test_df.query('selected==0').copy()  # keep as-is
+    if asym_level == 'asym_level0':
+        train_bal  = _balance_four_bins(train_sel1, trueid_col=trueid_col, label_col=label_col,
+                                    random_state=seed, strict=strict_balance)
+        val_bal  = _balance_four_bins(val_sel1, trueid_col=trueid_col, label_col=label_col,
+                                  random_state=seed, strict=strict_balance)
+        test_sel1_bal = _balance_four_bins(test_sel1, trueid_col=trueid_col, label_col=label_col,
+                                       random_state=seed, strict=strict_balance)
+        test_out = pd.concat([test_sel1_bal, test_sel0], ignore_index=False).sort_index()
+        return train_bal, val_bal, test_out
+    elif asym_level == 'asym_level1':
+        train_bal  = _balance_four_bins(train_sel1, trueid_col=trueid_col, label_col=label_col,
+                                    random_state=seed, strict=strict_balance)
+        val_bal  = _balance_four_bins(val_sel1, trueid_col=trueid_col, label_col=label_col,
+                                  random_state=seed, strict=strict_balance)
+        test_out = pd.concat([test_sel1, test_sel0], ignore_index=False).sort_index()
+        return train_bal, val_bal, test_out
+    elif asym_level == 'asym_level2':
+        # Balance by label 0 and label 1 only, no matter B_TRUEID
+        train_sel1_bal = balance_by_label(train_sel1)
+        val_sel1_bal   = balance_by_label(val_sel1)
+        test_out = pd.concat([test_sel1, test_sel0], ignore_index=False).sort_index()
+        return train_sel1_bal, val_sel1_bal, test_out
 
-    # Balance inside each split (downsample to the smallest bin)
-    train_bal = _balance_four_bins(train_sel, random_state=seed)
-    val_bal   = _balance_four_bins(val_sel,   random_state=seed)
-
-    return train_bal, val_bal, test_df
 
 
 def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size, seed, test_batch_size = 1024):
@@ -363,10 +468,17 @@ def plot_NNoutput_mistag (name, clf, yPredTest, yTrueTest, df['yPred'], df['yTru
     plt.close()
 '''
 
-def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbins=100):
+def plot_mistag(tagger, decayType, df, target_path, type, show_trueB=False, clf = None, nbins=100):
     plt.figure()
     # plt.title("Mistag rate")
     plt.yscale("log")
+    if decayType[:2]=='Bu':
+        ID=521
+    if decayType[:2]=='Bd':
+        ID=511
+    if decayType[:2]=='Bs':
+        ID=531
+
     if clf:
         y_predict_LR = clf.predict_proba(df.yPred)[:,0]
         plt.hist(y_predict_LR[df.yTrue == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
@@ -374,18 +486,18 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
         plt.title(f'{tagger} mistag after Logistic Regression', fontsize=24)
     else:
         if show_trueB:
-            plt.hist(1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==-521)],bins = nbins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
-            plt.hist(1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==521)],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
-            plt.hist(1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==-521)],bins = nbins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
-            plt.hist(1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==521)],bins = nbins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
+            plt.hist(1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==-ID)],bins = nbins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"l=0, antiB")
+            plt.hist(1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==ID)],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"l=0, B")
+            plt.hist(1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==-ID)],bins = nbins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, antiB")
+            plt.hist(1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==ID)],bins = nbins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, B")
    
         else:
             plt.hist(1-df.yPred[df.yTrue == 0],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"wrong tagging decision")
             plt.hist(1-df.yPred[df.yTrue == 1],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = f"correct tagging decision")
-    data1=1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==-521)]  
-    data2=1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==521)]   
-    data3=1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==-521)]  
-    data4=1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==521)]
+    data1=1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==-ID)]  
+    data2=1-df.yPred[(df.yTrue==0)&(df.B_TRUEID==ID)]   
+    data3=1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==-ID)]  
+    data4=1-df.yPred[(df.yTrue==1)&(df.B_TRUEID==ID)]
     plt.title(f"{tagger}", fontsize=24)
     plt.xlabel(r"1 - NN output", fontsize=24)
     #plt.annotate(f'{len(df.yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
@@ -395,11 +507,11 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
     plt.savefig(f"{target_path}/NNoutput_{type}.pdf")
     fig, axs = plt.subplots(1, 2, figsize=(14, 7), sharex=True, sharey=True)
     fig.suptitle(f'{type}: {tagger}', fontsize=24)
-    axs[0].hist(data1, bins=nbins, color='skyblue', density = True, histtype="stepfilled", label = f'true l=0, B',)
-    axs[0].hist(data2, bins=nbins, color='blue', density = True, histtype="step",label=f'true l=0, antiB')
+    axs[0].hist(data1, bins=nbins, color='skyblue', density = True, histtype="stepfilled", label = f'wrong tag. dec, TRUE ID=-521',)
+    axs[0].hist(data2, bins=nbins, color='blue', density = True, histtype="step",label=f'wrong tag. dec, TRUE ID=521')
     axs[0].legend()
-    axs[1].hist(data3, bins=nbins, color='salmon', density = True, histtype="stepfilled",label=f'true l=1, B')  
-    axs[1].hist(data4, bins=nbins, color='red', density = True, histtype="step",label=f'true l=1, antiB',)
+    axs[1].hist(data3, bins=nbins, color='salmon', density = True, histtype="stepfilled",label=f'correct tag. dec, TRUE ID=-521')  
+    axs[1].hist(data4, bins=nbins, color='red', density = True, histtype="step",label=f'correct tag. dec, TRUE ID=521',)
     axs[1].legend()
     for ax in axs.flat:
         ax.set_yscale('log')

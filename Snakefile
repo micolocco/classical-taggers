@@ -138,12 +138,28 @@ generated_paths_OSMuon = read_generated_paths(join(repo,'paths_for_snakemake/gen
 #print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
 rule all:
     input:
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
+        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
+
+
 
         #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
         #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
@@ -391,12 +407,12 @@ rule train_tagger:
         ],
         script = join(repo, 'scripts/pipeline.py'),
     output:
-        pdf=join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/ROC_TRAIN_VAL.pdf'),
+        pdf=join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/ROC_TRAIN_VAL.pdf'),
 
         #pdf=join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/training_inputFeatures.pdf'),
        
         # Replaced with this to profuce only input features plot
-    log: join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/training_log.log')
+    log: join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/training_log.log')
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes 
         #gpus = 1,
@@ -405,7 +421,7 @@ rule train_tagger:
         #request_disk = 1024000
     params:
         config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),
-        target_path = lambda wildcards: join(modified_MC, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}/{wildcards.seed}/{wildcards.config}')
+        target_path = lambda wildcards: join(modified_MC, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}/{wildcards.seed}/{wildcards.config}/{wildcards.asymmetry_level}')
     run:
         cmd = [
             'python', input.script,
@@ -416,6 +432,7 @@ rule train_tagger:
             '--features {wildcards.features}',
             '--config {params.config}',
             '--decayType {wildcards.decay}',
+            '--asymmetry_level {wildcards.asymmetry_level}',
             #'--clean',
             '--repo {repo}',
             #'--only_plot',

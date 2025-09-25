@@ -92,8 +92,8 @@ if __name__ == '__main__':
     arch = data[cfg.tagger]['architecture']
     dm = float(data[cfg.tagger]['min_delta'])
     config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
-    # model_path = join(cfg.modelPrePath, f"{seed}/{config}")
-    model_path = join(cfg.modelPrePath)
+    model_path = join(cfg.modelPrePath, f"{seed}/{config}")
+    #model_path = join(cfg.modelPrePath)
     # Load YAML configuration file
     with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:
         config = yaml.safe_load(file)
@@ -154,23 +154,20 @@ if __name__ == '__main__':
     test_df[f'{cfg.tagger}_Eta'] = 1 - bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
 
     # Assign tagging decision = 0 for tracks that don't pass the pre-selection
-    # test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
-    # test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
-    
-    # Eta Normalization [0, 0.5]
-    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
-    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
-    # test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
+    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
+    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
+    #Eta Normalization [0, 0.5]
+    test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5 , f"{cfg.tagger}_TagDec"] *= -1
+    test_df.loc[test_df[f'{cfg.tagger}_Eta'] > 0.5, f"{cfg.tagger}_Eta"] *= -1
+    test_df.loc[test_df[f'{cfg.tagger}_Eta'] < 0, f"{cfg.tagger}_Eta"] += 1 
 
     # Take only tagging track with best mistag
-    # df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry', 'RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
-    df_TagParticles = test_df.query('selected==1')
+    df_TagParticles = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['entry', 'RUNNUMBER', 'EVENTNUMBER']).first().reset_index()
     plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles, plotPath=f'{os.path.dirname(cfg.taggedData)}')
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
-    # save_vars = ['entry', 'selected', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
-    save_vars = ['entry', 'selected', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]
+    save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', id_var]+run2_taggers_variables
     if cfg.data_calib:
         save_vars += ["FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
         if "Jpsi" in cfg.decayType:
@@ -183,7 +180,7 @@ if __name__ == '__main__':
         if cfg.signal_weights: 
             save_vars += ["signal_weights", "reweighter_weights"]
     with uproot.recreate(f"{cfg.taggedData}") as file:
-        file["DecayTree"] = df_TagParticles[save_vars].query('selected==1')
+        file["DecayTree"] = df_TagParticles[save_vars]
         #file["DecayTree"] = df_TagParticles[['event_entry', f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', 'B_TRUEID']]
         
     print(f'File created at {cfg.taggedData}')

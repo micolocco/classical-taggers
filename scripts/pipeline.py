@@ -110,6 +110,7 @@ if __name__ == '__main__':
     parser.add_argument('--clean', help='Decide whatever cleaning the directories before running, w=False, a=True', action='store_true')
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--only_plot', help='Only plot input features and exit', action='store_true')
+    parser.add_argument('--asymmetry_level', help='Asymmetry between B and Bbar with wrong and correct label. asym_level2: asymmetry in training and calibration samples, asym_level1 only calibration, asym_level0 none', default='asym_level1', type=str) 
     
     print(f'Pipeline started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
@@ -180,7 +181,7 @@ if __name__ == '__main__':
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']], seed=cfg.seed, train_val_split=config['train_val_split'])
+    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']], asym_level=cfg.asymmetry_level,seed=cfg.seed, train_val_split=config['train_val_split'])
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
@@ -198,7 +199,7 @@ if __name__ == '__main__':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
         if cfg.only_plot:
             sys.exit(0)
-    pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
+    #pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
 
     model = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)   
     print(f"\nThe NN architecture is: \n{model}\n")
@@ -214,7 +215,7 @@ if __name__ == '__main__':
     #clf = pyTrain.logistic_regression(df=train_df, target_path=cfg.target_path)
     #pyTrain.plot_NNoutput_mistag(config.model_name, clf, yPredVal, yTrueVal, train_df['yPred'], train_df['yTrue'], cfg.target_path)
     #pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
-    pyTrain.plot_mistag(tagger=cfg.tagger, df=train_df, target_path=cfg.target_path, type = 'Training', show_trueB=False)
+    pyTrain.plot_mistag(tagger=cfg.tagger, decayType=cfg.decayType, df=train_df, target_path=cfg.target_path, type = 'Training', show_trueB=False)
     plt.figure()
     plt.hist(1-train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 0, only selected")
@@ -255,7 +256,7 @@ if __name__ == '__main__':
     plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Test set: Probability of label 1")
     plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
-    pyTrain.plot_mistag(tagger=cfg.tagger, df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
+    pyTrain.plot_mistag(tagger=cfg.tagger, decayType=cfg.decayType,df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
     
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
