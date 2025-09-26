@@ -185,6 +185,13 @@ if __name__ == '__main__':
     # For training: keep only tracks that pass the pre-selections. 
     # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
     # Training-validation sets splitting
+    # Save train df, val df and test df for future studies as .root
+    with uproot.recreate(f"{cfg.target_path}/trainSet.root") as f:
+        f['DecayTree'] = train_df
+    with uproot.recreate(f"{cfg.target_path}/valSet.root") as f:
+        f['DecayTree'] = val_df
+    with uproot.recreate(f"{cfg.target_path}/testSet_full.root") as f:
+        f['DecayTree'] = test_df
     stats_printout(df=df, tagger=cfg.tagger, decayType=cfg.decayType,train_df=train_df, val_df=val_df, test_df=test_df)
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     # Save test dataframe for calibration

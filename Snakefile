@@ -6,14 +6,17 @@ from copy import deepcopy
 from snakemake.io import dynamic
 
 try:
-    raw_MC = config['RAW_MC'] #RAW_MC isn't used as the folder structure is different
+    # RAW_MC isn't used as the folder structure is different
+    raw_MC = config['RAW_MC']
     modified_MC = config['MODIFIED_MC']
     repo = config['REPO']
 except:
     raise RuntimeError("Make sure to specify snakemake config")
 
+
 def in_data(data_path, list_of_files):
     return [join(data_path, i) for i in list_of_files if '#' not in i and len(i) > 0]
+
 
 taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSKaon', 'SSProton'],
@@ -22,7 +25,7 @@ taggers_conf = {
     'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
     'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
 
-    
+
 }
 # TO DO create a rules that copy the files from eos to the cluster
 
@@ -78,18 +81,20 @@ for k,v in ntuples_raw_withUT.items():
     ntuples_raw_withUT[k] = [f.replace(os.path.dirname(f), f'{raw_MC}/withUT_MC_2024/1_raw/{k}') for f in v]
 
 ntuples_added_features_withUT = {}
-for k,v in ntuples_raw_withUT.items():
-    ntuples_added_features_withUT.update({k: [f.replace(f'{raw_MC}', f'{modified_MC}').replace('1_raw', '2_added_features') for f in v]})
-    #ntuples_added_features_withUT.update({k: [f.replace(f'{raw_MC}', f'{modified_MC}/withUT_MC_2024/2_added_features') for f in v]})
+for k, v in ntuples_raw_withUT.items():
+    ntuples_added_features_withUT.update({k: [f.replace(
+        f'{raw_MC}', f'{modified_MC}').replace('1_raw', '2_added_features') for f in v]})
+    # ntuples_added_features_withUT.update({k: [f.replace(f'{raw_MC}', f'{modified_MC}/withUT_MC_2024/2_added_features') for f in v]})
 
 ntuples_selected_withUT = {}
 for decay, path_list in ntuples_raw_withUT.items():
     ntuples_selected_withUT.update({decay: {}})
-    #print(decay, path_list)
-    #print('-------')
-    for tagger in taggers_conf[decay] :
-        #ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{raw_MC}', f'{modified_MC}/withUT_MC_2024/3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
-        ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{raw_MC}', f'{modified_MC}').replace(f'1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
+    # print(decay, path_list)
+    # print('-------')
+    for tagger in taggers_conf[decay]:
+        # ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{raw_MC}', f'{modified_MC}/withUT_MC_2024/3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
+        ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{raw_MC}', f'{modified_MC}').replace(
+            f'1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
 
 ntuples_tagged_withUT = {}
 for decay, path_list in ntuples_raw_withUT.items():
@@ -97,45 +102,58 @@ for decay, path_list in ntuples_raw_withUT.items():
     for tagger in taggers_conf[decay]:
         # Filter the paths to only include those ending with '4_1.mc.root'
         filtered_paths = [
-            f.replace(f'{raw_MC}', f'{modified_MC}').replace('1_raw', '4_tagged')
-            .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}')
-            for f in path_list if f.endswith('01_1.mc.root') #4_1.mc.root hold out sample
+            f.replace(f'{raw_MC}', f'{modified_MC}').replace(
+                '1_raw', '4_tagged')
+            .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}/{{asym_level}}')
+            for f in path_list
+            # for f in path_list if f.endswith('01_1.mc.root') #4_1.mc.root hold out sample
         ]
         ntuples_tagged_withUT[decay].update({tagger: filtered_paths})
 
-    #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN_IPSig') for f in v]})
-    #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{taggers_conf[decay][i]}/{k}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in v]})
-    #ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/only_OSKaon') for f in v]})
+    # ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN_IPSig') for f in v]})
+    # ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{taggers_conf[decay][i]}/{k}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in v]})
+    # ntuples_selected_withUT.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/only_OSKaon') for f in v]})
 
 # Function to read paths from the generated file
+
+
 def read_generated_paths(file):
     with open(file, 'r') as f:
         paths = [line.strip() for line in f]
     return paths
 
+
 def find_tree_name(decay):
     if decay == 'Bs2JpsiPhi':
         return 'BsToJpsiPhi_Detached/DecayTree'
     if decay == 'Bs2DsPi':
-        return 'BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
+        # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
+        return 'BdToDsmPi_DsmToKpKmPim/DecayTree'
     if decay == 'Bu2JpsiK':
-        return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree' 
+        return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
     if decay == 'Bd2JpsiKst':
         return 'BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree'
     else:
         return 'Tuple/DecayTree'
 
+
 # Read the generated paths
-generated_paths_SSPion = read_generated_paths(join(repo,'paths_for_snakemake/generated_paths_SSPion.txt'))
-generated_paths_SSKaon = read_generated_paths(join(repo,'paths_for_snakemake/generated_paths_SSKaon.txt'))
-generated_paths_SSProton = read_generated_paths(join(repo,'paths_for_snakemake/generated_paths_SSProton.txt'))
-generated_paths_OSKaon = read_generated_paths(join(repo,'paths_for_snakemake/generated_paths_OSKaon.txt'))
-generated_paths_OSElectron = read_generated_paths(join(repo,'paths_for_snakemake/generated_paths_OSElectron.txt'))
-generated_paths_OSMuon = read_generated_paths(join(repo,'paths_for_snakemake/generated_paths_OSMuon.txt'))
+generated_paths_SSPion = read_generated_paths(
+    join(repo, 'paths_for_snakemake/generated_paths_SSPion.txt'))
+generated_paths_SSKaon = read_generated_paths(
+    join(repo, 'paths_for_snakemake/generated_paths_SSKaon.txt'))
+generated_paths_SSProton = read_generated_paths(
+    join(repo, 'paths_for_snakemake/generated_paths_SSProton.txt'))
+generated_paths_OSKaon = read_generated_paths(
+    join(repo, 'paths_for_snakemake/generated_paths_OSKaon.txt'))
+generated_paths_OSElectron = read_generated_paths(
+    join(repo, 'paths_for_snakemake/generated_paths_OSElectron.txt'))
+generated_paths_OSMuon = read_generated_paths(
+    join(repo, 'paths_for_snakemake/generated_paths_OSMuon.txt'))
 
-#print(expand(ntuples_selected_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK_balanced'], balanced=['balanced'],features=['union_PROBNN']),)
+# print(expand(ntuples_selected_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK_balanced'], balanced=['balanced'],features=['union_PROBNN']),)
 
-#print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
+# print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
 rule all:
     input:
         join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
@@ -144,69 +162,73 @@ rule all:
         join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
         join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
         join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level1/ROC_TRAIN_VAL.pdf'),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bs2DsPi']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bs2DsPi']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bs2DsPi']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=[
+               'balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
 
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level0/ROC_TRAIN_VAL.pdf'),
 #
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
-        #join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
+        # join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/asym_level2/ROC_TRAIN_VAL.pdf'),
 
+        # ntuples_added_features_withUT['Bu2JpsiK'],
+        # ntuples_added_features_withUT['Bd2JpsiKst'],
+        # ntuples_added_features_withUT['Bs2DsPi']
 
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
 
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # ntuples_added_features_withUT['Bu2JpsiK'],
+        # ntuples_added_features_withUT['Bd2JpsiKst'],
+        # ntuples_added_features_withUT['Bs2DsPi']
 
-        #ntuples_added_features_withUT['Bu2JpsiK'],
-        #ntuples_added_features_withUT['Bd2JpsiKst'],
-        #ntuples_added_features_withUT['Bs2DsPi']
+        # '/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/unbalanced/treeSchema.pdf',
+       # '/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/balanced/treeSchema.pdf',
 
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bu2JpsiK']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
 
-
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-
-        #ntuples_added_features_withUT['Bu2JpsiK'],
-        #ntuples_added_features_withUT['Bd2JpsiKst'],
-        #ntuples_added_features_withUT['Bs2DsPi']
-
-        #'/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/unbalanced/treeSchema.pdf',
-       #'/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/DT_outputs/final_cut/balanced/treeSchema.pdf',
-
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bu2JpsiK']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        
-        #ntuples_added_features_withUT['Bs2DsPi'],
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
-        #expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # ntuples_added_features_withUT['Bs2DsPi'],
+        # expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bs2DsPi']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bs2DsPi']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bs2DsPi']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        # expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
 
         #ntuples_tagged_withUT['Bs2DsPi']['OSKaon'],
         #ntuples_tagged_withUT['Bs2DsPi']['OSElectron'],
@@ -457,12 +479,12 @@ rule add_tagDec:
         script = join(repo, 'scripts/adding_tagDec.py'),
         selected = join(modified_MC, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{balanced}/{features}/{id}.root')
     output:
-        root = join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{id}.root'),
+        root = join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{asym_level}/{id}.root'),
     log:
-        join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{id}.log'),
+        join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{asym_level}/{id}.log'),
     params:
-        modelPrePath = lambda wildcards: join(modified_MC, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}'),
-        taggedDataPath = join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/'),
+        modelPrePath = lambda wildcards: join(modified_MC, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}/{wildcards.asym_level}'),
+        taggedDataPath = join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{asym_level}/'),
     run:
         print(f"Processing file: {wildcards.id}")
         print(f"Selected input file: {input.selected}")
