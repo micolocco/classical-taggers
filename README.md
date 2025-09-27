@@ -128,3 +128,6 @@ $\eta$ is obtained from the output of the NN that gives the probability of getti
  NNoutput = prob[label=1] = prob[d=Q(B)]
 mistag = 1 - NNout = prob[label=0] = prob[d*(-1)=Q(B)] 
 ```
+
+## Data calibration
+When working with real data, use the `Snakemake` file in `data_calibration` to process the tuples (i.e add features, preselect, attach the tagging decision). Then run the `sweights.py` script to compute the sweights (with the option `--simulation`) on MC and re-run on data for getting the sweights which are attached to the output tuple `sweights.root`. This tuple has everything: tagging decisions and sweights. It can be processed with `data_calib.py` which computes the combination for a set of taggers.
