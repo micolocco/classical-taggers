@@ -61,7 +61,8 @@ if __name__ == '__main__':
     parser.add_argument('--time-unit', type=str, default="c_ps",
                         help='Unit of the time branches')
     parser.add_argument('--decay-time-branches', type=str, default=["B_DTF_PV_CTAU"], nargs="+",
-                        help='Branche names of the decay-time variables (first decay time, second decay-time error).') # Just using decay time for now
+                        help='Branch names of the decay-time variables (first decay time, second decay-time error).') # Just using decay time for now
+    parser.add_argument('--asymmetry_level', help='Asymmetry between B and Bbar with wrong and correct label. asym_level2: asymmetry in training and calibration samples, asym_level1 only calibration, asym_level0 none', default='asym_level1', type=str) 
 
 
 
@@ -71,9 +72,9 @@ if __name__ == '__main__':
     
     #outputPath =f'{cfg.outputPath}/{cfg.decayType}/combinations/'
     if cfg.simulation:
-        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/combinations/{cfg.cut}_{cfg.features}/'
+        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/combinations/{cfg.cut}_{cfg.features}/{cfg.asymmetry_level}'
     else:
-        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/block1_combinations/{cfg.cut}_{cfg.features}/'
+        outputPath =f'{cfg.tagged_prePath}/{cfg.decayType}/block1_combinations/{cfg.cut}_{cfg.features}/{cfg.asymmetry_level}'
     os.makedirs(outputPath, exist_ok=True)
     
     vars = []
@@ -90,8 +91,9 @@ if __name__ == '__main__':
     for tagger in cfg.tagger:
         loading_variables = []
         loading_variables = vars + [f'{tagger}_TagDec', f'{tagger}_Eta']
-        input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
+        input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, cfg.asymmetry_level,'*.root')
         input_files = glob.glob(input_path)
+        print(input_files)
         # Loop over all files
         singleTagger_dataframes = []
         
@@ -106,6 +108,7 @@ if __name__ == '__main__':
             _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
 
             singleTagger_dataframes.append(_df)
+            
             
         #print(f'{pd.concat(singleTagger_dataframes).shape[0]}')
         df_merged=pd.concat(singleTagger_dataframes, ignore_index=True)
@@ -128,6 +131,7 @@ if __name__ == '__main__':
         print(f'total:{df.shape}')
         #df = pd.merge(df, single_df, on=['event_entry',], how='outer')   
     print(df.shape)
+    class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: '$\overline{B}^0$', 531: '$B_s^0$', -531: '$\overline{B}_s^0$'}
 
     runs=['Run3']
     if cfg.run2:
@@ -146,7 +150,7 @@ if __name__ == '__main__':
     for run in runs:
         os.makedirs(f'{outputPath}/{run}', exist_ok=True)
         taggers = ft.TaggerCollection()
-        for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge
+        for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge (called differently on data tuples as they are more recent)
         #for tagger in cfg.tagger:
            # Adjust name columns
             if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
@@ -183,17 +187,24 @@ if __name__ == '__main__':
 
         taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
         taggers.calibrate()
+        os.makedirs(f'{outputPath}/{run}/single', exist_ok=True)
+        ft.save_calibration(taggers=taggers, title=cfg.combinationName, save_path=f'{outputPath}/{run}/single')
+        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}/single', omega_range="minimal", nbins=10)
+
+
         # Combine the taggers into one. With "calibrated=False" we would combine the raw single tagger statistics, which is not usually what we want.
         tagger_combination = taggers.combine_taggers(f'{cfg.combinationName}_{run}', calibrated=True)
         tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
         ## And calibrate this tagger again
         tagger_combination.calibrate()
-        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=10)
-        ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}')
-        os.makedirs(f'{outputPath}/{run}/splitted', exist_ok=True)
-        ft.plotting.draw_split_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}/splitted')
-
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}')
+        tagger_combination.plot_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}')
+        scale = (lambda x: x**4, lambda x: x**1/4)
+        scale = "linear"
+        class_indices = df[B_ID_var].values
+        tagger_combination.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+                                            file_name = 'split_calibration_curves.pdf', savepath = f'{outputPath}/{run}', omega_range="minimal", 
+                                            nbins = 10, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
         print(f'{run} combination created at {outputPath}')
 
     

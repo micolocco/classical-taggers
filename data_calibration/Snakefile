@@ -15,9 +15,9 @@ except:
 
 
 taggers_conf = {
-    #'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
-    #'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
-    'Bs2DsPi': ['SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
+    'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
+    'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
+    #'Bs2DsPi': ['SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
     # 'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
     # 'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
 }
@@ -108,7 +108,7 @@ for decay, path_list in ntuples_raw_withUT.items():
         # Filter the paths to only include those ending with '4_1.mc.root'
         filtered_paths = [
             f.replace(f'{data}', f'{modified_data}').replace('1_raw', '4_tagged').replace('/0000','')
-            .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}')
+            .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}/{{asym_level}}')
             for f in path_list #if f.endswith('4_1.mc.root') #4_1.mc.root hold out sample
         ]
         ntuples_tagged_withUT[decay].update({tagger: filtered_paths})
@@ -117,7 +117,15 @@ for decay, path_list in ntuples_raw_withUT.items():
 
 rule all:
     input: 
-        expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'],features=['union_PROBNN']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+
         #ntuples_added_features_withUT['Bs2DsPi']
 
         #ntuples_added_features_withUT['Bs2DsPi']
@@ -296,12 +304,12 @@ rule add_tagDec:
         script = join(repo, 'scripts/adding_tagDec.py'),
         selected = join(modified_data, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{balanced}/{features}/{id}.root')
     output:
-        root = join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{id}.root'),
+        root = join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{asym_level}/{id}.root'),
     log:
-        join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{id}.log'),
+        join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{asym_level}/{id}.log'),
     params:
         modelPrePath = lambda wildcards: join(modified_MC, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}'),
-        taggedDataPath = join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/'),
+        taggedDataPath = join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{asym_level}/'),
     resources:
         mem_mb = 20000, # Specify memory requirement in megabytes
     run:
@@ -318,6 +326,7 @@ rule add_tagDec:
             '--decayType {wildcards.decay}', # Decay used for evaluating the tagger
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
+            '--asymmetry_level {wildcards.asym_level}',
             '--repo', repo,
             '--data_calib',
             '&> {log}'

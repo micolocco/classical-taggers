@@ -248,10 +248,7 @@ def main():
         df.reset_index(inplace=True, drop = False)
         df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUE_PARTICLE_ID)', inplace = True)
         df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
-   
-   # Add this diagnostic line to see the data types
-    print("DataFrame dtypes after loading:")
-    print(df.dtypes)
+
     
     # Add some needed features
     # A bit of a hack to add the minimum distance

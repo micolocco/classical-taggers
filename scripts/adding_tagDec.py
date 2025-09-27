@@ -55,14 +55,15 @@ if __name__ == '__main__':
     parser.add_argument('--features', help='Input features used for NN training',) 
     parser.add_argument('--data_calib', action="store_true")
     parser.add_argument('--repo', help="Path to repository")
+    parser.add_argument('--asymmetry_level', help='Asymmetry between B and Bbar with wrong and correct label. asym_level2: asymmetry in training and calibration samples, asym_level1 only calibration, asym_level0 none', default='asym_level1', type=str) 
     parser.add_argument('--signal_weights', action='store_true', help='store signal_weights if they are already in the NTuples') # action='store_true' means args.signal_weights will be set to True if the --signal_weights argument is provided on the command line.
 
     cfg = parser.parse_args()
     pprint(cfg)
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    # loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
-    loading_variables = features + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
+    loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
+    #loading_variables = features + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
     if cfg.data_calib: 
         loading_variables += ["B_ID", "FillNumber", "B_DTF_PV_MASS", "B_DTF_PV_CTAU"]
         if cfg.signal_weights: 
@@ -76,8 +77,7 @@ if __name__ == '__main__':
                 #loading_variables.append("B_DTF_PV_Ds_MASSERR")
 
     else: 
-        # loading_variables += ["B_TRUEID"]
-        loading_variables += ["B_ID"]
+        loading_variables += ["B_TRUEID"]
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     arch = data[cfg.tagger]['architecture']
     dm = float(data[cfg.tagger]['min_delta'])
     config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
-    model_path = join(cfg.modelPrePath, f"{seed}/{config}")
+    model_path = join(cfg.modelPrePath, f"{seed}/{config}/{cfg.asymmetry_level}") # asymmetry level hard coded for now, to be changed in the future
     #model_path = join(cfg.modelPrePath)
     # Load YAML configuration file
     with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:
@@ -142,7 +142,6 @@ if __name__ == '__main__':
     # transformerPath = f"{model_path}/powerTransformer.pkl"
     # columns_to_drop = ['entry', id_var,'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
     columns_to_drop = ['entry', id_var,'B_Tr_T_Charge', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec']
-    pyTrain.plot_features(data=test_df[test_df.selected==1], features_list=features, target_path= os.path.dirname(cfg.taggedData), flag='label', name=f'training_inputFeatures')
 
     #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset = inputDataset(df=test_df[features+['label']])

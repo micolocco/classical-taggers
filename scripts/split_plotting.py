@@ -10,9 +10,9 @@ from scripts.inputDataset import inputDataset
 
 pre_path = "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/"
 cut = 'allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN'
-
+repo = '/home/molocco/classical-taggers'
 taggers_dict = {
-    #'OSKaon': 'Bu2JpsiK',
+    'OSKaon': 'Bu2JpsiK',
     'OSElectron': 'Bu2JpsiK',
     'OSMuon': 'Bu2JpsiK',
     'SSPion': 'Bd2JpsiKst',
@@ -36,7 +36,7 @@ for tagger in taggers_dict.keys():
 
     decay = taggers_dict[tagger]
     pre_path_full = join(pre_path, f"{decay}/{tagger}/{cut}")
-    model_path = join(pre_path_full, f"{seed}/{config}/asym_level2")
+    model_path = join(pre_path_full, f"{seed}/{config}/asym_level1")
     model= f"{model_path}/model.pth"
 
     testSetPath = f"{model_path}/testSet.csv"
@@ -47,6 +47,9 @@ for tagger in taggers_dict.keys():
     bestModel = torch.load(model)
     bestModel.eval()
 
+    features = pyTrain.get_features(tagger=tagger, yaml_file='union_PROBNN', repo_path=repo)
+    pyTrain.plot_features(data=test_df, features_list=features, target_path=target_path, flag='B_TRUEID', name=f'training_inputFeatures')
+    
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     # test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
