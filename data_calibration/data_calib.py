@@ -76,7 +76,7 @@ if __name__ == '__main__':
     os.makedirs(outputPath, exist_ok=True)
 
     B_ID_var = "B_ID"
-    input_file = f'{path}/data_fit/sweights.root'
+    input_file = f'{path}/data_fit/sweights.root' # This NTuple is produced by the sWeights.py script. sweights.py run over the ntuples with the attached tagging decision and attach the sweights
     with uproot.open(input_file) as f:
         df = f['DecayTree'].arrays(library="pd")
     

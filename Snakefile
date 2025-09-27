@@ -483,6 +483,9 @@ rule add_tagDec:
     params:
         modelPrePath = lambda wildcards: join(modified_MC, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}/'),
         taggedDataPath = join(modified_MC, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{balanced}/{features}/{asym_level}/'),
+    resources:
+        mem_mb = 10000, # Specify memory requirement in megabytes
+
     run:
         print(f"Processing file: {wildcards.id}")
         print(f"Selected input file: {input.selected}")

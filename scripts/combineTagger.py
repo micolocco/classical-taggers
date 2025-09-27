@@ -93,7 +93,6 @@ if __name__ == '__main__':
         loading_variables = vars + [f'{tagger}_TagDec', f'{tagger}_Eta']
         input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, cfg.asymmetry_level,'*.root')
         input_files = glob.glob(input_path)
-        print(input_files)
         # Loop over all files
         singleTagger_dataframes = []
         
@@ -108,7 +107,6 @@ if __name__ == '__main__':
             _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
 
             singleTagger_dataframes.append(_df)
-            
             
         #print(f'{pd.concat(singleTagger_dataframes).shape[0]}')
         df_merged=pd.concat(singleTagger_dataframes, ignore_index=True)
@@ -150,7 +148,7 @@ if __name__ == '__main__':
     for run in runs:
         os.makedirs(f'{outputPath}/{run}', exist_ok=True)
         taggers = ft.TaggerCollection()
-        for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge (called differently on data tuples as they are more recent)
+        for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge (called differently on data tuples as they are more recent, will be only 'OSVertexCharge')
         #for tagger in cfg.tagger:
            # Adjust name columns
             if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
