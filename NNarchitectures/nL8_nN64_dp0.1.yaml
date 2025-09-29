@@ -1,0 +1,53 @@
+architecture:
+  - type: Linear
+    params: {in_features: len(self.features), out_features: 64}
+  - type: Dropout
+    params: {p: 0.1}
+  - type: ELU
+    params: {}
+  - type: Linear
+    params: {in_features: 64, out_features: 64}
+  - type: Dropout
+    params: {p: 0.1}
+  - type: ELU
+    params: {}
+  - type: Linear
+    params: {in_features: 64, out_features: 64}
+  - type: Dropout
+    params: {p: 0.1}
+  - type: ELU
+    params: {}
+  - type: Linear
+    params: {in_features: 64, out_features: 64}
+  - type: Dropout
+    params: {p: 0.1}
+  - type: ELU
+    params: {}
+  - type: Linear
+    params: {in_features: 64, out_features: 64}
+  - type: Dropout
+    params: {p: 0.1}
+  - type: ELU
+    params: {}
+  - type: Linear
+    params: {in_features: 64, out_features: 64}
+  - type: Dropout
+    params: {p: 0.1}
+  - type: ELU
+    params: {}
+  - type: Linear
+    params: {in_features: 64, out_features: 64}
+  - type: Dropout
+    params: {p: 0.1}
+  - type: ELU
+    params: {}
+  - type: Linear
+    params: {in_features: 64, out_features: 64}
+  - type: Dropout
+    params: {p: 0.1}
+  - type: ELU
+    params: {}
+  - type: Linear
+    params: {in_features: 64, out_features: 1}
+  - type: Sigmoid
+    params: {}

@@ -100,6 +100,8 @@ loading_variables = [
         'B_Tr_T_TRUE_PARTICLE_ID',
         'B_Tr_T_OWNPV_Z',
         'B_OWNPV_Z',
+        'B_Tr_T_ENERGY',
+
         #'B_Tr_T_TRUEPRIMARYVERTEX_X',
         #'B_Tr_T_TRUEPRIMARYVERTEX_Y',
         #'B_Tr_T_TRUEPRIMARYVERTEX_Z',
@@ -164,7 +166,6 @@ extra_vars = [
         'B_Tr_T_Z',
         'B_Tr_T_MINIP',
         'B_Tr_T_MINIPChi2',
-        'B_Tr_T_ENERGY',
     ]
 #@profile
 def main():
