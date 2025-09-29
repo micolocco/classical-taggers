@@ -302,4 +302,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #print(f'Finished adding features on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f'Finished adding features on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')

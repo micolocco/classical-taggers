@@ -6,6 +6,7 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.adding_features_v2 import run2_taggers_variables
 import argparse
 import os
+import datetime
 
 from IPython import embed
 
@@ -119,4 +120,6 @@ if __name__ == '__main__':
     with uproot.recreate(f"{cfg.output}") as file:
         file["DecayTree"] = df
     print(f"Pre-selections applied. NTuple saved at {cfg.output}")
+    print(f'Finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+
     

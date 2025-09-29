@@ -195,12 +195,12 @@ rule add_features:
         root =join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
         #request_disk = 50000
     resources:
-       # mem_mb = 10000#240000, # Specify memory requirement in megabytes
+        mem_mb = 16000,#240000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
         request_disk = 6000
 
     run:
-        tree = find_tree_name(wildcards.decay)
+        #tree = find_tree_name(wildcards.decay)
         cmd = [
             'python', input.script,
             '--raw {input.raw}',

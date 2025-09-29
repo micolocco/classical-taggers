@@ -317,6 +317,15 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
     plt.savefig(f"{target_path}/{name}.pdf")
     
 
+def get_architecture(config):
+    if 'architecture' in config.keys():
+        return config['architecture']
+    else:
+        nL = config['numlayers']
+        nN = config['numneurons']
+        dp = config['dropout']
+        return f'nL{nL}_nN{nN}_dp{dp}'
+
 def train_model_EarlyStopping(model, train_dl, validation_dl, target_path, config):
         
         trainingEpoch_loss = []

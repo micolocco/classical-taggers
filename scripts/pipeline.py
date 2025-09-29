@@ -208,6 +208,8 @@ if __name__ == '__main__':
         train_df_opt.to_parquet(train_path, engine="pyarrow", compression="zstd", index=False)
         val_df_opt.to_parquet(val_path,     engine="pyarrow", compression="zstd", index=False)
         test_df_opt.to_parquet(test_path,   engine="pyarrow", compression="zstd", index=False)
+        pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
+        pyTrain.plot_features_byID(data=train_df, features_list=features, ID=ID, target_path=cfg.target_path, name=f'byTRUEID_inputFeatures')
         stats_printout(df=df, tagger=cfg.tagger, ID=ID,train_df=train_df, val_df=val_df, test_df=test_df)
 
    
@@ -218,13 +220,8 @@ if __name__ == '__main__':
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=config['train_batch_size'], seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath)
     # Added Scaler and PowerTransformer as pyTorch layers
     preprocess_module = fit_freeze_preprocessing(train_dl)
-    if cfg.config!='configs/config_test':
-        pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
-        if cfg.only_plot:
-            sys.exit(0)
-    pyTrain.plot_features_byID(data=train_df, features_list=features, ID=ID, target_path=cfg.target_path, name=f'byTRUEID_inputFeatures')
 
-    model = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)   
+    model = NeuralNetwork(features=features, architecture=pyTrain.get_architecture(config), preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)   
     print(f"\nThe NN architecture is: \n{model}\n")
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
