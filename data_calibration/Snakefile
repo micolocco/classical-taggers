@@ -56,9 +56,10 @@ def select_input_files(decay):
         lines = [line.strip() for line in f]
     return [eosdir + path for path in lines]
 
+# Build the dictionary of input files for each decay
 ntuples_raw_withUT = {
     decay: [
-        join(data, 'withUT_MC_2024', '1_raw', decay, '0000', basename(path))
+        join(data, 'withUT_MC_2024', '1_raw', decay, basename(path))
         for path in select_input_files(decay)
     ]
     for decay in taggers_conf
@@ -88,7 +89,7 @@ for decay, path_list in ntuples_raw_withUT.items():
 '''
 ntuples_added_features_withUT = {}
 for k,v in ntuples_raw_withUT.items():
-    ntuples_added_features_withUT.update({k: [f.replace(f'{data}', f'{modified_data}').replace('1_raw', '2_added_features').replace('/0000','') for f in v]})
+    ntuples_added_features_withUT.update({k: [f.replace(f'{data}', f'{modified_data}').replace('1_raw', '2_added_features') for f in v]})
     #ntuples_added_features_withUT.update({k: [f.replace(f'{data}', f'{modified_data}/withUT_MC_2024/2_added_features') for f in v]})
 #print(ntuples_added_features_withUT)
 
@@ -99,7 +100,7 @@ for decay, path_list in ntuples_raw_withUT.items():
     #print('-------')
     for tagger in taggers_conf[decay] :
         #ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{data}', f'{modified_data}/withUT_MC_2024/3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
-        ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{data}', f'{modified_data}').replace(f'1_raw', f'3_selected').replace('/0000','').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
+        ntuples_selected_withUT[decay].update({tagger: [f.replace(f'{data}', f'{modified_data}').replace(f'1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}') for f in path_list]})
 #print(ntuples_selected_withUT)
 ntuples_tagged_withUT = {}
 for decay, path_list in ntuples_raw_withUT.items():
@@ -107,7 +108,7 @@ for decay, path_list in ntuples_raw_withUT.items():
     for tagger in taggers_conf[decay]:
         # Filter the paths to only include those ending with '4_1.mc.root'
         filtered_paths = [
-            f.replace(f'{data}', f'{modified_data}').replace('1_raw', '4_tagged').replace('/0000','')
+            f.replace(f'{data}', f'{modified_data}').replace('1_raw', '4_tagged')
             .replace(decay, f'{decay}/{tagger}/{{cut_name}}/{{balanced}}/{{features}}/{{asym_level}}')
             for f in path_list #if f.endswith('4_1.mc.root') #4_1.mc.root hold out sample
         ]
@@ -187,14 +188,14 @@ rule add_features:
         script = join(repo, 'scripts/adding_features_v2.py'),
         #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
         #raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
-        raw = join(data, '{sample_type}/1_raw/{decay}/0000/{id}.root')
+        raw = join(data, '{sample_type}/1_raw/{decay}/{id}.root')
 
     log: join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
     output: 
         root =join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
         #request_disk = 50000
     resources:
-        mem_mb = 240000, # Specify memory requirement in megabytes
+       # mem_mb = 10000#240000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
         request_disk = 6000
 
@@ -205,7 +206,7 @@ rule add_features:
             '--raw {input.raw}',
             '--output {output.root}',
             '--evtType {wildcards.decay}',
-            '--treename', tree,
+            #'--treename', tree,
             '--data_calib',
             '&> {log}',
         ]
@@ -299,6 +300,7 @@ rule add_tagDec_data:
         ]
         shell(' '.join(cmd))
         '''
+# Actually this rule is not really necessaty as a NTuples is produced by he script sweights.py with
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),

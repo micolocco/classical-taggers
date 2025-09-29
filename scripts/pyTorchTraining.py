@@ -43,6 +43,26 @@ def recreate_directory(target_path, clean=False):
     except Exception as e:
         print(f'Failed to create {target_path}. Reason: {e}')
 
+def plot_features_byID(data, features_list, ID, target_path, name, nbins=100):
+    # Plot input features 
+    plt.figure(figsize=(24,25))
+    pos=0
+    for i, col in enumerate(data.columns.to_list()):
+        if col in features_list:
+            plt.subplot(5, 4 , pos + 1) # hardcoded according to the number of features
+            if col in nice_names.keys():
+                plt.hist(data[col][(data['label']==0)&(data['B_TRUEID']==ID)], density = True, bins=nbins, label = f"label = 0, {ID}",color='b', histtype='step',  lw=2, range=ranges[col])
+                plt.hist(data[col][(data['label']==0)&(data['B_TRUEID']==-ID)], density = True, bins=nbins, label = f"label = 0, -{ID}",color='r', histtype='step',  lw=2, range=ranges[col])
+                plt.hist(data[col][(data['label']==1)&(data['B_TRUEID']==ID)], density = True, bins=nbins, label = f"label = 1, {ID}",color='orange', histtype='step',  lw=2, range=ranges[col])
+                plt.hist(data[col][(data['label']==1)&(data['B_TRUEID']==-ID)], density = True, bins=nbins, label = f"label = 1, -{ID}",color='cyan', histtype='step',  lw=2, range=ranges[col])
+
+                plt.xlabel(nice_names[col])
+                plt.yscale('log')
+            plt.legend()
+            plt.tight_layout()
+            pos+=1
+    plt.savefig(f"{target_path}/{name}.pdf")
+    
 def get_features(tagger, yaml_file, repo_path):
     '''Function for assigning the input features corresponding to each tagger.
     The input features will be used for the training of the NN
@@ -241,6 +261,16 @@ def splitByEvent(df, seed=3, asym_level='asym_level1', train_val_split=0.8, true
         test_out = pd.concat([test_sel1, test_sel0], ignore_index=False).sort_index()
         return train_sel1_bal, val_sel1_bal, test_out
 
+from pathlib import Path
+
+def get_anchor_dir(model_path: str, anchor: str = "union_PROBNN") -> Path:
+    p = Path(model_path)
+    parts = p.parts
+    if anchor in parts:
+        i = parts.index(anchor)
+        return Path(*parts[:i+1])  # keep up to and including anchor
+    # Fallback: if anchor not found, use the provided path itself
+    return p
 
 
 def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size, seed, test_batch_size = 1024):
@@ -250,7 +280,7 @@ def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size
     val_dataset = inputDataset(df=val_df)
     # val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     # Prepare data loaders
-    #torch.manual_seed(seed) # to ensure reproducibility
+    torch.manual_seed(seed) # to ensure reproducibility
     train_dl = DataLoader(train_dataset, batch_size = train_batch_size, shuffle=False)
     validation_dl = DataLoader(val_dataset, batch_size = test_batch_size, shuffle=False)
     return train_dl, validation_dl 

@@ -1,0 +1,17 @@
+#All possible hyperparameter intervals
+-learning_rate: [0.0001, 0.001, 0.01]
+-numlayers: [2, 4, 6, 8, 16]
+-train_batch_size: [2048, 4096, 8192]
+-numneurons: [3, 8, 16, 32, 64, 128, 256]
+-alpha: [0]
+-min_delta: [0, 0.0001, 0.001, 0.01]
+
+
+#-alpha: [0, 0.01, 0.1, 0.5, 1]
+
+# hyperparameters held constant
+-dropout: 0.1
+-train_val_split: 0.6
+-n_epochs: 500
+-patience: 50
+-activation_function: 'ELU'

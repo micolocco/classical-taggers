@@ -11,27 +11,6 @@ from matplotlib import pyplot as plt
 
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-
-
-def plot_features(data, features_list, ID, target_path, name, nbins=100):
-    # Plot input features 
-    plt.figure(figsize=(24,25))
-    pos=0
-    for i, col in enumerate(data.columns.to_list()):
-        if col in features_list:
-            plt.subplot(5, 4 , pos + 1) # hardcoded according to the number of features
-            if col in nice_names.keys():
-                plt.hist(data[col][(data['label']==0)&(data['B_TRUEID']==ID)], density = True, bins=nbins, label = f"label = 0, {ID}",color='b', histtype='step',  lw=2, range=ranges[col])
-                plt.hist(data[col][(data['label']==0)&(data['B_TRUEID']==-ID)], density = True, bins=nbins, label = f"label = 0, -{ID}",color='r', histtype='step',  lw=2, range=ranges[col])
-                plt.hist(data[col][(data['label']==1)&(data['B_TRUEID']==ID)], density = True, bins=nbins, label = f"label = 1, {ID}",color='orange', histtype='step',  lw=2, range=ranges[col])
-                plt.hist(data[col][(data['label']==1)&(data['B_TRUEID']==-ID)], density = True, bins=nbins, label = f"label = 1, -{ID}",color='cyan', histtype='step',  lw=2, range=ranges[col])
-
-                plt.xlabel(nice_names[col])
-                plt.yscale('log')
-            plt.legend()
-            plt.tight_layout()
-            pos+=1
-    plt.savefig(f"{target_path}/{name}.pdf")
     
 
 pre_path = "/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/3_selected"
@@ -116,5 +95,5 @@ for tagger in taggers_dict.keys():
 
     target_path=f'{repo}/inputFeatures/{decay}/{tagger}/'
     os.makedirs(target_path, exist_ok=True)
-    plot_features(data=train_df, features_list=features, ID=ID, target_path=target_path, name=f'byTRUEID_inputFeatures')
+    pyTrain.plot_features_byID(data=train_df, features_list=features, ID=ID, target_path=target_path, name=f'byTRUEID_inputFeatures')
     

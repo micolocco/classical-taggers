@@ -53,6 +53,7 @@ def min_dPhi(df, prefix):
 # List of variables (includes MC variables)
 loading_variables = [
         'EVENTNUMBER',
+        'entry',
         'B_Tr_T_TRACKISLONG',
         'B_Tr_T_OWNPVIP',
         'B_Tr_T_Charge',
@@ -61,7 +62,7 @@ loading_variables = [
         'B_Tr_T_IPBVTX',
         "B_ID",
         "B_DTF_PV_MASS",
-        "B_DTF_PV_MASSERR",
+        #"B_DTF_PV_MASSERR",
         'B_DTF_PV_CTAU',
         'B_DTF_PV_CTAUERR',
         'B_ENERGY',
@@ -131,10 +132,10 @@ run2_taggers_variables = [
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
         #'B_Run2_OSMuon_MVA',
-        'B_Run2_OSVertexCharge_Dec',
-        'B_Run2_OSVertexCharge_Omega',
-        'B_Probability_Medium_0_Run2OSVertexCharge_Dec',
-        'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
+        #'B_Run2_OSVertexCharge_Dec', # Not available on data
+        #'B_Run2_OSVertexCharge_Omega',
+        #'B_Probability_Medium_0_Run2OSVertexCharge_Dec', 
+        #'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
     ]
 
 extra_vars = [
@@ -265,6 +266,7 @@ def main():
     df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
     df.eval(f'{prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval(f'{prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)', inplace = True)
+    df.eval(f'{prefix}Tr_T_EoverP = {prefix}Tr_T_ENERGY/{prefix}Tr_T_P', inplace = True)
 
 
   
@@ -276,7 +278,6 @@ def main():
         df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
         df.eval(f't = ({prefix}ENDV_X**2 + {prefix}ENDV_Y**2 + {prefix}ENDV_Z**2 - {prefix}ENDV_X*{prefix}Tr_T_X - {prefix}ENDV_Y*{prefix}Tr_T_Y - {prefix}ENDV_Z*{prefix}Tr_T_Z) / ({prefix}ENDV_X * {prefix}Tr_T_PX + {prefix}ENDV_Y * {prefix}Tr_T_PY + {prefix}ENDV_Z * {prefix}Tr_T_PZ)' , inplace = True)
         df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
-        df.eval(f'{prefix}Tr_T_EoverP = {prefix}Tr_T_ENERGY/{prefix}Tr_T_P', inplace = True)
         df.eval('logEVIP = log(EVIP)', inplace = True)
         df.eval('logP_proj = log(P_proj)', inplace = True)
         df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)

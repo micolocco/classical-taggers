@@ -32,7 +32,7 @@ example:
 python scripts/pipeline.py --selected NTuple_test_OSKaon.root --tagger OSKaon --decayType Bu2JpsiK 
 '''
 
-def stats_printout(df, tagger, decayType, train_df, val_df, test_df):
+def stats_printout(df, ID, tagger, train_df, val_df, test_df):
     '''
     Function to print statistics about the dataset composition
     '''
@@ -64,12 +64,7 @@ def stats_printout(df, tagger, decayType, train_df, val_df, test_df):
     print("The calibration set contains both selected and not selected events. \n")
 
     print("Correct tagging decision l=1, wrong tagging decision l=0")
-    if decayType[:2]=='Bu':
-        ID=521
-    if decayType[:2]=='Bd':
-        ID=511
-    if decayType[:2]=='Bs':
-        ID=531
+
     B_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==ID)].shape[0]
     antiB_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==-ID)].shape[0]
     B_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==ID)].shape[0]
@@ -111,7 +106,8 @@ if __name__ == '__main__':
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--only_plot', help='Only plot input features and exit', action='store_true')
     parser.add_argument('--asymmetry_level', help='Asymmetry between B and Bbar with wrong and correct label. asym_level2: asymmetry in training and calibration samples, asym_level1 only calibration, asym_level0 none', default='asym_level1', type=str) 
-    
+    parser.add_argument('--overwrite', help='Overwrite existing training set if any', action='store_true')
+
     print(f'Pipeline started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg)
@@ -125,11 +121,9 @@ if __name__ == '__main__':
     # Check and eventually make output directory where training info will be saved
     pyTrain.recreate_directory(cfg.target_path, clean=cfg.clean)
     # Path to where the scaler parameters will be saved
-    scalerPath = f"{cfg.target_path}/st_scaler.pkl"
-    transformerPath = f"{cfg.target_path}/powerTransformer.pkl"
+    scalerPath = f"{cfg.target_path}/st_scaler.pkl" #not needed anymore
+    transformerPath = f"{cfg.target_path}/powerTransformer.pkl"  #not needed anymore
 
-    # Path to where the test set will be saved
-    testSetPath = f"{cfg.target_path}/testSet.csv"
 
     start = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -137,65 +131,93 @@ if __name__ == '__main__':
     # Reading datasets
     vars = features + ['B_TRUEID','B_Tr_T_Charge','selected',]
     
-    df = pd.DataFrame(columns=vars)
-    for i, f in enumerate(selected_files):
-        print(f"Reading input file: {f}")
-        with uproot.open("{}".format(f)) as _f:
-            _df = _f[cfg.treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
-        _df.dropna(inplace = True)
-        _df["SAMPLENUMBER"] = i
-        _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
-        df = pd.concat([df, _df], ignore_index = True)
-    
-    df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
-    # Drop multicandidates
-    #df = df.groupby("event_entry").first()
-
-
-    # removal_time1 = time.time()
-    # df = utils.remove_multicandidates(df)
-    # #df = utils.remove_multicandidates(df)
-    # removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
-    # print(f"Removing multicandidates required {removal_time2}s")
-    
-    # Assignation of the tagging decision (d)
-    # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
-    if ("Bd" in cfg.decayType or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
-        df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"]
-    else:
-        df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
-
-    # Assignation of the label (it will be used as NN output)
-    # The label is given by the product of the tagging decision and the flavour charge of the B.
-    # It indicates if the tagging decision is wrong or correct.
-    # -1 == wrong tag  1 == correct tag
-    # When using data:
-    #   - tagging decision: the B_TRUEID must be replaced with B_ID 
-    #   - calibration: B_ID = reconstructed ID when moving to data!
-    df["label"] = df[f"{cfg.tagger}_TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) 
-    df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
-    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device used: {device}")
     #df_selected = df.query('selected==1')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     #df_not_selected = df.query('selected==0')[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']]
     # Split data into training+validation set and test set
-    train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']], asym_level=cfg.asymmetry_level,seed=cfg.seed, train_val_split=config['train_val_split'])
-    # For training: keep only tracks that pass the pre-selections. 
-    # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
-    # Training-validation sets splitting
-    # Save train df, val df and test df for future studies as .root
-    with uproot.recreate(f"{cfg.target_path}/trainSet.root") as f:
-        f['DecayTree'] = train_df
-    with uproot.recreate(f"{cfg.target_path}/valSet.root") as f:
-        f['DecayTree'] = val_df
-    with uproot.recreate(f"{cfg.target_path}/testSet_full.root") as f:
-        f['DecayTree'] = test_df
-    stats_printout(df=df, tagger=cfg.tagger, decayType=cfg.decayType,train_df=train_df, val_df=val_df, test_df=test_df)
+    
+    #Ensures a shared training set exists at <.../anchor/filename>.
+    #If missing (or overwrite=True), saves it using uproot.
+    base_dir = pyTrain.get_anchor_dir(model_path=cfg.target_path, anchor=cfg.features)
+    out = base_dir / "trainSet.root"
+
+    if cfg.decayType[:2]=='Bu':
+        ID=521
+    if cfg.decayType[:2]=='Bd':
+        ID=511
+    if cfg.decayType[:2]=='Bs':
+        ID=531
+
+
+    if out.exists() and not cfg.overwrite:
+        # Load existing training, validation and test sets for grid search. No need to recreate them
+        print(f"Found existing training set at {out}, loading it.")
+        with uproot.open(out) as f:
+            train_df = f['DecayTree'].arrays(library="pd")
+        val_out = base_dir / "valSet.root"
+        print(f"Loading validation set.")
+        with uproot.open(val_out) as f:
+            val_df = f['DecayTree'].arrays(library="pd")
+        test_out = base_dir / "testSet_full.root"
+        print(f"Loading test set.")
+        with uproot.open(test_out) as f:
+            test_df = f['DecayTree'].arrays(library="pd")
+    else:
+        print(f"No existing training set found at {out}, creating it.")
+        df = pd.DataFrame(columns=vars)
+        for i, f in enumerate(selected_files):
+            print(f"Reading input file: {f}")
+            with uproot.open("{}".format(f)) as _f:
+                _df = _f[cfg.treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
+            _df.dropna(inplace = True)
+            _df["SAMPLENUMBER"] = i
+            _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+            _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
+            df = pd.concat([df, _df], ignore_index = True)
+        
+        df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
+        # Drop multicandidates
+        #df = df.groupby("event_entry").first()
+
+
+        # removal_time1 = time.time()
+        # df = utils.remove_multicandidates(df)
+        # #df = utils.remove_multicandidates(df)
+        # removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
+        # print(f"Removing multicandidates required {removal_time2}s")
+        
+        # Assignation of the tagging decision (d)
+        # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
+        if ("Bd" in cfg.decayType or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
+            df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"]
+        else:
+            df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
+
+        # Assignation of the label (it will be used as NN output)
+        # The label is given by the product of the tagging decision and the flavour charge of the B.
+        # It indicates if the tagging decision is wrong or correct.
+        # -1 == wrong tag  1 == correct tag
+        # When using data:
+        #   - tagging decision: the B_TRUEID must be replaced with B_ID 
+        #   - calibration: B_ID = reconstructed ID when moving to data!
+        df["label"] = df[f"{cfg.tagger}_TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) 
+        df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
+        train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']], asym_level=cfg.asymmetry_level,seed=cfg.seed, train_val_split=config['train_val_split'])
+        # For training: keep only tracks that pass the pre-selections. 
+        # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
+        # Training-validation sets splitting
+        # Save train df, val df and test df for future studies as .root
+        with uproot.recreate(f"{cfg.target_path}/trainSet.root") as f:
+            f['DecayTree'] = train_df
+        with uproot.recreate(f"{cfg.target_path}/valSet.root") as f:
+            f['DecayTree'] = val_df
+        with uproot.recreate(f"{cfg.target_path}/testSet_full.root") as f:
+            f['DecayTree'] = test_df
+        stats_printout(df=df, tagger=cfg.tagger, ID=ID,train_df=train_df, val_df=val_df, test_df=test_df)
+
+   
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
-    # Save test dataframe for calibration
-    test_df.to_csv(f"{testSetPath}", index = False)
     columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID',]
     #train_df.drop(columns = columns_to_drop, inplace = True)
     #val_df.drop(columns = columns_to_drop, inplace = True)
@@ -206,7 +228,7 @@ if __name__ == '__main__':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
         if cfg.only_plot:
             sys.exit(0)
-    #pyTrain.plot_features(data=train_df, features_list=features, target_path=cfg.target_path, flag='label', name=f'training_inputFeatures')
+    pyTrain.plot_features_byID(data=train_df, features_list=features, ID=ID, target_path=cfg.target_path, name=f'byTRUEID_inputFeatures')
 
     model = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo).to(device)   
     print(f"\nThe NN architecture is: \n{model}\n")

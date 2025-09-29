@@ -1,6 +1,6 @@
 architecture:
   - type: Linear
-    params: {out_features: 3}  # Replace 10 with the actual number of features
+    params: {in_features: len(self.features), out_features: 3}  
   - type: ELU
     params: {}
   - type: Linear

@@ -1,2 +1,0 @@
-/eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00267010/0000/00267010_00000001_1.data24.root
-/eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00267010/0000/00267010_00000002_1.data24.root

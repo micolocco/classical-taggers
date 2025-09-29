@@ -144,12 +144,13 @@ if __name__ == '__main__':
             mode = "Bs"
         dm = ft.constants.DeltaM_s if mode != "Bd" else ft.constants.DeltaM_d
         df = setup_time_vars(cfg.time_unit, cfg.decay_time_branches, df, dm)
-
+        
+    npar=3
     for run in runs:
-        os.makedirs(f'{outputPath}/{run}', exist_ok=True)
+        os.makedirs(f'{outputPath}/{run}/{npar}', exist_ok=True)
         taggers = ft.TaggerCollection()
-        for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge (called differently on data tuples as they are more recent, will be only 'OSVertexCharge')
-        #for tagger in cfg.tagger:
+        #for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge (called differently on data tuples as they are more recent, will be only 'OSVertexCharge')
+        for tagger in cfg.tagger:
            # Adjust name columns
             if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
                 eta_column = f'B_Probability_Medium_0_Run2OSVertexCharge_Omega'
@@ -182,27 +183,32 @@ if __name__ == '__main__':
                                 #weight=df["reweighter_weights"]. to_numpy().astype(np.float64),
                                 weight=df["signal_weights"]. to_numpy().astype(np.float64), 
                                 tau_ps=df["time"].to_numpy().astype(np.float64),)
-
-        taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
+        
+        taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
         taggers.calibrate()
-        os.makedirs(f'{outputPath}/{run}/single', exist_ok=True)
-        ft.save_calibration(taggers=taggers, title=cfg.combinationName, save_path=f'{outputPath}/{run}/single')
-        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}/single', omega_range="minimal", nbins=10)
-
-
-        # Combine the taggers into one. With "calibrated=False" we would combine the raw single tagger statistics, which is not usually what we want.
-        tagger_combination = taggers.combine_taggers(f'{cfg.combinationName}_{run}', calibrated=True)
-        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
-        ## And calibrate this tagger again
-        tagger_combination.calibrate()
-        ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}')
-        tagger_combination.plot_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}')
+        os.makedirs(f'{outputPath}/{run}/{npar}/single', exist_ok=True)
         scale = (lambda x: x**4, lambda x: x**1/4)
         scale = "linear"
         class_indices = df[B_ID_var].values
-        tagger_combination.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-                                            file_name = 'split_calibration_curves.pdf', savepath = f'{outputPath}/{run}', omega_range="minimal", 
+
+        ft.save_calibration(taggers=taggers, title=cfg.combinationName, save_path=f'{outputPath}/{run}/{npar}/single')
+        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}/{npar}/single', omega_range="minimal", nbins=10)
+        # call draw_split_calibration_curve over a collection of taggers (TagggerCollection)
+        taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict, 
+                                       savepath=f'{outputPath}/{run}/{npar}/single', omega_range="minimal", nbins=10, file_name=f'splitted_calibration_curve.pdf', x_scale = scale, y_scale = scale)
+
+        # Combine the taggers into one. With "calibrated=False" we would combine the raw single tagger statistics, which is not usually what we want.
+        tagger_combination = taggers.combine_taggers(f'{cfg.combinationName}_{run}', calibrated=True)
+        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
+        ## And calibrate this tagger again
+        tagger_combination.calibrate()
+        ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}/{npar}')
+        ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}/{npar}')
+        # call draw_split_calibration_curve over a single tagger (Tagger)
+        ft.plotting.draw_split_calibration_curve(tagger=tagger_combination, nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+                                            file_name = f'split_calibration_curves.pdf', savepath = f'{outputPath}/{run}/{npar}', omega_range="minimal", 
                                             nbins = 10, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
+        
         print(f'{run} combination created at {outputPath}')
 
     
