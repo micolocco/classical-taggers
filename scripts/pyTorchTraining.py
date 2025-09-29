@@ -272,6 +272,15 @@ def get_anchor_dir(model_path: str, anchor: str = "union_PROBNN") -> Path:
     # Fallback: if anchor not found, use the provided path itself
     return p
 
+def _optimize_df_for_parquet(df: pd.DataFrame, cat_thresh: float = 0.4) -> pd.DataFrame:
+    """Lightweight dtype optimization for smaller/faster Parquet."""
+    df = df.copy()
+    # low-cardinality objects -> category
+    for c in df.select_dtypes(include=["object"]).columns:
+        nunique = df[c].nunique(dropna=True)
+        if nunique <= cat_thresh * len(df):
+            df[c] = df[c].astype("category")
+    return df
 
 def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size, seed, test_batch_size = 1024):
     # Load the dataset

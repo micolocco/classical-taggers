@@ -140,7 +140,9 @@ if __name__ == '__main__':
     #Ensures a shared training set exists at <.../anchor/filename>.
     #If missing (or overwrite=True), saves it using uproot.
     base_dir = pyTrain.get_anchor_dir(model_path=cfg.target_path, anchor=cfg.features)
-    out = base_dir / "trainSet.root"
+    train_path = base_dir / "trainSet.parquet"
+    val_path   = base_dir / "valSet.parquet"
+    test_path  = base_dir / "testSet_full.parquet"
 
     if cfg.decayType[:2]=='Bu':
         ID=521
@@ -150,70 +152,62 @@ if __name__ == '__main__':
         ID=531
 
 
-    if out.exists() and not cfg.overwrite:
-        # Load existing training, validation and test sets for grid search. No need to recreate them
-        print(f"Found existing training set at {out}, loading it.")
-        with uproot.open(out) as f:
-            train_df = f['DecayTree'].arrays(library="pd")
-        val_out = base_dir / "valSet.root"
-        print(f"Loading validation set.")
-        with uproot.open(val_out) as f:
-            val_df = f['DecayTree'].arrays(library="pd")
-        test_out = base_dir / "testSet_full.root"
-        print(f"Loading test set.")
-        with uproot.open(test_out) as f:
-            test_df = f['DecayTree'].arrays(library="pd")
+    if train_path.exists() and not cfg.overwrite:
+        # Load existing training, validation and test sets (fast path)
+        print(f"Found existing training set at {train_path}, loading it.")
+        train_df = pd.read_parquet(train_path, engine="pyarrow")
+        print("Loading validation set.")
+        val_df   = pd.read_parquet(val_path,   engine="pyarrow")
+        print("Loading test set.")
+        test_df  = pd.read_parquet(test_path,  engine="pyarrow")
     else:
-        print(f"No existing training set found at {out}, creating it.")
+        print(f"No existing training set found at {train_path}, creating it.")
         df = pd.DataFrame(columns=vars)
         for i, f in enumerate(selected_files):
             print(f"Reading input file: {f}")
-            with uproot.open("{}".format(f)) as _f:
-                _df = _f[cfg.treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
-            _df.dropna(inplace = True)
+            with uproot.open(f) as _f:
+                _df = _f[cfg.treename].arrays(vars + ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
+            _df.dropna(inplace=True)
             _df["SAMPLENUMBER"] = i
-            _df["event_entry"] = _df["SAMPLENUMBER"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+            _df["event_entry"] = (
+                _df["SAMPLENUMBER"].astype(str) + "_" +
+                _df["RUNNUMBER"].astype(str) + "_" +
+                _df["EVENTNUMBER"].astype(str)
+            )
             _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
-            df = pd.concat([df, _df], ignore_index = True)
-        
-        df.sample(frac=1, random_state=45).reset_index(drop=True) # cfg.seed
-        # Drop multicandidates
-        #df = df.groupby("event_entry").first()
+            df = pd.concat([df, _df], ignore_index=True)
 
+        # shuffle (FIX: assign the result)
+        df = df.sample(frac=1, random_state=45).reset_index(drop=True)  # cfg.seed if you prefer
 
-        # removal_time1 = time.time()
-        # df = utils.remove_multicandidates(df)
-        # #df = utils.remove_multicandidates(df)
-        # removal_time2 = round((time.time()- removal_time1) / 60 , 2) 
-        # print(f"Removing multicandidates required {removal_time2}s")
-        
-        # Assignation of the tagging decision (d)
-        # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
-        if ("Bd" in cfg.decayType or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
-            df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"]
+        # Tagging decision
+        if ("Bd" in cfg.decayType or "Bs" in cfg.decayType) and (cfg.tagger in {"SSKaon", "SSPion"}):
+            df[f"{cfg.tagger}_TagDec"] = df["B_Tr_T_Charge"]
         else:
-            df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
+            df[f"{cfg.tagger}_TagDec"] = df["B_Tr_T_Charge"] * (-1)
 
-        # Assignation of the label (it will be used as NN output)
-        # The label is given by the product of the tagging decision and the flavour charge of the B.
-        # It indicates if the tagging decision is wrong or correct.
-        # -1 == wrong tag  1 == correct tag
-        # When using data:
-        #   - tagging decision: the B_TRUEID must be replaced with B_ID 
-        #   - calibration: B_ID = reconstructed ID when moving to data!
-        df["label"] = df[f"{cfg.tagger}_TagDec"] * df[f"B_TRUEID"]/abs(df[f"B_TRUEID"]) 
-        df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
-        train_df, val_df, test_df = pyTrain.splitByEvent(df=df[features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']], asym_level=cfg.asymmetry_level,seed=cfg.seed, train_val_split=config['train_val_split'])
-        # For training: keep only tracks that pass the pre-selections. 
-        # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
-        # Training-validation sets splitting
-        # Save train df, val df and test df for future studies as .root
-        with uproot.recreate(f"{cfg.target_path}/trainSet.root") as f:
-            f['DecayTree'] = train_df
-        with uproot.recreate(f"{cfg.target_path}/valSet.root") as f:
-            f['DecayTree'] = val_df
-        with uproot.recreate(f"{cfg.target_path}/testSet_full.root") as f:
-            f['DecayTree'] = test_df
+        # Labels: -1(wrong) -> 0, +1(correct) -> 1
+        df["label"] = df[f"{cfg.tagger}_TagDec"] * df["B_TRUEID"] / abs(df["B_TRUEID"])
+        df.loc[df["label"] == -1, "label"] = 0
+
+        # Split
+        cols_needed = features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']
+        train_df, val_df, test_df = pyTrain.splitByEvent(
+            df=df[cols_needed],
+            asym_level=cfg.asymmetry_level,
+            seed=cfg.seed,
+            train_val_split=config['train_val_split']
+        )
+
+        # Save as Parquet (zstd compression)
+        base_dir.mkdir(parents=True, exist_ok=True)
+        train_df_opt = pyTrain._optimize_df_for_parquet(train_df)
+        val_df_opt   = pyTrain._optimize_df_for_parquet(val_df)
+        test_df_opt  = pyTrain._optimize_df_for_parquet(test_df)
+
+        train_df_opt.to_parquet(train_path, engine="pyarrow", compression="zstd", index=False)
+        val_df_opt.to_parquet(val_path,     engine="pyarrow", compression="zstd", index=False)
+        test_df_opt.to_parquet(test_path,   engine="pyarrow", compression="zstd", index=False)
         stats_printout(df=df, tagger=cfg.tagger, ID=ID,train_df=train_df, val_df=val_df, test_df=test_df)
 
    
