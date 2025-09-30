@@ -1,1 +1,0 @@
-(B_Tr_T_PIDK<=5.64) & (B_Tr_T_PIDe<=1.41) & (B_Tr_T_PIDmu>7.0) & (B_Tr_T_Origin_Flag!=0)

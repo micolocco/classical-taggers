@@ -267,7 +267,7 @@ def main():
     df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
     df.eval(f'{prefix}Tr_T_OWNPVIPSig = sqrt({prefix}Tr_T_OWNPVIPCHI2)' , inplace = True) # IPSig == IPErr
     df.eval(f'{prefix}Tr_T_absOWNPV_IP = abs({prefix}Tr_T_OWNPVIP)', inplace = True)
-    df.eval(f'{prefix}Tr_T_EoverP = {prefix}Tr_T_ENERGY/{prefix}Tr_T_P', inplace = True)
+    #df.eval(f'{prefix}Tr_T_EoverP = {prefix}Tr_T_ENERGY/{prefix}Tr_T_P', inplace = True)
 
 
   

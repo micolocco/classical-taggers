@@ -1,1 +1,0 @@
-(B_Tr_T_PROBNN_MU <= 0.632) & (B_Tr_T_diff_z <= 10.332) & (B_Tr_T_PROBNN_P <= 0.054) & (B_Tr_T_PROBNN_K <= 0.445) & ((B_Tr_T_OWNPVIPCHI2 > 9.293) | ((B_Tr_T_OWNPVIPCHI2 <= 9.293) & (B_Tr_T_PIDe > 2.147))) & (B_Tr_T_Origin_Flag!=0)

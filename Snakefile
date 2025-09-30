@@ -156,12 +156,18 @@ generated_paths_OSMuon = read_generated_paths(
 # print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
 rule all:
     input:
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'), #$ Using seed like Thomas
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'),
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs2048_nL2_nN128/asym_level1/ROC_TRAIN_VAL.pdf'),
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'), # like OSKaon
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'),
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'),
+        generated_paths_OSKaon,
+        generated_paths_SSPion,
+        generated_paths_SSProton,
+        generated_paths_OSElectron,
+        generated_paths_OSMuon,
+
+        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'), #$ Using seed like Thomas
+        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'),
+        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs2048_nL2_nN128/asym_level1/ROC_TRAIN_VAL.pdf'),
+        #join(modified_MC, 'savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'), # like OSKaon
+        #join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'),
+        #join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'),
 
         #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
@@ -267,11 +273,6 @@ rule all:
         # ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'],
         # ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'],
 
-        # generated_paths_OSKaon,
-        # generated_paths_SSPion,
-        # generated_paths_SSProton,
-        # generated_paths_OSElectron,
-        # generated_paths_OSMuon,
 
         # join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
         # join(data, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'),
@@ -439,11 +440,11 @@ rule train_tagger:
         # Replaced with this to profuce only input features plot
     log: join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/training_log.log')
     resources:
-        mem_mb = 20000,  # Specify memory requirement in megabytes
+        #mem_mb = 20000,  # Specify memory requirement in megabytes
         # gpus = 1,
         # Allow exit code 1 for debugging
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",
-        MaxRunHours = 24,  # long queue
+        MaxRunHours = 8,  # medium queue
         # request_disk = 1024000
     params:
         config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),

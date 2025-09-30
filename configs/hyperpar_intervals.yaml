@@ -1,10 +1,12 @@
 #All possible hyperparameter intervals
 -learning_rate: [0.0001, 0.001, 0.01]
--numlayers: [2, 4, 6, 8, 16]
--train_batch_size: [2048, 4096, 8192]
+#-numlayers: [2, 4, 6, 8, 16]
+-numlayers: [2, 3, 4, 6, 8]
+-train_batch_size: [128, 2048, 4096, 8192]
 -numneurons: [3, 8, 16, 32, 64, 128, 256]
--alpha: [0]
--min_delta: [0, 0.0001, 0.001, 0.01]
+#-alpha: [0]
+-min_delta: [0]
+#-min_delta: [0, 0.0001, 0.001, 0.01]
 
 
 #-alpha: [0, 0.01, 0.1, 0.5, 1]

@@ -225,7 +225,7 @@ if __name__ == '__main__':
     print(f"\nThe NN architecture is: \n{model}\n")
     bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses = pyTrain.train_model_EarlyStopping(model, train_dl, validation_dl, cfg.target_path, config = config)
     pyTrain.plot_losses(cfg.tagger, trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
-    pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
+    #pyTrain.save_losses(trainingEpoch_loss, validationEpoch_loss, bestEpoch, bestLosses, cfg.target_path)
     # Plot ROC curves for validation and train test
     bestModel.eval()
     val_df['yPred'], val_df['yTrue'] = bestModel.evaluate_model(validation_dl)
@@ -236,16 +236,16 @@ if __name__ == '__main__':
     #pyTrain.plot_NNoutput_mistag(config.model_name, clf, yPredVal, yTrueVal, train_df['yPred'], train_df['yTrue'], cfg.target_path)
     #pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, cfg.target_path, type = 'validation')
     pyTrain.plot_mistag(tagger=cfg.tagger, decayType=cfg.decayType, df=train_df, target_path=cfg.target_path, type = 'Training', show_trueB=False)
-    plt.figure()
-    plt.hist(1-train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Training set: Probability of label 0, only selected")
-    plt.yscale("log")
-    plt.savefig(f"{cfg.target_path}/trainingSet_prob0distrib.pdf")
-    plt.figure()
-    plt.hist(train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Training set: Probability of label 1, only selected")
-    plt.yscale("log")
-    plt.savefig(f"{cfg.target_path}/trainingSet_prob1distrib.pdf")
+    #plt.figure()
+    #plt.hist(1-train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
+    #plt.title(r"Training set: Probability of label 0, only selected")
+    #plt.yscale("log")
+    #plt.savefig(f"{cfg.target_path}/trainingSet_prob0distrib.pdf")
+    #plt.figure()
+    #plt.hist(train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
+    #plt.title(r"Training set: Probability of label 1, only selected")
+    #plt.yscale("log")
+    #plt.savefig(f"{cfg.target_path}/trainingSet_prob1distrib.pdf")
 
 
     # else:
@@ -268,15 +268,15 @@ if __name__ == '__main__':
     
     test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
     pyTrain.plot_ROC(tagger=cfg.tagger, val_df=test_df_sel1, target_path =cfg.target_path)
-    plt.figure()
-    plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Test set: Probability of label 0, only selected")
-    plt.savefig(f"{cfg.target_path}/testSet_prob0distrib.pdf")
-    plt.figure()
-    plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Test set: Probability of label 1")
-    plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
-    pyTrain.plot_mistag(tagger=cfg.tagger, decayType=cfg.decayType,df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
+    #plt.figure()
+    #plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
+    #plt.title(r"Test set: Probability of label 0, only selected")
+    ##plt.savefig(f"{cfg.target_path}/testSet_prob0distrib.pdf")
+    #plt.figure()
+    #plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
+    #plt.title(r"Test set: Probability of label 1")
+    #plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
+    #pyTrain.plot_mistag(tagger=cfg.tagger, decayType=cfg.decayType,df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
     
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
@@ -293,7 +293,7 @@ if __name__ == '__main__':
 
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
-    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{cfg.target_path}/Not_Normalized_TagDec.pdf')
+    #pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{cfg.target_path}/Not_Normalized_TagDec.pdf')
  
     # Eta Normalization [0, 0.5]
     test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5 ,f"{cfg.tagger}_TagDec"] *= -1
@@ -304,7 +304,7 @@ if __name__ == '__main__':
     #df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
     
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
-    pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles,  plot_name=f'{cfg.target_path}/Normalized_TagDec.pdf')
+    #pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles,  plot_name=f'{cfg.target_path}/Normalized_TagDec.pdf')
     # Calibrating the tagger and saving parameters
     pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path)
     # Try both calibration functions

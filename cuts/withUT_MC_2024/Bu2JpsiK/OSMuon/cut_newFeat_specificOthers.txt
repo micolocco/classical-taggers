@@ -1,1 +1,0 @@
-(B_Tr_T_PROBNN_MU > 0.745) & (((B_Tr_T_DeltaQ_Kaon <= 1709.451) & (B_Tr_T_PT<= 968.075)) | (B_Tr_T_DeltaQ_Kaon > 1709.451)) & (B_Tr_T_Origin_Flag!=0)

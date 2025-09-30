@@ -1,13 +1,14 @@
 import os
 import argparse
 from pprint import pprint
+
 '''
 This script allows to create for each tagger a txt file (`generated_paths_<tagger>.txt`) containing a path of type:
 savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/ROC_TRAIN_VAL.pdf
 for each of the hyperparameter combination created by running the script `generate_configFiles.py`.
 The txt file generated_paths_<tagger>.txt will be used in the snakemake file to get all the Neural Networks that must be trained.
 '''
-seeds = [12]
+seeds = [12, 45]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -30,7 +31,7 @@ if __name__ == '__main__':
     'SSProton': 'Bd2JpsiKst',
     'SSKaon': 'Bs2DsPi'
     }
-    modelDir = 'savedModels/withUT_MC_2024'
+    modelDir = f'/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024'
     features = 'union_PROBNN'
     cut = 'allBKGCAT_notSamePV_noOSP_SSK_balanced'
     new_paths = []
@@ -46,7 +47,7 @@ if __name__ == '__main__':
         for yaml_file in yaml_files:
             for seed in seeds:
                 decayType = taggers_dict[tagger]
-                original_path = f'{modelDir}/{decayType}/{tagger}/{cut}/{features}/{seed}/hyperparameter_combo/ROC_TRAIN_VAL.pdf'
+                original_path = f'{modelDir}/{decayType}/{tagger}/{cut}/{features}/{seed}/hyperparameter_combo/asym_level1/ROC_TRAIN_VAL.pdf'
                 # Extract the base name without the .yaml extension
                 base_name = os.path.splitext(yaml_file)[0]
                 # Replace the placeholder in the original path with the base name
@@ -54,7 +55,8 @@ if __name__ == '__main__':
                 new_paths.append(new_path)
                 print(new_path)
         print(f'Total paths created:{len(yaml_files)*len(seeds)}')
-        mode = 'a' if os.path.exists(outputfile) else 'w'
+        #mode = 'a' if os.path.exists(outputfile) else 'w'
+        mode = 'w'
         with open(outputfile, mode) as f:
             for path in new_paths:
                 f.write(f"{path}\n")

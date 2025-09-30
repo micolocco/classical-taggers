@@ -216,7 +216,7 @@ nice_names = {
     "B_Tr_T_Signal_TagPart_PT": r"$p_{T}(\mathrm{tag}+\mathrm{B})~[\mathrm{MeV}/c]$",
 
     # Other physics-motivated features
-    "B_Tr_T_EoverP": r"$Q_{e}/p(\mathrm{tag})~[c/\mathrm{MeV}]$",
+    "B_Tr_T_EoverP": r"$E/p(\mathrm{tag})$",
     "diff_P": r"$\Delta p~[\mathrm{MeV}/c]$",
     "P_proj": r"$p_{\mathrm{proj}}~[\mathrm{MeV}/c]$",
     "t": r"$t_{\mathrm{POCA}}[mm]$",

@@ -49,7 +49,8 @@ if __name__ == '__main__':
     with open(f'configs/hyperpar_intervals.yaml', 'r') as file:
         intervals = yaml.safe_load(file)
 
-    for use_alpha in [False, True]:
+    #for use_alpha in [False, True]:
+    for use_alpha in [False]: #Currently not using alpha
         lists = []
         for key, value in intervals.items():
             if key != '-alpha' or use_alpha:

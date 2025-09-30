@@ -1,1 +1,0 @@
-(B_Tr_T_PROBNN_MU <= 0.745) & (B_Tr_T_PROBNN_P > 0.053) & (B_Tr_T_MINIPChi2 <= 4.846) & (B_Tr_T_diff_z <= 6.162) & (B_Tr_T_Origin_Flag!=0)
