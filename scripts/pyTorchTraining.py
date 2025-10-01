@@ -586,7 +586,7 @@ def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins
     plt.close()
 
 
-def calibration(tagger, df_tag, eventType, target_path, B_ID= 'B_TRUEID',calibration_option='mistag', nbins=10, weights=None):
+def calibration(tagger, df_tag, eventType, target_path, B_ID= 'B_TRUEID',calibration_option='mistag', npar=2, enlarge_scale=False, nbins=10, weights=None):
 
     #Calibration of the taggers and parameters saving
     import lhcb_ftcalib as ft
@@ -600,12 +600,12 @@ def calibration(tagger, df_tag, eventType, target_path, B_ID= 'B_TRUEID',calibra
     taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), B_ID = df_tag[B_ID].tolist(),mode = 'Bu', weight=weights ) # to be changed in mode = eventType[:2], B_ID = reconstructed ID when moving to data!
     
     if calibration_option=='logit':
-        taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
+        taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
     elif calibration_option=='mistag':
-        taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.mistag)) 
+        taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.mistag)) 
     else:
         print('Not a valid calibration function')
-    taggers.retry_on_error(use_link_alternative=ft.link.logit) # use logit link function if minimization did not converge the first time
+    #taggers.retry_on_error(use_link_alternative=ft.link.rlogit) # use logit link function if minimization did not converge the first time
     taggers.calibrate()
     # Plotting of calibration curves
     target_path = f'{target_path}/{calibration_option}'
@@ -615,8 +615,10 @@ def calibration(tagger, df_tag, eventType, target_path, B_ID= 'B_TRUEID',calibra
     
     taggers.calibrate()
     # Plotting of calibration curves
-    scale = (lambda x: x**4, lambda x: x**1/4)
-    scale = "linear"
+    if enlarge_scale:
+        scale = (lambda x: x**4, lambda x: x**1/4)
+    else:
+        scale = "linear"
     #distribute the bins such that each bin has the same yield, aka the same sum of weights
     # bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
     # print(bins)

@@ -84,27 +84,27 @@ if __name__ == '__main__':
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
     json_file=f'candidatedTaggers_{cfg.link}.json'
     #Read the best tagger candidate config from json file with the best hyperparameter combination
-    with open(f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{json_file}', 'r') as f:
+    with open(f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/{json_file}', 'r') as f:
         data = json.load(f)
     seed = int(data[cfg.tagger]['seed'])
     lr = float(data[cfg.tagger]['learning_rate'])
     bs = int(data[cfg.tagger]['batch_size'])
-    arch = data[cfg.tagger]['architecture']
-    dm = float(data[cfg.tagger]['min_delta'])
-    config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
+    nL = data[cfg.tagger]['numlayers']
+    nN = float(data[cfg.tagger]['numneurons'])
+    config = f'lr{lr}_bs{bs}_nL{nL}_nN{nN}'
     model_path = join(cfg.modelPrePath, f"{seed}/{config}/{cfg.asymmetry_level}") # asymmetry level hard coded for now, to be changed in the future
     #model_path = join(cfg.modelPrePath)
     # Load YAML configuration file
     with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:
         config = yaml.safe_load(file)
-    # bestModel = NeuralNetwork(features=features, architecture=arch, seed=seed, optimizer_kwargs={"lr" : lr}, repo_path=cfg.repo)
-    # bestModel = NeuralNetwork(features=features, architecture=config['architecture'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo)
+    # bestModel = NeuralNetwork(features=features, numlayers=nL, seed=seed, optimizer_kwargs={"lr" : lr}, repo_path=cfg.repo)
+    # bestModel = NeuralNetwork(features=features, numlayers=config['numlayers'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo)
     # pyTrain.load_model(model=bestModel, target_path=model_path)
     # bestModel.eval()
     model_path = f"{model_path}/model.pth"
 
     # Load the entire model (with preprocessing already inside)
-    bestModel = torch.load(model_path)
+    bestModel = torch.load(model_path, weights_only=False)
     bestModel.eval()
 
     ## To be removed

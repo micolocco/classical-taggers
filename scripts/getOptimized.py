@@ -5,15 +5,12 @@ import utils
 from itertools import product
 from uncertainties import ufloat
 import argparse
-from scripts.generate_configFiles import learning_rates
-from scripts.generate_configFiles import train_batch_sizes
-from scripts.generate_configFiles import architectures
-from scripts.generate_configFiles import min_delta
 from scripts.replace_path import seeds
-
+import yaml
 
 '''
-python scripts/getOptimized.py --spec <specName>
+python scripts/getOptimized.py --cut <cutName>
+python scripts/getOptimized.py --cut allBKGCAT_notSamePV_noOSP_SSK_balanced
 '''
 
 if __name__ == '__main__':
@@ -22,7 +19,7 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/')
-    parser.add_argument('--spec', help='Specification to be used', type=str)
+    parser.add_argument('--cut', help='Specification to be used', type=str)
     parser.add_argument('--outputPath', help='Where the best tagger candidates configs will be saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     
@@ -33,7 +30,7 @@ if __name__ == '__main__':
 
     #learning_rates = [0.1, 0.01, 0.001]
     #batch_sizes = [32, 128, 1024, 2048]
-    #architectures = ['simple', 'complex']
+    #nLitectures = ['simple', 'complex']
     #seeds = [2, 10, 12, 14, 45]
 
     tagger_dict = {
@@ -44,22 +41,32 @@ if __name__ == '__main__':
         "SSProton": "Bd2JpsiKst",
         "SSKaon": "Bs2DsPi",
     }
+    asym = 'asym_level1'
 
     # Generate all possible combinations of hyperparameters
-    #architectures = ['simple']
+    #nLitectures = ['simple']
+    with open(f'configs/hyperpar_intervals.yaml', 'r') as file:
+        intervals = yaml.safe_load(file)
+    
+    learning_rates = intervals['-learning_rate']
+    train_batch_sizes = intervals['-train_batch_size']
+    numlayers = intervals['-numlayers']
+    numneurons = intervals['-numneurons']
 
-    combinations = list(product(seeds, learning_rates, train_batch_sizes, architectures, min_delta))
+    combinations = list(product(seeds, learning_rates, train_batch_sizes, numlayers, numneurons))
 
     max_ratios = {}
     link = 'logit' # 'mistag'
     for tagger, decay in tagger_dict.items():
         max_ratio = -np.inf
         best_hyperparams = None
-        for seed, lr, bs, arch, dm in combinations:
+        for seed, lr, bs, nL, nN in combinations:
 
             # Read tagging power values from JSON files
-            results_folder = f"{cfg.model_prePath}/{decay}/{tagger}/{cfg.spec}/{cfg.features}/{seed}" #cfg.seed   
-            folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{arch}_dm{dm}")
+            results_folder = f"{cfg.model_prePath}/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed   
+            folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_nL{nL}_nN{nN}/{asym}/")
+            
+            #folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{nL}_nN{nN}/")
 
             json_file = os.path.join(folder_path, f"{link}/taggingInfo_{link}.json")
             if os.path.exists(json_file):
@@ -71,7 +78,7 @@ if __name__ == '__main__':
                         ratio_precision =  tagging_power.std_dev / tagging_power.nominal_value 
                     except ZeroDivisionError:
                         print("Check std deviation or nominal value. They might be 0")
-                    #print(tagger, arch, lr, seed, bs)
+                    #print(tagger, nL, lr, seed, bs)
                     #print(tagging_power[0], tagging_power[1])
                     #print(ratio
                     
@@ -82,8 +89,8 @@ if __name__ == '__main__':
                             "seed": seed,
                             "learning_rate": lr,
                             "batch_size": bs,
-                            "architecture": arch,
-                            "min_delta": dm,
+                            "numlayers": nL,
+                            "numneurons": nN,
                             "max_ratio": max_ratio,
                             "precision": ratio_precision,
                         }
@@ -93,7 +100,7 @@ if __name__ == '__main__':
 
     # Output the dictionary with the maximum ratios and corresponding hyperparameters
     print(json.dumps(max_ratios,  indent=4, default=str))
-    filename=f'{cfg.outputPath}/{cfg.spec}/candidatedTaggers_{link}.json'
+    filename=f'{cfg.outputPath}/{cfg.cut}/{cfg.features}/{asym}/candidatedTaggers_{link}.json'
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     with open(filename, 'w') as f:

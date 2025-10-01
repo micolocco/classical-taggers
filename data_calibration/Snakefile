@@ -118,11 +118,12 @@ for decay, path_list in ntuples_raw_withUT.items():
 
 rule all:
     input: 
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+
         expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
-        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
@@ -157,6 +158,8 @@ RAW_SETTINGS = {
 }
 
 '''    
+# Not used
+
 rule add_features_data:
     input:
         script = join(repo, 'scripts/adding_features_v2.py'),
@@ -195,7 +198,7 @@ rule add_features:
         root =join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
         #request_disk = 50000
     resources:
-        mem_mb = 16000,#240000, # Specify memory requirement in megabytes
+        mem_mb = 20000,#240000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
         request_disk = 6000
 
@@ -211,7 +214,9 @@ rule add_features:
             '&> {log}',
         ]
         shell(' '.join(cmd))
+
 '''
+# Not used
 rule add_selection_data:
     input:
         script = join(repo, 'scripts/preSelections.py'),
@@ -234,6 +239,7 @@ rule add_selection_data:
         ]
         shell(' '.join(cmd))
 '''
+
 rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
@@ -269,6 +275,7 @@ rule add_selection:
         shell(' '.join(cmd))
 
 '''
+# not used 
 rule add_tagDec_data:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
@@ -299,7 +306,8 @@ rule add_tagDec_data:
             '&> {log}'
         ]
         shell(' '.join(cmd))
-        '''
+'''
+
 # Actually this rule is not really necessaty as a NTuples is produced by he script sweights.py with
 rule add_tagDec:
     input:

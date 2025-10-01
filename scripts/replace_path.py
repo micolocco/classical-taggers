@@ -43,6 +43,7 @@ if __name__ == '__main__':
     yaml_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml') and f != 'config_test.yaml']
     # Iterate over each YAML file and replace the placeholder in the path
     for tagger in taggers_dict.keys():
+        new_paths = []
         outputfile= f'{cfg.repoPath}/paths_for_snakemake/generated_paths_{tagger}.txt'
         for yaml_file in yaml_files:
             for seed in seeds:
