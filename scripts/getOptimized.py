@@ -22,7 +22,9 @@ if __name__ == '__main__':
     parser.add_argument('--cut', help='Specification to be used', type=str)
     parser.add_argument('--outputPath', help='Where the best tagger candidates configs will be saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
-    
+    parser.add_argument('--link', help='Link function used for calibration', type=str, choices=('mistag', 'logit'), default='mistag')
+    parser.add_argument('--asym', help='Asymmetry level', type=str, choices=('asym_level0', 'asym_level1', 'asym_level2'), default='asym_level1')
+    parser.add_argument('--npar', help='Number of parameters for the calibration, default 2)', type=int, default=2)
     cfg = parser.parse_args()
 
     from pprint import pprint
@@ -56,7 +58,6 @@ if __name__ == '__main__':
     combinations = list(product(seeds, learning_rates, train_batch_sizes, numlayers, numneurons))
 
     max_ratios = {}
-    link = 'logit' # 'mistag'
     for tagger, decay in tagger_dict.items():
         max_ratio = -np.inf
         best_hyperparams = None
@@ -68,7 +69,7 @@ if __name__ == '__main__':
             
             #folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{nL}_nN{nN}/")
 
-            json_file = os.path.join(folder_path, f"{link}/taggingInfo_{link}.json")
+            json_file = os.path.join(folder_path, f"calibration_npar{cfg.npar}/{cfg.link}/taggingInfo_{cfg.link}.json")
             if os.path.exists(json_file):
                 data = utils.load_and_process_json(json_file)
                 tagging_power = data['TaggingPower_Cali']
@@ -100,7 +101,7 @@ if __name__ == '__main__':
 
     # Output the dictionary with the maximum ratios and corresponding hyperparameters
     print(json.dumps(max_ratios,  indent=4, default=str))
-    filename=f'{cfg.outputPath}/{cfg.cut}/{cfg.features}/{asym}/candidatedTaggers_{link}.json'
+    filename=f'{cfg.outputPath}/{cfg.cut}/{cfg.features}/{asym}/candidatedTaggers_npar{cfg.npar}{cfg.link}.json'
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     with open(filename, 'w') as f:

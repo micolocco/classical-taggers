@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--features', help="Feature set", type=str, default='union_PROBNN')
     parser.add_argument('--simulation', help='If data are MC or real-data. Used for the calibration', action='store_true')
     parser.add_argument('--npar', help='Number of parameters for the calibration, default 2)', type=int, default=2)
-
+    parser.add_argument('--function', help='Calibration function, either mistag or logit', type=str, choices=('mistag', 'logit'),default='mistag')
     print(f'Calibration started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg) 
@@ -45,7 +45,13 @@ if __name__ == '__main__':
             mode = "Bs"
     else:
         mode = "Bu" 
-    
+
+    if cfg.decayType == "Bu2JpsiK":
+        ID = 521
+    elif cfg.decayType == "Bd2JpsiKst": 
+        ID = 511
+    elif cfg.decayType == "Bs2DsPi":
+        ID = 531
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     print(f"Features used for training: {features}")
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
@@ -59,7 +65,12 @@ if __name__ == '__main__':
         # Load dataset
         base_dir = pyTrain.get_anchor_dir(model_path=cfg.model_path, anchor=cfg.features)
         test_path = base_dir / "testSet_full.parquet"
+        train_path = base_dir / "trainSet.parquet" # to be removed if correct
+        val_path = base_dir / "valSet.parquet" # to be removed if correct
         test_df  = pd.read_parquet(test_path,  engine="pyarrow")
+        train_df = pd.read_parquet(train_path, engine="pyarrow") # to be removed if correct
+        val_df   = pd.read_parquet(val_path,   engine="pyarrow") # to be removed if correct
+        pyTrain.stats_printout_train_calib(train_df=train_df, val_df=val_df, test_df=test_df, tagger=cfg.tagger, ID=ID)
 
 
         # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
@@ -100,7 +111,7 @@ if __name__ == '__main__':
         # Calibrating the tagger and saving parameters
         target_path=f'{cfg.model_path}/calibration_npar{cfg.npar}/'
         os.makedirs(target_path, exist_ok=True)
-        pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, npar=cfg.npar, calibration_option='mistag', enlarge_scale=False, target_path=target_path, mode=mode)
+        pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, npar=cfg.npar, calibration_option=cfg.function, enlarge_scale=False, target_path=target_path, mode=mode)
 
         # Try both calibration functions
         #pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, calibration_option='logit')
