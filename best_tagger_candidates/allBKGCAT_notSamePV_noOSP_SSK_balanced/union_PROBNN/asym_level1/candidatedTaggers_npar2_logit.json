@@ -1,0 +1,22 @@
+{
+    "SSPion": {
+        "calibrated tagging power": "1.13+/-0.05",
+        "seed": 45,
+        "learning_rate": 0.001,
+        "batch_size": 4096,
+        "numlayers": 6,
+        "numneurons": 8,
+        "max_ratio": 22.261063852589697,
+        "precision": 0.044921482936390165
+    },
+    "SSKaon": {
+        "calibrated tagging power": "2.76+/-0.07",
+        "seed": 12,
+        "learning_rate": 0.001,
+        "batch_size": 4096,
+        "numlayers": 8,
+        "numneurons": 8,
+        "max_ratio": 42.03880768118359,
+        "precision": 0.02378754429915947
+    }
+}

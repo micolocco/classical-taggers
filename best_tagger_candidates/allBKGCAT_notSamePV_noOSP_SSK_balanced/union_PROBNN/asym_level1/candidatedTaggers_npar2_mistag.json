@@ -1,0 +1,32 @@
+{
+    "SSPion": {
+        "calibrated tagging power": "1.14+/-0.05",
+        "seed": 45,
+        "learning_rate": 0.001,
+        "batch_size": 4096,
+        "numlayers": 6,
+        "numneurons": 8,
+        "max_ratio": 22.355277462529898,
+        "precision": 0.04473216678594658
+    },
+    "SSProton": {
+        "calibrated tagging power": "0.055+/-0.012",
+        "seed": 45,
+        "learning_rate": 0.0001,
+        "batch_size": 128,
+        "numlayers": 6,
+        "numneurons": 32,
+        "max_ratio": 4.772591746360146,
+        "precision": 0.2095297593310087
+    },
+    "SSKaon": {
+        "calibrated tagging power": "2.41+/-0.04",
+        "seed": 45,
+        "learning_rate": 0.01,
+        "batch_size": 8192,
+        "numlayers": 2,
+        "numneurons": 16,
+        "max_ratio": 54.74401802179142,
+        "precision": 0.018266836014885494
+    }
+}

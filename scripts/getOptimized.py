@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     # Output the dictionary with the maximum ratios and corresponding hyperparameters
     print(json.dumps(max_ratios,  indent=4, default=str))
-    filename=f'{cfg.outputPath}/{cfg.cut}/{cfg.features}/{asym}/candidatedTaggers_npar{cfg.npar}{cfg.link}.json'
+    filename=f'{cfg.outputPath}/{cfg.cut}/{cfg.features}/{asym}/candidatedTaggers_npar{cfg.npar}_{cfg.link}.json'
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     with open(filename, 'w') as f:
