@@ -1,0 +1,266 @@
+# Snakefile — calibrate all existing models across NPARS × FUNCS, then pick best per tagger.
+
+from os.path import join
+from pathlib import Path
+import re
+
+# ------------------------------------------------------------
+# Config (required)
+# ------------------------------------------------------------
+try:
+    raw_MC = config['RAW_MC']     # not used here
+    modified_MC = config['MODIFIED_MC']
+    repo = config['REPO']
+except Exception as e:
+    raise RuntimeError("Make sure to specify snakemake config: RAW_MC, MODIFIED_MC, REPO") from e
+
+# Tunables (override via: --config NPARS=[2,3] FUNCS='["mistag","logit"]')
+NPARS = config.get("NPARS", [2, 3])
+FUNCS = config.get("FUNCS", ["mistag", "logit"])
+
+# ------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------
+TAGGERS = {"OSKaon","OSMuon","OSElectron","SSPion","SSProton","SSKaon"}
+
+def read_generated_paths(file):
+    p = Path(file)
+    if not p.exists():
+        return []
+    out = []
+    for line in p.read_text().splitlines():
+        s = line.strip().strip('"').strip()
+        if s:
+            out.append(s)
+    return out
+
+def path_to_model(path_str: str):
+    """Normalize acceptable artifacts to the model.pth path."""
+    p = Path(path_str)
+    if p.name == "model.pth":
+        return p
+    if p.name == "ROC_TRAIN_VAL.pdf":
+        return p.with_name("model.pth")
+    if p.is_dir():
+        return p / "model.pth"
+    return None
+
+def infer_tagger_strict(path_str: str) -> str:
+    """
+    Expect: .../savedModels/<sample>/<decay>/<tagger>/<cut>/<features>/...
+    Validate tagger against allowed set. Fail fast if invalid.
+    """
+    p = Path(path_str)
+    parts = p.parts
+    try:
+        i = parts.index('savedModels')
+        tagger = parts[i + 3]  # sample_type (i+1), decay (i+2), tagger (i+3)
+    except (ValueError, IndexError):
+        raise ValueError(f"[path-structure-error] expected '.../savedModels/<sample>/<decay>/<tagger>/...': {path_str}")
+    if tagger not in TAGGERS:
+        raise ValueError(f"[invalid-tagger] got '{tagger}' in path: {path_str} (allowed: {sorted(TAGGERS)})")
+    return tagger
+
+def _pretty_list(x):
+    return "[" + ", ".join(map(str, x)) + "]"
+
+def build_status_targets(paths, npars=NPARS, funcs=FUNCS, require_model_existing=True, label=""):
+    """
+    From TXT lines -> status marker targets (_status.txt), one per (npar, func),
+    but only for entries where model.pth exists (if require_model_existing=True).
+
+    Prints (once per tagger list):
+      [<tagger>] models_listed=X | models_found=Y | calibrations_planned=Y*len(NPARS)*len(FUNCS)
+    """
+    models_listed = len(paths)
+
+    # Normalize to model.pth and keep those that actually exist
+    resolved = [path_to_model(raw) for raw in paths]
+    existing = [mp for mp in resolved if (mp is not None and (not require_model_existing or mp.exists()))]
+
+    ncombos = len(npars) * len(funcs)
+    planned = len(existing) * ncombos
+
+    outs = []
+    printed_tag_line = False
+    for mp in existing:
+        tagger = infer_tagger_strict(str(mp))  # strict validation; raises on bad tagger
+        if not printed_tag_line:
+            print(f"[{label}] models_listed={models_listed} | models_found={len(existing)} | calibrations_planned={planned} "
+                  f"(NPARS={_pretty_list(npars)}, FUNCS={_pretty_list(funcs)})")
+            printed_tag_line = True
+        for npar in npars:
+            for func in funcs:
+                outs.append(str(mp).replace(
+                    "model.pth",
+                    f"calibration_npar{npar}/{func}/.status.txt"
+                ))
+    # If list had no existing models, still print a summary line:
+    if not printed_tag_line:
+        print(f"[{label}] models_listed={models_listed} | models_found=0 | calibrations_planned=0 "
+              f"(NPARS={_pretty_list(npars)}, FUNCS={_pretty_list(funcs)})")
+    return outs
+
+def extract_meta_from_status_path(status_path: str):
+    """
+    Parse one status path to get (sample_type, cut, features, asym) for naming the aggregated output.
+    Expect:
+      .../savedModels/<sample_type>/<decay>/<tagger>/<cut>/<features>/<seed>/<config>/<asym>/calibration_nparX/<func>/_status.txt
+    """
+    m = re.search(
+        r'/savedModels/([^/]+)/'                # sample_type
+        r'[^/]+/'                               # decay
+        r'(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)/'  # tagger
+        r'([^/]+)/'                             # cut
+        r'([^/]+)/'                             # features
+        r'\d+/[^/]+/([^/]+)/calibration_npar',  # asym
+        status_path
+    )
+    if not m:
+        return ("withUT_MC_2024", "UNKNOWN_CUT", "union_PROBNN", "asym_level1")
+    return (m.group(1), m.group(3), m.group(4), m.group(5))
+
+# ------------------------------------------------------------
+# Load lists (from your repo)
+# ------------------------------------------------------------
+generated_paths_SSPion     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSPion.txt'))
+generated_paths_SSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSKaon.txt'))
+generated_paths_SSProton   = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSProton.txt'))
+generated_paths_OSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSKaon.txt'))
+generated_paths_OSElectron = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSElectron.txt'))
+generated_paths_OSMuon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSMuon.txt'))
+
+print("Requested link functions:", _pretty_list(FUNCS))
+print("Requested npars:", _pretty_list(NPARS))
+
+# ------------------------------------------------------------
+# Build concrete targets: one _status.txt per (model, npar, func)
+# ------------------------------------------------------------
+CALIB_STATUS_TARGETS = []
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSPion,     label="SSPion")
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSKaon,     label="SSKaon")
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSProton,   label="SSProton")
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSKaon,     label="OSKaon")
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSElectron, label="OSElectron")
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSMuon,     label="OSMuon")
+
+print(f"[summary] total_calibrations_planned={len(CALIB_STATUS_TARGETS)}")
+
+# Choose meta for the aggregated output path
+if CALIB_STATUS_TARGETS:
+    SAMPLE_TYPE, CUT, FEATURES, ASYM = extract_meta_from_status_path(CALIB_STATUS_TARGETS[0])
+else:
+    SAMPLE_TYPE, CUT, FEATURES, ASYM = ("withUT_MC_2024", "UNKNOWN_CUT", "union_PROBNN", "asym_level1")
+
+BEST_JSON_OUT = join(repo, f'best_tagger_candidates/{CUT}/{FEATURES}/{ASYM}/candidatedTaggers_overall.json')
+
+# ------------------------------------------------------------
+# Rules
+# ------------------------------------------------------------
+rule all:
+    input:
+        CALIB_STATUS_TARGETS,   # ensures all calibrations are attempted
+        BEST_JSON_OUT           # aggregated "best" JSON per tagger
+
+
+rule calibrate_tagger:
+    input:
+        model = join(modified_MC,
+                     'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
+                     '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
+                     '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
+                     '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/model.pth'),
+        script = join(repo, 'scripts/calibrate_tagger.py'),
+    output:
+        calibration_plot = join(modified_MC,
+                                'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
+                                '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
+                                '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
+                                '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+                                'calibration_npar{npar}/{func,(mistag|logit)}/{tagger}_Calibration.pdf'),
+        calibration_results_json = join(modified_MC,
+                    'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
+                    '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
+                    '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
+                    '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+                    'calibration_npar{npar}/{func,(mistag|logit)}/taggingInfo_{func}.json'),
+        # optional: a status file you can grep later
+        status = join(modified_MC,
+                    'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
+                    '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
+                    '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
+                    '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+                    'calibration_npar{npar}/{func,(mistag|logit)}/.status.txt'),
+    log:
+        join(modified_MC,
+             'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
+             '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
+             '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
+             '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+             'calibration_npar{npar}/{func}/{tagger}_Calibration.log')
+    params:
+        model_path = lambda wc: join(modified_MC,
+                                     f"savedModels/{wc.sample_type}/{wc.decay}/{wc.tagger}/"
+                                     f"{wc.cut_name}_{wc.balanced}/{wc.features}/{wc.seed}/{wc.config}/{wc.asymmetry_level}"),
+        sim_flag = lambda wc: ('--simulation' if 'MC' in wc.sample_type else '')
+    resources:
+        MaxRunHours = 4,
+#memory requirment
+        mem_mb = 20000
+    shell:
+        r"""
+        # Run calibration; allow non-zero exit (non-convergence) but keep logs.
+        python {input.script} \
+            --model_path "{params.model_path}" \
+            --tagger {wildcards.tagger} \
+            --features {wildcards.features} \
+            --repo {repo} \
+            --decayType {wildcards.decay} \
+            --npar {wildcards.npar} \
+            --function {wildcards.func} \
+            {params.sim_flag} \
+            &> {log} || true
+
+        # Mark what we actually got
+        JSON_OK="missing"
+        PLOT_OK="missing"
+        if [ -s "{output.calibration_results_json}" ]; then JSON_OK="ok"; fi
+        if [ -s "{output.calibration_plot}" ]; then PLOT_OK="ok"; fi
+
+        # Write/refresh status file (use subshell to avoid literal braces)
+        status_dir="$(dirname "{output.status}")"
+        mkdir -p "$status_dir"
+        (
+        echo "timestamp=$(date -Is)"
+        echo "npar={wildcards.npar}"
+        echo "func={wildcards.func}"
+        echo "calibration_results_json={output.calibration_results_json} [$JSON_OK]"
+        echo "calibration_plot={output.calibration_plot} [$PLOT_OK]"
+        ) > "{output.status}"
+        """
+
+
+
+rule pick_best_candidates:
+    # Ensure we attempt all calibrations first (even if some don’t converge)
+    input:
+        CALIB_STATUS_TARGETS
+    output:
+        out = BEST_JSON_OUT
+    params:
+        # getOptimized.py will scan model tree and ignore missing calibration-results JSONs
+        model_prePath = join(modified_MC, f"savedModels/{SAMPLE_TYPE}"),
+        cut           = CUT,
+        features      = FEATURES,
+        asym          = ASYM,
+        out_dir       = join(repo, 'best_tagger_candidates'),
+        script        = join(repo, 'scripts/getOptimized.py'),
+    shell:
+        r"""
+        python {params.script} \
+            --model_prePath "{params.model_prePath}" \
+            --cut "{params.cut}" \
+            --features "{params.features}" \
+            --outputPath "{params.out_dir}"
+        # If your script supports --asym / --outfile / --functions / --npars, add them here.
+        """

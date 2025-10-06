@@ -56,67 +56,52 @@ if __name__ == '__main__':
     print(f"Features used for training: {features}")
     #Load the best model (ie with the lowest training loss) and evaluate it on the test set
     model_name = f"{cfg.model_path}/model.pth"
-    if os.path.exists(model_name): 
-        print(f"Loading model {model_name}")
-        # Load the entire model (with preprocessing already inside)
-        model = torch.load(model_name, weights_only=False)
-        model.eval()
-        
-        # Load dataset
-        base_dir = pyTrain.get_anchor_dir(model_path=cfg.model_path, anchor=cfg.features)
-        test_path = base_dir / "testSet_full.parquet"
-        train_path = base_dir / "trainSet.parquet" # to be removed if correct
-        val_path = base_dir / "valSet.parquet" # to be removed if correct
-        test_df  = pd.read_parquet(test_path,  engine="pyarrow")
-        train_df = pd.read_parquet(train_path, engine="pyarrow") # to be removed if correct
-        val_df   = pd.read_parquet(val_path,   engine="pyarrow") # to be removed if correct
-        pyTrain.stats_printout_train_calib(train_df=train_df, val_df=val_df, test_df=test_df, tagger=cfg.tagger, ID=ID)
-
-
-        # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
-        #test_df_sel1 = test_df.query('selected==1').copy()
-        #test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
-        #test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
-        #print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
-        #print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
-        #
-        #test_df_sel1['yPred'], test_df_sel1['yTrue'] = model.evaluate_model(test_dl_sel1)
-        #pyTrain.plot_mistag(tagger=cfg.tagger, df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
-        
-        columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID',]
-
-        test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
-        test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
-
-        #test_df['Eta'] = clf.predict_proba(model.evaluate_model(test_dl)[0])[:,0]
-        test_df['predictedProb'] = model.evaluate_model(test_dl)[0] # model.evaluate_model returns predicted probabilities for label 1, true values
-        test_df[f'{cfg.tagger}_Eta'] = 1 - test_df['predictedProb']
-
-        test_df = test_df[['event_entry','selected', f"{cfg.tagger}_Eta", f"{cfg.tagger}_TagDec", 'label','B_TRUEID']]
-
-        #print(test_df.loc[test_df.selected == 1][f"{cfg.tagger}_Eta"]) 
-
-        test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
-        test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
-        #pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{cfg.target_path}/Not_Normalized_TagDec.pdf')pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first(), output_file='Not_Normalized_TagDec.pdf', target_path=cfg.target_path)
-
-        # Eta Normalization [0, 0.5]# Eta Normalization [0, 0.5]
-        # Eta Normalization [0, 0.5]
-        test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5 ,f"{cfg.tagger}_TagDec"] *= -1
-        test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5, f"{cfg.tagger}_Eta"] *= -1
-        test_df.loc[test_df[f"{cfg.tagger}_Eta"] < 0, f"{cfg.tagger}_Eta"] += 1
-
-        df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
-        print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
-        # Calibrating the tagger and saving parameters
-        target_path=f'{cfg.model_path}/calibration_npar{cfg.npar}/'
-        os.makedirs(target_path, exist_ok=True)
-        pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, npar=cfg.npar, calibration_option=cfg.function, enlarge_scale=False, target_path=target_path, mode=mode)
-
-        # Try both calibration functions
-        #pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, calibration_option='logit')
-        print(f'Calibration finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-
-    else:
-        print(f"Model {model_name} does not exist!")
-        exit()
+    print(f"Loading model {model_name}")
+    # Load the entire model (with preprocessing already inside)
+    model = torch.load(model_name, weights_only=False)
+    model.eval()
+    
+    # Load dataset
+    base_dir = pyTrain.get_anchor_dir(model_path=cfg.model_path, anchor=cfg.features)
+    test_path = base_dir / "testSet_full.parquet"
+    train_path = base_dir / "trainSet.parquet" # to be removed if correct
+    val_path = base_dir / "valSet.parquet" # to be removed if correct
+    test_df  = pd.read_parquet(test_path,  engine="pyarrow")
+    train_df = pd.read_parquet(train_path, engine="pyarrow") # to be removed if correct
+    val_df   = pd.read_parquet(val_path,   engine="pyarrow") # to be removed if correct
+    pyTrain.stats_printout_train_calib(train_df=train_df, val_df=val_df, test_df=test_df, tagger=cfg.tagger, ID=ID)
+    # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
+    #test_df_sel1 = test_df.query('selected==1').copy()
+    #test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
+    #test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
+    #print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
+    #print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
+    #
+    #test_df_sel1['yPred'], test_df_sel1['yTrue'] = model.evaluate_model(test_dl_sel1)
+    #pyTrain.plot_mistag(tagger=cfg.tagger, df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
+    
+    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID',]
+    test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
+    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
+    #test_df['Eta'] = clf.predict_proba(model.evaluate_model(test_dl)[0])[:,0]
+    test_df['predictedProb'] = model.evaluate_model(test_dl)[0] # model.evaluate_model returns predicted probabilities for label 1, true values
+    test_df[f'{cfg.tagger}_Eta'] = 1 - test_df['predictedProb']
+    test_df = test_df[['event_entry','selected', f"{cfg.tagger}_Eta", f"{cfg.tagger}_TagDec", 'label','B_TRUEID']]
+    #print(test_df.loc[test_df.selected == 1][f"{cfg.tagger}_Eta"]) 
+    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
+    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
+    #pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{cfg.target_path}/Not_Normalized_TagDec.pdf')pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["event_entry","selected","Eta"] , ascending = [True,False,True]).groupby("event_entry").first(), output_file='Not_Normalized_TagDec.pdf', target_path=cfg.target_path)
+    # Eta Normalization [0, 0.5]# Eta Normalization [0, 0.5]
+    # Eta Normalization [0, 0.5]
+    test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5 ,f"{cfg.tagger}_TagDec"] *= -1
+    test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5, f"{cfg.tagger}_Eta"] *= -1
+    test_df.loc[test_df[f"{cfg.tagger}_Eta"] < 0, f"{cfg.tagger}_Eta"] += 1
+    df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
+    print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
+    # Calibrating the tagger and saving parameters
+    target_path=f'{cfg.model_path}/calibration_npar{cfg.npar}'
+    os.makedirs(target_path, exist_ok=True)
+    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, npar=cfg.npar, calibration_option=cfg.function, enlarge_scale=False, target_path=target_path, mode=mode)
+    # Try both calibration functions
+    #pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, calibration_option='logit')
+    print(f'Calibration finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')

@@ -1,110 +1,136 @@
-from IPython import embed
-import numpy as np
-import json, os
-import utils
+# scripts/getOptimized.py
+import os, json, re, glob, argparse, yaml, numpy as np
 from itertools import product
-from uncertainties import ufloat
-import argparse
-from scripts.replace_path import seeds
-import yaml
+import utils
+from scripts.replace_path import seeds  # your seeds
 
-'''
-python scripts/getOptimized.py --cut <cutName>
-python scripts/getOptimized.py --cut allBKGCAT_notSamePV_noOSP_SSK_balanced
-'''
+"""
+Example:
+python scripts/getOptimized.py \
+  --model_prePath /ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024 \
+  --cut allBKGCAT_notSamePV_noOSP_SSK_balanced \
+  --features union_PROBNN \
+  --asym asym_level1 \
+  --outputPath /home/molocco/classical-taggers/best_tagger_candidates
+"""
+
+def tp_nominal_sigma(tp):
+    """Return (nominal, sigma) from either an uncertainties ufloat or a dict."""
+    try:
+        return tp.nominal_value, tp.std_dev
+    except AttributeError:
+        # Expect dict-like {"nominal_value": ..., "std_dev": ...}
+        return tp.get("nominal_value", np.nan), tp.get("std_dev", np.nan)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Apply a preselection for the tagging particles',
+    p = argparse.ArgumentParser(
+        description='Pick best model per tagger by maximizing TP_cali / sigma across all calibrations.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/')
-    parser.add_argument('--cut', help='Specification to be used', type=str)
-    parser.add_argument('--outputPath', help='Where the best tagger candidates configs will be saved', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
-    parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
-    parser.add_argument('--link', help='Link function used for calibration', type=str, choices=('mistag', 'logit'), default='mistag')
-    parser.add_argument('--asym', help='Asymmetry level', type=str, choices=('asym_level0', 'asym_level1', 'asym_level2'), default='asym_level1')
-    parser.add_argument('--npar', help='Number of parameters for the calibration, default 2)', type=int, default=2)
-    cfg = parser.parse_args()
+    p.add_argument('--model_prePath', type=str, required=True,
+                   help='…/savedModels/<sample_type> (root under which decays/taggers live)')
+    p.add_argument('--cut', type=str, required=True,
+                   help='cut folder, e.g. allBKGCAT_notSamePV_noOSP_SSK_balanced')
+    p.add_argument('--features', type=str, default='union_PROBNN')
+    p.add_argument('--asym', type=str, default='asym_level1')
+    p.add_argument('--outputPath', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
+    p.add_argument('--outfile', type=str, default=None,
+                   help='Optional explicit output file path for the candidates JSON.')
+    args = p.parse_args()
 
-    from pprint import pprint
-    pprint(cfg)
+    print("Config:", vars(args))
 
-    #learning_rates = [0.1, 0.01, 0.001]
-    #batch_sizes = [32, 128, 1024, 2048]
-    #nLitectures = ['simple', 'complex']
-    #seeds = [2, 10, 12, 14, 45]
-
+    # Which decay each tagger lives under
     tagger_dict = {
-        "OSKaon": "Bu2JpsiK",
-        "OSElectron": "Bu2JpsiK",
-        "OSMuon": "Bu2JpsiK",
-        "SSPion": "Bd2JpsiKst",
-        "SSProton": "Bd2JpsiKst",
-        "SSKaon": "Bs2DsPi",
+        "OSKaon":    "Bu2JpsiK",
+        "OSElectron":"Bu2JpsiK",
+        "OSMuon":    "Bu2JpsiK",
+        "SSPion":    "Bd2JpsiKst",
+        "SSProton":  "Bd2JpsiKst",
+        "SSKaon":    "Bs2DsPi",
     }
-    asym = 'asym_level1'
 
-    # Generate all possible combinations of hyperparameters
-    #nLitectures = ['simple']
-    with open(f'configs/hyperpar_intervals.yaml', 'r') as file:
+    # hyperparameter grid
+    with open('configs/hyperpar_intervals.yaml', 'r') as file:
         intervals = yaml.safe_load(file)
-    
-    learning_rates = intervals['-learning_rate']
+    learning_rates    = intervals['-learning_rate']
     train_batch_sizes = intervals['-train_batch_size']
-    numlayers = intervals['-numlayers']
-    numneurons = intervals['-numneurons']
+    numlayers         = intervals['-numlayers']
+    numneurons        = intervals['-numneurons']
 
-    combinations = list(product(seeds, learning_rates, train_batch_sizes, numlayers, numneurons))
+    combos = list(product(seeds, learning_rates, train_batch_sizes, numlayers, numneurons))
 
-    max_ratios = {}
+    results = {}
+    # regex helpers
+    re_npar = re.compile(r'calibration_npar(\d+)')
+    re_func = re.compile(r'taggingInfo_([A-Za-z0-9_]+)\.json$')
+
     for tagger, decay in tagger_dict.items():
-        max_ratio = -np.inf
-        best_hyperparams = None
-        for seed, lr, bs, nL, nN in combinations:
+        best = None
+        best_ratio = -np.inf
 
-            # Read tagging power values from JSON files
-            results_folder = f"{cfg.model_prePath}/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed   
-            folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_nL{nL}_nN{nN}/{asym}/")
-            
-            #folder_path = os.path.join(results_folder, f"lr{lr}_bs{bs}_{nL}_nN{nN}/")
+        for seed, lr, bs, nL, nN in combos:
+            # trial dir = .../<seed> / lr..._bs..._nL..._nN... / <asym>
+            trial_dir = os.path.join(
+                args.model_prePath, decay, tagger, args.cut, args.features,
+                str(seed), f"lr{lr}_bs{bs}_nL{nL}_nN{nN}", args.asym
+            )
+            if not os.path.isdir(trial_dir):
+                continue
 
-            json_file = os.path.join(folder_path, f"calibration_npar{cfg.npar}/{cfg.link}/taggingInfo_{cfg.link}.json")
-            if os.path.exists(json_file):
-                data = utils.load_and_process_json(json_file)
-                tagging_power = data['TaggingPower_Cali']
-                if not np.isnan(tagging_power.nominal_value) and tagging_power.nominal_value != 0:
-                    try:
-                        ratio = tagging_power.nominal_value / tagging_power.std_dev
-                        ratio_precision =  tagging_power.std_dev / tagging_power.nominal_value 
-                    except ZeroDivisionError:
-                        print("Check std deviation or nominal value. They might be 0")
-                    #print(tagger, nL, lr, seed, bs)
-                    #print(tagging_power[0], tagging_power[1])
-                    #print(ratio
-                    
-                    if ratio > max_ratio:
-                        max_ratio = ratio
-                        best_hyperparams = {
-                            "calibrated tagging power": tagging_power,
-                            "seed": seed,
-                            "learning_rate": lr,
-                            "batch_size": bs,
-                            "numlayers": nL,
-                            "numneurons": nN,
-                            "max_ratio": max_ratio,
-                            "precision": ratio_precision,
-                        }
-        
-        if best_hyperparams:
-            max_ratios[tagger] = best_hyperparams
+            # scan all calibrations under this trial:
+            pattern = os.path.join(trial_dir, "calibration_npar*", "*", "taggingInfo_*.json")
+            for jf in glob.glob(pattern):
+                m_npar = re_npar.search(jf)
+                m_func = re_func.search(jf)
+                if not (m_npar and m_func):
+                    continue
+                npar = int(m_npar.group(1))
+                func = m_func.group(1)
 
-    # Output the dictionary with the maximum ratios and corresponding hyperparameters
-    print(json.dumps(max_ratios,  indent=4, default=str))
-    filename=f'{cfg.outputPath}/{cfg.cut}/{cfg.features}/{asym}/candidatedTaggers_npar{cfg.npar}_{cfg.link}.json'
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
+                try:
+                    data = utils.load_and_process_json(jf)
+                except Exception as e:
+                    print(f"[warn] failed to load {jf}: {e}")
+                    continue
 
-    with open(filename, 'w') as f:
-        json.dump(max_ratios, f, indent=4, default=str)  # `default=str` to handle non-serializable objects
-    print(f"Max ratios saved to {filename}")
+                tp = data.get('TaggingPower_Cali', None)
+                if tp is None:
+                    continue
 
+                nominal, sigma = tp_nominal_sigma(tp)
+                if (nominal is None) or (sigma is None):
+                    continue
+                if np.isnan(nominal) or np.isnan(sigma) or nominal == 0 or sigma == 0:
+                    continue
+
+                ratio = float(nominal) / float(sigma)
+                precision = float(sigma) / float(nominal)
+
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    results[tagger] = {
+                        "calibrated tagging power": f"{nominal}+/-{sigma}",
+                        "seed": seed,
+                        "learning_rate": lr,
+                        "batch_size": bs,
+                        "numlayers": nL,
+                        "numneurons": nN,
+                        "npar": npar,
+                        "function": func,
+                        "max_ratio": ratio,
+                        "precision": precision,
+                        "calibration_json": jf,      # provenance
+                        "model_dir": trial_dir       # points to .../<asym>
+                    }
+
+    # write output
+    if args.outfile:
+        out_file = args.outfile
+    else:
+        out_file = os.path.join(args.outputPath, args.cut, args.features, args.asym, "candidatedTaggers_overall.json")
+
+    os.makedirs(os.path.dirname(out_file), exist_ok=True)
+    with open(out_file, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"[getOptimized] wrote {out_file}")
