@@ -1,0 +1,1 @@
+/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL4_nN8/asym_level1/ROC_TRAIN_VAL.pdf

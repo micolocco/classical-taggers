@@ -15,8 +15,11 @@ except Exception as e:
     raise RuntimeError("Make sure to specify snakemake config: RAW_MC, MODIFIED_MC, REPO") from e
 
 # Tunables (override via: --config NPARS=[2,3] FUNCS='["mistag","logit"]')
-NPARS = config.get("NPARS", [2, 3])
-FUNCS = config.get("FUNCS", ["mistag", "logit"])
+#NPARS =  [2, 3]
+#FUNCS = ["mistag", "logit"]
+NPARS =  [2, ]
+FUNCS = ["mistag",]
+
 
 # ------------------------------------------------------------
 # Helpers
@@ -85,6 +88,7 @@ def build_status_targets(paths, npars=NPARS, funcs=FUNCS, require_model_existing
     printed_tag_line = False
     for mp in existing:
         tagger = infer_tagger_strict(str(mp))  # strict validation; raises on bad tagger
+        print('Model found for tagger:', mp)
         if not printed_tag_line:
             print(f"[{label}] models_listed={models_listed} | models_found={len(existing)} | calibrations_planned={planned} "
                   f"(NPARS={_pretty_list(npars)}, FUNCS={_pretty_list(funcs)})")
@@ -101,34 +105,16 @@ def build_status_targets(paths, npars=NPARS, funcs=FUNCS, require_model_existing
               f"(NPARS={_pretty_list(npars)}, FUNCS={_pretty_list(funcs)})")
     return outs
 
-def extract_meta_from_status_path(status_path: str):
-    """
-    Parse one status path to get (sample_type, cut, features, asym) for naming the aggregated output.
-    Expect:
-      .../savedModels/<sample_type>/<decay>/<tagger>/<cut>/<features>/<seed>/<config>/<asym>/calibration_nparX/<func>/_status.txt
-    """
-    m = re.search(
-        r'/savedModels/([^/]+)/'                # sample_type
-        r'[^/]+/'                               # decay
-        r'(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)/'  # tagger
-        r'([^/]+)/'                             # cut
-        r'([^/]+)/'                             # features
-        r'\d+/[^/]+/([^/]+)/calibration_npar',  # asym
-        status_path
-    )
-    if not m:
-        return ("withUT_MC_2024", "UNKNOWN_CUT", "union_PROBNN", "asym_level1")
-    return (m.group(1), m.group(3), m.group(4), m.group(5))
-
 # ------------------------------------------------------------
 # Load lists (from your repo)
 # ------------------------------------------------------------
-generated_paths_SSPion     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSPion.txt'))
-generated_paths_SSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSKaon.txt'))
-generated_paths_SSProton   = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSProton.txt'))
 generated_paths_OSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSKaon.txt'))
 generated_paths_OSElectron = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSElectron.txt'))
 generated_paths_OSMuon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSMuon.txt'))
+#generated_paths_SSPion     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSPion.txt'))
+#generated_paths_SSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSKaon.txt'))
+#generated_paths_SSProton   = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSProton.txt'))
+
 
 print("Requested link functions:", _pretty_list(FUNCS))
 print("Requested npars:", _pretty_list(NPARS))
@@ -137,20 +123,20 @@ print("Requested npars:", _pretty_list(NPARS))
 # Build concrete targets: one _status.txt per (model, npar, func)
 # ------------------------------------------------------------
 CALIB_STATUS_TARGETS = []
-CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSPion,     label="SSPion")
-CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSKaon,     label="SSKaon")
-CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSProton,   label="SSProton")
+
 CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSKaon,     label="OSKaon")
 CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSElectron, label="OSElectron")
 CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSMuon,     label="OSMuon")
+#CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSPion,     label="SSPion")
+#CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSProton,   label="SSProton")
+#CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSKaon,     label="SSKaon")
+
 
 print(f"[summary] total_calibrations_planned={len(CALIB_STATUS_TARGETS)}")
 
 # Choose meta for the aggregated output path
-if CALIB_STATUS_TARGETS:
-    SAMPLE_TYPE, CUT, FEATURES, ASYM = extract_meta_from_status_path(CALIB_STATUS_TARGETS[0])
-else:
-    SAMPLE_TYPE, CUT, FEATURES, ASYM = ("withUT_MC_2024", "UNKNOWN_CUT", "union_PROBNN", "asym_level1")
+
+SAMPLE_TYPE, CUT, FEATURES, ASYM = ("withUT_MC_2024", "allBKGCAT_notSamePV_noOSP_SSK_balanced", "union_PROBNN", "asym_level1")
 
 BEST_JSON_OUT = join(repo, f'best_tagger_candidates/{CUT}/{FEATURES}/{ASYM}/candidatedTaggers_overall.json')
 
@@ -160,7 +146,7 @@ BEST_JSON_OUT = join(repo, f'best_tagger_candidates/{CUT}/{FEATURES}/{ASYM}/cand
 rule all:
     input:
         CALIB_STATUS_TARGETS,   # ensures all calibrations are attempted
-        BEST_JSON_OUT           # aggregated "best" JSON per tagger
+        #BEST_JSON_OUT           # aggregated "best" JSON per tagger
 
 
 rule calibrate_tagger:
@@ -206,7 +192,7 @@ rule calibrate_tagger:
     resources:
         MaxRunHours = 4,
 #memory requirment
-        mem_mb = 20000
+        mem_mb = 50000
     shell:
         r"""
         # Run calibration; allow non-zero exit (non-convergence) but keep logs.

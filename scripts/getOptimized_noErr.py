@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     for tagger, decay in tagger_dict.items():
         best = None
-        best_ratio = -np.inf
+        best_nominal = -np.inf
         n_found = 0
 
         for seed, lr, bs, nL, nN in combos:
@@ -108,8 +108,8 @@ if __name__ == '__main__':
                 ratio = float(nominal) / float(sigma)
                 precision = float(sigma) / float(nominal)
 
-                if ratio > best_ratio:
-                    best_ratio = ratio
+                if nominal > best_nominal:
+                    best_nominal = nominal
                     results[tagger] = {
                         "calibrated tagging power": f"{tp}",
                         "seed": seed,
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     if args.outfile:
         out_file = args.outfile
     else:
-        out_file = os.path.join(args.outputPath, args.cut, args.features, args.asym, "candidatedTaggers_overall.json")
+        out_file = os.path.join(args.outputPath, args.cut, args.features, args.asym, "candidatedTaggers_overall_noTPError.json")
 
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
     with open(out_file, "w") as f:

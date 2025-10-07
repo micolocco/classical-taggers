@@ -40,7 +40,7 @@ if __name__ == '__main__':
     os.makedirs(f'{cfg.repoPath}/paths_for_snakemake/', exist_ok=True)
 
     # List all YAML files in the config directory
-    yaml_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml') and f != 'config_test.yaml']
+    yaml_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml') and f != 'hyperpar_intervals.yaml']
     # Iterate over each YAML file and replace the placeholder in the path
     for tagger in taggers_dict.keys():
         new_paths = []
@@ -48,7 +48,7 @@ if __name__ == '__main__':
         for yaml_file in yaml_files:
             for seed in seeds:
                 decayType = taggers_dict[tagger]
-                original_path = f'{modelDir}/{decayType}/{tagger}/{cut}/{features}/{seed}/hyperparameter_combo/asym_level1/ROC_TRAIN_VAL.pdf'
+                original_path = f'{modelDir}/{decayType}/{tagger}/{cut}/{features}/{seed}/hyperparameter_combo/asym_level1/model.pth'
                 # Extract the base name without the .yaml extension
                 base_name = os.path.splitext(yaml_file)[0]
                 # Replace the placeholder in the original path with the base name

@@ -45,6 +45,7 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
+    parser.add_argument('--best_json', help='Json file with the best tagger candidates', type=str)
     parser.add_argument('--cut', help='Cut used', type=str)
     parser.add_argument('--link', help='Link function used for calibration', type=str, default='logit', choices=('mistag','logit'))
     parser.add_argument('--taggedData', help='Name of data (tagged data)', type=str)
@@ -60,7 +61,7 @@ if __name__ == '__main__':
 
     cfg = parser.parse_args()
     pprint(cfg)
-
+    print(f'Adding tagging decision started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
     #loading_variables = features + ['entry','B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER']
@@ -81,10 +82,14 @@ if __name__ == '__main__':
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
 
-    #Load the best model (ie with the lowest training loss) and evaluate it on the test set
-    json_file=f'candidatedTaggers_{cfg.link}.json'
+   
     #Read the best tagger candidate config from json file with the best hyperparameter combination
-    with open(f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/{json_file}', 'r') as f:
+    if cfg.best_json:
+        json_file = cfg.best_json
+    else:
+        json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/candidatedTaggers_overall.json'
+
+    with open(json_file, 'r') as f:
         data = json.load(f)
     seed = int(data[cfg.tagger]['seed'])
     lr = float(data[cfg.tagger]['learning_rate'])

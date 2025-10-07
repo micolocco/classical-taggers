@@ -4,6 +4,7 @@ import numpy as np
 import os
 from copy import deepcopy
 from snakemake.io import dynamic
+from snakemake.io import ancient
 
 try:
     # RAW_MC isn't used as the folder structure is different
@@ -156,13 +157,13 @@ generated_paths_OSMuon = read_generated_paths(
 # print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
 rule all:
     input:
-        join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.01_bs128_nL2_nN8/asym_level1/ROC_TRAIN_VAL.pdf'),
-        #generated_paths_OSKaon,
-        #generated_paths_SSPion,
-        #generated_paths_SSProton,
-        #generated_paths_OSElectron,
-        #generated_paths_OSMuon,
-        #generated_paths_SSKaon
+        #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.01_bs128_nL2_nN8/asym_level1/ROC_TRAIN_VAL.pdf'),
+        generated_paths_OSKaon,
+        generated_paths_SSPion,
+        generated_paths_SSProton,
+        generated_paths_OSElectron,
+        generated_paths_OSMuon,
+        generated_paths_SSKaon
 
         #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'), #$ Using seed like Thomas
         #join(modified_MC, 'savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL2_nN64/asym_level1/ROC_TRAIN_VAL.pdf'),
@@ -435,20 +436,21 @@ rule train_tagger:
             for f in ntuples_selected_withUT[f'{wildcards.decay}'][f'{wildcards.tagger}']
             # if not f.endswith('4_1.mc.root')
         ],
-        script = join(repo, 'scripts/pipeline.py'),
+        script = ancient(join(repo, 'scripts/pipeline.py')),
     output:
-        pdf = join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/ROC_TRAIN_VAL.pdf'),
+        pdf = join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/model.pth'),
         #pdf=join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/training_inputFeatures.pdf'),
         # Replaced with this to profuce only input features plot
     log: join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/training_log.log')
     resources:
-        mem_mb = 50000,  # Specify memory requirement in megabytes
+        mem_mb = 80000,  # Specify memory requirement in megabytes
         # gpus = 1,
         # Allow exit code 1 for debugging
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",
         MaxRunHours = 8,  # medium queue
         request_disk = 1024000
     params:
+        #script = join(repo, 'scripts/pipeline.py'),
         config = lambda wildcards: join(repo, f'configs/{wildcards.config}'),
         target_path = lambda wildcards: join(modified_MC, f'savedModels/{wildcards.sample_type}/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}_{wildcards.balanced}/{wildcards.features}/{wildcards.seed}/{wildcards.config}/{wildcards.asymmetry_level}')
     run:

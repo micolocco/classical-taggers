@@ -252,7 +252,7 @@ rule add_selection:
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
     resources:
-        mem_mb = 20000, # Specify memory requirement in megabytes
+        mem_mb = 30000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
 
     run:
