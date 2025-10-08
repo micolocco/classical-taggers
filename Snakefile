@@ -447,7 +447,7 @@ rule train_tagger:
         # gpus = 1,
         # Allow exit code 1 for debugging
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",
-        MaxRunHours = 8,  # medium queue
+        MaxRunHours = 48,  # medium queue
         request_disk = 1024000
     params:
         #script = join(repo, 'scripts/pipeline.py'),

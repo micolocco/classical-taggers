@@ -10,6 +10,7 @@ import onnx
 pre_path = "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/"
 cut = 'allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN'
 repo = '/home/molocco/classical-taggers'
+asym = 'asym_level1'
 
 os.makedirs(f'{pre_path}/onnx_models', exist_ok=True)
 taggers_dict = {
@@ -39,7 +40,7 @@ for tagger in taggers_dict.keys():
     decay = taggers_dict[tagger]
     pre_path_full = join(pre_path, f"{decay}/{tagger}/{cut}")
 
-    model_path = join(pre_path_full, f"{seed}/{config}/asym_level2")
+    model_path = join(pre_path_full, f"{seed}/{config}/{asym}")
     model= f"{model_path}/model.pth"
     features = pyTrain.get_features(tagger=tagger, yaml_file='union_PROBNN', repo_path=repo)
     bestModel = torch.load(model, weights_only=False)

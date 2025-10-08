@@ -1,55 +1,55 @@
 {
   "OSKaon": {
-    "calibrated tagging power": "1.936+/-0.022",
+    "calibrated tagging power": "1.969+/-0.023",
     "seed": 45,
-    "learning_rate": 0.001,
-    "batch_size": 4096,
+    "learning_rate": 0.0001,
+    "batch_size": 2048,
     "numlayers": 3,
-    "numneurons": 256,
+    "numneurons": 128,
     "npar": 2,
-    "function": "logit",
-    "max_ratio": 86.17671770750711,
-    "precision": 0.011604062287381445,
-    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs4096_nL3_nN256/asym_level1"
+    "function": "mistag",
+    "max_ratio": 86.88265820758231,
+    "precision": 0.011509776756723693,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.0001_bs2048_nL3_nN128/asym_level1"
   },
   "OSElectron": {
-    "calibrated tagging power": "0.466+/-0.011",
+    "calibrated tagging power": "0.465+/-0.011",
     "seed": 45,
     "learning_rate": 0.001,
     "batch_size": 8192,
     "numlayers": 4,
     "numneurons": 8,
-    "npar": 3,
+    "npar": 2,
     "function": "mistag",
-    "max_ratio": 42.07308607116849,
-    "precision": 0.0237681637688392,
+    "max_ratio": 42.353214190040966,
+    "precision": 0.023610958911239904,
     "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs8192_nL4_nN8/asym_level1"
   },
   "OSMuon": {
-    "calibrated tagging power": "0.974+/-0.015",
-    "seed": 45,
+    "calibrated tagging power": "0.963+/-0.015",
+    "seed": 12,
     "learning_rate": 0.001,
     "batch_size": 128,
     "numlayers": 4,
     "numneurons": 32,
     "npar": 2,
     "function": "mistag",
-    "max_ratio": 65.84787716171856,
-    "precision": 0.015186518428590465,
-    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_nL4_nN32/asym_level1"
+    "max_ratio": 66.11802545509943,
+    "precision": 0.015124468601668953,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs128_nL4_nN32/asym_level1"
   },
   "SSPion": {
-    "calibrated tagging power": "1.13+/-0.05",
-    "seed": 12,
-    "learning_rate": 0.001,
-    "batch_size": 8192,
+    "calibrated tagging power": "1.14+/-0.05",
+    "seed": 45,
+    "learning_rate": 0.0001,
+    "batch_size": 4096,
     "numlayers": 8,
     "numneurons": 256,
     "npar": 2,
     "function": "mistag",
-    "max_ratio": 22.350850412810793,
-    "precision": 0.04474102691980042,
-    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL8_nN256/asym_level1"
+    "max_ratio": 22.651885255563997,
+    "precision": 0.044146435880182175,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.0001_bs4096_nL8_nN256/asym_level1"
   },
   "SSProton": {
     "calibrated tagging power": "0.057+/-0.012",
@@ -65,16 +65,16 @@
     "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.01_bs4096_nL2_nN32/asym_level1"
   },
   "SSKaon": {
-    "calibrated tagging power": "2.72+/-0.06",
-    "seed": 45,
-    "learning_rate": 0.001,
-    "batch_size": 2048,
-    "numlayers": 6,
-    "numneurons": 256,
+    "calibrated tagging power": "2.26+/-0.04",
+    "seed": 12,
+    "learning_rate": 0.01,
+    "batch_size": 8192,
+    "numlayers": 3,
+    "numneurons": 16,
     "npar": 2,
     "function": "mistag",
-    "max_ratio": 46.48081694628116,
-    "precision": 0.02151425180748696,
-    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs2048_nL6_nN256/asym_level1"
+    "max_ratio": 55.7574195924937,
+    "precision": 0.017934832840338692,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.01_bs8192_nL3_nN16/asym_level1"
   }
 }

@@ -26,54 +26,6 @@ taggers_dict = {
     'SSKaon': 'Bs2DsPi'
 }
 
-def stats_printout_train_calib(ID, tagger, train_df, val_df, test_df):
-    '''
-    Function to print statistics about the dataset composition
-    '''
-    from rich.console import Console
-    from rich.table import Table
-    train_evts =  len(train_df['event_entry'].unique())
-    val_evts =  len(val_df['event_entry'].unique())
-    test_evts_sel =  len(test_df[test_df.selected==1]['event_entry'].unique())
-    test_evts =  len(test_df['event_entry'].unique())
-    
-    print(f"\n Statistics used in the {tagger} pipeline\n")
-
-    console = Console()
-    table = Table(show_header=True)
-    table.add_column("", justify="left")
-    table.add_column("Events", justify="left", style='cyan')
-    table.add_column("Tracks", justify="left", style='green')
-    table.add_row("Train", f"{train_evts}", f"{train_df.shape[0]}")
-    table.add_row("Validation", f"{val_evts}", f"{val_df.shape[0]}",)
-    table.add_row("Calibration (only selected)", f"{test_evts_sel}", f"{test_df[test_df.selected==1].shape[0]}")
-    table.add_row("Calibration (total)", f"{test_evts}", f"{test_df.shape[0]}")
-    console.print(table)
-    print("\nThe train and the validation sets are made of tracks passing the preselection.")
-    print("The calibration set contains both selected and not selected events. \n")
-
-    print("Correct tagging decision l=1, wrong tagging decision l=0")
-
-    B_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==ID)].shape[0]
-    antiB_correct_train = train_df[(train_df.label==1)&(train_df.B_TRUEID==-ID)].shape[0]
-    B_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==ID)].shape[0]
-    antiB_wrong_train  = train_df[(train_df.label==0)&(train_df.B_TRUEID==-ID)].shape[0]
-    B_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==ID)].shape[0]
-    antiB_correct_test = test_df[(test_df.selected==1)&(test_df.label==1)&(test_df.B_TRUEID==-ID)].shape[0]
-    B_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==ID)].shape[0]
-    antiB_wrong_test = test_df[(test_df.selected==1)&(test_df.label==0)&(test_df.B_TRUEID==-ID)].shape[0]
-    table = Table(show_header=True)
-    table.add_column("", justify="left")
-    table.add_column("l=1, B", justify="left", style='cyan', overflow="fold")
-    table.add_column("l=1, antiB", justify="left", style='cyan', overflow="fold")
-    table.add_column("(N\[l=1,B]-N\[l=1,antiB])/N\[l=1]", justify="left", style='cyan', overflow="fold")
-    table.add_column("l=0, B", justify="left", style='green', overflow="fold")
-    table.add_column("l=0, antiB", justify="left", style='green', overflow="fold")
-    table.add_column("(N\[l=0,B]-N\[l=0,antiB])/N\[l=0]", justify="left", style='green', overflow="fold")
-    table.add_row("Training set", f"{B_correct_train}", f"{antiB_correct_train}",f"{(100*(B_correct_train-antiB_correct_train)/(B_correct_train+antiB_correct_train)):.2f}%", f"{B_wrong_train}", f"{antiB_wrong_train}",f"{(100*(B_wrong_train-antiB_wrong_train)/(B_wrong_train+antiB_wrong_train)):.2f}%")
-    table.add_row("Test set", f"{B_correct_test}", f"{antiB_correct_test}",f"{(100*(B_correct_test-antiB_correct_test)/(B_correct_test+antiB_correct_test)):.2f}%", f"{B_wrong_test}", f"{antiB_wrong_test}",f"{(100*(B_wrong_test-antiB_wrong_test)/(B_wrong_test+antiB_wrong_test)):.2f}%")
-    console.print(table)
-
 
 for tagger in taggers_dict.keys():
     decay = taggers_dict[tagger]

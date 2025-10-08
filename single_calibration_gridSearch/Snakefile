@@ -88,7 +88,7 @@ def build_status_targets(paths, npars=NPARS, funcs=FUNCS, require_model_existing
     printed_tag_line = False
     for mp in existing:
         tagger = infer_tagger_strict(str(mp))  # strict validation; raises on bad tagger
-        print('Model found for tagger:', mp)
+        #print('Model found for tagger:', mp)
         if not printed_tag_line:
             print(f"[{label}] models_listed={models_listed} | models_found={len(existing)} | calibrations_planned={planned} "
                   f"(NPARS={_pretty_list(npars)}, FUNCS={_pretty_list(funcs)})")
@@ -111,9 +111,9 @@ def build_status_targets(paths, npars=NPARS, funcs=FUNCS, require_model_existing
 generated_paths_OSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSKaon.txt'))
 generated_paths_OSElectron = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSElectron.txt'))
 generated_paths_OSMuon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_OSMuon.txt'))
-#generated_paths_SSPion     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSPion.txt'))
-#generated_paths_SSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSKaon.txt'))
-#generated_paths_SSProton   = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSProton.txt'))
+generated_paths_SSPion     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSPion.txt'))
+generated_paths_SSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSKaon.txt'))
+generated_paths_SSProton   = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSProton.txt'))
 
 
 print("Requested link functions:", _pretty_list(FUNCS))
@@ -124,12 +124,12 @@ print("Requested npars:", _pretty_list(NPARS))
 # ------------------------------------------------------------
 CALIB_STATUS_TARGETS = []
 
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSPion,     label="SSPion")
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSProton,   label="SSProton")
+CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSKaon,     label="SSKaon")
 CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSKaon,     label="OSKaon")
 CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSElectron, label="OSElectron")
 CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSMuon,     label="OSMuon")
-#CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSPion,     label="SSPion")
-#CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSProton,   label="SSProton")
-#CALIB_STATUS_TARGETS += build_status_targets(generated_paths_SSKaon,     label="SSKaon")
 
 
 print(f"[summary] total_calibrations_planned={len(CALIB_STATUS_TARGETS)}")
