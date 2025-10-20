@@ -42,8 +42,6 @@ TREND_PDFS   = [
     for s in SPLITS_PER_DECAY[d]
     for m in METRICS
 ]
-print(REF_CAL_JSON)
-print(TREND_PDFS)
 SWEIGHTS_TARGETS = [f"{BASE}/{d}/{c}/data_fit/sweights.root" for (d,c) in DECAY_CUT_PAIRS]
 
 rule all:
@@ -75,6 +73,7 @@ rule mc_fit:
     params:
         decay = lambda wc: wc.decay,
         out   = BASE,
+        script  = f"{REPO}/data_calibration/sweights.py"
     log:
         f"{BASE}/{{decay}}/.mc_fit.log"
     run:
@@ -106,7 +105,8 @@ rule sweights_data:
         out=BASE,
         taggers=lambda wc: " ".join(DECAYS[wc.decay]["TAGGERS"]),
         tpre=TAGGED_PREPATH,
-        feats=FEATURES
+        feats=FEATURES,
+        script  = f"{REPO}/data_calibration/sweights.py"
     log:
         f"{BASE}/{{decay}}/{{cut}}/.sweights.log"
     run:
@@ -178,7 +178,8 @@ rule calibrate_noBins:
         taggers   = lambda wc: " ".join(DECAYS[wc.decay]["TAGGERS"]),
         run2      = lambda wc: "--run2" if DECAYS[wc.decay].get("RUN2", False) else "",
         time_br   = lambda wc: " ".join(DECAYS[wc.decay].get("DECAY_TIME_BRANCHES", ["B_DTF_PV_CTAU"])),
-        combo_name= lambda wc: f"{wc.decay} OS+SS, data"
+        combo_name= lambda wc: f"{wc.decay} OS+SS, data",
+        script     = f"{REPO}/data_calibration/data_calib.py"
     log:
         f"{BASE}/{{decay}}/{{cut}}/.calibrate_noBins.log"
     run:
@@ -207,7 +208,9 @@ rule calibrate_bin:
         taggers   = lambda wc: " ".join(DECAYS[wc.decay]["TAGGERS"]),
         run2      = lambda wc: "--run2" if DECAYS[wc.decay].get("RUN2", False) else "",
         time_br   = lambda wc: " ".join(DECAYS[wc.decay].get("DECAY_TIME_BRANCHES", ["B_DTF_PV_CTAU"])),
-        combo_name= lambda wc: f"{wc.decay} OS+SS, data"
+        combo_name= lambda wc: f"{wc.decay} OS+SS, data",
+        script     = f"{REPO}/data_calibration/data_calib.py"
+
     log:
         f"{BASE}/{{decay}}/.calibrate_bin_{{split}}_bin{{bin}}.log"
     run:
@@ -245,6 +248,8 @@ rule plot_trends:
         ]
     log:
         f"{BASE}/{{decay}}/{{cut}}/trend_{{split}}_{{metric}}.log"
+    params:
+        script = f"{REPO}/data_calibration/bin_calibrate/plot_trend.py" 
     run:
         cmd = [
             "python", "{params.script}",
