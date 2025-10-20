@@ -1,0 +1,47 @@
+BASE: /ceph/users/molocco/FlavourTagging/data_calibration
+OUTPUT_FOLDER: block1_data_combinations
+METRICS: [tagging_power, tag_efficiency, effective_mistag]
+REPO: /home/molocco/classical-taggers
+TAGGED_PREPATH: /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged
+FEATURES: union_PROBNN 
+
+DECAYS:
+  Bu2JpsiK:
+    cuts: ["allBKGCAT_notSamePV_noOSP_SSK"]    # you can list more
+    TAGGERS: ["OSKaon","OSElectron","OSMuon"]  # per-decay tagger set
+    RUN2: true                                  # set false if file lacks Run2 cols
+    TREE: "DecayTree"                           # override if needed
+    DECAY_TIME_BRANCHES: ["B_DTF_PV_CTAU"]
+    MC_FILES: ['/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/1_raw/Bu2JpsiK']   # to be adjusted: list of MC files for the mass-shape fit
+
+    BRANCHES:                                   # variables used for binning
+      PT: "B_PT"
+      ETA: "B_ETA"
+      nPVs: "B_nPVs"
+      nTracks: "B_nTracks"
+    BIN_EDGES:                                  # bin edges per split
+      PT: [0, 5000, 10000, 15000, 20000, 25000]
+      ETA: [2.0, 3.0, 4.0, 5.0]
+      nPVs: [0, 4, 5, 6, 7, 100]
+      nTracks: [0, 250, 500, 750, 10000]
+
+
+  Bd2JpsiKst:
+    cuts: ["allBKGCAT_notSamePV_noOSP_SSK"]
+    TAGGERS: ["SSPion","SSProton","OSKaon","OSElectron","OSMuon"]
+    RUN2: true
+    TREE: "DecayTree"
+    DECAY_TIME_BRANCHES: ["B_DTF_PV_CTAU"]
+    MC_FILES: ['/ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/1_raw/Bd2JpsiKst']   # to be adjusted: list of MC files for the mass-shape fit
+
+    BRANCHES:
+      PT: "B_PT"
+      ETA: "B_ETA"
+      nPVs: "B_nPVs"
+      nTracks: "B_nTracks"
+    BIN_EDGES:
+      PT: [0, 5000, 10000, 15000, 20000, 25000]
+      ETA: [2.0, 3.0, 4.0, 5.0]
+      nPVs: [0, 4, 5, 6, 7, 100]
+      nTracks: [0, 250, 500, 750, 10000]
+

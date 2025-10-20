@@ -1,0 +1,80 @@
+{
+  "OSKaon": {
+    "calibrated tagging power": "2.025+/-0.023",
+    "seed": 45,
+    "learning_rate": 0.0001,
+    "batch_size": 8192,
+    "numlayers": 3,
+    "numneurons": 32,
+    "npar": 3,
+    "function": "logit",
+    "max_nominal": 2.0252047621316542,
+    "precision": 0.011532818657289291,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.0001_bs8192_nL3_nN32/asym_level1"
+  },
+  "OSElectron": {
+    "calibrated tagging power": "0.477+/-0.011",
+    "seed": 45,
+    "learning_rate": 0.001,
+    "batch_size": 4096,
+    "numlayers": 3,
+    "numneurons": 32,
+    "npar": 3,
+    "function": "mistag",
+    "max_nominal": 0.4767653434199551,
+    "precision": 0.023420384437993824,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs4096_nL3_nN32/asym_level1"
+  },
+  "OSMuon": {
+    "calibrated tagging power": "1.047+/-0.016",
+    "seed": 45,
+    "learning_rate": 0.001,
+    "batch_size": 4096,
+    "numlayers": 3,
+    "numneurons": 256,
+    "npar": 3,
+    "function": "mistag",
+    "max_nominal": 1.0468417731347832,
+    "precision": 0.01550367497370972,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs4096_nL3_nN256/asym_level1"
+  },
+  "SSPion": {
+    "calibrated tagging power": "1.19+/-0.05",
+    "seed": 45,
+    "learning_rate": 0.001,
+    "batch_size": 4096,
+    "numlayers": 3,
+    "numneurons": 256,
+    "npar": 2,
+    "function": "mistag",
+    "max_nominal": 1.1931564758188427,
+    "precision": 0.04406859347184206,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs4096_nL3_nN256/asym_level1"
+  },
+  "SSProton": {
+    "calibrated tagging power": "0.070+/-0.013",
+    "seed": 45,
+    "learning_rate": 0.001,
+    "batch_size": 128,
+    "numlayers": 3,
+    "numneurons": 3,
+    "npar": 3,
+    "function": "mistag",
+    "max_nominal": 0.07017157178108502,
+    "precision": 0.1836422342937773,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_nL3_nN3/asym_level1"
+  },
+  "SSKaon": {
+    "calibrated tagging power": "2.97+/-0.07",
+    "seed": 45,
+    "learning_rate": 0.01,
+    "batch_size": 4096,
+    "numlayers": 3,
+    "numneurons": 32,
+    "npar": 3,
+    "function": "logit",
+    "max_nominal": 2.9730066548168987,
+    "precision": 0.02436557966719224,
+    "model_dir": "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.01_bs4096_nL3_nN32/asym_level1"
+  }
+}

@@ -212,54 +212,54 @@ if __name__ == '__main__':
     bestModel.eval()
     '''
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
-    test_df_sel1 = test_df.query('selected==1').copy()
-    test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
-    # test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
-    print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
-    print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
-    
-    test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
-    pyTrain.plot_ROC(tagger=cfg.tagger, val_df=test_df_sel1, target_path =cfg.target_path)
-    #plt.figure()
-    #plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    #plt.title(r"Test set: Probability of label 0, only selected")
-    ##plt.savefig(f"{cfg.target_path}/testSet_prob0distrib.pdf")
-    #plt.figure()
-    #plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    #plt.title(r"Test set: Probability of label 1")
-    #plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
-    #pyTrain.plot_mistag(tagger=cfg.tagger, decayType=cfg.decayType,df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
-    
-
-    test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
-    # test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
-    test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
-
-    #test_df[f"{cfg.tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
-    test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
-    test_df[f"{cfg.tagger}_Eta"] = 1 - test_df['predictedProb']
-
-    test_df = test_df[['event_entry','selected', f"{cfg.tagger}_Eta", f"{cfg.tagger}_TagDec", 'label','B_TRUEID']]
-
-    #print(test_df.loc[test_df.selected == 1][f"{cfg.tagger}_Eta"]) 
-
-    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
-    test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
-    #pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{cfg.target_path}/Not_Normalized_TagDec.pdf')
- 
-    # Eta Normalization [0, 0.5]
-    test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5 ,f"{cfg.tagger}_TagDec"] *= -1
-    test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5, f"{cfg.tagger}_Eta"] *= -1
-    test_df.loc[test_df[f"{cfg.tagger}_Eta"] < 0, f"{cfg.tagger}_Eta"] += 1
-
-    df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
-    #df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
-    
-    print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
-    #pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles,  plot_name=f'{cfg.target_path}/Normalized_TagDec.pdf')
-    # Calibrating the tagger and saving parameters
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, mode='Bu')
-    # Try both calibration functions
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, mode='Bu', calibration_option='logit')
+    #test_df_sel1 = test_df.query('selected==1').copy()
+    #test_dataset_sel1 = inputDataset(df=test_df_sel1.drop(columns = columns_to_drop))
+    ## test_dataset_sel1.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    #test_dl_sel1 = DataLoader(test_dataset_sel1, batch_size = 1024, shuffle=False)
+    #print(f"Test set has {len(test_dl_sel1.dataset)} tracks selected as tagging particles")
+    #print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks")
+    #
+    #test_df_sel1['yPred'], test_df_sel1['yTrue'] = bestModel.evaluate_model(test_dl_sel1)
+    #pyTrain.plot_ROC(tagger=cfg.tagger, val_df=test_df_sel1, target_path =cfg.target_path)
+    ##plt.figure()
+    ##plt.hist(1-test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
+    ##plt.title(r"Test set: Probability of label 0, only selected")
+    ###plt.savefig(f"{cfg.target_path}/testSet_prob0distrib.pdf")
+    ##plt.figure()
+    ##plt.hist(test_df_sel1['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
+    ##plt.title(r"Test set: Probability of label 1")
+    ##plt.savefig(f"{cfg.target_path}/testSet_prob1distrib.pdf")
+    ##pyTrain.plot_mistag(tagger=cfg.tagger, decayType=cfg.decayType,df=test_df_sel1, target_path=cfg.target_path, type = 'Test')
+    #
+#
+    #test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
+    ## test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    #test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
+#
+    ##test_df[f"{cfg.tagger}_Eta"] = clf.predict_proba(bestModel.evaluate_model(test_dl)[0])[:,0]
+    #test_df['predictedProb'] = bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
+    #test_df[f"{cfg.tagger}_Eta"] = 1 - test_df['predictedProb']
+#
+    #test_df = test_df[['event_entry','selected', f"{cfg.tagger}_Eta", f"{cfg.tagger}_TagDec", 'label','B_TRUEID']]
+#
+    ##print(test_df.loc[test_df.selected == 1][f"{cfg.tagger}_Eta"]) 
+#
+    #test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
+    #test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
+    ##pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{cfg.target_path}/Not_Normalized_TagDec.pdf')
+ #
+    ## Eta Normalization [0, 0.5]
+    #test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5 ,f"{cfg.tagger}_TagDec"] *= -1
+    #test_df.loc[test_df[f"{cfg.tagger}_Eta"] > 0.5, f"{cfg.tagger}_Eta"] *= -1
+    #test_df.loc[test_df[f"{cfg.tagger}_Eta"] < 0, f"{cfg.tagger}_Eta"] += 1
+#
+    #df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
+    ##df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first() test this 
+    #
+    #print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
+    ##pyTrain.plot_tagDec(tagger =cfg.tagger, df_TagParticles=df_TagParticles,  plot_name=f'{cfg.target_path}/Normalized_TagDec.pdf')
+    ## Calibrating the tagger and saving parameters
+    #pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, target_path=cfg.target_path, mode='Bu')
+    ## Try both calibration functions
+    #pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, target_path=cfg.target_path, mode='Bu', calibration_option='logit')
     print(f'Pipeline finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')

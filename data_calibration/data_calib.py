@@ -62,10 +62,6 @@ if __name__ == '__main__':
     parser.add_argument('--decay-time-branches', type=str, default=["B_DTF_PV_CTAU"], nargs="+", #"B_DTF_PV_CTAUERR"
                         help='Branches names of the decay-time variables (first decay time, second decay-time error).') # Just using decay time for now
 
-    parser.add_argument('--time-unit', type=str, default="c_ps",
-                        help='Unit of the time branches')
-    parser.add_argument('--decay-time-branches', type=str, default=["B_DTF_PV_CTAU"], nargs="+",
-                        help='Branche names of the decay-time variables (first decay time, second decay-time error).') # Just using decay time for now
 
     
     cfg = parser.parse_args()
@@ -172,6 +168,7 @@ if __name__ == '__main__':
         tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
         ## And calibrate this tagger again
         tagger_combination.calibrate()
+        #embed()
         taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=20)
         ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}', nbins=20)
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}')

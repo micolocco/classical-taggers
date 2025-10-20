@@ -6,12 +6,7 @@ from scripts.replace_path import seeds  # your seeds
 
 """
 Example:
-python scripts/getOptimized.py \
-  --model_prePath /ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024 \
-  --cut allBKGCAT_notSamePV_noOSP_SSK_balanced \
-  --features union_PROBNN \
-  --asym asym_level1 \
-  --outputPath /home/molocco/classical-taggers/best_tagger_candidates
+python scripts/getOptimized.py --model_prePath /ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024 --cut allBKGCAT_notSamePV_noOSP_SSK_balanced --file_interval configs/hyperpar_intervals_larger --features union_PROBNN --asym asym_level1 --outfile candidateTaggers_overall_large --maximize nominal
 """
 
 def tp_nominal_sigma(tp):
@@ -31,11 +26,12 @@ if __name__ == '__main__':
                    help='…/savedModels/<sample_type> (root under which decays/taggers live)')
     p.add_argument('--cut', type=str, required=True,
                    help='cut folder, e.g. allBKGCAT_notSamePV_noOSP_SSK_balanced')
+    p.add_argument('--file_interval', help='yaml file with intervals explored in grid search' ,type=str, default='configs/hyperpar_intervals',)
     p.add_argument('--features', type=str, default='union_PROBNN')
     p.add_argument('--asym', type=str, default='asym_level1')
     p.add_argument('--outputPath', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
-    p.add_argument('--outfile', type=str, default=None,
-                   help='Optional explicit output file path for the candidates JSON.')
+    p.add_argument('--outfile', type=str, default='candidateTaggers_overall', help='Name of the JSON output.')
+    p.add_argument('--maximize', type=str, choices=('ratio', 'nominal'), default='ratio', help='Whether to maximize TP_cali/sigma (ratio) or TP_cali (nominal). TP=tagging power.')
     args = p.parse_args()
 
     print("Config:", vars(args))
@@ -51,7 +47,7 @@ if __name__ == '__main__':
     }
 
     # hyperparameter grid
-    with open('configs/hyperpar_intervals.yaml', 'r') as file:
+    with open(f'{args.file_interval}.yaml', 'r') as file:
         intervals = yaml.safe_load(file)
     learning_rates    = intervals['-learning_rate']
     train_batch_sizes = intervals['-train_batch_size']
@@ -69,6 +65,7 @@ if __name__ == '__main__':
         best = None
         best_ratio = -np.inf
         n_found = 0
+        best_nominal = -np.inf
 
         for seed, lr, bs, nL, nN in combos:
             # trial dir = .../<seed> / lr..._bs..._nL..._nN... / <asym>
@@ -108,29 +105,43 @@ if __name__ == '__main__':
                 ratio = float(nominal) / float(sigma)
                 precision = float(sigma) / float(nominal)
 
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    results[tagger] = {
-                        "calibrated tagging power": f"{tp}",
-                        "seed": seed,
-                        "learning_rate": lr,
-                        "batch_size": bs,
-                        "numlayers": nL,
-                        "numneurons": nN,
-                        "npar": npar,
-                        "function": func,
-                        "max_ratio": ratio,
-                        "precision": precision,
-                        "model_dir": trial_dir       # points to .../<asym>
-                    }
+                if args.maximize == 'nominal':
+                    if nominal > best_nominal:
+                        best_nominal = nominal
+                        results[tagger] = {
+                            "calibrated tagging power": f"{tp}",
+                            "seed": seed,
+                            "learning_rate": lr,
+                            "batch_size": bs,
+                            "numlayers": nL,
+                            "numneurons": nN,
+                            "npar": npar,
+                            "function": func,
+                            "max_nominal": nominal,
+                            "precision": precision,
+                            "model_dir": trial_dir       # points to .../<asym>
+                        }
+                elif args.maximize=='ratio':  # maximize ratio 
+                    if ratio > best_ratio:
+                        best_ratio = ratio
+                        results[tagger] = {
+                            "calibrated tagging power": f"{tp}",
+                            "seed": seed,
+                            "learning_rate": lr,
+                            "batch_size": bs,
+                            "numlayers": nL,
+                            "numneurons": nN,
+                            "npar": npar,
+                            "function": func,
+                            "max_ratio": ratio,
+                            "precision": precision,
+                            "model_dir": trial_dir       # points to .../<asym>
+                        }
                 n_found += 1
         print("Found", n_found, "valid calibrations for tagger", tagger)
 
     # write output
-    if args.outfile:
-        out_file = args.outfile
-    else:
-        out_file = os.path.join(args.outputPath, args.cut, args.features, args.asym, "candidatedTaggers_overall.json")
+    out_file = os.path.join(args.outputPath, args.cut, args.features, args.asym, f"{args.outfile}_{args.maximize}.json")
 
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
     with open(out_file, "w") as f:

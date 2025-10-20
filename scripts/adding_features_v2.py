@@ -208,7 +208,7 @@ def main():
                     'reweighter_weights_raw']
     #elif cfg.evtType == 'Bs2DsPi':
     #    weights = ['nSig_uo_kkpi_2022_Evts_sw']
-    local_loading_variables = np.unique(loading_variables + run2_taggers_variables).tolist()
+    local_loading_variables = np.unique(loading_variables + extra_vars+run2_taggers_variables).tolist()
     if cfg.data_calib:
         local_loading_variables = [v for v in local_loading_variables if "TRUE" not in v and "Flag" not in v and "MC" not in v and "BKGCAT" not in v]
         local_loading_variables += ['FillNumber']
@@ -242,7 +242,7 @@ def main():
 
     # drop the B mesons or other particles that are not of interest and perform operations on MC variables
     if not cfg.data_calib:
-        local_loading_variables = np.unique(local_loading_variables + extra_vars).tolist()
+        local_loading_variables = np.unique(local_loading_variables).tolist()
         with uproot.open("{}".format(cfg.raw)) as f:
             df = f[cfg.treename].arrays(local_loading_variables, library="pd")
         abs_id = B_abs_id_dic[cfg.evtType]

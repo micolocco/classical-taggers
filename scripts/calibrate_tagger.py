@@ -22,7 +22,7 @@ if __name__ == '__main__':
         description='Calibrate the tagger on the specified decay',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--model_path', help='Name of the output dir', type=str, default='../test')
+    parser.add_argument('--model_path', help='Name of the output dir', type=str, )
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     #parser.add_argument('--seed', help='Random seed', default=2) 
     #parser.add_argument('--config', help='Config yaml', type=str, default='configs/config_test') 
@@ -30,8 +30,8 @@ if __name__ == '__main__':
     parser.add_argument('--repo', help="Path to repository", default='/home/molocco/classical-taggers', type=str)
     parser.add_argument('--features', help="Feature set", type=str, default='union_PROBNN')
     parser.add_argument('--simulation', help='If data are MC or real-data. Used for the calibration', action='store_true')
-    parser.add_argument('--npar', help='Number of parameters for the calibration, default 2)', type=int, default=2)
-    parser.add_argument('--function', help='Calibration function, either mistag or logit', type=str, choices=('mistag', 'logit'),default='mistag')
+    #parser.add_argument('--npar', help='Number of parameters for the calibration, default 2)', type=int, default=2)
+    #parser.add_argument('--function', help='Calibration function, either mistag or logit', type=str, choices=('mistag', 'logit'),default='mistag')
     print(f'Calibration started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg) 
@@ -98,10 +98,12 @@ if __name__ == '__main__':
     test_df.loc[test_df[f"{cfg.tagger}_Eta"] < 0, f"{cfg.tagger}_Eta"] += 1
     df_TagParticles = test_df.sort_values(by = ["selected",f"{cfg.tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating")
-    # Calibrating the tagger and saving parameters
-    target_path=f'{cfg.model_path}/calibration_npar{cfg.npar}'
-    os.makedirs(target_path, exist_ok=True)
-    pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, npar=cfg.npar, calibration_option=cfg.function, enlarge_scale=False, target_path=target_path, mode=mode)
-    # Try both calibration functions
-    #pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, eventType=cfg.decayType, target_path=cfg.target_path, calibration_option='logit')
+    # Calibrating the tagger and saving parameters with different options
+    npars = [2,3]
+    funcs = ['mistag', 'logit']
+    for npar in npars:
+        target_path=f'{cfg.model_path}/calibration_npar{npar}'
+        os.makedirs(target_path, exist_ok=True)
+        for func in funcs:
+            pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, npar=npar, calibration_option=func, enlarge_scale=False, target_path=target_path, mode=mode)
     print(f'Calibration finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')

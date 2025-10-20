@@ -41,9 +41,17 @@ python scripts/getOptimized.py --cut <cut_type>
 ```
 with costumized options as inputs.
 
+## Using real data
+For semplicity right now the workflow is separated. The `Snakemake` workflow is in the `data_calibration` and assumes that data are stored in `1_raw` folder. The workflow does:
+1) addition of fetaures needed for applying the taggers
+2) apply the tagger preselections
+3) attach the tagging decisions
+Once the tagging decisions are attached t the tuples, run the `sweights.py` (with proper options) to peform the MC fit and then run it on data to compute the sweights. The output (for data) is a single tuple `sweights.root` with sweights and tagging decisions. This tuple can be used to perform the tagger combination and calibration. 
+The csript `data_calib.py` performs the calibration for the single taggers and their combination according to the what specified in the arguments.
+
 ## Deltams analysis
 - preselections on `P`, `PT` and `ETA` of piplus, Ds, hplus, hminus, piminus. Pre-selections from https://gitlab.cern.ch/lhcb-b2oc/analyses/b2dx-early-measurements/-/blob/master/BranchesAndSelection2025.py?ref_type=heads#L300 (b2oc WG)
-- Adding the BDT decision to reject the combinatorial background. This is built on the top of the scripts/BDTs provided by the b2oc WG, that we would like to acknowledge for the help. Please refer to their repo for teh original set of scripts (https://gitlab.cern.ch/lhcb-b2oc/analyses/b2dx-early-measurements/-/tree/master?ref_type=heads).
+- Adding the BDT decision to reject the combinatorial background. This is built on the top of the scripts/BDTs provided by the b2oc WG, that we would like to acknowledge for the help. Please refer to their repo for the original set of scripts (https://gitlab.cern.ch/lhcb-b2oc/analyses/b2dx-early-measurements/-/tree/master?ref_type=heads).
 
 ## PyTorch C++ interface
 - The code implementation for loading PyTorch models into C++ refers to https://pytorch.org/tutorials/advanced/cpp_export.html.

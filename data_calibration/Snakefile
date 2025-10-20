@@ -118,15 +118,27 @@ for decay, path_list in ntuples_raw_withUT.items():
 
 rule all:
     input: 
-        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
-
         expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+
+        #expand(ntuples_selected_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], ),
+#
+        #expand(ntuples_selected_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], ),
+        #expand(ntuples_selected_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], ),
+        #expand(ntuples_selected_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], ),
+        #expand(ntuples_selected_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], ),
+        #expand(ntuples_selected_withUT['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], ),
+        #expand(ntuples_selected_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], ),
+        #expand(ntuples_selected_withUT['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], ),
+
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+#
 
         #ntuples_added_features_withUT['Bs2DsPi']
 
@@ -157,34 +169,6 @@ RAW_SETTINGS = {
     "Bs2DsPi": "root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00267010/0000/",
 }
 
-'''    
-# Not used
-
-rule add_features_data:
-    input:
-        script = join(repo, 'scripts/adding_features_v2.py'),
-    log: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/1_raw/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/.{id,.*}.log')
-    output:
-        root =join(data, '{sample_type}/1_raw/{decay}/{id}.root')
-    resources:
-        mem_mb = 100000, # Specify memory requirement in megabytes
-        MaxRunHours = 4, # medium queue
-
-    run:
-        tree = find_tree_name(wildcards.decay)
-        input_raw = join(RAW_SETTINGS[wildcards.decay], f'{wildcards.id}.root')
-        cmd = [
-            'python', input.script,
-            '--raw', input_raw,
-            '--output {output}',
-            '--evtType {wildcards.decay}',
-            '--treename', tree,
-            '--data_calib',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-        '''
-
 rule add_features:
 # For some NTuples it's necessary to run locally (snakemake only, not on condor)
     input:
@@ -198,9 +182,9 @@ rule add_features:
         root =join(modified_data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/2_added_features/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{id,.*}.root'), 
         #request_disk = 50000
     resources:
-        mem_mb = 20000,#240000, # Specify memory requirement in megabytes
+        mem_mb = 80000,#240000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
-        request_disk = 6000
+        request_disk = 1024000
 
     run:
         #tree = find_tree_name(wildcards.decay)
@@ -215,30 +199,6 @@ rule add_features:
         ]
         shell(' '.join(cmd))
 
-'''
-# Not used
-rule add_selection_data:
-    input:
-        script = join(repo, 'scripts/preSelections.py'),
-        added_features = join(data, '{sample_type}/1_raw/{decay}/{id}.root'), # Raw from Jpsi are made by the rule above, with added features run already
-        cut_file = join(modified_data, 'withUT_MC_2024/DT_outputs/{cut_name}/balanced/cuts/{tagger}_preselections.txt') # Cut file is in the MC path
-    output: join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id,.*}.root'),
-    log : join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/3_selected/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger, (OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/.{id,.*}.log')
-    run:
-        cmd = [
-            'python', input.script,
-            '--added_features {input.added_features}',
-            '--output {output}',
-            '--cut_file', input.cut_file,
-            '--tagger {wildcards.tagger}',
-            '--features {wildcards.features}',
-            '--evtType {wildcards.decay}',
-            '--data_calib',
-            '--repo', repo,
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-'''
 
 rule add_selection:
     input:
@@ -252,7 +212,7 @@ rule add_selection:
     # params:
     #     tagger = lambda wildcards: taggers_conf[wildcards.decay]
     resources:
-        mem_mb = 30000, # Specify memory requirement in megabytes
+        mem_mb = 50000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
 
     run:
@@ -274,41 +234,8 @@ rule add_selection:
         ]
         shell(' '.join(cmd))
 
-'''
-# not used 
-rule add_tagDec_data:
-    input:
-        script = join(repo, 'scripts/adding_tagDec.py'),
-        selected = join(data, '{sample_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id}')
-    output:
-        root = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}'),
-    log:
-        join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/{id}.log'),
-    params:
-        #modelPrePath = lambda wildcards: join(data.replace("ntuples","Micol_trainings"), f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}'),
-        modelPrePath = lambda wildcards: join(modified_data, f'savedModels/{wildcards.sample_type}/{extract_decay(wildcards.tagger)}/{wildcards.tagger}/{wildcards.cut_name}_balanced/{wildcards.features}'),
-        taggedDataPath = join(data, '{sample_type,(withUT_MC_2024|noUT_MC_2024)}/4_tagged/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}/{features}/'),
-    run:
-        print(f"Processing file: {wildcards.id}")
-        print(f"Selected input file: {input.selected}")
 
-        cmd = [
-            'python', input.script,
-            '--selected {input.selected}',
-            '--cut {wildcards.cut_name}_balanced',
-            '--taggedData {output.root}',  
-            '--modelPrePath {params.modelPrePath}',
-            '--decayType {wildcards.decay}', # Decay used for evaluating the tagger
-            '--tagger {wildcards.tagger}',
-            '--features {wildcards.features}',
-            '--repo', repo,
-            '--data_calib',
-            '&> {log}'
-        ]
-        shell(' '.join(cmd))
-'''
 
-# Actually this rule is not really necessaty as a NTuples is produced by he script sweights.py with
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),

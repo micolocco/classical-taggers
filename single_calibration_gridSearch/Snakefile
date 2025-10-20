@@ -1,5 +1,3 @@
-# Snakefile — calibrate all existing models across NPARS × FUNCS, then pick best per tagger.
-
 from os.path import join
 from pathlib import Path
 import re
@@ -14,11 +12,10 @@ try:
 except Exception as e:
     raise RuntimeError("Make sure to specify snakemake config: RAW_MC, MODIFIED_MC, REPO") from e
 
-# Tunables (override via: --config NPARS=[2,3] FUNCS='["mistag","logit"]')
-#NPARS =  [2, 3]
+#NPARS =  [3]
 #FUNCS = ["mistag", "logit"]
-NPARS =  [2, ]
-FUNCS = ["mistag",]
+#NPARS =  [2, 3 ]
+#FUNCS = ["mistag",]
 
 
 # ------------------------------------------------------------
@@ -48,62 +45,62 @@ def path_to_model(path_str: str):
         return p / "model.pth"
     return None
 
-def infer_tagger_strict(path_str: str) -> str:
+from pathlib import Path
+'''
+def build_status_targets(paths, require_model_existing=True, label=""):
     """
-    Expect: .../savedModels/<sample>/<decay>/<tagger>/<cut>/<features>/...
-    Validate tagger against allowed set. Fail fast if invalid.
-    """
-    p = Path(path_str)
-    parts = p.parts
-    try:
-        i = parts.index('savedModels')
-        tagger = parts[i + 3]  # sample_type (i+1), decay (i+2), tagger (i+3)
-    except (ValueError, IndexError):
-        raise ValueError(f"[path-structure-error] expected '.../savedModels/<sample>/<decay>/<tagger>/...': {path_str}")
-    if tagger not in TAGGERS:
-        raise ValueError(f"[invalid-tagger] got '{tagger}' in path: {path_str} (allowed: {sorted(TAGGERS)})")
-    return tagger
+    From TXT lines -> status marker targets (_status.txt), one per model.pth.
+    Only keep entries where model.pth exists if require_model_existing=True.
 
-def _pretty_list(x):
-    return "[" + ", ".join(map(str, x)) + "]"
-
-def build_status_targets(paths, npars=NPARS, funcs=FUNCS, require_model_existing=True, label=""):
-    """
-    From TXT lines -> status marker targets (_status.txt), one per (npar, func),
-    but only for entries where model.pth exists (if require_model_existing=True).
-
-    Prints (once per tagger list):
-      [<tagger>] models_listed=X | models_found=Y | calibrations_planned=Y*len(NPARS)*len(FUNCS)
+    Prints one summary line:
+      [<tagger>] models_listed=X | models_found=Y | found_calibrations=Z | calibrations_planned=Y
     """
     models_listed = len(paths)
 
-    # Normalize to model.pth and keep those that actually exist
+    # Normalize to model.pth and keep those that actually exist (if required)
     resolved = [path_to_model(raw) for raw in paths]
-    existing = [mp for mp in resolved if (mp is not None and (not require_model_existing or mp.exists()))]
-
-    ncombos = len(npars) * len(funcs)
-    planned = len(existing) * ncombos
+    existing = [mp for mp in resolved if (mp is not None and (not require_model_existing or Path(mp).exists()))]
 
     outs = []
-    printed_tag_line = False
+    calib_exists = 0
+
     for mp in existing:
-        tagger = infer_tagger_strict(str(mp))  # strict validation; raises on bad tagger
-        #print('Model found for tagger:', mp)
-        if not printed_tag_line:
-            print(f"[{label}] models_listed={models_listed} | models_found={len(existing)} | calibrations_planned={planned} "
-                  f"(NPARS={_pretty_list(npars)}, FUNCS={_pretty_list(funcs)})")
-            printed_tag_line = True
-        for npar in npars:
-            for func in funcs:
-                outs.append(str(mp).replace(
-                    "model.pth",
-                    f"calibration_npar{npar}/{func}/.status.txt"
-                ))
-    # If list had no existing models, still print a summary line:
-    if not printed_tag_line:
-        print(f"[{label}] models_listed={models_listed} | models_found=0 | calibrations_planned=0 "
-              f"(NPARS={_pretty_list(npars)}, FUNCS={_pretty_list(funcs)})")
+        mp = Path(mp)
+        status_path = mp.parent / "calibration_npar2" / "mistag" / ".status.txt"
+        outs.append(status_path)
+        if status_path.exists():
+            calib_exists += 1
+
+    # Always print a summary line
+    print(f"[{label}] models_listed={models_listed} | models_found={len(existing)} | "
+          f"found_calibrations={calib_exists} | calibrations_planned={len(outs)}")
+
     return outs
+'''
+from pathlib import Path
+
+def build_status_targets(paths, require_model_existing=True, label=""):
+    models_listed = len(paths)
+    resolved = [path_to_model(raw) for raw in paths]
+    existing = [mp for mp in resolved if (mp is not None and (not require_model_existing or Path(mp).exists()))]
+
+    outs = []           # only the missing ones go here → scheduled
+    found = 0           # existing calibrations
+
+    for mp in existing:
+        mp = Path(mp)
+        status_path = mp.parent / "calibration_npar2" / "mistag" / ".status.txt"
+        if status_path.exists():
+            found += 1
+        else:
+            outs.append(status_path)
+
+    print(f"[{label}] models_listed={models_listed} | models_found={len(existing)} | "
+          f"found_calibrations={found} | calibrations_left={len(outs)}")
+
+    return outs
+
+
 
 # ------------------------------------------------------------
 # Load lists (from your repo)
@@ -114,10 +111,6 @@ generated_paths_OSMuon     = read_generated_paths(join(repo, 'paths_for_snakemak
 generated_paths_SSPion     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSPion.txt'))
 generated_paths_SSKaon     = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSKaon.txt'))
 generated_paths_SSProton   = read_generated_paths(join(repo, 'paths_for_snakemake/generated_paths_SSProton.txt'))
-
-
-print("Requested link functions:", _pretty_list(FUNCS))
-print("Requested npars:", _pretty_list(NPARS))
 
 # ------------------------------------------------------------
 # Build concrete targets: one _status.txt per (model, npar, func)
@@ -132,13 +125,15 @@ CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSElectron, label="
 CALIB_STATUS_TARGETS += build_status_targets(generated_paths_OSMuon,     label="OSMuon")
 
 
-print(f"[summary] total_calibrations_planned={len(CALIB_STATUS_TARGETS)}")
+print(f"[summary] total={len(CALIB_STATUS_TARGETS)}")
 
 # Choose meta for the aggregated output path
 
 SAMPLE_TYPE, CUT, FEATURES, ASYM = ("withUT_MC_2024", "allBKGCAT_notSamePV_noOSP_SSK_balanced", "union_PROBNN", "asym_level1")
-
-BEST_JSON_OUT = join(repo, f'best_tagger_candidates/{CUT}/{FEATURES}/{ASYM}/candidatedTaggers_overall.json')
+FILE_INTERVAL = 'configs/hyperpar_intervals_larger'
+OUTFILE =  "candidateTaggers_overall_large"
+MAZIMIZE = "nominal"
+BEST_JSON_OUT = join(repo, f'best_tagger_candidates/{CUT}/{FEATURES}/{ASYM}/{OUTFILE}.json')
 
 # ------------------------------------------------------------
 # Rules
@@ -158,37 +153,36 @@ rule calibrate_tagger:
                      '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/model.pth'),
         script = join(repo, 'scripts/calibrate_tagger.py'),
     output:
-        calibration_plot = join(modified_MC,
-                                'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
-                                '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
-                                '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
-                                '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
-                                'calibration_npar{npar}/{func,(mistag|logit)}/{tagger}_Calibration.pdf'),
-        calibration_results_json = join(modified_MC,
-                    'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
-                    '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
-                    '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
-                    '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
-                    'calibration_npar{npar}/{func,(mistag|logit)}/taggingInfo_{func}.json'),
-        # optional: a status file you can grep later
         status = join(modified_MC,
                     'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
                     '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
                     '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
                     '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
-                    'calibration_npar{npar}/{func,(mistag|logit)}/.status.txt'),
+                    'calibration_npar2/mistag/.status.txt'),
     log:
         join(modified_MC,
              'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
              '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
              '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
              '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
-             'calibration_npar{npar}/{func}/{tagger}_Calibration.log')
+             'calibration_npar2/mistag/{tagger}_Calibration.log')
     params:
         model_path = lambda wc: join(modified_MC,
                                      f"savedModels/{wc.sample_type}/{wc.decay}/{wc.tagger}/"
                                      f"{wc.cut_name}_{wc.balanced}/{wc.features}/{wc.seed}/{wc.config}/{wc.asymmetry_level}"),
-        sim_flag = lambda wc: ('--simulation' if 'MC' in wc.sample_type else '')
+        sim_flag = lambda wc: ('--simulation' if 'MC' in wc.sample_type else ''),
+        calibration_plot = join(modified_MC,
+                                'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
+                                '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
+                                '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
+                                '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+                                'calibration_npar2/mistag/{tagger}_Calibration.pdf'),
+        calibration_results_json = join(modified_MC,
+                    'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
+                    '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
+                    '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
+                    '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+                    'calibration_npar2/mistag/taggingInfo_mistag.json'),
     resources:
         MaxRunHours = 4,
 #memory requirment
@@ -202,26 +196,22 @@ rule calibrate_tagger:
             --features {wildcards.features} \
             --repo {repo} \
             --decayType {wildcards.decay} \
-            --npar {wildcards.npar} \
-            --function {wildcards.func} \
             {params.sim_flag} \
             &> {log} || true
 
         # Mark what we actually got
         JSON_OK="missing"
         PLOT_OK="missing"
-        if [ -s "{output.calibration_results_json}" ]; then JSON_OK="ok"; fi
-        if [ -s "{output.calibration_plot}" ]; then PLOT_OK="ok"; fi
+        if [ -s "{params.calibration_results_json}" ]; then JSON_OK="ok"; fi
+        if [ -s "{params.calibration_plot}" ]; then PLOT_OK="ok"; fi
 
         # Write/refresh status file (use subshell to avoid literal braces)
         status_dir="$(dirname "{output.status}")"
         mkdir -p "$status_dir"
         (
         echo "timestamp=$(date -Is)"
-        echo "npar={wildcards.npar}"
-        echo "func={wildcards.func}"
-        echo "calibration_results_json={output.calibration_results_json} [$JSON_OK]"
-        echo "calibration_plot={output.calibration_plot} [$PLOT_OK]"
+        echo "calibration_results_json={params.calibration_results_json} [$JSON_OK]"
+        echo "calibration_plot={params.calibration_plot} [$PLOT_OK]"
         ) > "{output.status}"
         """
 
@@ -241,6 +231,10 @@ rule pick_best_candidates:
         asym          = ASYM,
         out_dir       = join(repo, 'best_tagger_candidates'),
         script        = join(repo, 'scripts/getOptimized.py'),
+        interval      = FILE_INTERVAL,
+        maximize      = MAZIMIZE,   # could also be "ratio"
+        outfile       = OUTFILE
+    
     shell:
         r"""
         python {params.script} \
@@ -248,5 +242,8 @@ rule pick_best_candidates:
             --cut "{params.cut}" \
             --features "{params.features}" \
             --outputPath "{params.out_dir}"
-        # If your script supports --asym / --outfile / --functions / --npars, add them here.
+            --file_interval "configs/hyperpar_intervals_larger"
+            --outfile "candidateTaggers_overall_large"
+            --maximize "nominal
         """
+

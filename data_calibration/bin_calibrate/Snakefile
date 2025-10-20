@@ -1,0 +1,280 @@
+REPO          = config.get("REPO", "/home/molocco/classical-taggers")
+BASE          = config.get("BASE", "/ceph/users/molocco/FlavourTagging/data_calibration")
+DECAYS        = config["DECAYS"]
+OUTPUT_FOLDER = config.get("OUTPUT_FOLDER", "block1_data_combinations")
+METRICS       = config.get("METRICS", ["tagging_power", "tag_efficiency", "effective_mistag"])
+TAGGED_PREPATH = config["TAGGED_PREPATH"]
+FEATURES       = config.get("FEATURES", "union_PROBNN")
+
+import re
+
+CUTS = sorted({c for dcfg in DECAYS.values() for c in dcfg["cuts"]})
+SPLITS = sorted({s for dcfg in DECAYS.values() for s in dcfg["BRANCHES"].keys()})
+METRIC_REGEX = "|".join(METRICS)
+SPLIT_REGEX  = "|".join(SPLITS)
+CUT_REGEX    = "|".join(re.escape(c) for c in CUTS)
+
+wildcard_constraints:
+    cut = CUT_REGEX,
+    split = SPLIT_REGEX,
+    metric = METRIC_REGEX
+
+# ---- sanity checks ----
+for decay, dcfg in DECAYS.items():
+    bkeys = set(dcfg["BRANCHES"].keys())
+    ekeys = set(dcfg["BIN_EDGES"].keys())
+    if bkeys != ekeys:
+        raise ValueError(f"[{decay}] BRANCHES keys {sorted(bkeys)} must match BIN_EDGES keys {sorted(ekeys)}")
+
+# union of all split names (just for wildcard_constraints)
+ALL_SPLITS = sorted({s for dcfg in DECAYS.values() for s in dcfg["BRANCHES"].keys()})
+
+# build targets up-front from config
+DECAY_CUT_PAIRS = [(d, c) for d, dcfg in DECAYS.items() for c in dcfg["cuts"]]
+SPLITS_PER_DECAY = {d: list(DECAYS[d]["BRANCHES"].keys()) for d in DECAYS}
+print(SPLITS_PER_DECAY)
+
+REF_CAL_JSON = [f"{BASE}/{d}/{c}/{OUTPUT_FOLDER}/Run3/calibration.json" for d,c in DECAY_CUT_PAIRS]
+REF_CAL_COMB = [f"{BASE}/{d}/{c}/{OUTPUT_FOLDER}/Run3/calibration_combination.json" for d,c in DECAY_CUT_PAIRS]
+TREND_PDFS   = [
+    f"{BASE}/{d}/{c}/trend_{s}_{m}.pdf"
+    for (d,c) in DECAY_CUT_PAIRS
+    for s in SPLITS_PER_DECAY[d]
+    for m in METRICS
+]
+print(REF_CAL_JSON)
+print(TREND_PDFS)
+SWEIGHTS_TARGETS = [f"{BASE}/{d}/{c}/data_fit/sweights.root" for (d,c) in DECAY_CUT_PAIRS]
+
+rule all:
+    input:
+        SWEIGHTS_TARGETS,
+        REF_CAL_JSON,
+        REF_CAL_COMB,
+        TREND_PDFS
+
+# ========== PATH HELPERS ==========
+def single_input(decay, cut):
+    return f"{BASE}/{decay}/{cut}/data_fit/sweights.root"
+
+def bin_root(decay, split, bin):
+    return f"{BASE}/{decay}/{split}-bin{bin}/data_fit/sweights.root"
+
+def ref_json_dir(decay, cut):
+    return f"{BASE}/{decay}/{cut}/{OUTPUT_FOLDER}/Run3/"
+
+def bin_json_dir(decay, split, bin):
+    return f"{BASE}/{decay}/{split}-bin{bin}/{OUTPUT_FOLDER}/Run3/"
+
+
+rule mc_fit:
+    input:
+        sim_files = lambda wc: DECAYS[wc.decay].get("MC_FILES", [])
+    output:
+        json = f"{BASE}/{{decay}}/mc_fit/mc_res.json"
+    params:
+        decay = lambda wc: wc.decay,
+        out   = BASE,
+    log:
+        f"{BASE}/{{decay}}/.mc_fit.log"
+    run:
+        if not input.sim_files:
+            # If no MC files provided, fail with a clear message
+            raise ValueError(
+                f"[mc_fit] No MC_FILES configured for decay '{params.decay}'. "
+                f"Add DECAYS.{params.decay}.MC_FILES in config.yaml or pre-create {output.json}."
+            )
+        # Build space-separated file list for the CLI
+        simfiles = " ".join(input.sim_files)
+        cmd = [
+                "python", "{params.script}",
+                "--simulation",
+                f"--sim_files {simfiles}",
+                "--decayType {wildcards.decay}",
+                "--output {params.out}",
+                f"|& tee {log}"
+            ]
+        shell(' '.join(cmd))
+
+
+rule sweights_data:
+    input:
+        mc=f"{BASE}/{{decay}}/mc_fit/mc_res.json"   # ensures MC shape exists
+    output:
+        root=f"{BASE}/{{decay}}/{{cut}}/data_fit/sweights.root"
+    params:
+        out=BASE,
+        taggers=lambda wc: " ".join(DECAYS[wc.decay]["TAGGERS"]),
+        tpre=TAGGED_PREPATH,
+        feats=FEATURES
+    log:
+        f"{BASE}/{{decay}}/{{cut}}/.sweights.log"
+    run:
+        cmd = [
+            "python", "{params.script}",
+            "--tagged_prePath {params.tpre}",
+            "--output {params.out}",
+            "--decayType {wildcards.decay}",
+            "--tagger {params.taggers}",
+            "--cut {wildcards.cut}",
+            "--features {params.feats}",
+            f"|& tee {log}"
+        ]
+        shell(' '.join(cmd))
+
+
+# ========== 1) MAKE PER-BIN NTUPLES FROM SINGLE ROOT ==========
+rule make_bin_tuple:
+    input:
+        # OK to use a function here
+        lambda wc: f"{BASE}/{wc.decay}/{DECAYS[wc.decay]['cuts'][0]}/data_fit/sweights.root"
+    output:
+        # MUST be a plain string with wildcards
+        binfile=f"{BASE}/{{decay}}/{{split}}-bin{{bin}}/data_fit/sweights.root"
+    params:
+        var   = lambda wc: DECAYS[wc.decay]["BRANCHES"][wc.split],
+        edges = lambda wc: DECAYS[wc.decay]["BIN_EDGES"][wc.split],
+        tree  = lambda wc: DECAYS[wc.decay].get("TREE", "DecayTree")
+    log:
+        f"{BASE}/{{decay}}/.make_bin_tuple_{{split}}_bin{{bin}}.log"
+    run:
+        import os, sys, traceback, uproot, numpy as np
+        os.makedirs(os.path.dirname(output.binfile), exist_ok=True)
+        os.makedirs(os.path.dirname(log[0]), exist_ok=True)
+        try:
+            with open(log[0], "w") as L:
+                print(f"[make_bin_tuple] input: {input[0]}", file=L)
+                edges = params.edges
+                b = int(wildcards.bin)
+                lo, hi = edges[b], edges[b+1]
+                var = params.var
+                print(f"[make_bin_tuple] selecting {var} in [{lo}, {hi})", file=L)
+                with uproot.open(input[0]) as f:
+                    t = f[params.tree]
+                    arrs = t.arrays(library="np")
+                if var not in arrs:
+                    print(f"ERROR: branch '{var}' not found. Available (first 20): {list(arrs.keys())[:20]}", file=L)
+                    raise RuntimeError(f"branch '{var}' missing")
+                mask = (arrs[var] >= lo) & (arrs[var] < hi)
+                slim = {k: v[mask] for k, v in arrs.items()}
+                with uproot.recreate(output.binfile) as fout:
+                    fout[params.tree] = slim
+                print(f"[make_bin_tuple] wrote {output.binfile} with {int(mask.sum())} rows", file=L)
+        except Exception as e:
+            with open(log[0], "a") as L:
+                print("\n[make_bin_tuple] exception:", file=L)
+                traceback.print_exc(file=L)
+            raise
+
+
+# ========== 2) CALIBRATE WITH YOUR SCRIPT (INCLUSIVE + PER-BIN) ==========
+rule calibrate_noBins:
+    input:
+        lambda wc: f"{BASE}/{wc.decay}/{wc.cut}/data_fit/sweights.root"
+    output:
+        comb = f"{BASE}/{{decay}}/{{cut}}/{OUTPUT_FOLDER}/Run3/calibration_combination.json",
+        indi = f"{BASE}/{{decay}}/{{cut}}/{OUTPUT_FOLDER}/Run3/calibration.json"
+    params:
+        taggers   = lambda wc: " ".join(DECAYS[wc.decay]["TAGGERS"]),
+        run2      = lambda wc: "--run2" if DECAYS[wc.decay].get("RUN2", False) else "",
+        time_br   = lambda wc: " ".join(DECAYS[wc.decay].get("DECAY_TIME_BRANCHES", ["B_DTF_PV_CTAU"])),
+        combo_name= lambda wc: f"{wc.decay} OS+SS, data"
+    log:
+        f"{BASE}/{{decay}}/{{cut}}/.calibrate_noBins.log"
+    run:
+        cmd = [
+                "python", "{params.script}",
+                "--input_path {BASE}",
+                "--decayType {wildcards.decay}",
+                "--tagger {params.taggers}",
+                "--cut {wildcards.cut}",
+                '--combinationName "{params.combo_name}"',
+                "--output_folder {OUTPUT_FOLDER}",
+                "--time-unit c_ps",
+                "--decay-time-branches {params.time_br}",
+                "{params.run2}",
+                f"|& tee {log}"
+            ]
+        shell(' '.join(cmd))
+
+rule calibrate_bin:
+    input:
+        binfile = f"{BASE}/{{decay}}/{{split}}-bin{{bin}}/data_fit/sweights.root"
+    output:
+        comb = f"{BASE}/{{decay}}/{{split}}-bin{{bin}}/{OUTPUT_FOLDER}/Run3/calibration_combination.json",
+        indi = f"{BASE}/{{decay}}/{{split}}-bin{{bin}}/{OUTPUT_FOLDER}/Run3/calibration.json"
+    params:
+        taggers   = lambda wc: " ".join(DECAYS[wc.decay]["TAGGERS"]),
+        run2      = lambda wc: "--run2" if DECAYS[wc.decay].get("RUN2", False) else "",
+        time_br   = lambda wc: " ".join(DECAYS[wc.decay].get("DECAY_TIME_BRANCHES", ["B_DTF_PV_CTAU"])),
+        combo_name= lambda wc: f"{wc.decay} OS+SS, data"
+    log:
+        f"{BASE}/{{decay}}/.calibrate_bin_{{split}}_bin{{bin}}.log"
+    run:
+        cmd = [
+            "python", "{params.script}",
+            "--input_path {BASE}",
+            "--decayType {wildcards.decay}",
+            "--tagger {params.taggers}",
+            "--cut {wildcards.split}-bin{wildcards.bin}",
+            '--combinationName "{params.combo_name}"',
+            "--output_folder {OUTPUT_FOLDER}",
+            "--time-unit c_ps",
+            "--decay-time-branches {params.time_br}",
+            "{params.run2}",
+            f"|& tee {log}"
+        ]
+        shell(' '.join(cmd))
+
+
+# ========== 3) PLOT TRENDS ==========
+rule plot_trends:
+    output:
+        plots=[f"{BASE}/{{decay}}/{{cut}}/trend_{{split}}_{{metric}}{s}.pdf"
+               for s in ["", "_deviations", "_deviations_normed"]]
+    input:
+        reference_comb = lambda wc: f"{BASE}/{wc.decay}/{wc.cut}/{OUTPUT_FOLDER}/Run3/calibration_combination.json",
+        reference_indi = lambda wc: f"{BASE}/{wc.decay}/{wc.cut}/{OUTPUT_FOLDER}/Run3/calibration.json",
+        bin_combs = lambda wc: [
+            f"{BASE}/{wc.decay}/{wc.split}-bin{i}/{OUTPUT_FOLDER}/Run3/calibration_combination.json"
+            for i in range(0, len(DECAYS[wc.decay]["BIN_EDGES"][wc.split]) - 1)
+        ],
+        bin_indis = lambda wc: [
+            f"{BASE}/{wc.decay}/{wc.split}-bin{i}/{OUTPUT_FOLDER}/Run3/calibration.json"
+            for i in range(0, len(DECAYS[wc.decay]["BIN_EDGES"][wc.split]) - 1)
+        ]
+    log:
+        f"{BASE}/{{decay}}/{{cut}}/trend_{{split}}_{{metric}}.log"
+    run:
+        cmd = [
+            "python", "{params.script}",
+            "--var {wildcards.split}",
+            "--metrics {wildcards.metric}",
+            "--reference {BASE}/{wildcards.decay}/{wildcards.cut}/{OUTPUT_FOLDER}/Run3/",
+            "--bins $(printf '%s ' {BASE}/{wildcards.decay}/{wildcards.split}-bin*/{OUTPUT_FOLDER}/Run3/)",
+            f"|& tee {log}"
+        ]
+        shell(' '.join(cmd))
+
+
+
+# ========== “DRIVING” RULES (tell Snakemake which bins to make) ==========
+# We materialize bins for every (decay, split) from config.
+# You can trigger these implicitly by requiring plot_trends or explicitly via expand.
+for decay, dcfg in DECAYS.items():
+    for split, edges in dcfg["BIN_EDGES"].items():
+        for bin_idx in range(len(edges) - 1):
+            rule_name = f"mk_{decay}_{split}_bin{bin_idx}"
+            rule:
+                name: rule_name
+                input:
+                    single_input(decay, dcfg["cuts"][0])  # ensures the single file exists; cut choice doesn't affect splitting
+                output:
+                    bin_root(decay, split, bin_idx)
+                params:
+                    decay=decay, split=split, bin=str(bin_idx)
+                run:
+                    # delegate to make_bin_tuple via dynamic wildcards
+                    from snakemake.io import expand
+                    # No-op: just here so Snakemake knows bin targets exist; plot_trends will depend on them via calibrate_bin.
+                    pass

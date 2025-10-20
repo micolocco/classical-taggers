@@ -87,7 +87,7 @@ if __name__ == '__main__':
     if cfg.best_json:
         json_file = cfg.best_json
     else:
-        json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/candidatedTaggers_overall.json'
+        json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/candidatedTaggers_overall_large_nominal.json'
 
     with open(json_file, 'r') as f:
         data = json.load(f)
@@ -95,12 +95,13 @@ if __name__ == '__main__':
     lr = float(data[cfg.tagger]['learning_rate'])
     bs = int(data[cfg.tagger]['batch_size'])
     nL = data[cfg.tagger]['numlayers']
-    nN = float(data[cfg.tagger]['numneurons'])
+    nN = int(data[cfg.tagger]['numneurons'])
     config = f'lr{lr}_bs{bs}_nL{nL}_nN{nN}'
     model_path = join(cfg.modelPrePath, f"{seed}/{config}/{cfg.asymmetry_level}") # asymmetry level hard coded for now, to be changed in the future
     #model_path = join(cfg.modelPrePath)
     # Load YAML configuration file
     with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:
+        print(file)
         config = yaml.safe_load(file)
     # bestModel = NeuralNetwork(features=features, numlayers=nL, seed=seed, optimizer_kwargs={"lr" : lr}, repo_path=cfg.repo)
     # bestModel = NeuralNetwork(features=features, numlayers=config['numlayers'], preprocess=preprocess_module, seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo)

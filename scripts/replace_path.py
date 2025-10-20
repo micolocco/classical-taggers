@@ -8,7 +8,8 @@ savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/2/lr
 for each of the hyperparameter combination created by running the script `generate_configFiles.py`.
 The txt file generated_paths_<tagger>.txt will be used in the snakemake file to get all the Neural Networks that must be trained.
 '''
-seeds = [12, 45]
+#seeds = [12, 45]
+seeds = [45]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -44,7 +45,7 @@ if __name__ == '__main__':
     # Iterate over each YAML file and replace the placeholder in the path
     for tagger in taggers_dict.keys():
         new_paths = []
-        outputfile= f'{cfg.repoPath}/paths_for_snakemake/generated_paths_{tagger}.txt'
+        outputfile= f'{cfg.repoPath}/paths_for_snakemake/gridSearch_paths_{tagger}.txt'
         for yaml_file in yaml_files:
             for seed in seeds:
                 decayType = taggers_dict[tagger]
