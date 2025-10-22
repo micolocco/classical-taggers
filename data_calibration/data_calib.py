@@ -5,6 +5,7 @@ from pprint import pprint
 import uproot
 import numpy as np
 from IPython import embed
+import datetime
 
 """ python data_calibration/data_calib.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton  --decayType Bd2JpsiKst --run2 --combinationName 'Bd2JpsiKst OS+SS, data'  --cut allBKGCAT_notSamePV_noOSP_SSK 
 """
@@ -66,6 +67,8 @@ if __name__ == '__main__':
     
     cfg = parser.parse_args()
     pprint(cfg)
+
+    print(f'Started at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 
     path =f'{cfg.input_path}/{cfg.decayType}/{cfg.cut}'
     outputPath = f'{path}/{cfg.output_folder}'
@@ -135,7 +138,7 @@ if __name__ == '__main__':
     '''
     for run in runs:
         os.makedirs(f'{outputPath}/{run}', exist_ok=True)
-        taggers = ft.TaggerCollection()
+        tagger_collection = ft.TaggerCollection()
         for i, tagger in enumerate(cfg.tagger):
             if run == "Run2":
                 eta_column = f'B_{run}_{tagger}_Omega'
@@ -144,7 +147,7 @@ if __name__ == '__main__':
             else:
                 eta_column = f'{tagger}_Eta'
                 tagDec_column = f'{tagger}_TagDec'
-            taggers.create_tagger(f"{tagger}",
+            tagger_collection.create_tagger(f"{tagger}",
                                 eta_data =df[eta_column].tolist(), 
                                 dec_data = df[tagDec_column].tolist(), 
                                 B_ID =df[B_ID_var].tolist(),
@@ -153,23 +156,25 @@ if __name__ == '__main__':
                                 tau_ps=df["time"].to_numpy().astype(np.float64),)
                                 #tauerr_ps=df["time_err"].to_numpy().astype(np.float64),) #Need to replace with calibrated time error!!!!
             # Different calibration curves for each tagger, maybe put a if wrt to tagger name
-            '''
-            if tagger=='OSKaon':
-                taggers[i].set_calibration(ft.PolynomialCalibration(npar=3, link=ft.link.logit))
-            #    taggers[i].set_calibration(ft.PolynomialCalibration(npar=3, link=ft.link.logit))
-            else:
-                taggers[i].set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
-            '''
+            tagger_collection[i].set_calibration(
+            ft.PolynomialCalibration(npar=3, link=ft.link.mistag))
+            #PolynomialCalibration(npar=3 if not tagger.startswith("OSMuon") else 3, link=ft.link.logit))
+            
             #i+=1
-        taggers.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
-        taggers.calibrate()
+        tagger_collection.calibrate()
+        tagger_collection.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=20)
+        ft.save_calibration(tagger_collection, f"{outputPath}/{run}/calibration.json")
         # Combine the taggers into one. With "calibrated=False" we would combine the raw single tagger statistics, which is not usually what we want.
-        tagger_combination = taggers.combine_taggers(f'{cfg.combinationName}_{run}', calibrated=True)
-        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
+        tagger_combination = tagger_collection.combine_taggers(f'{cfg.combinationName}_{run}', calibrated=True)
+        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.mistag))
         ## And calibrate this tagger again
         tagger_combination.calibrate()
+        print(
+            f"Combined tagging efficiency: {tagger_combination.stats.tagging_efficiency(calibrated=True)}")
+        print(
+            f"Combined tagging power: {tagger_combination.stats.tagging_power(calibrated=True)}")
+
         #embed()
-        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=20)
         ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}', nbins=20)
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}')
         print(f'{run} combination created at {outputPath}')

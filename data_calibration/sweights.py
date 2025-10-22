@@ -10,6 +10,7 @@ hep.style.use("LHCb2")
 # import pprint
 import argparse
 import json
+import datetime
 
 import zfit
 from zfit.models.physics import DoubleCB
@@ -87,7 +88,7 @@ if __name__ == '__main__':
 
     cfg = parser.parse_args()
     # pprint(cfg)
-
+    print(f'Started at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
     outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}", "data_fit")
     os.makedirs(outputdir, exist_ok=True)

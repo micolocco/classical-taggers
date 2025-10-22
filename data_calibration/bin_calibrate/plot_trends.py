@@ -2,7 +2,8 @@ import json
 import numpy as np
 import argparse
 from matplotlib import pyplot as plt, ticker as mticker
-
+import mplhep as hep
+hep.style.use("LHCb2")
 
 class MinorSymLogLocator(mticker.Locator):
     """
