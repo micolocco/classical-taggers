@@ -16,8 +16,8 @@ import scripts.pipeline
 # Local imports
 from scripts.NNModel import EarlyStopper
 from scripts.inputDataset import inputDataset
-#from scripts import ranges, nice_names, matplotlib_lhcb_style
-#matplotlib_lhcb_style(plt)
+from scripts import ranges, nice_names, matplotlib_lhcb_style
+matplotlib_lhcb_style(plt)
 import yaml
 
 
@@ -671,7 +671,7 @@ def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins
     plt.close()
 
 
-def calibration(tagger, df_tag, target_path, B_ID= 'B_TRUEID', mode='Bu', calibration_option='mistag', npar=2, enlarge_scale=False, nbins=10, weights=None):
+def calibration(tagger, df_tag, target_path, B_ID= 'B_TRUEID', mode='Bu', calibration_option='mistag', npar=2, nbins=10, weights=None):
 
     #Calibration of the taggers and parameters saving
     import lhcb_ftcalib as ft
@@ -702,10 +702,7 @@ def calibration(tagger, df_tag, target_path, B_ID= 'B_TRUEID', mode='Bu', calibr
     
     taggers.calibrate()
     # Plotting of calibration curves
-    if enlarge_scale:
-        scale = (lambda x: x**4, lambda x: x**1/4)
-    else:
-        scale = "linear"
+
     #distribute the bins such that each bin has the same yield, aka the same sum of weights
     # bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
     # print(bins)
@@ -718,9 +715,14 @@ def calibration(tagger, df_tag, target_path, B_ID= 'B_TRUEID', mode='Bu', calibr
 
     taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
                                             file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
-                                            nbins = nbins, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
+                                            nbins = nbins, x_scale = 'linear', y_scale = 'linear')#, share_y= True, share_x = True)
+    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = 'linear', y_scale = 'linear')
+    #Enlarge scale around small mistag values for better visibility
+    taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+                                            file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
+                                            nbins = nbins, x_scale =(lambda x: x**4, lambda x: x**1/4), y_scale =(lambda x: x**4, lambda x: x**1/4))#, share_y= True, share_x = True)
+    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale =(lambda x: x**4, lambda x: x**1/4), y_scale =(lambda x: x**4, lambda x: x**1/4))
 
-    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
 
 
     info_dict = {"TaggingEfficiency" : taggers[tagger].stats.tagging_efficiency(calibrated = False),

@@ -135,7 +135,6 @@
 /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/00266999_00000135_1.data24.root
 /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/00266999_00000136_1.data24.root
 /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/00266999_00000137_1.data24.root
-/eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/00266999_00000138_1.data24.root
 /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/00266999_00000139_1.data24.root
 /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/00266999_00000140_1.data24.root
 /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/00266999_00000141_1.data24.root

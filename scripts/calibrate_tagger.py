@@ -105,5 +105,5 @@ if __name__ == '__main__':
         target_path=f'{cfg.model_path}/calibration_npar{npar}'
         os.makedirs(target_path, exist_ok=True)
         for func in funcs:
-            pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, npar=npar, calibration_option=func, enlarge_scale=False, target_path=target_path, mode=mode)
+            pyTrain.calibration(tagger=cfg.tagger, df_tag=df_TagParticles, npar=npar, calibration_option=func, target_path=target_path, mode=mode)
     print(f'Calibration finished on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')

@@ -7,7 +7,7 @@ import glob
 import matplotlib.pyplot as plt
 import mplhep as hep
 hep.style.use("LHCb2")
-# import pprint
+#import pprint
 import argparse
 import json
 import datetime
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     # to do parse background model 
 
     cfg = parser.parse_args()
-    # pprint(cfg)
+    print(cfg.obs)
     print(f'Started at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
     outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}", "data_fit")
@@ -171,7 +171,7 @@ if __name__ == '__main__':
             df_data = pd.concat([df_data, _df], ignore_index = True)
     
     
-    df_data = df_data.query(f'{cfg.obs} < {mass_range[1]} and {cfg.obs} > {mass_range[0]}')
+    df_data = df_data.query(f'{massname} < {mass_range[1]} and {massname} > {mass_range[0]}')
 
     masses = df_data[massname].values
     obs = zfit.Space("mass", limits=mass_range)

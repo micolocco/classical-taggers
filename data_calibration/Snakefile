@@ -22,14 +22,14 @@ taggers_conf = {
     # 'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
 }
 def find_tree_name(decay):
-    if decay == 'Bs2JpsiPhi':
-        return 'BsToJpsiPhi_Detached/DecayTree'
+    #if decay == 'Bs2JpsiPhi':
+    #    return 'BsToJpsiPhi_Detached/DecayTree'
     if decay == 'Bs2DsPi':
         return 'BdToDsmPi_DsmToKpKmPim/DecayTree' # For file of type root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00229398/0000/00229398_00000001_1.mc.root
-    if decay == 'Bu2JpsiK':
-        return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
-    if decay == 'Bd2JpsiKst':
-        return 'BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree'
+    #if decay == 'Bu2JpsiK':
+    #    return 'BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree'
+    #if decay == 'Bd2JpsiKst':
+    #    return 'BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree'
     else:
         return 'Tuple/DecayTree'
 
@@ -119,16 +119,14 @@ for decay, path_list in ntuples_raw_withUT.items():
 rule all:
     input: 
         expand(ntuples_tagged_withUT['Bs2DsPi']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
-        expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bs2DsPi']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bs2DsPi']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         expand(ntuples_tagged_withUT['Bs2DsPi']['SSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
-        expand(ntuples_tagged_withUT['Bs2DsPi']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
-    
-        expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
-        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
-        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
-        expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['SSProton'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
+        #expand(ntuples_tagged_withUT['Bd2JpsiKst']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSKaon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSElectron'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
         #expand(ntuples_tagged_withUT['Bu2JpsiK']['OSMuon'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK'], balanced=['balanced'], features=['union_PROBNN'], asym_level=['asym_level1']),
@@ -193,13 +191,13 @@ rule add_features:
         request_disk = 1024000
 
     run:
-        #tree = find_tree_name(wildcards.decay)
+        tree = find_tree_name(wildcards.decay)
         cmd = [
             'python', input.script,
             '--raw {input.raw}',
             '--output {output.root}',
             '--evtType {wildcards.decay}',
-            #'--treename', tree,
+            '--treename', tree,
             '--data_calib',
             '&> {log}',
         ]

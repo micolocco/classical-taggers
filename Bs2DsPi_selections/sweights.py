@@ -55,8 +55,8 @@ def signalname_from_decay(decayType):
     return signalname
 
 """
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK 
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK 
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK 
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK 
 """    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
