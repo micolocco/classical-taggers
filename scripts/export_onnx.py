@@ -11,6 +11,8 @@ pre_path = "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/"
 cut = 'allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN'
 repo = '/home/molocco/classical-taggers'
 asym = 'asym_level1'
+json_file=f'candidatedTaggers_overall_large_nominal.json'
+
 
 os.makedirs(f'{pre_path}/onnx_models', exist_ok=True)
 taggers_dict = {
@@ -22,9 +24,8 @@ taggers_dict = {
     'SSKaon': 'Bs2DsPi'
 }
 #Load the best model (ie with the lowest training loss) and evaluate it on the test set
-json_file=f'candidatedTaggers_logit.json'
 #Read the best tagger candidate config from json file with the best hyperparameter combination
-with open(f'{repo}/best_tagger_candidates/allBKGCAT_notSamePV_noOSP_SSK_balanced/{json_file}', 'r') as f:
+with open(f'{repo}/best_tagger_candidates/{cut}/{asym}/{json_file}', 'r') as f:
     data = json.load(f)
 
 for tagger in taggers_dict.keys():
@@ -32,9 +33,9 @@ for tagger in taggers_dict.keys():
     seed = int(data[tagger]['seed'])
     lr = float(data[tagger]['learning_rate'])
     bs = int(data[tagger]['batch_size'])
-    arch = data[tagger]['architecture']
-    dm = float(data[tagger]['min_delta'])
-    config = f'lr{lr}_bs{bs}_{arch}_dm{dm}'
+    nL = data[tagger]['numlayers']
+    nN = int(data[tagger]['numneurons'])
+    config = f'lr{lr}_bs{bs}_nL{nL}_nN{nN}'
     #with open(f'{repo}/configs/{config}.yaml', 'r') as file:
     #    config = yaml.safe_load(file)
     decay = taggers_dict[tagger]
@@ -42,6 +43,7 @@ for tagger in taggers_dict.keys():
 
     model_path = join(pre_path_full, f"{seed}/{config}/{asym}")
     model= f"{model_path}/model.pth"
+    print("Model path:", model)
     features = pyTrain.get_features(tagger=tagger, yaml_file='union_PROBNN', repo_path=repo)
     bestModel = torch.load(model, weights_only=False)
     bestModel.eval() 
