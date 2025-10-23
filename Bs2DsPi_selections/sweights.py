@@ -87,7 +87,7 @@ if __name__ == '__main__':
     # pprint(cfg)
 
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
-    outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}", "data_fit")
+    outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "data_fit")
     os.makedirs(outputdir, exist_ok=True)
     if cfg.decayType == "Bd2JpsiKst":
         treename = "BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree"
@@ -175,7 +175,7 @@ if __name__ == '__main__':
 
 
     if not cfg.simulation: # Fix signal shape from MC
-        sim_fit = join(cfg.output, cfg.decayType, "mc_fit", "mc_res.json")
+        sim_fit = join(cfg.output, cfg.decayType, cfg.cut,"mc_fit", "mc_res.json")
         if not os.path.exists(sim_fit):
             print(f"File {sim_fit} does not exist. Please run the MC fit first.")
             exit(1)

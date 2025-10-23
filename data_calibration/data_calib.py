@@ -7,7 +7,9 @@ import numpy as np
 from IPython import embed
 import datetime
 
-""" python data_calibration/data_calib.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton  --decayType Bd2JpsiKst --run2 --combinationName 'Bd2JpsiKst OS+SS, data'  --cut allBKGCAT_notSamePV_noOSP_SSK 
+""" 
+python data_calibration/data_calib.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton  --decayType Bd2JpsiKst --run2 --combinationName 'Bd2JpsiKst OS+SS, data'  --cut allBKGCAT_notSamePV_noOSP_SSK 
+python data_calibration/data_calib.py  --tagger OSKaon OSMuon OSElectron  --decayType Bu2JpsiK --run2 --combinationName 'Bu2JpsiK OS, data'  --cut allBKGCAT_notSamePV_noOSP_SSK 
 """
 def setup_time_vars(time_unit, decay_time_branches, data, dm):
     data["time"] = data[decay_time_branches[0]]
@@ -27,22 +29,6 @@ def setup_time_vars(time_unit, decay_time_branches, data, dm):
     #data["time_mod_dm_err"] = data["time_err"] % (2 * np.pi / dm)
     return data
 
-def setup_time_vars(time_unit, decay_time_branches, data, dm):
-    data["time"] = data[decay_time_branches[0]]
-    # data["time_err"] = data[decay_time_branches[1]]
-
-    if time_unit == "fs":
-        data["time"] *= 1000
-        # data["time_err"] *= 1000
-    if time_unit == "c_fs":
-        data["time"] *= 1000 / 0.29979
-        # data["time_err"] *= 1000 / 0.29979
-    if time_unit == "c_ps":
-        data["time"] /= 0.29979
-        # data["time_err"] /= 0.29979
-
-    data["time_mod_dm"] = data["time"] % (2 * np.pi / dm)
-    return data
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -57,7 +43,7 @@ if __name__ == '__main__':
     #parser.add_argument('--features', help='Input features used for NN training',) 
     parser.add_argument('--run2', help='If Run2 tagger combination must be computed as well',  action='store_true') # action='store_true' means args.run2 will be set to True if the --Run2 argument is provided on the command line.
     parser.add_argument('--combinationName', help='Name used for the output combination', type=str)
-    parser.add_argument('--output_folder', help='Name of the output dir', type=str,default='block1_data_combinations')
+    parser.add_argument('--output_folder', help='Name of the output dir', type=str,default='block1_data_combinations_fix')
     parser.add_argument('--time-unit', type=str, default="c_ps",
                         help='Unit of the time branches')
     parser.add_argument('--decay-time-branches', type=str, default=["B_DTF_PV_CTAU"], nargs="+", #"B_DTF_PV_CTAUERR"
@@ -76,6 +62,7 @@ if __name__ == '__main__':
 
     B_ID_var = "B_ID"
     input_file = f'{path}/data_fit/sweights.root' # This NTuple is produced by the sWeights.py script. sweights.py run over the ntuples with the attached tagging decision and attach the sweights
+    print(f'Loading data from {input_file}')
     with uproot.open(input_file) as f:
         df = f['DecayTree'].arrays(library="pd")
     
@@ -93,7 +80,7 @@ if __name__ == '__main__':
 
     dm = ft.constants.DeltaM_s if mode != "Bd" else ft.constants.DeltaM_d
     df = setup_time_vars(cfg.time_unit, cfg.decay_time_branches, df, dm)
-
+    print(mode)
     '''
     # Sara's code
     taggers = ft.TaggerCollection()
@@ -156,17 +143,24 @@ if __name__ == '__main__':
                                 tau_ps=df["time"].to_numpy().astype(np.float64),)
                                 #tauerr_ps=df["time_err"].to_numpy().astype(np.float64),) #Need to replace with calibrated time error!!!!
             # Different calibration curves for each tagger, maybe put a if wrt to tagger name
-            tagger_collection[i].set_calibration(
-            ft.PolynomialCalibration(npar=3, link=ft.link.mistag))
+            #tagger_collection[i].set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
             #PolynomialCalibration(npar=3 if not tagger.startswith("OSMuon") else 3, link=ft.link.logit))
             
             #i+=1
+        
+        tagger_collection.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
         tagger_collection.calibrate()
-        tagger_collection.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=20)
-        ft.save_calibration(tagger_collection, f"{outputPath}/{run}/calibration.json")
+        nbins=20
+        tagger_collection.plot_calibration_curves(savepath = f'{outputPath}/{run}', omega_range="minimal", nbins=nbins)
+        ft.save_calibration(tagger_collection, f"{outputPath}/{run}/single_taggers_calibration.json")
+        #class_indices = df[B_ID_var].values
+        #class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: '$\overline{B}^0$', 531: '$B_s^0$', -531: '$\overline{B}_s^0$'}
+        #tagger_collection.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+        #                                    file_name = 'single_split_calibration_curves.pdf', savepath = f'{outputPath}/{run}/', omega_range="minimal", 
+        #                                    nbins = nbins, x_scale = 'linear', y_scale = 'linear')#, share_y= True, share_x = True)
         # Combine the taggers into one. With "calibrated=False" we would combine the raw single tagger statistics, which is not usually what we want.
         tagger_combination = tagger_collection.combine_taggers(f'{cfg.combinationName}_{run}', calibrated=True)
-        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.mistag))
+        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
         ## And calibrate this tagger again
         tagger_combination.calibrate()
         print(
@@ -175,7 +169,10 @@ if __name__ == '__main__':
             f"Combined tagging power: {tagger_combination.stats.tagging_power(calibrated=True)}")
 
         #embed()
-        ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}', nbins=20)
+        #tagger_collection.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+        #                                    file_name = 'combination_split_calibration_curves.pdf', savepath = f'{outputPath}/{run}/', omega_range="minimal", 
+        #                                    nbins = nbins, x_scale = 'linear', y_scale = 'linear')#, share_y= True, share_x = True)
+        ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}', nbins=nbins)
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}')
         print(f'{run} combination created at {outputPath}')
     

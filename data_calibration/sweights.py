@@ -58,8 +58,8 @@ def signalname_from_decay(decayType):
     return signalname
 
 """
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK 
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK 
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK 
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK 
 """    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -71,6 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('--tagger', help='List of taggers/single tagger', nargs='+',)
     parser.add_argument('--cut', help='Cut desired', type=str)
     parser.add_argument('--features', help='Input features used for NN training', default='union_PROBNN') 
+    parser.add_argument('--block', help='Block used', type=str, default='1_2',)
     #parser.add_argument('--sim_fit', help="Configuration file with MC fit parameters")
     
     # Arguments to use for mass fit only (MC)
@@ -82,6 +83,7 @@ if __name__ == '__main__':
     parser.add_argument('--obs', help='Observable to fit', type=str, default=None)
     parser.add_argument('--range', help='Observable range', nargs="+", default=[5200, 5400])
     parser.add_argument('--output', help='Where fit results and plots will be stored', type=str)
+
     
 
     # to do parse background model 
@@ -90,7 +92,7 @@ if __name__ == '__main__':
     print(cfg.obs)
     print(f'Started at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
-    outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}", "data_fit")
+    outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}/block{cfg.block}", "data_fit")
     os.makedirs(outputdir, exist_ok=True)
     if cfg.decayType == "Bd2JpsiKst":
         treename = "BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree"
@@ -146,7 +148,8 @@ if __name__ == '__main__':
             df_data = pd.merge(df_data, single_df, on=['event_entry', "B_ID", massname, "entry", "FillNumber", "B_DTF_PV_CTAU"]+run2_taggers_variables, how='outer')   
             print(f'total:{df_data.shape}')
         # Merge all DataFrames on the common columns
-        df_data = df_data.query("FillNumber < 10056 and FillNumber > 9982") # for block1 selection
+        if cfg.block == 1:
+            df_data = df_data.query("FillNumber < 10056 and FillNumber > 9982") # for block1 selection
         
     else:
         df_data = pd.DataFrame()
@@ -178,7 +181,7 @@ if __name__ == '__main__':
 
 
     if not cfg.simulation: # Fix signal shape from MC
-        sim_fit = join(cfg.output, cfg.decayType, "mc_fit", "mc_res.json")
+        sim_fit = join(cfg.output, cfg.decayType, cfg.cut, "mc_fit", "mc_res.json")
         if not os.path.exists(sim_fit):
             print(f"File {sim_fit} does not exist. Please run the MC fit first.")
             exit(1)
