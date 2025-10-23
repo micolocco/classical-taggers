@@ -7,6 +7,11 @@ from IPython import embed
 import os 
 import onnx
 
+"""
+python scripts/export_onnx.py
+Use: pyroot-env
+"""
+
 pre_path = "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/"
 cut = 'allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN'
 repo = '/home/molocco/classical-taggers'
@@ -14,7 +19,7 @@ asym = 'asym_level1'
 json_file=f'candidatedTaggers_overall_large_nominal.json'
 
 
-os.makedirs(f'{pre_path}/onnx_models', exist_ok=True)
+os.makedirs(f'{pre_path}/onnx_models_preproc2', exist_ok=True)
 taggers_dict = {
     'OSKaon': 'Bu2JpsiK',
     'OSElectron': 'Bu2JpsiK',
@@ -52,9 +57,11 @@ for tagger in taggers_dict.keys():
     
     # Export to ONNX
     torch.onnx.export(
-        bestModel.NN,                            # Export the inner nn.Sequential
+        #bestModel.NN,                            # Export the inner nn.Sequential
+        #bestModel.NN.insert(0, bestModel.preprocess),  # Export with preprocessing
+        bestModel.preprocess.extend(bestModel.NN),
         dummy_input,                         # Dummy input
-        f"{pre_path}/onnx_models/{tagger}_model.onnx",                        # Output file name
+        f"{pre_path}/onnx_models_preproc2/{tagger}_model.onnx",                        # Output file name
         input_names=["float_input"],         # Input name
         output_names=["output_probability"], # Output name
         dynamic_axes={
@@ -67,7 +74,7 @@ for tagger in taggers_dict.keys():
     
 
     # Load the ONNX model
-    model_onnx = onnx.load(f"{pre_path}/onnx_models/{tagger}_model.onnx")
+    model_onnx = onnx.load(f"{pre_path}/onnx_models_preproc2/{tagger}_model.onnx")
     # Inspect input and output
     print("Inputs:")
     for input in model_onnx.graph.input:
