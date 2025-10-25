@@ -58,8 +58,8 @@ def signalname_from_decay(decayType):
     return signalname
 
 """
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK 
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK 
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK --block 1_2 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bd2JpsiKst/allBKGCAT_notSamePV_noOSP_SSK/block1_2_asym_level1/log.log
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK --block 1_2 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bu2JpsiK/allBKGCAT_notSamePV_noOSP_SSK/block1_2_asym_level1/log.log
 """    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -71,6 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('--tagger', help='List of taggers/single tagger', nargs='+',)
     parser.add_argument('--cut', help='Cut desired', type=str)
     parser.add_argument('--features', help='Input features used for NN training', default='union_PROBNN') 
+    parser.add_argument('--asym', help='Asymmetry level used', type=str, default='asym_level1',)
     parser.add_argument('--block', help='Block used', type=str, default='1_2',)
     #parser.add_argument('--sim_fit', help="Configuration file with MC fit parameters")
     
@@ -91,8 +92,10 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     print(cfg.obs)
     print(f'Started at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    print("Using data from block ", cfg.block)
+
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
-    outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}/block{cfg.block}", "data_fit")
+    outputdir = join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}", "mc_fit") if cfg.simulation else join(f"{cfg.output}/{cfg.decayType}/{cfg.cut}/block{cfg.block}_{cfg.asym}", "data_fit")
     os.makedirs(outputdir, exist_ok=True)
     if cfg.decayType == "Bd2JpsiKst":
         treename = "BdToJpsiKstar_JpsiToMuMu_Detached/DecayTree"
@@ -120,7 +123,7 @@ if __name__ == '__main__':
             print(tagger)
             vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', "B_ID", 'entry', "FillNumber", "B_DTF_PV_CTAU"]
             vars.append(massname)
-            input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, '*.root')
+            input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, 'balanced', cfg.features, cfg.asym, '*.root')
             input_files = glob.glob(input_path)
             # Loop over all files
             singleTagger_dataframes = []
@@ -150,6 +153,7 @@ if __name__ == '__main__':
         # Merge all DataFrames on the common columns
         if cfg.block == 1:
             df_data = df_data.query("FillNumber < 10056 and FillNumber > 9982") # for block1 selection
+            print("Fitered for block 1 data: FillNumber < 10056 and FillNumber > 9982")
         
     else:
         df_data = pd.DataFrame()
