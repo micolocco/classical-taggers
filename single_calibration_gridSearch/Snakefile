@@ -140,7 +140,14 @@ BEST_JSON_OUT = join(repo, f'best_tagger_candidates/{CUT}/{FEATURES}/{ASYM}/{OUT
 # ------------------------------------------------------------
 rule all:
     input:
-        CALIB_STATUS_TARGETS,   # ensures all calibrations are attempted
+        join(modified_MC,"savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.0001_bs8192_nL3_nN32/asym_level1/hold_out/calibration_npar2/mistag/.status.txt"),
+        join(modified_MC,"savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs4096_nL3_nN32/asym_level1/hold_out/calibration_npar2/mistag/.status.txt"),
+        join(modified_MC,"savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs4096_nL3_nN256/asym_level1/hold_out/calibration_npar2/mistag/.status.txt"),
+        join(modified_MC,"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs4096_nL3_nN256/asym_level1/hold_out/calibration_npar2/mistag/.status.txt"),
+        join(modified_MC,"savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.001_bs128_nL3_nN3/asym_level1/hold_out/calibration_npar2/mistag/.status.txt"),
+        join(modified_MC,"savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/45/lr0.01_bs4096_nL3_nN32/asym_level1/hold_out/calibration_npar2/mistag/.status.txt"),
+
+        #CALIB_STATUS_TARGETS,   # ensures all calibrations are attempted
         #BEST_JSON_OUT           # aggregated "best" JSON per tagger
 
 
@@ -150,38 +157,38 @@ rule calibrate_tagger:
                      'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
                      '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
                      '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
-                     '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/model.pth'),
+                     '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/hold_out/model.pth'),
         script = join(repo, 'scripts/calibrate_tagger.py'),
     output:
         status = join(modified_MC,
                     'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
                     '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
                     '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
-                    '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+                    '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/hold_out/'
                     'calibration_npar2/mistag/.status.txt'),
     log:
         join(modified_MC,
              'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
              '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
              '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
-             '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+             '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/hold_out/'
              'calibration_npar2/mistag/{tagger}_Calibration.log')
     params:
         model_path = lambda wc: join(modified_MC,
                                      f"savedModels/{wc.sample_type}/{wc.decay}/{wc.tagger}/"
-                                     f"{wc.cut_name}_{wc.balanced}/{wc.features}/{wc.seed}/{wc.config}/{wc.asymmetry_level}"),
+                                     f"{wc.cut_name}_{wc.balanced}/{wc.features}/{wc.seed}/{wc.config}/{wc.asymmetry_level}/hold_out"),
         sim_flag = lambda wc: ('--simulation' if 'MC' in wc.sample_type else ''),
         calibration_plot = join(modified_MC,
                                 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
                                 '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
                                 '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
-                                '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+                                '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/hold_out/'
                                 'calibration_npar2/mistag/{tagger}_Calibration.pdf'),
         calibration_results_json = join(modified_MC,
                     'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/'
                     '{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/'
                     '{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/'
-                    '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/'
+                    '{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/hold_out/'
                     'calibration_npar2/mistag/taggingInfo_mistag.json'),
     resources:
         MaxRunHours = 4,
