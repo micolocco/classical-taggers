@@ -718,10 +718,11 @@ def calibration(tagger, df_tag, target_path, B_ID= 'B_TRUEID', mode='Bu', calibr
                                             nbins = nbins, x_scale = 'linear', y_scale = 'linear')#, share_y= True, share_x = True)
     taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = 'linear', y_scale = 'linear')
     #Enlarge scale around small mistag values for better visibility
+    os.makedirs(f'{target_path}/enlarged_scale', exist_ok=True)
     taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-                                            file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
+                                            file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}/enlarged_scale', omega_range="minimal", 
                                             nbins = nbins, x_scale =(lambda x: x**4, lambda x: x**1/4), y_scale =(lambda x: x**4, lambda x: x**1/4))#, share_y= True, share_x = True)
-    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale =(lambda x: x**4, lambda x: x**1/4), y_scale =(lambda x: x**4, lambda x: x**1/4))
+    taggers.plot_calibration_curves(savepath = f'{target_path}/enlarged_scale', omega_range="minimal", nbins = nbins, x_scale =(lambda x: x**4, lambda x: x**1/4), y_scale =(lambda x: x**4, lambda x: x**1/4))
 
 
 

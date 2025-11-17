@@ -97,7 +97,7 @@ if __name__ == '__main__':
     nL = data[cfg.tagger]['numlayers']
     nN = int(data[cfg.tagger]['numneurons'])
     config = f'lr{lr}_bs{bs}_nL{nL}_nN{nN}'
-    model_path = join(cfg.modelPrePath, f"{seed}/{config}/{cfg.asymmetry_level}") # asymmetry level hard coded for now, to be changed in the future
+    model_path = join(cfg.modelPrePath, f"{seed}/{config}/{cfg.asymmetry_level}/hold_out") # asymmetry level hard coded for now, to be changed in the future
     #model_path = join(cfg.modelPrePath)
     # Load YAML configuration file
     with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:

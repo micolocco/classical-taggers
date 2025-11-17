@@ -58,8 +58,8 @@ def signalname_from_decay(decayType):
     return signalname
 
 """
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK --block 1_2 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bd2JpsiKst/allBKGCAT_notSamePV_noOSP_SSK/block1_2_asym_level1/log.log
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK --block 1_2 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bu2JpsiK/allBKGCAT_notSamePV_noOSP_SSK/block1_2_asym_level1/log.log
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK --block 1 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bd2JpsiKst/allBKGCAT_notSamePV_noOSP_SSK/block1_asym_level1/sweights_log.log
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK --block 1 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bu2JpsiK/allBKGCAT_notSamePV_noOSP_SSK/block1_asym_level1/sweights_log.log
 """    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--cut', help='Cut desired', type=str)
     parser.add_argument('--features', help='Input features used for NN training', default='union_PROBNN') 
     parser.add_argument('--asym', help='Asymmetry level used', type=str, default='asym_level1',)
-    parser.add_argument('--block', help='Block used', type=str, default='1_2',)
+    parser.add_argument('--block', help='Block used', type=str, default='1', required=True, choices=['1', '2', '3', '2_3', '1_2', 'all'])
     #parser.add_argument('--sim_fit', help="Configuration file with MC fit parameters")
     
     # Arguments to use for mass fit only (MC)
@@ -151,9 +151,23 @@ if __name__ == '__main__':
             df_data = pd.merge(df_data, single_df, on=['event_entry', "B_ID", massname, "entry", "FillNumber", "B_DTF_PV_CTAU"]+run2_taggers_variables, how='outer')   
             print(f'total:{df_data.shape}')
         # Merge all DataFrames on the common columns
-        if cfg.block == 1:
+        if cfg.block == "1":
             df_data = df_data.query("FillNumber < 10056 and FillNumber > 9982") # for block1 selection
             print("Fitered for block 1 data: FillNumber < 10056 and FillNumber > 9982")
+        elif cfg.block == "2":
+            df_data = df_data.query("FillNumber < 9978 and FillNumber > 9945") # for block2 selection
+            print("Fitered for block 2 data: FillNumber < 9978 and FillNumber > 9945")
+        elif cfg.block == "3":
+            df_data = df_data.query("FillNumber < 9943 and FillNumber > 9911")
+            print("Fitered for block 3 data: FillNumber < 9943 and FillNumber > 9911")
+        elif cfg.block == "2_3":
+            df_data = df_data.query("FillNumber < 9978 and FillNumber > 9911")
+            print("Fitered for block 2_3 data: FillNumber < 9978 and FillNumber > 9911")
+        elif cfg.block == "1_2":
+            df_data = df_data.query("FillNumber < 10056 and FillNumber > 9945")
+            print("Fitered for block 1_2 data: FillNumber < 10056 and FillNumber > 9945")
+        else:
+            print("Using all data from blocks provided without block selection")
         
     else:
         df_data = pd.DataFrame()

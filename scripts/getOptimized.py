@@ -6,7 +6,7 @@ from scripts.replace_path import seeds  # your seeds
 
 """
 Example:
-python scripts/getOptimized.py --model_prePath /ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024 --cut allBKGCAT_notSamePV_noOSP_SSK_balanced --file_interval configs/hyperpar_intervals_larger --features union_PROBNN --asym asym_level1 --outfile candidateTaggers_overall_large --maximize nominal
+python scripts/getOptimized.py --model_prePath /ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024 --cut allBKGCAT_notSamePV_noOSP_SSK_balanced --file_interval configs/hyperpar_intervals_larger --features union_PROBNN --asym asym_level1 --outfile candidatedTaggers_overall_large --maximize nominal
 """
 
 def tp_nominal_sigma(tp):
@@ -71,7 +71,7 @@ if __name__ == '__main__':
             # trial dir = .../<seed> / lr..._bs..._nL..._nN... / <asym>
             trial_dir = os.path.join(
                 args.model_prePath, decay, tagger, args.cut, args.features,
-                str(seed), f"lr{lr}_bs{bs}_nL{nL}_nN{nN}", args.asym
+                str(seed), f"lr{lr}_bs{bs}_nL{nL}_nN{nN}", args.asym,
             )
             if not os.path.isdir(trial_dir):
                 continue

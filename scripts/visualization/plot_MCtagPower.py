@@ -30,12 +30,12 @@ def plot_decay(ax, title, singles_run2, singles_run3, comb_run2, comb_run3):
     # --- Run 2 single taggers ---
     vals2 = [singles_run2[t][0] for t in taggers]
     errs2 = [singles_run2[t][1] for t in taggers]
-    ax.errorbar(x - 0.1, vals2, yerr=errs2, fmt='o', color='C0', capsize=3, markersize=7,)
+    ax.errorbar(x - 0.1, vals2, yerr=errs2, fmt='o', mec='C0', mew=1.5,mfc='none',capsize=3, markersize=7,)
 
     # --- Run 3 single taggers ---
     vals3 = [singles_run3[t][0] for t in taggers]
     errs3 = [singles_run3[t][1] for t in taggers]
-    ax.errorbar(x + 0.1, vals3, yerr=errs3, fmt='s', color='C3', capsize=3, markersize=7,)
+    ax.errorbar(x + 0.1, vals3, yerr=errs3, fmt='s', mec='C3',mew=1.5,mfc='none', capsize=3, markersize=7,)
 
     # --- Sums (no uncertainty) ---
     sum2 = float(np.sum(vals2))
@@ -101,14 +101,14 @@ def main(save=False):
     fig, axes = plt.subplots(1, 3, figsize=(17, 6))
     plt.subplots_adjust(top=0.73, wspace=0.25)  # leave space for shared legend
 
-    plot_decay(axes[0], r"$B_s^0 \to D_s^- \pi^+$", Bs_Run2, Bs_Run3, Bs_Run2_comb, Bs_Run3_comb)
-    plot_decay(axes[1], r"$B^+ \to J/\psi K^+$",   Bu_Run2, Bu_Run3, Bu_Run2_comb, Bu_Run3_comb)
+    plot_decay(axes[1], r"$B_s^0 \to D_s^- \pi^+$", Bs_Run2, Bs_Run3, Bs_Run2_comb, Bs_Run3_comb)
+    plot_decay(axes[0], r"$B^+ \to J/\psi K^+$",   Bu_Run2, Bu_Run3, Bu_Run2_comb, Bu_Run3_comb)
     plot_decay(axes[2], r"$B^0 \to J/\psi K^{*0}$", Bd_Run2, Bd_Run3, Bd_Run2_comb, Bd_Run3_comb)
 
     # --- Shared (figure-level) legend ---
     legend_elements = [
-        Line2D([0], [0], marker='o', color='none', markerfacecolor='C0', markersize=7, label=r'Run2 single taggers'),
-        Line2D([0], [0], marker='s', color='none', markerfacecolor='C3', markersize=7, label=r'Run3 single taggers'),
+        Line2D([0], [0], marker='o', mec='C0',color='none', mew=1.5, mfc='none',markerfacecolor='C0', markersize=7, label=r'Run2 single taggers'),
+        Line2D([0], [0], marker='s', mec='C3',color='none', mew=1.5, mfc='none',markerfacecolor='C3', markersize=7, label=r'Run3 single taggers'),
         Line2D([0], [0], color='C0', linestyle='--', label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Run2}}}}$ sum'),
         Line2D([0], [0], color='C3', linestyle='--', label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Run3}}}}$ sum'),
         Line2D([0], [0], color='C0', linestyle='-',  label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Run2}}}}$ comb.'),

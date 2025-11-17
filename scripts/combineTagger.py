@@ -38,8 +38,10 @@ def setup_time_vars(time_unit, decay_time_branches, data, dm):
 
 """
 On MC:
-python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSKaon --decayType Bs2DsPi --run2 --combinationName 'Bs2DsPi MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation
-python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton --decayType Bd2JpsiKst --run2 --combinationName 'Bd2JpsiKst MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSKaon --decayType Bs2DsPi --run2 --combinationName 'B0s MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton --decayType Bd2JpsiKst --run2 --combinationName 'B0 MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron --decayType Bu2JpsiK --run2 --combinationName 'B+ MC OS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron --decayType Bd2JpsiKst --run2 --combinationName 'B0 MC OS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out
 
 """
 if __name__ == '__main__':
@@ -132,6 +134,7 @@ if __name__ == '__main__':
     class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: '$\overline{B}^0$', 531: '$B_s^0$', -531: '$\overline{B}_s^0$'}
 
     runs=['Run3']
+    nbins=10
     if cfg.run2:
         runs.append('Run2')
     
@@ -144,12 +147,13 @@ if __name__ == '__main__':
             mode = "Bs"
         dm = ft.constants.DeltaM_s if mode != "Bd" else ft.constants.DeltaM_d
         df = setup_time_vars(cfg.time_unit, cfg.decay_time_branches, df, dm)
+    else:
+        mode = 'Bu'
         
-    npar=3
     for run in runs:
-        os.makedirs(f'{outputPath}/{run}/{npar}', exist_ok=True)
+        os.makedirs(f'{outputPath}/{run}/', exist_ok=True)
         taggers = ft.TaggerCollection()
-        #for tagger in cfg.tagger+['Probability_Medium_0_Run2OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge (called differently on data tuples as they are more recent, will be only 'OSVertexCharge')
+        #for tagger in cfg.tagger+['OSVertexCharge']:#['Probability_Medium_0_Run2OSVertexCharge']: #OSVertexCharge (called differently on data tuples as they are more recent, will be only 'OSVertexCharge')
         for tagger in cfg.tagger:
            # Adjust name columns
             if tagger == 'Probability_Medium_0_Run2OSVertexCharge':
@@ -184,30 +188,45 @@ if __name__ == '__main__':
                                 weight=df["signal_weights"]. to_numpy().astype(np.float64), 
                                 tau_ps=df["time"].to_numpy().astype(np.float64),)
         
-        taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
+            taggers[tagger].set_calibration(ft.PolynomialCalibration(npar=2 if not tagger.startswith("OSKaon") else 4, link=ft.link.logit))
+        
         taggers.calibrate()
-        os.makedirs(f'{outputPath}/{run}/{npar}/single', exist_ok=True)
-        scale = (lambda x: x**4, lambda x: x**1/4)
+        os.makedirs(f'{outputPath}/{run}/single', exist_ok=True)
+        
         scale = "linear"
         class_indices = df[B_ID_var].values
 
-        ft.save_calibration(taggers=taggers, title=cfg.combinationName, save_path=f'{outputPath}/{run}/{npar}/single')
-        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}/{npar}/single', omega_range="minimal", nbins=10)
+        ft.save_calibration(taggers=taggers, title=cfg.combinationName, save_path=f'{outputPath}/{run}/single')
+        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}/single', omega_range="minimal", nbins=nbins)
         # call draw_split_calibration_curve over a collection of taggers (TagggerCollection)
         taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict, 
-                                       savepath=f'{outputPath}/{run}/{npar}/single', omega_range="minimal", nbins=10, file_name=f'splitted_calibration_curve.pdf', x_scale = scale, y_scale = scale)
+                                       savepath=f'{outputPath}/{run}/single', omega_range="minimal", nbins=nbins, file_name=f'splitted_calibration_curve.pdf', x_scale = scale, y_scale = scale)
+        os.makedirs(f'{outputPath}/{run}/single/enlarged/', exist_ok=True)
+        taggers.plot_calibration_curves(savepath = f'{outputPath}/{run}/single/enlarged', omega_range="minimal", nbins=nbins, x_scale =(lambda x: x**4, lambda x: x**1/4), y_scale = (lambda x: x**4, lambda x: x**1/4))
+        # call draw_split_calibration_curve over a collection of taggers (TagggerCollection)
+        taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict, 
+                                       savepath=f'{outputPath}/{run}/single/enlarged', omega_range="minimal", nbins=nbins, file_name=f'splitted_calibration_curve.pdf', x_scale =(lambda x: x**4, lambda x: x**1/4), y_scale = (lambda x: x**4, lambda x: x**1/4))
 
         # Combine the taggers into one. With "calibrated=False" we would combine the raw single tagger statistics, which is not usually what we want.
         tagger_combination = taggers.combine_taggers(f'{cfg.combinationName}_{run}', calibrated=True)
-        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
+        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.mistag))
         ## And calibrate this tagger again
         tagger_combination.calibrate()
-        ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}/{npar}')
-        ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}/{npar}')
+        ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=f'{outputPath}/{run}/')
+        ft.plotting.draw_calibration_curve(tagger_combination, savepath=f'{outputPath}/{run}/', nbins=nbins)
         # call draw_split_calibration_curve over a single tagger (Tagger)
+        has_ss = any('SS' in t for t in cfg.tagger)
+        has_os = any('OS' in t for t in cfg.tagger)
+        if has_ss and has_os:
+            tagger_combination.name = f'MC Run3 OS+SS' if run == 'Run3' else f'MC Run2 SS+OS' 
+        elif has_ss and not has_os:
+            tagger_combination.name = f'MC Run3 SS' if run == 'Run3' else f'MC Run2 SS'
+        elif not has_ss and has_os:
+            tagger_combination.name = f'MC Run3 OS' if run == 'Run3' else f'MC Run2 OS'
+
         ft.plotting.draw_split_calibration_curve(tagger=tagger_combination, nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-                                            file_name = f'split_calibration_curves.pdf', savepath = f'{outputPath}/{run}/{npar}', omega_range="minimal", 
-                                            nbins = 10, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
+                                            file_name = f'split_calibration_curves.pdf', savepath = f'{outputPath}/{run}/', omega_range="minimal", 
+                                            nbins = nbins,)#, share_y= True, share_x = True)
         
         print(f'{run} combination created at {outputPath}')
 

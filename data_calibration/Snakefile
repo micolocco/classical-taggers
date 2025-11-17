@@ -6,7 +6,8 @@ from copy import deepcopy
 
 
 try:
-    data = config['RAW_DATA']
+    #data = config['RAW_DATA']
+    data = config['MODIFIED_DATA']
     repo = config['REPO']
     modified_data = config['MODIFIED_DATA']
     modified_MC = config['MODIFIED_MC']
@@ -47,7 +48,7 @@ def extract_decay(tagger):
 # Stripping s24c2 MagUp - Block 1 and 2
 # The txt files has been generated with ls /eos/lhcb/grid/prod/lhcb/anaprod/lhcb/LHCb/Collision24/DATA24.ROOT/00266999/0000/*.root > block12_list.txt
 def select_input_files(decay):
-    """Read block1_list_Nicolas_<decay>.txt and return
+    """Read block12_list_<decay>.txt and return
     a list of full EOS URLs for that decay."""
     eosdir = 'root://eoslhcb.cern.ch/'
     txt = f"block12_list_{decay}.txt"

@@ -56,7 +56,7 @@ if __name__ == '__main__':
     #base_pattern = '/ceph/users/molocco/Data/withUT_MC_2024/2_added_features'
     parser.add_argument('--base_pattern', help='Pattern for input files', type=str)
     parser.add_argument('--target_path', help='Name of the output dir', type=str,)
-    parser.add_argument('--balanced', help='If classes are balanced or unbalanced', choices=('balanced', 'unbalanced'), type=str, )
+    parser.add_argument('--balanced', help='If classes are balanced or unbalanced', choices=('balanced', 'unbalanced'), type=str, default='balanced')
     parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' ) # action='store_true' means args.unify_SS will be set to True if the --unify_SS argument is provided on the command line.
     # Per default BKG0==0 are removed
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --0 argument is provided on the command line.
