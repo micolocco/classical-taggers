@@ -206,11 +206,11 @@ nice_names = {
     "B_Tr_T_diff_z": r"$\Delta z(\mathrm{tag},B)~[\mathrm{mm}]$",
 
     # ΔQ mass differences
-    "B_Tr_T_DeltaQ_Kaon": r"$\Delta Q_{K}~[\mathrm{MeV}/c^2]$",
-    "B_Tr_T_DeltaQ_Electron": r"$\Delta Q_{e}~[\mathrm{MeV}/c^2]$",
-    "B_Tr_T_DeltaQ_Muon": r"$\Delta Q_{\mu}~[\mathrm{MeV}/c^2]$",
-    "B_Tr_T_DeltaQ_Pion": r"$\Delta Q_{\pi}~[\mathrm{MeV}/c^2]$",
-    "B_Tr_T_DeltaQ_Proton": r"$\Delta Q_{p}~[\mathrm{MeV}/c^2]$",
+    "B_Tr_T_DeltaQ_Kaon": r"$\Delta Q_{K}~[\mathrm{MeV}]$",
+    "B_Tr_T_DeltaQ_Electron": r"$\Delta Q_{e}~[\mathrm{MeV}]$",
+    "B_Tr_T_DeltaQ_Muon": r"$\Delta Q_{\mu}~[\mathrm{MeV}]$",
+    "B_Tr_T_DeltaQ_Pion": r"$\Delta Q_{\pi}~[\mathrm{MeV}]$",
+    "B_Tr_T_DeltaQ_Proton": r"$\Delta Q_{p}~[\mathrm{MeV}]$",
 
     # Tag + signal combined
     "B_Tr_T_Signal_TagPart_PT": r"$p_{T}(\mathrm{tag}+\mathrm{B})~[\mathrm{MeV}/c]$",
@@ -255,9 +255,9 @@ ranges = {
 
     # IP-related
     "B_Tr_T_OWNPVIP": (0, 2),              # mm
-    "B_Tr_T_OWNPVIPSig": (0, 30),
+    "B_Tr_T_OWNPVIPSig": (0, 10),
     "B_Tr_T_OWNPVIPCHI2": (0, 700),
-    "B_Tr_T_absOWNPV_IP": (0, 2),
+    "B_Tr_T_absOWNPV_IP": (0, 1),
     "B_Tr_T_IPChi2BVTX": (0, 1000),
     "B_Tr_T_IPBVTX": (0, 5),
     "B_Tr_T_absIP": (0, 5),

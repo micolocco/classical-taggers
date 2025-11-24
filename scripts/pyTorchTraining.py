@@ -142,6 +142,8 @@ def plot_features_byID(data, features_list, ID, target_path, name, nbins=100):
                 plt.hist(data[col][(data['label']==1)&(data['B_TRUEID']==-ID)], density = True, bins=nbins, label = f"label = 1, -{ID}",color='cyan', histtype='step',  lw=2, range=ranges[col])
 
                 plt.xlabel(nice_names[col])
+                #if "PROBNN" in col:
+                #    plt.yscale('log')
                 plt.yscale('log')
             plt.legend()
             plt.tight_layout()
@@ -391,6 +393,10 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
                 plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', histtype='step',  lw=2, range=ranges[col])
                 plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', histtype='step',  lw=2, range=ranges[col])
                 plt.xlabel(nice_names[col])
+                #if "PROBNN" in col:
+                #    plt.yscale('log')
+                plt.yscale('log')
+
             else:
                 plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b',histtype='step',  lw=2, )
                 plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', histtype='step',  lw=2,)

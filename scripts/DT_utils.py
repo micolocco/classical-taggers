@@ -7,6 +7,7 @@ matplotlib_lhcb_style(plt)
 plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
 plt.rcParams.update({'axes.unicode_minus' : False})
 
+"""
 def plot_features_byOrigin(data, features, target_path, nbins=100):
     # Plot input features 
     plt.figure(figsize=(100,100))
@@ -31,7 +32,6 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
             plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
             plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
             plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
-            plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
         
         else:
             plt.xlabel(col)
@@ -42,11 +42,10 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
             plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, )
             plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, )
             plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, )
-            plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
         plt.legend() 
         plt.tight_layout()
     plt.savefig(f"{target_path}/DT_features_byOrigin.pdf")
-'''
+"""
 import matplotlib.pyplot as plt
 import os
 from IPython import embed
@@ -109,13 +108,13 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
         plt.tight_layout(pad=0.2)
         plt.savefig(f"{target_path}/{col}_byOrigin.png", dpi=300, bbox_inches='tight', transparent=False)
         plt.close(fig)
-'''
+
 
 
 
 
 def plot_used_features(data, features, target_path, nbins=100):
-    plt.figure(figsize=(100,100))
+    plt.figure(figsize=(24,25))
     for i, col in enumerate(features):
         plt.subplot(3, 3, i + 1)
         plt.xlabel(nice_names[col])

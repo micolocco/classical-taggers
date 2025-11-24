@@ -156,12 +156,14 @@ def plot_summary_figure(Bd_Run2_2018_comb_data,
                         save=False):
     """
     Summary figure comparing:
-      - Run2 taggers on 2018 data
-      - Run2 taggers on Run3 data
-      - Run3 taggers on Run3 data
-      - Mixed configuration
-    Each shown as a horizontal line + shaded uncertainty band.
-    All lines are solid; all colors are color-blind–friendly.
+      - Run2 taggers on 2018 data  (reference band)
+      - Run2 taggers on Run3 data  (point + error bar)
+      - Run3 taggers on Run3 data  (point + error bar)
+      - Mixed configuration on Run3 data (point + error bar)
+
+    The 2018 Run2 combination is shown as a horizontal band across the plot,
+    while the other three configurations are plotted as markers with error bars
+    at separate x positions, with different colours.
     """
 
     # Color-blind friendly Okabe–Ito palette
@@ -170,34 +172,65 @@ def plot_summary_figure(Bd_Run2_2018_comb_data,
     CRED    = "#D55E00"
     CGREEN  = "#009E73"
 
-    configs = {
-        r"Run2 (2018 data)":    (Bd_Run2_2018_comb_data, CORANGE),
-        r"Run2 (Run3 data)":    (Bd_Run2_comb_data,      CBLUE),
-        r"Run3 (Run3 data)":    (Bd_Run3_comb_data,      CRED),
-        r"Mixed (Run3 data)":   (Bd_Mixed_comb_data,     CGREEN),
-    }
+    # Unpack values
+    r2_2018_val, r2_2018_err = Bd_Run2_2018_comb_data
+    r2_run3_val, r2_run3_err = Bd_Run2_comb_data
+    r3_run3_val, r3_run3_err = Bd_Run3_comb_data
+    mix_val,     mix_err     = Bd_Mixed_comb_data
 
     fig, ax = plt.subplots(figsize=(7, 6))
 
-    # Dummy x-range [0,1] for horizontal display
-    x_min, x_max = 0.0, 1.0
+    # --- Reference band: Run2 on 2018 data ---
+    x_min, x_max = -0.5, 2.5
     ax.set_xlim(x_min, x_max)
 
-    # Draw lines + bands
-    for label, ((val, err), color) in configs.items():
-        ax.axhspan(val - err, val + err, color=color, alpha=0.20)
-        ax.axhline(val, color=color, linewidth=2, label=label)
+    ax.axhspan(r2_2018_val - r2_2018_err,
+               r2_2018_val + r2_2018_err,
+               color=CORANGE, alpha=0.20)
+    ax.axhline(r2_2018_val, color=CORANGE, linewidth=2, label=r"Run2 comb. on 2018 data")
+    # Place the 2018 label under the band
+    ymin_text = (r2_2018_val - r2_2018_err) - 0.05  # adjust spacing as needed
+    #ax.text(0.5, ymin_text,
+    #        rf"{r2_2018_val:.2f} ± {r2_2018_err:.2f}",
+    #        ha='center', va='top',
+    #        fontsize=16, transform=ax.get_yaxis_transform())
+    ## --- Points with error bars for the three Run3-era configurations ---
+    labels = [
+        r"Run2 comb. on 2024 data",
+        r"Run3 comb. on 2024 data",
+        r"Run3 OSMuon, OSElectron + Run2 OSKaon, SSPion, SSProton on 2024 data",
+    ]
+   # labels = [
+   # "Run2 taggers\non 2024 data",
+   # "Run3 taggers\non 2024 data",
+   # "Run3 OSMu, OSE + \n Run2 OSK, SSPi, SSP \non on 2024 data",
+   # ]
 
-    ax.set_xticks([])  # No x-axis ticks for horizontal summary
-    ax.set_ylabel(r"$\epsilon_{\text{eff}}$ [%]", fontsize=16)
-    ax.set_title(r"$B^0 \to J/\psi K^{*0}$: summary of combinations", fontsize=16)
+    x = np.arange(len(labels))  # 0, 1, 2
+
+    vals = [r2_run3_val, r3_run3_val, mix_val]
+    errs = [r2_run3_err, r3_run3_err, mix_err]
+    colors = [CBLUE, CRED, CGREEN]
+    markers = ["o", "s", "D"]
+
+    for xi, yi, ei, ci, mk, lab in zip(x, vals, errs, colors, markers, labels):
+        ax.errorbar(xi, yi, yerr=ei, fmt=mk, color=ci,
+                    capsize=4, markersize=8, label=lab)
+        ax.text(xi, yi + ei+  0.05, f"{yi:.2f}±{ei:.2f}",
+                ha='center', va='bottom', fontsize=16)
+
+    #ax.set_xticks(x)
+    ax.tick_params(axis='x', labelbottom=False)
+    #ax.set_xticklabels(labels, rotation=0, fontsize=12)
+    ax.set_ylabel(r"$\epsilon_{\text{eff}}$ [%]", fontsize=18)
+    ax.set_title("OS+SS combination in "+r"$B^0 \to J/\psi K^{*0}$", fontsize=18)
     ax.grid(axis='y', linestyle=':', alpha=0.8)
 
-    # Add headroom for readability
+    # Add a bit of headroom for labels
     ymin, ymax = ax.get_ylim()
     ax.set_ylim(ymin, ymax + 0.3)
 
-    # Legend
+    # Legend: one entry for the reference band + the 3 points
     ax.legend(loc='upper left', fontsize=11, frameon=False)
 
     if save:

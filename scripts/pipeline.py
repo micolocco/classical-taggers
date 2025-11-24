@@ -18,7 +18,7 @@ import yaml
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts import ranges, nice_names, matplotlib_lhcb_style
-#matplotlib_lhcb_style(plt)
+matplotlib_lhcb_style(plt)
 import utils
 
 # Scaler and PowerTransformer implemented in pyTorch
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     
     #Ensures a shared training set exists at <.../anchor/filename>.
     #If missing (or overwrite=True), saves it using uproot.
-    base_dir = pyTrain.get_anchor_dir(model_path=cfg.target_path, anchor=cfg.features)
+    base_dir = pyTrain.get_anchor_dir(model_path=cfg.target_path, anchor="hold_out_bis")#had to redo with holdout sample, otherwise anchor=cfg.features)
     train_path = base_dir / "trainSet.parquet"
     val_path   = base_dir / "valSet.parquet"
     test_path  = base_dir / "testSet_full.parquet"

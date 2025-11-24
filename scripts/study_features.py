@@ -83,5 +83,6 @@ for tagger in taggers_dict.keys():
 
     target_path=f'{repo}/inputFeatures/{decay}/{tagger}/'
     os.makedirs(target_path, exist_ok=True)
+    pyTrain.plot_features(data=train_df, features_list=features,  target_path=target_path, flag='label', name=f'inputFeatures')
     pyTrain.plot_features_byID(data=train_df, features_list=features, ID=ID, target_path=target_path, name=f'byTRUEID_inputFeatures')
     print(f"Plotted input features and saved to {target_path}")

@@ -62,7 +62,7 @@ if __name__ == '__main__':
     model.eval()
     
     # Load dataset
-    base_dir = pyTrain.get_anchor_dir(model_path=cfg.model_path, anchor=cfg.features)
+    base_dir = pyTrain.get_anchor_dir(model_path=cfg.model_path, anchor="hold_out_bis")#canchor=cfg.features)
     test_path = base_dir / "testSet_full.parquet"
     train_path = base_dir / "trainSet.parquet" # to be removed if correct
     val_path = base_dir / "valSet.parquet" # to be removed if correct

@@ -87,7 +87,12 @@ if __name__ == '__main__':
     if cfg.best_json:
         json_file = cfg.best_json
     else:
-        json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/candidatedTaggers_overall_large_nominal.json'
+        if cfg.data_calib:
+            # Read models trained on data for calibration
+            json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/full/candidatedTaggers_overall_large_nominal.json'
+        else:
+            # Read models witj hold out sample for combination on MC (models are trained on MC)
+            json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/hold_out/candidatedTaggers_overall_large_nominal.json'
 
     with open(json_file, 'r') as f:
         data = json.load(f)

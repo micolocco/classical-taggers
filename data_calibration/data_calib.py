@@ -61,7 +61,7 @@ if __name__ == '__main__':
     print(f'Started at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 
     path =f'{cfg.input_path}/{cfg.decayType}/{cfg.cut}'
-    outputPath = f'{path}/block{cfg.block}_{cfg.asym}/combinations/mix_run2OSKaon'
+    outputPath = f'{path}/block{cfg.block}_{cfg.asym}/combinations/'
     os.makedirs(outputPath, exist_ok=True)
     links = ['logit', 'mistag']
 

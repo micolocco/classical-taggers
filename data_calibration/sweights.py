@@ -50,15 +50,15 @@ run2_taggers_variables = [
 '''
 def signalname_from_decay(decayType):
     if decayType=="Bu2JpsiK":
-        signalname = r"$B^+ \to J/\psi K^+$"
+        signalname = r"$B^+ \to J/\psi (\mu^+\mu^-) K^+$"
     if decayType=="Bd2JpsiKst":
-        signalname = r"$B^{*0} \to J/\psi K^*$"
+        signalname = r"$B^{0} \to J/\psi(\mu^+\mu^-)K^{*}(K^+\pi^-)$"
     if decayType=="Bs2DsPi":
-        signalname = r"$B_{s}^0 \to D_s^{-} \pi^{+}$"
+        signalname = r"$B_{s}^0 \to D_s^{-}(K^+ K^- \pi^-) \pi^{+}$"
     return signalname
 
 """
-python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK --block 1 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bd2JpsiKst/allBKGCAT_notSamePV_noOSP_SSK/block1_asym_level1/sweights_log.log
+python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/1_raw/Bu2JpsiK/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bd2JpsiKst --tagger OSKaon OSElectron OSMuon SSPion SSProton --cut allBKGCAT_notSamePV_noOSP_SSK --block 1 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bd2JpsiKst/allBKGCAT_notSamePV_noOSP_SSK/block1_asym_level1/sweights_log.log
 python sweights.py --tagged_prePath /ceph/users/molocco/FlavourTagging/data/withUT_MC_2024/4_tagged/ --output /ceph/users/molocco/FlavourTagging/data_calibration --decayType Bu2JpsiK --tagger OSKaon OSElectron OSMuon --cut allBKGCAT_notSamePV_noOSP_SSK --block 1 | tee /ceph/users/molocco/FlavourTagging/data_calibration/Bu2JpsiK/allBKGCAT_notSamePV_noOSP_SSK/block1_asym_level1/sweights_log.log
 """    
 if __name__ == '__main__':
@@ -299,9 +299,9 @@ if __name__ == '__main__':
         ax1.plot(x_plot, bkg_scaled, label="Combinatorial", color="green", linestyle = "--", linewidth=2)
         ax1.plot(x_plot, total_pdf_eval, label="Total Fit", color='red',linewidth=3)
 
-    ylabel = f"Events$~/~${binwidth}" + r"$[~\mathrm{MeV}/c^2]$"
+    ylabel = f"Candidates$~/~$({binwidth}" + r"$~\mathrm{MeV}/c^2)$"
     ax1.set_ylabel(ylabel)
-    ax1.legend()
+    ax1.legend(fontsize=12)
 
     # Save the results
     params = result.params  # Get the fitted parameters
@@ -329,11 +329,15 @@ if __name__ == '__main__':
     ax2.scatter(bin_centers, residuals, color='black', marker='+')
     ax2.set_ylabel("Pull")
     if cfg.decayType == "Bd2JpsiKst":
-        ax2.set_xlabel(r"$ m(B^{*0})~[\mathrm{MeV}/c^2]$")
+        #ax2.set_xlabel(r"$m_{B^0}(\mu^+\mu^- K^+\pi^-)~[\mathrm{MeV}/c^2]$")
+        ax2.set_xlabel(r"$m(J/\psi K^+\pi^-)~[\mathrm{MeV}/c^2]$") 
     elif cfg.decayType == "Bu2JpsiK":
-        ax2.set_xlabel(r"$ m(B^+)~[\mathrm{MeV}/c^2]$")
+        #ax2.set_xlabel(r"$m_{B^+}(\mu^+\mu^- K^+)~[\mathrm{MeV}/c^2]$")
+        ax2.set_xlabel(r"$m(J/\psi K^+)~[\mathrm{MeV}/c^2]$") 
+        #ax2.set_xlabel(r"$m_{B^+}(\mu^+\mu^- K^+)~[\mathrm{MeV}/c^2]$")
     elif cfg.decayType == "Bs2DsPi":
-        ax2.set_xlabel(r"$ m(B^{0}_{s})~[\mathrm{MeV}/c^2]$")
+        ax2.set_xlabel(r"$m(D_s^{-} \pi^{+})~[\mathrm{MeV}/c^2]$")
+        #x2.set_xlabel(r"$m_{B_s^0}(K^+ K^- \pi^- \pi^+)~[\mathrm{MeV}/c^2]$")
 
 
     ax1.set_xlim(mass_range[0], mass_range[1])
@@ -365,9 +369,20 @@ if __name__ == '__main__':
         plt.plot(masses, df_data["signal_weights"], marker=".", linestyle="None", color="red", markersize=0.1, label="signal")
         plt.plot(masses, df_data["background_weights"], marker=".", linestyle="None", color="green", markersize=0.1, label="background weights")
         plt.plot(masses, background_weights + signal_weights, marker=".", linestyle="None", color="black", markersize=0.1, label="Sum of three")
-        plt.xlabel("m($B^{+})~[MeV]/c^{2}$")
+        if cfg.decayType == "Bd2JpsiKst":
+            #plt.xlabel(r"$m_{B^0}(\mu^+\mu^- K^+\pi^-)~[\mathrm{MeV}/c^2]$")
+            plt.xlabel(r"$m(J/\psi K^+\pi^-)~[\mathrm{MeV}/c^2]$")
+        elif cfg.decayType == "Bu2JpsiK":
+            #plt.xlabel(r"$m_{B^+}(\mu^+\mu^- K^+)~[\mathrm{MeV}/c^2]$")
+            plt.xlabel(r"$m(J/\psi K^+)~[\mathrm{MeV}/c^2]$")
+            #plt.xlabel(r"$m_{B^+}(\mu^+\mu^- K^+)~[\mathrm{MeV}/c^2]$")
+        elif cfg.decayType == "Bs2DsPi":
+            plt.xlabel(r"$m(D_s^{-} \pi^{+})~[\mathrm{MeV}/c^2]$")
+            #x2.set_xlabel(r"$m_{B_s^0}(K^+ K^- \pi^- \pi^+)~[\mathrm{MeV}/c^2]$")
+
+
         plt.ylabel("weights")
-        plt.legend()
+        plt.legend(fontsize=12)
         plt.savefig(join(outputdir, f"validate_sweights_{cfg.decayType}.png"))
         plt.close()
 
