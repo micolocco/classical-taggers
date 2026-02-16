@@ -670,20 +670,13 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     
     taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), weight = weights, B_ID = df_tag[BID].tolist(),mode = eventType[:2] )
 
-    npar = 3 #normally 3, 2 to reproce micols results.
+    npar = 3 #normally 3, 2 to reproduce micols results.
     if calibration_option=='logit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
     elif calibration_option=='mistag':
         taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.mistag)) 
     elif calibration_option=='rlogit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.rlogit))
-    # npar = 5
-    # if calibration_option=='logit':
-    #     taggers.set_calibration(ft.BSplineCalibration(npar=npar, link=ft.link.logit))
-    # elif calibration_option=='mistag':
-    #     taggers.set_calibration(ft.BSplineCalibration(npar=npar, link=ft.link.mistag)) 
-    # elif calibration_option=='rlogit':
-    #     taggers.set_calibration(ft.BSplineCalibration(npar=npar, link=ft.link.rlogit))
 
         print('Not a valid calibration function')
     taggers.retry_on_error(use_link_alternative=ft.link.logit) # use logit link function if minimization did not converge the first time
