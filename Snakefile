@@ -15,7 +15,6 @@ try:
     upperMass = config['Mass_range_upper']
     repo = config['REPO']
 
-    batched = config['use_batched'] 
 except:
     raise RuntimeError("Make sure to specify snakemake config")
 
@@ -249,66 +248,11 @@ combined_df_n_splits = 20
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels_micol/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_Data/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels_micol/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_Data/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/pdf_ratio/testing/Data/logit/taggingInfo_logit.json',
+        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/pdf_ratio/testing/MC/logit/taggingInfo_logit.json',
+        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/testing/Data/logit/taggingInfo_logit.json',
+        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/testing/MC/logit/taggingInfo_logit.json'
 
-        
-
-        # expand('/ceph/users/togasa/FlavourTagging/NTuples/domain_adapted/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs4096_nL6_nN256_alpha{alpha}/testing/Data/logit/taggingInfo_logit.json',
-        #        alpha = [0, 0.01, 0.1, 0.5, 1]),
-        # expand('/ceph/users/togasa/FlavourTagging/NTuples/domain_adapted/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs4096_nL6_nN256_alpha{alpha}/testing/MC/logit/taggingInfo_logit.json',
-        #        alpha = [0, 0.01, 0.1, 0.5, 1]),
-        # expand("/ceph/users/togasa/FlavourTagging/NTuples/Data/withUT_MC_2024/6_tagged/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/trained_DA_{alpha}/{id}.root",
-        #     id = data_ids, alpha = [0, 0.01, 0.1, 0.5, 1]),
-        # expand("/ceph/users/togasa/FlavourTagging/NTuples/MC/withUT_MC_2024/6_tagged/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/trained_DA_{alpha}/{id}",
-        #     id = [basename(f) for f in ntuples_train_split_withUT_mc['Bu2JpsiK']['OSKaon']],alpha = [0, 0.01, 0.1, 0.5, 1]),
-        
-
-
-        # "/ceph/users/togasa/FlavourTagging/NTuples/MC/withUT_MC_2024/6_tagged/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/trained_DA_0.5/00237567_00000001_1.mc.root"
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels_micol/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/testing/Data/logit/taggingInfo_logit.json',
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels_micol/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/testing/Data/logit/taggingInfo_logit.json',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels_micol/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/testing/Data/logit/taggingInfo_logit.json',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels_micol/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_Data/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        # # '/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/45/lr0.001_bs128_simple_dm0.0/model.pth'
-        # # '/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/model.pth'
-        # # '/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/2/lr0.001_bs128_simple_dm0.0/model.pth'
-    
-
-
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_Data/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_Data/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron_Run3_Calibration.pdf',
-        
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs2048_simple_dm0.001/testing/Data/logit/taggingInfo_logit.json',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.0001/testing/Data/logit/taggingInfo_logit.json',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs1024_simple_dm0.001/testing/Data/logit/taggingInfo_logit.json',
-
-        # expand("/ceph/users/togasa/FlavourTagging/NTuples/Data/withUT_MC_2024/6_tagged/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/trained_{trained_on}/{id}.root",
-        #     trained_on = ['Data', 'MC'],
-        #     tagger = ['OSKaon', 'OSElectron', 'OSMuon'],
-        #     id = data_ids,),
-        
-        # expand("/ceph/users/togasa/FlavourTagging/NTuples/MC/withUT_MC_2024/6_tagged/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/trained_{trained_on}/{id}",
-        #     trained_on = ['Data', 'MC'],
-        #     id = [basename(f) for f in ntuples_train_split_withUT_mc['Bu2JpsiK']['OSKaon']],),
-        # expand("/ceph/users/togasa/FlavourTagging/NTuples/MC/withUT_MC_2024/6_tagged/Bu2JpsiK/OSElectron/notSamePV_noOSP/union_PROBNN/trained_{trained_on}/{id}",
-        #     trained_on = ['Data', 'MC'],
-        #     id = [basename(f) for f in ntuples_train_split_withUT_mc['Bu2JpsiK']['OSElectron']],),
-        # expand("/ceph/users/togasa/FlavourTagging/NTuples/MC/withUT_MC_2024/6_tagged/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/trained_{trained_on}/{id}",
-        #     trained_on = ['Data', 'MC'],
-        #     id = [basename(f) for f in ntuples_train_split_withUT_mc['Bu2JpsiK']['OSMuon']],),
-        
         
 
         
@@ -927,67 +871,54 @@ rule combine_MC_Data: #Combines data and MC for domain adaptation
 
 
 
-# rule split_sample:
-#     input:
-#         script = join(repo, 'scripts/split_train_val_test.py'),
-#         to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
+rule split_sample:
+    input:
+        script = join(repo, 'scripts/split_train_val_test.py'),
+        to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
 
-#         hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
-#     output:
-#         train      = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
-#         validation = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
-#         test       = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
-#     log:
-#         join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
-#     resources:
-#         max_retries=0,
-#         mem_mb = 15_000,
-#         MaxRunHours = 3,
-#     run:
-#         out_path = os.path.dirname(os.path.dirname(output.train))
+        hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
+    output:
+        train      = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
+        validation = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
+        test       = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
+    log:
+        join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 15_000,
+        MaxRunHours = 3,
+    run:
+        out_path = os.path.dirname(os.path.dirname(output.train))
 
-#         cmd = [
-#             'python', input.script,
-#             '--weighted {input.to_split}',
-#             '--target_path', out_path,
-#             '--config {input.hyper_int}',
-#             '--decayType {wildcards.decay}',
-#             '--treename "DecayTree;1"',
-#             '--tagger {wildcards.tagger}',
-#             '--data_type {wildcards.data_type}',
-#             '&> {log}',
-#         ]
-#         shell(' '.join(cmd))
+        cmd = [
+            'python', input.script,
+            '--weighted {input.to_split}',
+            '--target_path', out_path,
+            '--config {input.hyper_int}',
+            '--decayType {wildcards.decay}',
+            '--treename "DecayTree;1"',
+            '--tagger {wildcards.tagger}',
+            '--data_type {wildcards.data_type}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
 
 
 def get_chunk(middle_path, filename):
     #If Batched mode is on, training job trains all configuration in a hyperparameter chunk 
     #(currently all batch sizes, layers, etc. except learning rate and weight type)
     
-    if batched:
-        return [join(out, middle_path+ 'lr{learning_rate}_bs{batch_size}_' + f+ filename) for f in hyper_par_chunk]
-    else:
-        return join(out, middle_path+ '{config}' + filename)
+    return join(out, middle_path+ '{config}' + filename)
 
 def get_log(data_type):
     weight = "{weight_type}/" if data_type != 'MC' else ""
     logs = {}
-    # logs['training_logs'] = list(get_chunk(data_type + '/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log'))
     logs = get_chunk(data_type + '/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', f'/{weight}training/training_log.log')
-    if batched:
-        logs = list(logs)
-        if data_type == 'MC':
-            weight_name = 'MC'
-        else:
-            weight_name = '{weight_type}'
-        # logs['chunk_log'] =[join(out, data_type + '/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/.' + weight + '_logs/lr{learning_rate}_training_chunk.log')]
-        logs = logs + [join(out, data_type + '/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/chunk_logs/' + weight_name + '_lr{learning_rate}_bs{batch_size}_training_chunk.log')]
     return logs
 
-rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
-    #If the batched flag from the config file is set to True, this rule trains a chunk of hyperparameters, if False it trains only one hyperparameter configuration 
+rule train_tagger_MC: 
     input:
-        script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
+        script =join(repo, 'scripts/train_tagger.py'),
         train = lambda wildcards: [
             f.replace('cutName', f'{wildcards.cut_name}')
             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
@@ -998,8 +929,7 @@ rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
             # if not f.endswith('4_1.mc.root')
         ],
         
-        config = [join(repo, 'configs/lr{learning_rate}_bs{batch_size}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk] if batched
-                 else join(repo, 'configs/{config}.yaml'),
+        config = join(repo, 'configs/{config}.yaml'),
     output:
         # ROC=         get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/ROC_TRAIN_VAL.pdf'),
         model=       get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/model.pth'),
@@ -1009,9 +939,6 @@ rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
         pre_path = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}')
     log:
         get_log('MC'),
-        # get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/training_log.log'),
-        # chunk_log = join(out, 'MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/training_chunk.log')
-        #      if batched else None,
     resources:
         max_retries=0,
         mem_mb = 30_000, # Specify memory requirement in megabytes 
@@ -1019,7 +946,7 @@ rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 24, # long queue
     threads:
-        len(hyper_par_chunk)+1 if batched else 4,
+        4,
     run:
         if kernel_available():
             train_scratch = path_to_kernel(input.train)
@@ -1031,8 +958,7 @@ rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
         # train_scratch = copy_to_scratch(input.train)
         # val_scratch = copy_to_scratch(input.val)
 
-        if not batched:
-            outpath = os.path.dirname(output.model)
+        outpath = os.path.dirname(output.model)
 
         cmd = [
             'python', input.script,
@@ -1044,36 +970,18 @@ rule train_tagger_MC: #TODO Remove alle the "if batched" stuff. not used anymore
             '--decay_type {wildcards.decay}',
             '--repo', repo,
             '--data_type MC',
-            # '--balance_dataset',
-            #'--clean',
+            '--target_path', outpath,
+            '--config {input.config}',
+            '--num_threads {threads}',
+            '&> {log}',
         ]
 
-        if batched:
-            logs = list(log)
-            training_logs = logs[:-1]
-            chunk_log = logs[len(logs)-1]
-
-            conditional_cmd =[
-                # '--training_logs', ' '.join(log.training_logs),
-                '--training_logs', ' '.join(training_logs),
-                '--pre_path', params.pre_path,
-                '--configs', ' '.join(input.config),
-                # '&>',  log.chunk_log,
-                '&>',  chunk_log,
-            ]
-        else:
-            conditional_cmd = [
-                '--target_path', outpath,
-                '--config {input.config}',
-                '--num_threads {threads}',
-                '&> {log}',
-            ]
         cmd = cmd + conditional_cmd
         shell(' '.join(cmd))
 
 rule train_tagger_data:
     input:
-        script = join(repo, 'scripts/batch_train_tagger.py') if batched else join(repo, 'scripts/train_tagger.py'),
+        script = join(repo, 'scripts/train_tagger.py'),
         train = lambda wildcards: [
             f.replace('cutName', f'{wildcards.cut_name}')
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
@@ -1082,8 +990,7 @@ rule train_tagger_data:
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
 
-        config = [join(repo, 'configs/lr{learning_rate}_bs{batch_size}_' + f'{remaining_conf}.yaml') for remaining_conf in hyper_par_chunk] if batched
-                 else join(repo, 'configs/{config}.yaml'),
+        config = join(repo, 'configs/{config}.yaml'),
     output:
         # ROC=         get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/ROC_TRAIN_VAL.pdf'),
         model=       get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/model.pth'),
@@ -1093,23 +1000,21 @@ rule train_tagger_data:
         pre_path = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}')
     log:
         get_log('Data'),
-        # get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/training_log.log'),
-        # chunk_log = join(out, 'Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/training_chunk.log')
-        #     if batched else None,
+
     resources:
         max_retries=0,
-        mem_mb = 60_000 if batched else 40_000, # Specify memory requirement in megabytes 
+        mem_mb = 40_000, # Specify memory requirement in megabytes 
         #gpus = 1,
         #OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 8, # long queue
     threads:
-        len(hyper_par_chunk)+1     if batched else 8,
+        8,
     run:
         train_scratch = copy_to_scratch(input.train)
         val_scratch = copy_to_scratch(input.val)
 
-        if not batched:
-            outpath = os.path.dirname(output.model)
+
+        outpath = os.path.dirname(output.model)
 
         cmd = [
             'python', input.script,
@@ -1125,29 +1030,11 @@ rule train_tagger_data:
             '--balance_dataset',
             # '--domain B_ID',
             #'--clean',
+            '--target_path', outpath,
+            '--config {input.config}',
+            '--num_threads {threads}',
+            '&> {log}',
         ]
-
-        if batched:
-            logs = list(log)
-            chunk_log = logs[len(logs)-1]
-            training_logs = logs[:-1]
-
-            conditional_cmd =[
-                # '--training_logs', ' '.join(log.training_logs),
-                '--training_logs', ' '.join(training_logs),
-                '--pre_path', params.pre_path,
-                '--configs', ' '.join(input.config),
-                # '&>',  log.chunk_log,
-                '&>',  chunk_log,
-            ]
-
-        else:
-            conditional_cmd = [
-                '--target_path', outpath,
-                '--config {input.config}',
-                '--num_threads {threads}',
-                '&> {log}',
-            ]
 
         cmd = cmd + conditional_cmd
         shell(' '.join(cmd))
