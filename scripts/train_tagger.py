@@ -382,8 +382,8 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]#, 'B_DTF_PV_Jpsi_MASS']
     if data_type == 'Data' and weight_label != 'ones':
         columns_to_drop.append(weight_label)
-        if weight_label != 'signal_weights':
-            columns_to_drop.append('signal_weights')
+    if data_type == 'Data' and weight_label != 'signal_weights':
+        columns_to_drop.append('signal_weights')
 
     
     print(train_df.drop(columns = columns_to_drop).columns)

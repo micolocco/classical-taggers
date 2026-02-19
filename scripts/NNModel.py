@@ -101,13 +101,16 @@ class NeuralNetwork(nn.Module):
         return -torch.mul(x, target.float()) - torch.mul(y, (1 - target).float())
 
     def calc_loss(self, yPred, target, sample_weights = None):
-        if sample_weights is None:
-            sample_weights = torch.ones(target.shape)
+        # if sample_weights is None:
+        #     sample_weights = torch.ones(target.shape)
 
 
         loss = self.criterion(yPred.view(-1, 1), target.view(-1, 1)).view(-1)
 
-        loss = torch.matmul(loss,sample_weights.float()) / torch.sum(sample_weights)
+        if sample_weights is not None:
+            loss = torch.matmul(loss,sample_weights.float()) / torch.sum(sample_weights)
+
+
         return loss.mean()
 
     # Evaluate the model
