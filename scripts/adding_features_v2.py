@@ -233,6 +233,8 @@ def get_loading_vars(evtType, data_calib):
         loading_variables_withPrefix.remove('B_Tr_T_OWNPVIPCHI2')
 
         # loading_variables_withPrefix.append('B_Tr_T_BPVIP')
+        loading_variables_withPrefix += ['signal_weights', 'background_weights', 'pdf_ratio', 'entry', 'subentry', 'BID_signal_weights', 'BID_background_weights']
+        loading_variables_withPrefix = list(dict.fromkeys(loading_variables_withPrefix)) #removes duplicates
         
     else:
         loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]

@@ -248,12 +248,30 @@ combined_df_n_splits = 20
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/pdf_ratio/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/pdf_ratio/testing/MC/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/testing/MC/logit/taggingInfo_logit.json'
+        expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/pdf_ratio/testing/Data/logit/taggingInfo_logit.json',
+            tagger = ['OSKaon', 'OSElectron', 'OSMuon'], lr = [0.0001, 0.001], nl = [8, 16], nn = [32, 64, 128]),
+        expand('/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json',
+            tagger = ['OSKaon', 'OSElectron', 'OSMuon'], lr = [0.0001, 0.001], nl = [8, 16], nn = [32, 64, 128]),
 
+        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/pdf_ratio/training/model.pth',
         
+
+        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/pdf_ratio/training/model.pth',
+        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/ones/training/model.pth',
+        
+
+        # expand('/ceph/users/togasa/FlavourTagging/NTuples/MC/withUT_MC_2024/5_split/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/train/{id}.mc.root', 
+        #         tagger = {'OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton',}, id = ['00237569_00000001_1',  
+        #                                                                                   '00237614_00000002_1',
+        #                                                                                   '00237569_00000002_1',  
+        #                                                                                   '00237614_00000003_1',
+        #                                                                                   '00237569_00000003_1',  
+        #                                                                                   '00237614_00000004_1',
+        #                                                                                   '00237569_00000004_1',  
+        #                                                                                   '00237614_00000005_1',
+        #                                                                                   '00237614_00000001_1',]),
+        
+        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/training/model.pth',
 
         
         
@@ -390,27 +408,42 @@ rule add_features:
         ]
         shell(' '.join(cmd))
 
-'''
-rule train_DT:
+
+
+rule combine_small_files:
     input:
-        script = join(repo, 'scripts/origin_DT_cut.py'),
-        #data = glob.glob(f'/ceph/users/qfuehring/classical-taggers/Data/{config.sample_type}/2_added_features/*/*.root')
+        script = join(repo, 'scripts/combine_dataframes.py'),
+        data = lambda wildcards: [join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/' +  f'{id}.root') for id in data_ids],
     output:
-        pdf=join(data, '{sample_type}/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.pdf'),
-    log: join(data, '{sample_type}/DT_outputs/tree_schema_maxDepth_Balanced_SSKSSP_noOSP.log')
-    params:
-        target_path = lambda wildcards: join(data, f'{wildcards.sample_type}/DT_outputs/')
+        [join(out, 'Data/{sample_type}/1_weighted/{decay}/combined/samples') + f'_{i}.root' for i in range(combined_df_n_splits)]
+        
+    log: 
+        join(out, 'Data/{sample_type}/1_weighted/{decay}/combined/samples.log'),
     resources:
         max_retries=0,
-        mem_mb = 40000, # Specify memory requirement in megabytes 
+        mem_mb = 20_000, # Specify memory requirement in megabytes
+        MaxRunHours = 1, # short queue
     run:
+        path = os.path.dirname(output[0])
+
+        if kernel_available():
+            data = path_to_kernel(input.data)
+        else:
+            data = input.data
+
+        print((' '.join(data)))
         cmd = [
-            'python', input.script,
-            '--target_path {params.target_path}',
-            '&> {log}',
+            f'python {input.script} ',
+            f'--data_files ', ' '.join(data),  # Pass input root files
+            f'--target_path {path} ',  # Pass the target path
+            f'--treename "DecayTree;1" ',  # Pass the tree name
+            f'--splits {combined_df_n_splits} ',  # Pass the number of splits
+            f'--evtType {wildcards.decay} ',  # Pass the decay type
+            f'&> {log}',  # Redirect stdout and stderr to log file
         ]
+
         shell(' '.join(cmd))
-'''
+
 
 rule train_DT:
     input:
@@ -493,7 +526,7 @@ rule MC_Mass_Fit:
         join(out, 'Data/{sample_type}/1_weighted/{decay}/mc_fit/mc_res.log'),
     resources:
         max_retries=0,
-        mem_mb = 20_000, # Specify memory requirement in megabytes
+        mem_mb = 32_000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
     threads:
         8,
@@ -825,7 +858,7 @@ rule combine_tagger:
 
 rule combine_MC_Data: #Combines data and MC for domain adaptation
     input:
-        script = join(repo, 'scripts/combine_MC_Data.py'),
+        script = join(repo, 'scripts/combine_dataframes.py'),
         # data = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f in ntuples_tagged_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']],
         data = lambda wildcards: [join(out, f'Data/{wildcards.sample_type}/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.data_portion}/{id}.root') for id in data_ids],
         MC = lambda wildcards: [
@@ -976,7 +1009,6 @@ rule train_tagger_MC:
             '&> {log}',
         ]
 
-        cmd = cmd + conditional_cmd
         shell(' '.join(cmd))
 
 rule train_tagger_data:
