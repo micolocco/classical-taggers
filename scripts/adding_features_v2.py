@@ -199,9 +199,6 @@ if __name__ == '__main__':
 
     loading_variables_withPrefix = get_loading_vars(cfg.evtType, cfg.data_calib)
 
-    if cfg.data_calib:
-        loading_variables_withPrefix += ['signal_weights', 'background_weights', 'pdf_ratio', 'entry', 'subentry', 'BID_signal_weights', 'BID_background_weights']
-        loading_variables_withPrefix = list(dict.fromkeys(loading_variables_withPrefix)) #removes duplicates
 
     print(f'{loading_variables_withPrefix}')
     print('Started processing')
@@ -238,7 +235,8 @@ if __name__ == '__main__':
     df[f'{prefix}Tr_T_DeltaQ_Proton'] = DeltaQ(df,938.27208, prefix)
     df[f'{prefix}Tr_T_DeltaQ_Kaon'] = DeltaQ(df,493.677, prefix)
     df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
-    df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
+    # df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_Charge/{prefix}Tr_T_P', inplace = True)
+    df.eval(f'{prefix}Tr_T_eoverP = {prefix}Tr_T_ENERGY/{prefix}Tr_T_P', inplace = True)
     df.eval('logEVIP = log(EVIP)', inplace = True)
     df.eval(f'{prefix}Tr_T_{prxip}Sig = sqrt({prefix}Tr_T_{prxip}CHI2)' , inplace = True) # IPSig == IPErr
     df.eval('logP_proj = log(P_proj)', inplace = True)
