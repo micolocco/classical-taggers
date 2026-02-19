@@ -20,7 +20,7 @@ from sklearn.metrics import roc_curve
 from scripts import matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 
-#Bu2JpsiK classifier from sin2beta ananote
+#Bu2JpsiK classifier from sin2beta ananote (not all variables are available in the current ntuples, so some are left out)
 # B_Vtx_Chi2NDOF                     -> B_CHI2VXNDOF
 # B_MINIPCHI2                        -> B_MIN_OWNPV_IPCHI2
 # B_LOKI_ETA                         -> B_ETA
@@ -32,16 +32,52 @@ matplotlib_lhcb_style(plt)
 # K_MINIP                            -> hplus_MINIP
 # K_IP_OWNPV                         -> hplus_OWNPV_IP
 
-vars_by_decay = {'Bu2JpsiK': ['B_CHI2VXNDOF',
-                              'B_MIN_OWNPV_IPCHI2',
-                              'B_ETA',
-                              'B_DTF_PV_Jpsi_CHI2',
-                              'Jpsi_OWNPV_IP',
-                              'muplus_OWNPV_IP',
-                              'muminus_OWNPV_IP',
-                              'hplus_ETA',
-                              'hplus_MINIP',
-                              'hplus_OWNPV_IP',],
+#BdToJpsiKstar classifier from sin2beta analysis (not all variables are available in the current ntuples, so some are left out)
+# B0_Vtx_Chi2NDOF                     -> B_CHI2VXNDOF
+# B0_MINIPCHI2                        -> B_MIN_OWNPV_IPCHI2
+# B0_LOKI_ETA                         -> B_ETA
+# B0_FitJpsiConst_chi2_flat           -> B_DTF_PV_Jpsi_CHI2
+# B0_FitJpsiConst_J_psi_1S_IP_flat    -> Jpsi_OWNPV_IP
+# B0_FitJpsiConst_J_psi_1S_P0_IP_flat -> muplus_OWNPV_IP
+# B0_FitJpsiConst_J_psi_1S_P1_IP_flat -> muminus_OWNPV_IP
+# Kst_FD_OWNPV                        -> X_OWNPV_FD
+# Kst_LOKI_ETA                        -> X_ETA
+# Kst_PZ                              -> X_PZ
+# B0_FitJpsiConst_Kst_892_0_P0_IP_flat-> hplus_OWNPV_IP
+# B0_FitJpsiConst_Kst_892_0_P1_IP_flat-> hminus_OWNPV_IP
+# piminus_MINIP                       -> hminus_MINIP
+# Kplus_MINIP                         -> hplus_MINIP
+
+vars_by_decay = {
+    'Bu2JpsiK': 
+        [
+        'B_CHI2VXNDOF',
+        'B_MIN_OWNPV_IPCHI2',
+        'B_ETA',
+        'B_DTF_PV_Jpsi_CHI2',
+        'Jpsi_OWNPV_IP',
+        'muplus_OWNPV_IP',
+        'muminus_OWNPV_IP',
+        'hplus_ETA',
+        'hplus_MINIP',
+        'hplus_OWNPV_IP',],
+
+    'Bd2JpsiKst': 
+        [
+        'B_CHI2VXNDOF',
+        'B_MIN_OWNPV_IPCHI2',
+        'B_ETA',
+        'B_DTF_PV_Jpsi_CHI2',
+        'Jpsi_OWNPV_IP',
+        'muplus_OWNPV_IP',
+        'muminus_OWNPV_IP',
+        'X_OWNPV_FD',
+        'X_ETA',
+        'X_PZ',
+        'hplus_OWNPV_IP',
+        'hminus_OWNPV_IP',
+        'hminus_MINIP',
+        'hplus_MINIP',]
 }
 
 class KFoldBDT:
@@ -222,7 +258,7 @@ if __name__ == '__main__':
         'max_depth':6,
         'seed':seed,
         'booster':'gbtree',
-        'n_estimators':500,
+        'n_estimators':500, 
         'early_stopping_rounds':20,
         'n_jobs':cfg.num_threads,  # Use cfg.num_threads for parallelism
         'use_label_encoder':False,
@@ -290,7 +326,10 @@ if __name__ == '__main__':
     cut = round(cut, 3)
     print(f"BDT cut value for 5% reduction in label 1: {cut}")
 
+    print('Background rejection at cut: ', 1 - sum(y_pred[y == 0] > cut) / sum(y ==0))
+
     df = df[y_pred > cut]
+
 
     plot_by_label(df, cfg.massname, cfg.target_path, 'after_classifier')
 

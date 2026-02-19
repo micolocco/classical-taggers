@@ -107,6 +107,20 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
             lambd = zfit.Parameter("lambda", -0.01, -1, 0) 
             bkg_model = zfit.pdf.Exponential(obs=obs, lambda_=lambd)
 
+        if r"$B^{0}" in tex_decay: #For B0 decays: add a peaking background structure from Bs decays. same shape as signal just shifted and scaled
+            mean_bs = zfit.ComposedParameter("mean_bs", lambda mean: mean + 87.45, mean)
+
+            double_cb_bs = GeneralizedCB(obs=obs, mu=mean_bs, sigmal=sigmaL, sigmar=sigmaR, alphal=alphaL, nl=nL, alphar=alphaR, nr=nR)
+            gauss_bs1 = zfit.pdf.Gauss(obs=obs, mu=mean_bs, sigma=g_sigma1)
+            gauss_bs2 = zfit.pdf.Gauss(obs=obs, mu=mean_bs, sigma=g_sigma2)
+
+            model_bs = zfit.pdf.SumPDF([double_cb_bs, gauss_bs1, gauss_bs2], [sig_frac, g_frac1])
+
+            bs_bkg_frac = zfit.Parameter("yield_bs", 1e-5, 0, 1)
+            bkg_model = zfit.pdf.SumPDF([model_bs, bkg_model], [bs_bkg_frac])
+
+
+
         comb_ext = bkg_model.create_extended(yield_bkg)
 
         model = zfit.pdf.SumPDF([model_sig_ext, comb_ext])
@@ -216,9 +230,9 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
         ax2.set_ylabel("Pull")
 
         if "Bu2JpsiK" in cfg.decayType:
-            xlabel = r"$ m(J/ψK^{\pm})~[\mathrm{MeV}/c^2]$"
+            xlabel = r"$ m(J/\psi K^{\pm})~[\mathrm{MeV}/c^2]$"
         elif "Bd2JpsiKst" in cfg.decayType:
-            xlabel = r"$ m(J/ψK^{*})~[\mathrm{MeV}/c^2]$"
+            xlabel = r"$ m(J/\psi K^{*})~[\mathrm{MeV}/c^2]$"
         else:
             raise ValueError(f"Unknown decay type: {cfg.decayType}")
 

@@ -585,18 +585,18 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
         plt.title(f'{tagger} mistag after Logistic Regression', fontsize=24)
     else:
         if show_trueB:
-            plt.hist(1-df[(df[trueLabel]==0)&(df[BID]==-521)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
-            plt.hist(1-df[(df[trueLabel]==0)&(df[BID]==521)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
-            plt.hist(1-df[(df[trueLabel]==1)&(df[BID]==-521)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
-            plt.hist(1-df[(df[trueLabel]==1)&(df[BID]==521)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
+            plt.hist(1-df[(df[trueLabel]==0)&(df[BID]<0)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
+            plt.hist(1-df[(df[trueLabel]==0)&(df[BID]>0)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
+            plt.hist(1-df[(df[trueLabel]==1)&(df[BID]<0)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
+            plt.hist(1-df[(df[trueLabel]==1)&(df[BID]>0)][predLabel], bins = nbins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
    
         else:
             plt.hist(1-df[df[trueLabel] == 0][predLabel],bins = nbins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = correct_legend)
             plt.hist(1-df[df[trueLabel] == 1][predLabel],bins = nbins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = wrong_legend)
-    data1=1-df[(df[trueLabel]==0)&(df[BID]==-521)][predLabel]  
-    data2=1-df[(df[trueLabel]==0)&(df[BID]==521)][predLabel]   
-    data3=1-df[(df[trueLabel]==1)&(df[BID]==-521)][predLabel]  
-    data4=1-df[(df[trueLabel]==1)&(df[BID]==521)][predLabel]
+    data1=1-df[(df[trueLabel]==0)&(df[BID]<0)][predLabel]  
+    data2=1-df[(df[trueLabel]==0)&(df[BID]>0)][predLabel]   
+    data3=1-df[(df[trueLabel]==1)&(df[BID]<0)][predLabel]  
+    data4=1-df[(df[trueLabel]==1)&(df[BID]>0)][predLabel]
     plt.title(f"{tagger}", fontsize=24)
     plt.xlabel(r"1 - NN output", fontsize=24)
     #plt.annotate(f'{len(df.yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
@@ -698,14 +698,14 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
         if weights is not None:
             #distribute the bins such that each bin has the same yield, aka the same sum of weights
-            # bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
-            # print(bins)
-            # if any(bins[:-1] == bins[1:]):
-            #     print("Warning: Bins are not unique, using linspace instead.")
-            #     bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
+            bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
+            print(bins)
+            if any(bins[:-1] == bins[1:]):
+                print("Warning: Bins are not unique, using linspace instead.")
+                bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
 
             class_indices = df_tag[BID].values
-            class_label_dict = {521: '$B^+$', -521: '$B^-$'}
+            class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\bar{B}^0$', }
 
 
             taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
