@@ -241,72 +241,13 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     test_df.loc[test_df.selected == 0, f"{tagger}_Eta"] = 0.5  # classic
 
     pyTrain.plot_tagDec(tagger =tagger, df_TagParticles=test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), plot_name=f'{target_path}/Not_Normalized_TagDec.pdf')
- 
-    # Eta Normalization [0, 0.5]
-    # test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_TagDec"] *= -1
-    # test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_Eta"   ] *= -1
-    # test_df.loc[test_df[f"{tagger}_Eta"] < 0  , f"{tagger}_Eta"   ] +=  1
-
-    # Eta Normalization [0, 0.5]
-    # tot = len(test_df)
-    # test_df = test_df[test_df[f"{tagger}_Eta"] < 0.5]
-    # test_df = test_df[test_df[f"{tagger}_Eta"] > 0  ]
-    # print(f'Cut eff: {len(test_df)/tot:.2%}', flush = True)
-
     if data_type == 'Data':
         test_df['signal_weights'] = sweights
 
 
     # Check if measured mistag is stricly rising depending on predicted mistag -> only then a good tagger
-
-    study_eta_omega_dist(test_df, BID               , f'{BID}_allTracks_'  , target_path, tagger, data_type)
-    study_eta_omega_dist(test_df, f"{tagger}_TagDec", f'Tag_dec_allTracks_', target_path, tagger, data_type)
     study_eta_omega_dist(test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), BID               , f'{BID}_bestTracks_'  , target_path, tagger, data_type)
     study_eta_omega_dist(test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), f"{tagger}_TagDec", f'Tag_dec_bestTracks_', target_path, tagger, data_type)
-    def sample_with_equal_trackCharge_chances(group):
-        # pick a tag_dec uniformly among unique ones
-        chosen_tag = np.random.choice(group[f"{tagger}_Eta"].unique())
-        # now pick one row uniformly from that tag_dec subset
-        return group[group[f"{tagger}_Eta"] == chosen_tag].sample(n=1)
-
-    study_eta_omega_dist(test_df.groupby("event_entry", group_keys=False).apply(sample_with_equal_trackCharge_chances), BID               , f'{BID}_randTracks_'  , target_path, tagger, data_type)
-    study_eta_omega_dist(test_df.groupby("event_entry", group_keys=False).apply(sample_with_equal_trackCharge_chances), f"{tagger}_TagDec", f'Tag_dec_randTracks_', target_path, tagger, data_type)
-
-    temp_df = test_df.copy()
-    temp_df.loc[temp_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_TagDec"] *= -1
-    temp_df.loc[temp_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_Eta"   ] *= -1
-    temp_df.loc[temp_df[f"{tagger}_Eta"] < 0  , f"{tagger}_Eta"   ] +=  1
-    study_eta_omega_dist(temp_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), BID               , f'{BID}_FlippedBestTracks_'  , target_path, tagger, data_type)
-    study_eta_omega_dist(temp_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), f"{tagger}_TagDec", f'Tag_dec_FlippedBestTracks_', target_path, tagger, data_type)
-    temp_df = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
-
-
-    # orig_df = temp_df.loc[(temp_df['B_Tr_T_Origin_Flag'] > 1) & (temp_df['B_Tr_T_Origin_Flag'] < 5)]
-    # study_eta_omega_dist(orig_df, BID               , f'{BID}_OriginBestTracks_'  , target_path, tagger, data_type)
-    # study_eta_omega_dist(orig_df, f"{tagger}_TagDec", f'Tag_dec_OriginBestTracks_', target_path, tagger, data_type)
-    # orig_df.loc[orig_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_TagDec"] *= -1
-    # orig_df.loc[orig_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_Eta"   ] *= -1
-    # orig_df.loc[orig_df[f"{tagger}_Eta"] < 0  , f"{tagger}_Eta"   ] +=  1
-    # study_eta_omega_dist(orig_df, BID               , f'{BID}_OriginFlippedBestTracks_'  , target_path, tagger, data_type)
-    # study_eta_omega_dist(orig_df, f"{tagger}_TagDec", f'Tag_dec_OriginFlippedBestTracks_', target_path, tagger, data_type)
-    # del orig_df
-    
-    # mask = temp_df[['B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']].abs().apply(lambda x: (x == 5) | x.between(500, 600) | x.between(5000, 6000)).any(axis=1)
-    # study_eta_omega_dist(temp_df.loc[mask], BID               , f'{BID}_AncestorBestTracks_'  , target_path, tagger, data_type)
-    # study_eta_omega_dist(temp_df.loc[mask], f"{tagger}_TagDec", f'Tag_dec_AncestorBestTracks_', target_path, tagger, data_type)
-
-    # mask = temp_df[['B_Tr_T_MC_MOTHER_ID']].abs().apply(lambda x: (x == 5) | x.between(500, 600) | x.between(5000, 6000)).any(axis=1)
-    # study_eta_omega_dist(temp_df.loc[mask], BID               , f'{BID}_MotherBestTracks_'  , target_path, tagger, data_type)
-    # study_eta_omega_dist(temp_df.loc[mask], f"{tagger}_TagDec", f'Tag_dec_MotherBestTracks_', target_path, tagger, data_type)
-    
-
-    
-
-    del temp_df
-
-    # test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_TagDec"] *= -1
-    # test_df.loc[test_df[f"{tagger}_Eta"] > 0.5, f"{tagger}_Eta"   ] *= -1
-    # test_df.loc[test_df[f"{tagger}_Eta"] < 0  , f"{tagger}_Eta"   ] +=  1
 
 
     df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
