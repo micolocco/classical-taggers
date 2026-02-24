@@ -358,9 +358,8 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
     if data_type == 'Data':
         weight_label = weight_type
 
-    train_df.sample(frac=1, random_state=seed).reset_index(drop=True)
-    val_df.sample(frac=1, random_state=seed).reset_index(drop=True)
-
+    train_df = train_df.sample(frac=1, random_state=seed).reset_index(drop=True)
+    val_df = val_df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
     
     weights_train = None

@@ -70,7 +70,7 @@ if __name__ == '__main__':
 
     #Shuffle samples
     print(df.head(10))
-    df.sample(frac=1, random_state=cfg.seed).reset_index(drop=True)
+    df = df.sample(frac=1, random_state=cfg.seed).reset_index(drop=True)
     print(df.head(10))
 
     # Assignation of the tagging decision (d)
