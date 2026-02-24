@@ -688,14 +688,7 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
         taggers.calibrate()
 
 
-        # Plotting of calibration curves
-        scale = (lambda x: x**4, lambda x: x**1/4)
         scale = "linear"
-        scale = "linear"
-
-
-
-
         if weights is not None:
             #distribute the bins such that each bin has the same yield, aka the same sum of weights
             bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
