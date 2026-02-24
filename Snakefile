@@ -248,33 +248,14 @@ combined_df_n_splits = 20
 
 rule all:
     input:
-        expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/pdf_ratio/testing/Data/logit/taggingInfo_logit.json',
+        expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/ones/testing/Data/logit/taggingInfo_logit.json',
             tagger = ['OSKaon', 'OSElectron', 'OSMuon'], lr = [0.0001, 0.001], nl = [8, 16], nn = [32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json',
-            tagger = ['OSKaon', 'OSElectron', 'OSMuon'], lr = [0.0001, 0.001], nl = [8, 16], nn = [32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json',
+        #     tagger = ['OSKaon', 'OSElectron', 'OSMuon'], lr = [0.0001, 0.001], nl = [8, 16], nn = [32, 64, 128]),
+
+        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/config_test/training/model.pth',
 
         # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/pdf_ratio/training/model.pth',
-        
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/pdf_ratio/training/model.pth',
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs2048_nL2_nN64/ones/training/model.pth',
-        
-
-        # expand('/ceph/users/togasa/FlavourTagging/NTuples/MC/withUT_MC_2024/5_split/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/train/{id}.mc.root', 
-        #         tagger = {'OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton',}, id = ['00237569_00000001_1',  
-        #                                                                                   '00237614_00000002_1',
-        #                                                                                   '00237569_00000002_1',  
-        #                                                                                   '00237614_00000003_1',
-        #                                                                                   '00237569_00000003_1',  
-        #                                                                                   '00237614_00000004_1',
-        #                                                                                   '00237569_00000004_1',  
-        #                                                                                   '00237614_00000005_1',
-        #                                                                                   '00237614_00000001_1',]),
-        
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.01_bs4096_nL2_nN64/training/model.pth',
-
-        
-        
                 
         
 
@@ -320,10 +301,6 @@ def copy_to_scratch(paths):
     return scratch_paths
 
 
-
-
-decays_to_tag = ['Bu2JpsiK', 'Bd2JpsiKst']
-all_configs = [f[:-5] for f in os.listdir(join(repo, "configs/")) if f.startswith("lr")]
 
 
 rule train_signal_classifier:
@@ -610,7 +587,7 @@ rule data_Mass_Fit:
         mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/mc_fit/mc_res_before_cut.json'),
 
 
-        data_raw = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids],#[:1],
+        data_raw = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids],
 
         BDT = join(out, 'Data/{sample_type}/1_weighted/{decay}/BDT/bdt_model.pkl')
     output:
@@ -763,7 +740,7 @@ rule add_tagDec:
         transformer=lambda wildcards: join(get_model_path(wildcards),'powerTransformer.pkl'), 
         scaler=lambda wildcards: join(get_model_path(wildcards),'st_scaler.pkl'), 
 
-        config = lambda wildcards: join(repo, f'configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted).get("config")}.yaml'),
+        config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted).get("config")}.yaml'),
     output:
         root = join(out, '{data_type}/{sample_type}/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}/{id}.root'),
     log:
@@ -907,7 +884,7 @@ rule split_sample:
         script = join(repo, 'scripts/split_train_val_test.py'),
         to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/{wildcards.sample_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
 
-        hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
+        hyper_int = join(repo, 'model_configs/hyperpar_intervals.yaml'), # For the train-val proportions
     output:
         train      = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
         validation = join(out, '{data_type}/{sample_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
@@ -959,8 +936,7 @@ rule train_tagger_MC:
             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
             # if not f.endswith('4_1.mc.root')
         ],
-        
-        config = join(repo, 'configs/{config}.yaml'),
+        config = join(repo, 'model_configs/{config}.yaml'),
     output:
         # ROC=         get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/ROC_TRAIN_VAL.pdf'),
         model=       get_chunk('MC/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/training/model.pth'),
@@ -1021,7 +997,7 @@ rule train_tagger_data:
             for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
 
-        config = join(repo, 'configs/{config}.yaml'),
+        config = join(repo, 'model_configs/{config}.yaml'),
     output:
         # ROC=         get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/ROC_TRAIN_VAL.pdf'),
         model=       get_chunk('Data/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/', '/{weight_type}/training/model.pth'),
@@ -1067,7 +1043,6 @@ rule train_tagger_data:
             '&> {log}',
         ]
 
-        cmd = cmd + conditional_cmd
         shell(' '.join(cmd))
 
 rule train_tagger_domain_adapted:
@@ -1080,7 +1055,7 @@ rule train_tagger_domain_adapted:
             [join(out, f"domain_adapted/{wildcards.sample_type}/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/validation/samples_{i}.root")
              for i in range(combined_df_n_splits)],
 
-        config = join(repo, 'configs/{config}.yaml'),
+        config = join(repo, 'model_configs/{config}.yaml'),
     output:
         model=       join(out, 'domain_adapted/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
         scaler=      join(out, 'domain_adapted/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
@@ -1132,7 +1107,7 @@ rule calibrate_on_MC:
         model = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
 
         script = join(repo, 'scripts/test_and_calibrate.py'),
-        config = join(repo, 'configs/{config}.yaml'),
+        config = join(repo, 'model_configs/{config}.yaml'),
     output:
         logit = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/logit/taggingInfo_logit.json'),
         mistag = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/mistag/taggingInfo_mistag.json'),
@@ -1184,7 +1159,7 @@ rule calibrate_on_data:
         model = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
 
         script = join(repo, 'scripts/test_and_calibrate.py'),
-        config = join(repo, 'configs/{config}.yaml'),
+        config = join(repo, 'model_configs/{config}.yaml'),
     output:
         logit = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/logit/taggingInfo_logit.json'),
         mistag = join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/mistag/taggingInfo_mistag.json'),
@@ -1192,6 +1167,7 @@ rule calibrate_on_data:
         join(out, '{data_type_or_adapted}/savedModels/{sample_type}/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/testing_log.log')
     wildcard_constraints:
         weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data needs to represent the weight, for MC it is empty
+    priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
         mem_mb = 35_000, # Specify memory requirement in megabytes 

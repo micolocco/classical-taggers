@@ -1,0 +1,12 @@
+# Definition of the hyperparameter intervals for the grid search
+-learning_rate: [0.0001, 0.001, 0.01]
+-train_batch_size: [2048, 4096, 8192]
+-numlayers: [2, 4, 6, 8, 16]
+-numneurons: [8, 16, 32, 64, 128, 256]
+-alpha : [0.0, 0.1, 0.5, 1.0]
+-activation_function: ELU
+-dropout: 0.1
+-min_delta: 0
+-n_epochs: 500
+-patience: 50 #TODO change to 100
+-train_val_split: 0.6

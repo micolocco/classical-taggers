@@ -8,7 +8,7 @@ def generate_yaml_file(config, use_alpha=False):
     # if not os.path.exists('../configs'):
     #     os.makedirs('../configs')
 
-    file_name = f'configs/lr{config["learning_rate"]}_bs{config["train_batch_size"]}_nL{config["numlayers"]}_nN{config["numneurons"]}.yaml'
+    file_name = f'model_configs/lr{config["learning_rate"]}_bs{config["train_batch_size"]}_nL{config["numlayers"]}_nN{config["numneurons"]}.yaml'
 
     if use_alpha:
         file_name = file_name.replace('.yaml', f'_alpha{config["alpha"]}.yaml')
@@ -23,7 +23,7 @@ def generate_architecture_yaml_file(config):
     #     os.makedirs('../configs')
 
     file_name = f'NNarchitectures/nL{config["numlayers"]}_nN{config["numneurons"]}_dp{config["dropout"]}.yaml'
-    if not os.path.isfile('configs'):
+    if not os.path.isfile(file_name):
         nnShape = np.ones(config['numlayers'], dtype=int)*config['numneurons']
         nnShape = np.append(nnShape, 1)
 
