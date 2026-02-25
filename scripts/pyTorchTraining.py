@@ -77,7 +77,7 @@ def get_features(tagger, yaml_file, repo_path):
 
 def splitByEvent (df, seed, train_val_split):
     '''Function to random split by events (not by index) the dataset into training and test set
-    Use random.Random(2) to reproduce same shuffling''' 
+    Set seed for reproducibility''' 
     import random
     events_list = np.unique(df.event_entry)
     random.Random(seed).shuffle(events_list)
