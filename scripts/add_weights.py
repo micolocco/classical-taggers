@@ -1,21 +1,13 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import xgboost as xgb
-import zfit
 import uproot
 import pandas as pd
 from os.path import join
 import mplhep as hep
 hep.style.use("LHCb2")
 import argparse
-from hepstats.splot import compute_sweights
 import os
-import json
 import awkward as ak
 
-# from zfit.models.physics import DoubleCB
-# from zfit.models.functor import SumPDF
-# from hepstats.splot import compute_sweights
 
 
 
@@ -42,21 +34,22 @@ if __name__ == '__main__':
     parser.add_argument('--range', help='Observable range', nargs="+")
     parser.add_argument('--out_path', help='Where fit results and plots will be stored', type=str)
     parser.add_argument('--weight_file', help='Root file storing the weights', type=str)
+    parser.add_argument('--loading_features', help='Path to file containing all features to load', type=str)
 
 
 
     cfg = parser.parse_args()
-
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
 
-    loading_variables_withPrefix = get_loading_vars(cfg.decayType, True)
+
 
     #Load Dataset
+    loading_variables = get_loading_vars(cfg.decayType, True, cfg.loading_features)
     with uproot.open(cfg.data_file) as _f:
-        dfak = _f[cfg.treename].arrays(loading_variables_withPrefix, library="ak")
-    
+        dfak = _f[cfg.treename].arrays(loading_variables, library="ak")
     df_data = ak.to_dataframe(dfak)
     del dfak
+    
     df_data.dropna(inplace=True)
     filenumber = os.path.basename(cfg.data_file)[:-5]
     print(filenumber[10:-9])

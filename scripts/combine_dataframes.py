@@ -63,6 +63,8 @@ if __name__ == '__main__':
     parser.add_argument('--treename', help='Tree name of the weighted ntuples', type=str, default='DecayTree;1')
     parser.add_argument('--splits', help='Number of splits for the combined DataFrame', type=int, default=20)
     parser.add_argument('--evtType', help='Decay type of the samples, used for naming the output files', type=str)
+    parser.add_argument('--loading_features', help='Path to file containing all features to load', type=str)
+
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -72,7 +74,7 @@ if __name__ == '__main__':
     else:
         #If no MC files provided, limit the columns read from the data files to reduce memory usage. 
         # No MC files means no selection of tracks or columns was done beforehand
-        loading_vars = get_loading_vars(cfg.evtType, True)
+        loading_vars = get_loading_vars(cfg.evtType, True, cfg.loading_features)
         df_data = read_files(cfg.data_files, cfg.treename, vars=loading_vars)
 
     df_data.drop(columns=['B_Tr_T_IsInTree'], inplace=True)

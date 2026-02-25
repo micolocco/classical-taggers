@@ -14,7 +14,12 @@ data_vars_translation = {
 
 def DeltaQ(df,Mass, prefix):
         E =np.sqrt( Mass**2 + df[f'{prefix}Tr_T_PX']**2 + df[f'{prefix}Tr_T_PY']**2 + df[f'{prefix}Tr_T_PZ']**2)
-        DeltaQ = np.sqrt( (E + df[f'{prefix}ENERGY'])**2  - ((df[f'{prefix}Tr_T_PX'] + df[f'{prefix}PX'])**2 + (df[f'{prefix}Tr_T_PY'] + df[f'{prefix}PY'])**2 + (df[f'{prefix}Tr_T_PZ'] + df[f'{prefix}PZ'])**2 )   ) -df[f'{prefix}M']  - Mass
+        DeltaQ = np.sqrt( 
+            (E + df[f'{prefix}ENERGY'])**2  - (
+                (df[f'{prefix}Tr_T_PX'] + df[f'{prefix}PX'])**2 + 
+                (df[f'{prefix}Tr_T_PY'] + df[f'{prefix}PY'])**2 + 
+                (df[f'{prefix}Tr_T_PZ'] + df[f'{prefix}PZ'])**2 
+                )) -df[f'{prefix}M']  - Mass
         return(DeltaQ)
 
 # Phi distance definition from https://gitlab.cern.ch/lhcb/Phys/-/blob/run2-patches/Phys/FlavourTagging/src/Utils/TaggingHelpers.cpp?ref_type=heads#L43
@@ -32,102 +37,13 @@ def min_dPhi(df, prefix):
     df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1)
     return df
 
-loading_variables = [
-        'B_BPVX',
-        'B_BPVY',
-        'B_BPVZ',
-        'B_END_VX',
-        'B_END_VY',
-        'B_END_VZ',
-        'B_ENERGY',
-        'B_ETA',
-        'B_M',
-        'B_P',
-        'B_PHI',
-        'B_PT',
-        'B_PX',
-        'B_PY',
-        'B_PZ',
-        'B_TRUEID',
-        'B_BKGCAT',
-        'B_nPVs',
-        'B_nTracks',
-        'EVENTNUMBER',
-        'RUNNUMBER',
-        'B_Tr_T_TRACKISLONG',
-        'B_Tr_T_OWNPVIP',
-        'B_Tr_T_OWNPVIPCHI2',
-        'B_Tr_T_BPVIP',
-        'B_Tr_T_BPVIPCHI2',
-        'B_Tr_T_Charge',
-        'B_Tr_T_ISMUON',
-        'B_Tr_T_ENERGY',
-        'B_Tr_T_Eta',
-        'B_Tr_T_MINIP',
-        'B_Tr_T_MINIPChi2',
-        'B_Tr_T_P',
-        'B_Tr_T_PT',
-        'B_Tr_T_PIDK',
-        'B_Tr_T_PIDe',
-        'B_Tr_T_PIDmu',
-        'B_Tr_T_PIDP',
-        'B_Tr_T_PROBNN_GHOST',
-        'B_Tr_T_PROBNN_E',
-        'B_Tr_T_PROBNN_K',
-        'B_Tr_T_PROBNN_P',
-        'B_Tr_T_PROBNN_MU',
-        'B_Tr_T_PROBNN_PI',
-        'B_Tr_T_zfirst',
-        'B_Tr_T_BPVX',
-        'B_Tr_T_BPVY',
-        'B_Tr_T_BPVZ',
-        'B_Tr_T_Phi',
-        'B_Tr_T_M',
-        'B_Tr_T_CHI2DOF',
-        'B_Tr_T_GHOSTPROB',
-        'B_Tr_T_PX',
-        'B_Tr_T_PY',
-        'B_Tr_T_PZ',
-        'B_Tr_T_X',
-        'B_Tr_T_Y',
-        'B_Tr_T_Z',
-        'B_Tr_T_OBJECT_KEY',
-        'B_Tr_T_Origin_Flag',
-        'B_Tr_T_TRUEID',
-        'B_Tr_T_TRUEPRIMARYVERTEX_X',
-        'B_Tr_T_TRUEPRIMARYVERTEX_Y',
-        'B_Tr_T_TRUEPRIMARYVERTEX_Z',
-        'B_Tr_T_TRUEORIGINVERTEX_X',
-        'B_Tr_T_TRUEORIGINVERTEX_Y',
-        'B_Tr_T_TRUEORIGINVERTEX_Z',
-        'B_Tr_T_MC_MOTHER_ID',
-        'B_Tr_T_MC_MOTHER_KEY',
-        'B_Tr_T_MC_GD_MOTHER_ID',
-        'B_Tr_T_MC_GD_MOTHER_KEY',
-        'B_Tr_T_MC_GD_GD_MOTHER_ID',
-        'B_Tr_T_MC_GD_GD_MOTHER_KEY',
-        'B_Run2_SSPion_Dec',
-        'B_Run2_SSPion_Omega',
-        'B_Run2_SSPion_MVA',
-        'B_Run2_SSKaon_Dec',
-        'B_Run2_SSKaon_Omega',
-        'B_Run2_SSKaon_MVA',
-        'B_Run2_SSProton_Dec',
-        'B_Run2_SSProton_Omega',
-        'B_Run2_SSProton_MVA',
-        'B_Run2_OSKaon_Dec',
-        'B_Run2_OSKaon_Omega',
-        'B_Run2_OSKaon_MVA',
-        'B_Run2_OSElectron_Dec',
-        'B_Run2_OSElectron_Omega',
-        'B_Run2_OSElectron_MVA',
-        'B_Run2_OSMuon_Dec',
-        'B_Run2_OSMuon_Omega',
-        'B_Run2_OSMuon_MVA',
-        ]
 
-def get_loading_vars(evtType, data_calib):
+
+def get_loading_vars(evtType, data_calib, loading_var_path = "configs/loading_variables.txt"):
     prefix = evtType[:2] + "_" if not data_calib else "B_"
+
+    with open(loading_var_path, 'r') as f:
+        loading_variables = f.read().splitlines()
 
     loading_variables_withPrefix = []
     prx = "OWNPV_" if data_calib else "BPV"
@@ -151,8 +67,6 @@ def get_loading_vars(evtType, data_calib):
 
         # loading_variables_withPrefix.append('B_Tr_T_BPVIP')
         loading_variables_withPrefix += ['signal_weights', 'background_weights', 'pdf_ratio', 'entry', 'subentry', 'BID_signal_weights', 'BID_background_weights']
-        loading_variables_withPrefix = list(dict.fromkeys(loading_variables_withPrefix)) #removes duplicates
-        
     else:
         loading_variables_withPrefix = [var.replace("B_", prefix) for var in loading_variables]
 
@@ -165,6 +79,7 @@ def get_loading_vars(evtType, data_calib):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add features used to select tracks and to train', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--raw', help='Raw file', type=str)
+    parser.add_argument('--loading_features', help='Path to file containing all features to load', type=str)
     parser.add_argument('--output', help='Name of the output file', type=str)
     parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
@@ -197,7 +112,7 @@ if __name__ == '__main__':
     prxip = "OWNPVIP" if cfg.data_calib else "BPVIP" 
     endx = "ENDV_" if cfg.data_calib else "END_V"
 
-    loading_variables_withPrefix = get_loading_vars(cfg.evtType, cfg.data_calib)
+    loading_variables_withPrefix = get_loading_vars(cfg.evtType, cfg.data_calib, cfg.loading_features)
 
 
     print(f'{loading_variables_withPrefix}')
@@ -250,10 +165,11 @@ if __name__ == '__main__':
         df = df[df['B_Tr_T_IsInTree'] != 1]
     print(f'Total shape should be {df.shape[0]}')
 
+    print(list(df.columns))
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(cfg.output) as f:
         f['Tuple/DecayTree'] = df
 
     print(f'Modified NTuple processed and saved to {cfg.output}')
-    print(f'Creation time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f'Creation time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush=True)
 

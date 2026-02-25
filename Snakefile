@@ -356,8 +356,7 @@ def get_raw_paths(decay, id, data_type):
 rule add_features:
     input:
         script = join(repo, 'scripts/adding_features_v2.py'),
-        #script = join(repo, 'scripts/adding_features.py'), # Needed for Bs2JpsiPhi Bd2DmPi
-        # raw = lambda wildcards: get_raw_paths(wildcards.decay, wildcards.id, wildcards.data_type)
+        loading_vars = join(repo, 'configs/loading_variables.txt'),
         weighted = lambda wildcards: join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/{id}.root') 
                                     #  if wildcards.data_type == 'Data' else get_raw_paths(wildcards.decay, wildcards.id, 'MC'),
                                      if wildcards.data_type == 'Data' else  join(MC, '{decay}/v1_taggers/{id}.root')
@@ -380,6 +379,7 @@ rule add_features:
             '--output {output}',
             '--evtType {wildcards.decay}',
             '--treename', tree,
+            '--loading_features {input.loading_vars}',
             f'{dataCalib}',
             '&> {log}',
         ]
@@ -390,6 +390,7 @@ rule add_features:
 rule combine_small_files:
     input:
         script = join(repo, 'scripts/combine_dataframes.py'),
+        loading_vars = join(repo, 'configs/loading_variables.txt'),
         data = lambda wildcards: [join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/' +  f'{id}.root') for id in data_ids],
     output:
         [join(out, 'Data/{sample_type}/1_weighted/{decay}/combined/samples') + f'_{i}.root' for i in range(combined_df_n_splits)]
@@ -398,7 +399,7 @@ rule combine_small_files:
         join(out, 'Data/{sample_type}/1_weighted/{decay}/combined/samples.log'),
     resources:
         max_retries=0,
-        mem_mb = 20_000, # Specify memory requirement in megabytes
+        mem_mb = 60_000,
         MaxRunHours = 1, # short queue
     run:
         path = os.path.dirname(output[0])
@@ -411,12 +412,13 @@ rule combine_small_files:
         print((' '.join(data)))
         cmd = [
             f'python {input.script} ',
-            f'--data_files ', ' '.join(data),  # Pass input root files
-            f'--target_path {path} ',  # Pass the target path
-            f'--treename "DecayTree;1" ',  # Pass the tree name
-            f'--splits {combined_df_n_splits} ',  # Pass the number of splits
-            f'--evtType {wildcards.decay} ',  # Pass the decay type
-            f'&> {log}',  # Redirect stdout and stderr to log file
+            f'--data_files ', ' '.join(data),  
+            f'--target_path {path} ',  
+            f'--treename "DecayTree;1" ', 
+            f'--splits {combined_df_n_splits} ',  
+            f'--evtType {wildcards.decay} ', 
+            '--loading_features {input.loading_vars}',
+            f'&> {log}', 
         ]
 
         shell(' '.join(cmd))
@@ -641,16 +643,12 @@ def get_memory_usage(ID):
 rule add_weights:
     input:
         script = join(repo, 'scripts/add_weights.py'),
-        # selected = join(out, 'Data/{sample_type}/3_selected/{decay}/{cut_name}/{features}/{id}.data24.root'),
+        loading_vars = join(repo, 'configs/loading_variables.txt'),
         # selected = join(out, 'Data/{sample_type}/3_selected/{decay}/{cut_name}/{features}/{id}.data24.root'),
         data_raw = lambda wildcards: get_raw_paths(wildcards.decay, f'{wildcards.id}.data24', 'Data'),
-
-        # mc_res = join(out, 'Data/{sample_type}/1_weighted/{decay}/{cut_name}/{features}/mc_fit/mc_res.json'),
-        # model = join(out,  'Data/{sample_type}/1_weighted/{decay}/{cut_name}/{features}/data_fit/data_res.json'),
         weights = join(out, 'Data/{sample_type}/1_weighted/{decay}/data_fit/weights.root'),
 
     output:
-        # join(out, 'Data/{sample_type}/1_weighted/{decay}/plots/validate_sweights_{id}.png'),
         weighted = join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/{id}.data24.root'),
     log:
         join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/{id}.data24.log'),
@@ -675,6 +673,7 @@ rule add_weights:
             '--obs_name B_DTF_PV_Jpsi_MASS',
             '--range {lowerMass} {upperMass}',
             '--weight_file {input.weights}',
+            '--loading_features {input.loading_vars}',
             '&> {log}'
         ]
 
@@ -834,6 +833,7 @@ rule combine_tagger:
 rule combine_MC_Data: #Combines data and MC for domain adaptation
     input:
         script = join(repo, 'scripts/combine_dataframes.py'),
+        loading_vars = join(repo, 'configs/loading_variables.txt'),
         # data = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f in ntuples_tagged_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']],
         data = lambda wildcards: [join(out, f'Data/{wildcards.sample_type}/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.data_portion}/{id}.root') for id in data_ids],
         MC = lambda wildcards: [
@@ -867,10 +867,7 @@ rule combine_MC_Data: #Combines data and MC for domain adaptation
             '--mc_files', ' '.join(MC),
             '--target_path', out_path,
             '--splits ', str(combined_df_n_splits),
-            # '--decayType {wildcards.decay}',
-            # '--tagger {wildcards.tagger}',
-            # '--cut_name {wildcards.cut_name}',
-            # '--features {wildcards.features}',
+            '--loading_features {input.loading_vars}',
             '&> {log}'
         ]
         shell(' '.join(cmd))
