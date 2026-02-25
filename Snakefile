@@ -355,7 +355,7 @@ def get_raw_paths(decay, id, data_type):
 
 rule add_features:
     input:
-        script = join(repo, 'scripts/adding_features_v2.py'),
+        script = join(repo, 'scripts/adding_features.py'),
         loading_vars = join(repo, 'configs/loading_variables.txt'),
         weighted = lambda wildcards: join(out, 'Data/{sample_type}/1_weighted/{decay}/weighted_files/{id}.root') 
                                     #  if wildcards.data_type == 'Data' else get_raw_paths(wildcards.decay, wildcards.id, 'MC'),

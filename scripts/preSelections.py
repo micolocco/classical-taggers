@@ -1,7 +1,7 @@
 import numpy as np
 import uproot
 import re
-from scripts.adding_features_v2 import loading_variables
+from scripts.adding_features import loading_variables
 import scripts.pyTorchTraining as pyTrain
 import argparse
 import os

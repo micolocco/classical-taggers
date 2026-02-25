@@ -20,7 +20,7 @@ import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 matplotlib_lhcb_style(plt)
 from scripts.preSelections import run2_taggers_variables
-from scripts.adding_features_v2 import data_vars_translation
+from scripts.adding_features import data_vars_translation
 from scripts.train_tagger import get_architecture
 
 def plot_tagDec(tagger, df_TagParticles, plotPath):

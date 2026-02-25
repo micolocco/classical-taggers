@@ -6,7 +6,7 @@ import argparse
 from pprint import pprint
 # Local import
 import psutil
-from adding_features_v2 import get_loading_vars
+from adding_features import get_loading_vars
 
 
 def read_files(files, treename, vars=None):

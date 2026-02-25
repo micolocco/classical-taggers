@@ -9,9 +9,7 @@ import os
 import awkward as ak
 
 
-
-
-from scripts.adding_features_v2 import get_loading_vars
+from scripts.adding_features import get_loading_vars
 
 def signalname_from_filename(file):
     if "Bu2JpsiK" in file:
