@@ -253,8 +253,8 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             ddpmodel = DDP(model)
 
             module = ddpmodel.module
-            train_sampler = DistributedSampler(train_ds, num_replicas=num_threads, rank=rank, shuffle=True, drop_last=True)
-            validation_sampler = DistributedSampler(validation_ds, num_replicas=num_threads, rank=rank, shuffle=False, drop_last=True)
+            train_sampler = DistributedSampler(train_ds, num_replicas=num_threads, rank=rank, shuffle=True, drop_last=True, seed=seed)
+            validation_sampler = DistributedSampler(validation_ds, num_replicas=num_threads, rank=rank, shuffle=False, drop_last=True, seed=seed)
             shuffle=False
             shuffle=False #Shuffling the dataloader and setting a sampler is mutually exclusive
         else:
