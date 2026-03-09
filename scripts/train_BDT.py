@@ -20,6 +20,9 @@ from sklearn.metrics import roc_curve
 from scripts import matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 
+import yaml
+from adding_features import translate_mc_names_to_data
+
 #Bu2JpsiK classifier from sin2beta ananote (not all variables are available in the current ntuples, so some are left out)
 # B_Vtx_Chi2NDOF                     -> B_CHI2VXNDOF
 # B_MINIPCHI2                        -> B_MIN_OWNPV_IPCHI2
@@ -48,37 +51,6 @@ matplotlib_lhcb_style(plt)
 # piminus_MINIP                       -> hminus_MINIP
 # Kplus_MINIP                         -> hplus_MINIP
 
-vars_by_decay = {
-    'Bu2JpsiK': 
-        [
-        'B_CHI2VXNDOF',
-        'B_MIN_OWNPV_IPCHI2',
-        'B_ETA',
-        'B_DTF_PV_Jpsi_CHI2',
-        'Jpsi_OWNPV_IP',
-        'muplus_OWNPV_IP',
-        'muminus_OWNPV_IP',
-        'hplus_ETA',
-        'hplus_MINIP',
-        'hplus_OWNPV_IP',],
-
-    'Bd2JpsiKst': 
-        [
-        'B_CHI2VXNDOF',
-        'B_MIN_OWNPV_IPCHI2',
-        'B_ETA',
-        'B_DTF_PV_Jpsi_CHI2',
-        'Jpsi_OWNPV_IP',
-        'muplus_OWNPV_IP',
-        'muminus_OWNPV_IP',
-        'X_OWNPV_FD',
-        'X_ETA',
-        'X_PZ',
-        'hplus_OWNPV_IP',
-        'hminus_OWNPV_IP',
-        'hminus_MINIP',
-        'hplus_MINIP',]
-}
 
 class KFoldBDT:
     def __init__(self, bdtargs, n_folds=5):
@@ -160,20 +132,13 @@ def read_files(files, vars, treename, only_upper, massname):
 
     for i, f in enumerate(files):
         print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
-        print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB')
-
-        id = os.path.basename(f)[:-5]
-        if id[-7:-2] == '.data':
-            id = id[:-7]
-        else:
-            id = id[:-3] + 'mc'
-
+        print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
         with uproot.open("{}".format(f)) as _f:
-            _df = _f[treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
+            _df = _f[treename].arrays(vars+ ['file_id', 'RUNNUMBER', 'EVENTNUMBER'], library="pd")
         
         _df.dropna(inplace = True)
-        _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
+        _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', "file_id"], inplace=True)
         _df = _df.groupby("event_entry").first()
         _df.reset_index(inplace=True)
 
@@ -214,6 +179,7 @@ if __name__ == '__main__':
     parser.add_argument('--decay_type', help='Event decay', type=str)
     parser.add_argument('--massname', help='Name of the invariant mass variable', type=str)
     parser.add_argument('--num_threads', help='Number of threads used for training', default=45, type = int) 
+    parser.add_argument('--signal_class_features', help='Yaml file with the features to be used for signal classification', type=str, default='configs/signal_classifier_features.yaml')
 
     
 
@@ -224,27 +190,32 @@ if __name__ == '__main__':
     data_files = cfg.real_data
     mc_files = cfg.mc_data
 
-    training_vars = vars_by_decay[cfg.decay_type]
+    with open(cfg.signal_class_features, 'r') as f:
+        training_vars = yaml.safe_load(f)
+        
+        training_vars = translate_mc_names_to_data(training_vars[cfg.decay_type], cfg.decay_type, drop_mc_cols=False)
+
+
     vars_to_load = training_vars + [cfg.massname]
 
-    print(f'Reading of data files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Reading of data files begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
     print(f"Reading a total of {len(data_files)} files.", flush=True)
-    data = read_files(data_files, vars_to_load, cfg.treename, True, cfg.massname)
+    data = read_files(data_files, vars_to_load, cfg.treename, only_upper = True, massname = cfg.massname)
     data['label'] = 0
-    print(f'Reading of data files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Reading of data files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
 
-    print(f'Reading of MC files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Reading of MC files begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
     print(f"Reading a total of {len(mc_files)} files.", flush=True)
-    MC = read_files(mc_files, vars_to_load, cfg.treename, False, cfg.massname)
+    MC = read_files(mc_files, vars_to_load, f'{cfg.treename}', only_upper = False, massname = cfg.massname)
     MC['label'] = 1
-    print(f'Reading of MC files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Reading of MC files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
 
 
 
     df = pd.concat([data, MC])
     df= df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
-    print(f'num_rows: {len(df["event_entry"])} unique events: {df["event_entry"].nunique()}')
+    print(f'num_rows: {len(df["event_entry"])} unique events: {df["event_entry"].nunique()}', flush=True)
 
     plot_by_label(df, cfg.massname, cfg.target_path, 'before_classifier')
 
@@ -260,28 +231,30 @@ if __name__ == '__main__':
         'booster':'gbtree',
         'n_estimators':500, 
         'early_stopping_rounds':20,
-        'n_jobs':cfg.num_threads,  # Use cfg.num_threads for parallelism
+        'n_jobs':cfg.num_threads,
         'use_label_encoder':False,
         'verbosity':1,
     }
 
     model = KFoldBDT(bdtargs, n_folds=5)
-    X = df.drop(columns=[cfg.massname, 'label', 'event_entry']).to_numpy()
+    X = df.drop(columns=[cfg.massname, 'label', 'event_entry'])
+    print(list(X.columns), flush=True)
+    X = X.to_numpy()
     y = df['label'].to_numpy()
     indices = df['event_entry'].to_numpy()
 
-    print(f'Training begins {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Training begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
     train_losses, val_losses = model.fit(X[:10000], y[:10000], indices[:10000])
-    print(f'Training ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Training ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
 
     
 
     y_pred = model.predict_proba(X, indices)#[:,1]
-    print(f'Predicting ends {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Predicting ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
 
-    print(y_pred)
+    print(y_pred, flush=True)
     auc = roc_auc_score(y, y_pred)
-    print(f"Val ROC AUC: {auc:.4f}")
+    print(f"Val ROC AUC: {auc:.4f}", flush=True)
 
 
     # Plot ROC curve
@@ -324,9 +297,9 @@ if __name__ == '__main__':
         cut -= 0.001
         
     cut = round(cut, 3)
-    print(f"BDT cut value for 5% reduction in label 1: {cut}")
+    print(f"BDT cut value for 5% reduction in label 1: {cut}", flush=True)
 
-    print('Background rejection at cut: ', 1 - sum(y_pred[y == 0] > cut) / sum(y ==0))
+    print('Background rejection at cut: ', 1 - sum(y_pred[y == 0] > cut) / sum(y ==0), flush=True)
 
     df = df[y_pred > cut]
 
@@ -342,4 +315,4 @@ if __name__ == '__main__':
 
     with open(os.path.join(cfg.target_path, 'bdt_model.pkl'), 'wb') as f:
         pickle.dump(save_data, f)
-    print(f'Model saved {datetime.datetime.now().strftime("%H:%M:%S")}')
+    print(f'Model saved {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)

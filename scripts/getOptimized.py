@@ -68,7 +68,6 @@ def plot_hyperparams_vs_tagging_power(df, target_path, num_features):
         
         xfit = np.linspace(X.min(), X.max(), 50).reshape(-1, 1)
         y_pred = model.predict(xfit)
-        y_pred = model.transform(xfit)
         ax.plot(xfit, y_pred, color='red', linewidth=2)
 
 
@@ -144,23 +143,13 @@ if __name__ == '__main__':
     train_batch_sizes = [8192]
 
     combinations = list(product(seeds, learning_rates, train_batch_sizes, num_layers, num_neurons))
-
-
-    max_deltp =1
-
     print(combinations)
 
-    # full_df = pd.DataFrame(         columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc',  'Bbar_min_diff', 'Bbar_mean_diff', 'B_min_diff', 'B_mean_diff','bin_diffs_std', 'link'])
-    full_df =          pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'link'])
+    full_df =          pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc', 'p_diff', 'p_diff_unc', 'link'])
     max_ratios = {}
     best_models = {}
-    for link in  ['logit', 'mistag']: #, 'rlogit']:
-        # performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'Bbar_min_diff', 'Bbar_mean_diff', 'B_min_diff', 'B_mean_diff','bin_diffs_std'])
-        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc'])
-
-        delta0s = []
-        delta1s = []
-        delta2s = []
+    for link in  ['logit', 'mistag']:
+        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc', 'p_diff', 'p_diff_unc'])
 
         for tagger, decay in tagger_dict.items():
             max_ratio = -np.inf
@@ -180,28 +169,23 @@ if __name__ == '__main__':
                 json_file_mc = os.path.join(folder_path, f"testing/MC/{link}/taggingInfo_{link}.json")
 
                 print(f'Checking files {json_file_data} and {json_file_mc}')
-                if os.path.exists(json_file_data):# and os.path.exists(json_file_mc):
+                if os.path.exists(json_file_data):
                     data = utils.load_and_process_json(json_file_data)
                     tagging_power = data['TaggingPower_Cali']
 
-                    diff_file  = os.path.join(folder_path, f'testing/Data/eta_omega_bins.pkl')
+                    if os.path.exists(json_file_mc):
+                        data_mc = utils.load_and_process_json(json_file_mc)
+                        tagging_power_mc = data_mc['TaggingPower_Cali']
+                    else:
+                        tagging_power_mc = ufloat(np.nan, np.nan)
 
-                    deltap0 = data['Fitpar_deltap0']
-                    deltap1 = data['Fitpar_deltap1']
-                    deltap2 = data['Fitpar_deltap2']
+                    ones_path = json_file_data.replace('pdf_ratio', 'ones')
+                    data_ones = utils.load_and_process_json(ones_path)
+                    tagging_power_ones = data_ones['TaggingPower_Cali']
 
-                
-                    deltap0_mc = data['Fitpar_deltap0']
-                    deltap1_mc = data['Fitpar_deltap1']
-                    deltap2_mc = data['Fitpar_deltap2']
+                    p_diff = tagging_power - tagging_power_ones
 
-                    deltas = np.array([deltap0, deltap1, deltap2, deltap0_mc, deltap1_mc, deltap2_mc])
-                    deltas = np.abs(deltas)
-                       
-                    delta0s.append(deltap0.nominal_value)
-                    delta1s.append(deltap1.nominal_value)
-                    delta2s.append(deltap2.nominal_value)
-                
+                    print(f"weight differences for {tagger} with seed {seed}, lr {lr}, bs {bs}, nl {nl}, nn {nn}: {tagging_power - tagging_power_ones}")
 
 
                     if not np.isnan(tagging_power.nominal_value) and tagging_power.nominal_value != 0:
@@ -211,15 +195,13 @@ if __name__ == '__main__':
                                 ratio_precision =  tagging_power.std_dev / tagging_power.nominal_value 
                             except ZeroDivisionError:
                                 print("Check std deviation or nominal value. They might be 0")
-                            #print(tagger, arch, lr, seed, bs)
-                            #print(tagging_power[0], tagging_power[1])
-                            #print(ratio
-                            
+
+
                             if ratio > max_ratio:
                                 max_ratio = ratio
                                 best_hyperparams = {
                                     "calibrated tagging power": tagging_power,
-                                    # "calibrated tagging power MC": tagging_power_mc,
+                                    "calibrated tagging power MC": tagging_power_mc,
                                     "seed": seed,
                                     "learning_rate": lr,
                                     "batch_size": bs,
@@ -229,10 +211,8 @@ if __name__ == '__main__':
                                     "precision": ratio_precision,
                                 }
                                 best_model = json_file_data
-                            # print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}, Bbar_min_diff: {bbar_min}, bbar_mean_diff: {bbar_mean}, B_min_diff: {b_min}, b_mean_diff: {b_mean}, bin_diffs_std: {bin_diffs_std}")
-                            print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}")
-                            # performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value, tagging_power.std_dev, tagging_power_mc.nominal_value, tagging_power_mc.std_dev, bbar_min, bbar_mean, b_min, b_mean, bin_diffs_std]
-                            performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value, tagging_power.std_dev]
+                            print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}, Tagging Power MC: {tagging_power_mc.nominal_value}, weighting performance diff: {p_diff.nominal_value}")
+                            performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value, tagging_power.std_dev, tagging_power_mc.nominal_value, tagging_power_mc.std_dev, p_diff.nominal_value, p_diff.std_dev]
 
             if best_hyperparams:
                 max_ratios[tagger] = best_hyperparams
@@ -258,19 +238,6 @@ if __name__ == '__main__':
         performances['link'] = link
         full_df = pd.concat([full_df, performances], ignore_index=True)
 
-        # Plot FitPar_deltas as histogramm
-        plt.figure(figsize=(12, 6))
-        bins = np.linspace(-2, 2, 100)
-        delta0s = np.array(delta0s)
-        delta1s = np.array(delta1s)
-        delta2s = np.array(delta2s)
-        all_deltas = np.concatenate([delta0s, delta1s, delta2s])
-        
-        # plt.hist(all_deltas, bins=bins, alpha=0.5, density=True, label=r'All $\Delta s$')
-        plt.hist(delta0s, bins=bins, alpha=0.5, density=True, label=r'$\Delta p_0$')
-        plt.hist(delta1s, bins=bins, alpha=0.5, density=True, label=r'$\Delta p_1$')
-        plt.hist(delta2s, bins=bins, alpha=0.5, density=True, label=r'$\Delta p_2$')
-
 
         filename = os.path.join(path_name, f'candidatedTaggers_{link}.json')
         os.makedirs(os.path.dirname(os.path.dirname(filename)), exist_ok=True)
@@ -281,9 +248,40 @@ if __name__ == '__main__':
         print(f"Max ratios with link {link} saved to {filename}")
 
     # Save the full DataFrame to a CSV file
-    full_df.to_csv(os.path.join(os.path.dirname(plot_path), 'performances.csv'), index=False)
+    df_path = os.path.dirname(plot_path)
+    full_df.to_csv(os.path.join(df_path, 'performances.csv'), index=False)
+
+
+
+    plt.clf()
+    bins = np.linspace(-0.25, 0.05, 13)
+    df = pd.DataFrame.from_dict({tagger: full_df[full_df['tagger']==tagger]['p_diff'] for tagger in ['OSKaon', 'OSMuon', 'OSElectron']})
+    df.plot.hist(bins=bins,  stacked=True)
+    # p_diff= [full_df[full_df['tagger']==tagger]['p_diff'] for tagger in ['OSKaon', 'OSMuon', 'OSElectron']]
+    # plt.hist(p_diff[0], bins=bins, color = 'red', alpha=0.5, label='OSKaon', stacked=True)
+    # plt.hist(p_diff[1], bins=bins, color = 'blue', alpha=0.5, label='OSMuon', stacked=True)
+    # plt.hist(p_diff[2], bins=bins, color = 'green', alpha=0.5, label='OSElectron', stacked=True)
+    plt.xlabel('Tagging Power (pdf_ratio - Ones)')
+    plt.ylabel('count per 0.025 bin')
+    plt.legend()
+    plt.savefig(os.path.join(df_path, 'p_diff_histogram.png'))
+
+    plt.clf()
+    bins = np.linspace(-6.5, 0.5, 15)
+    full_df['p_diff_sig'] = full_df['p_diff'] / full_df['p_diff_unc']
+    df = pd.DataFrame.from_dict({tagger: full_df[full_df['tagger']==tagger]['p_diff_sig'] for tagger in ['OSKaon', 'OSMuon', 'OSElectron']})
+
+    df.plot.hist(bins=bins,  stacked=True)
+    # plt.hist(full_df[full_df['tagger']=='OSKaon']['p_diff_sig'], bins=bins, color = 'red', alpha=0.5, label='OSKaon', stacked=True)
+    # plt.hist(full_df[full_df['tagger']=='OSMuon']['p_diff_sig'], bins=bins, color = 'blue', alpha=0.5, label='OSMuon', stacked=True)
+    # plt.hist(full_df[full_df['tagger']=='OSElectron']['p_diff_sig'], bins=bins, color = 'green', alpha=0.5, label='OSElectron', stacked=True)
+    plt.xlabel('Significance of Difference (pdf_ratio - Ones)')
+    plt.ylabel('count per 0.5 bin')
+    plt.legend()
+    plt.savefig(os.path.join(df_path, 'p_diff_sig_histogram.png'))
 
     
-    
+
+
     print(f"All results saved to {cfg.outpath}/{cfg.cut}/{data_type}/")
 

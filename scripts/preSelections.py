@@ -1,12 +1,12 @@
 import numpy as np
 import uproot
 import re
-from scripts.adding_features import loading_variables
 import scripts.pyTorchTraining as pyTrain
 import argparse
 import os
-
-from scripts.train_BDT import vars_by_decay
+from pprint import pprint
+from adding_features import get_mass_label
+from adding_features import translate_mc_names_to_data
 
 
 def extract_selection_var(cut_file):
@@ -24,16 +24,20 @@ def extract_selection_var(cut_file):
     result_array = [match.strip() for match in matches]
     result_array = np.unique(result_array).tolist()
     return result_array
-
-def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0, data_calib):
+    
+def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0, data_type):
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
     with uproot.open("{}".format(notSelected_rootPath)) as f:
         df = f[treename].arrays(loading_variables, library="pd")
     cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
-    if data_calib:
+    print(cuts)
+    print(data_type)
+    if data_type == 'Data':
+        print("replaceing B_Tr_T_Origin_Flag with B_Tr_T_IsInTree in the cut string for data")
         cuts = np.char.replace(cuts, "(B_Tr_T_Origin_Flag!=0)", "(B_Tr_T_IsInTree!=1)")
-        cuts = np.char.replace(cuts, "BPV", "OWNPV")
-        cuts = np.char.replace(cuts, "OWNPV_IP", "OWNPVIP")
+        print(cuts)
+    cuts = np.char.replace(cuts, "BPV", "OWNPV")
+    cuts = np.char.replace(cuts, "OWNPV_IP", "OWNPVIP")
     print(f"The applied cut is: {cuts}")
     df.eval(f"selected = {cuts}", inplace = True)
     if BKG0:
@@ -68,50 +72,65 @@ if __name__ == '__main__':
         description='Apply a preselection for the tagging particles',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--added_features', help='Added features file', type=str)
+    parser.add_argument('--to_select', help='Added features file', type=str)
     parser.add_argument('--output', help='Name of the output file', type=str)
-    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='Tuple/DecayTree')
+    parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
     parser.add_argument('--cut_file', help='File where the cut is stored', type=str)
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
-    parser.add_argument('--data_calib', action='store_true')
+    parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
     parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--repo', help="Path to repository")
-    #parser.add_argument('--run2_taggers', help='If specified, run2 taggers info is added',  action='store_true')
 
     cfg = parser.parse_args()
-
-    from pprint import pprint
     pprint(cfg)
 
+
     selection_variables = extract_selection_var(cfg.cut_file)
-    features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    extra_variables = ['entry', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge']
+    tagger_features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
+    extra_variables = ['entry', 'subentry', 'file_id', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge']
     
-    loading_variables = features + selection_variables + extra_variables + run2_taggers_variables
+    loading_variables = tagger_features + selection_variables + extra_variables + run2_taggers_variables
     loading_variables = np.unique(loading_variables).tolist()
     if cfg.BKG0: loading_variables += ['B_BKGCAT']
+    loading_variables.append(get_mass_label(cfg.evtType))
 
-    if cfg.data_calib:
-        loading_variables = [v for v in loading_variables if "TRUE" not in v and "Flag" not in v]
-        loading_variables = [v.replace("BPV", "OWNPV_").replace("OWNPV_IP", "OWNPVIP") for v in loading_variables]
-        loading_variables = [v.replace("END_V", "ENDV_") for v in loading_variables]
-        loading_variables += ["B_Tr_T_IsInTree", "B_ID", "FillNumber"]
-        loading_variables += ['signal_weights', 'background_weights', 'pdf_ratio', 'BID_signal_weights', 'BID_background_weights']
-    else:
-        loading_variables += ['B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
+    if cfg.data_type == 'Data':
+        loading_variables += ["B_Tr_T_IsInTree", "FillNumber"]
+        loading_variables = [var for var in loading_variables if var != "B_Tr_T_Origin_Flag"] # only in MC, replace with B_Tr_T_IsInTree in data
 
-
-    loading_variables += ["B_DTF_PV_Jpsi_MASS", "B_DTF_PV_MASS"]
-
-
+    loading_variables = translate_mc_names_to_data(loading_variables, cfg.evtType, drop_mc_cols=False)    
     loading_variables = list(dict.fromkeys(loading_variables)) #removes all duplicates
+    print(loading_variables)
+    df = apply_preSelections(cfg.to_select, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_type)
 
-    # df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)[features + extra_variables + run2_taggers_variables + ['selected']]
-    df = apply_preSelections(cfg.added_features, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_calib)
+
+    # Assignation of the tagging decision (d)
+    # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
+    if ("Bd" or "Bs" in cfg.evtType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
+        df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"]
+    else:
+        df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
+
+    # Assignation of the label (it will be used as NN output)
+    # The label is given by the product of the tagging decision and the flavour charge of the B.
+    # It indicates if the tagging decision is wrong or correct.
+    # -1 == wrong tag  1 == correct tag
+    # When using data:
+    #   - tagging decision: the B_TRUEID must be replaced with B_ID 
+    #   - calibration: B_ID = reconstructed ID when moving to data!
+
+    df["label"] = df[f"{cfg.tagger}_TagDec"] * df['B_ID']/abs(df['B_ID']) 
+
+    df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
+
+    #For domain adaptation data needs to unlabelled
+    if cfg.data_type == 'domain_adapted':
+        df.loc[df["domain"] == 0, "label"] = np.nan
+
+
     print(df.columns.tolist())
-
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
     with uproot.recreate(f"{cfg.output}") as file:

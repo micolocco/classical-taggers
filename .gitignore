@@ -21,6 +21,7 @@ scripts/trouble_shhoting.ipynb
 # Except for PDFs in the tagging_power_tables directory
 !tagging_power_tables/**/*.pdf
 */DT_outputs
-model_configs/*.yaml
+model_configs/lr*.yaml
+NNarchitectures/nL*.yaml
 test/
 **/.nfs*

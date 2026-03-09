@@ -4,7 +4,6 @@ import pandas as pd
 import os
 import argparse
 from pprint import pprint
-# Local import
 import psutil
 from adding_features import get_loading_vars
 
@@ -15,12 +14,6 @@ def read_files(files, treename, vars=None):
     for i, f in enumerate(files):
         print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
         print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB')
-
-        id = os.path.basename(f)[:-5]
-        if id[-7:-2] == '.data':
-            id = id[:-7]
-        else:
-            id = id[:-3]
         
 
         with uproot.open("{}".format(f)) as _f:
@@ -31,8 +24,7 @@ def read_files(files, treename, vars=None):
 
         _df.dropna(inplace = True)
         print(f"Number of tracks in file {i+1}: {_df.shape[0]}", flush=True)
-        _df["file_id"] = int(id)
-        _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
 
 
         if 'selected' in _df.columns:
@@ -64,20 +56,13 @@ if __name__ == '__main__':
     parser.add_argument('--splits', help='Number of splits for the combined DataFrame', type=int, default=20)
     parser.add_argument('--evtType', help='Decay type of the samples, used for naming the output files', type=str)
     parser.add_argument('--loading_features', help='Path to file containing all features to load', type=str)
+    parser.add_argument('--index', help='Starting Index of the subset of files to process, used for naming the output files', type=int)
 
 
     cfg = parser.parse_args()
     pprint(cfg)
     #Read all data files using uproot
-    if cfg.mc_files is not None:
-        df_data = read_files(cfg.data_files, cfg.treename)
-    else:
-        #If no MC files provided, limit the columns read from the data files to reduce memory usage. 
-        # No MC files means no selection of tracks or columns was done beforehand
-        loading_vars = get_loading_vars(cfg.evtType, True, cfg.loading_features)
-        df_data = read_files(cfg.data_files, cfg.treename, vars=loading_vars)
-
-    df_data.drop(columns=['B_Tr_T_IsInTree'], inplace=True)
+    df_data = read_files(cfg.data_files, cfg.treename)
 
     if cfg.mc_files is not None: #Combine data and MC samples if MC files are provided. Used for training of domain adapted models
 
@@ -106,8 +91,8 @@ if __name__ == '__main__':
         df_combined = pd.concat([df_data, df_mc], ignore_index=True)
         del df_data, df_mc  # Free memory
         print(f"Combined DataFrame shape: {df_combined.shape}")
-    else: #If no MC files provided, just use the data. Here many small data files are combined into a manageable number of larger files,
-          # which can be used for training and testing during development and debugging without reading the entire dataset at once
+    else: #If no MC files provided, just use the data. This is to combine many small data files into a manageable number of larger files, 
+          #allowing working with subsets of the data during development and debugging without having to read the entire dataset .
         df_combined = df_data
 
     # Save combined DataFrame to disk
@@ -124,13 +109,13 @@ if __name__ == '__main__':
 
     subsets = np.array_split(event_entries, cfg.splits)
 
-    for i, subset in enumerate(subsets):
+    for i, subset in zip(range(cfg.index, cfg.index + len(subsets)), subsets):
         subset_df = df_combined[df_combined['event_entry'].isin(subset)].reset_index(drop=True)
 
         subset_df.drop(columns=['event_entry'], inplace=True)
 
         output_file = os.path.join(cfg.target_path, f'samples_{i}.root')
-        print(f"Saving combined DataFrame subset to {output_file}")
+        print(f"Saving combined DataFrame subset to {output_file}", flush=True)
         tree_dict = {col: np.array(subset_df[col]) for col in subset_df.columns}
 
         with uproot.recreate(output_file) as f:

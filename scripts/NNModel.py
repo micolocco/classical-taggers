@@ -42,6 +42,9 @@ class NeuralNetwork(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x): # from the input tensor x it gives the output tensor of the NN
+        if x.dim() == 1:
+            x = x.unsqueeze(0) # Add batch dimension if input is a single sample
+
         return self.NN(x).view(-1)
 
     def __str__(self):

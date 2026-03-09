@@ -25,6 +25,7 @@ import utils
 import psutil
 import json
 from os.path import join
+from scripts.adding_features import translate_mc_names_to_data
 
 def read_files_reduce_unselected(files, vars, treename, seed):
     df = pd.DataFrame(columns=vars)
@@ -33,19 +34,14 @@ def read_files_reduce_unselected(files, vars, treename, seed):
         print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
         print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB at {datetime.datetime.now().strftime("%H:%M:%S")}', flush = True)
 
-        id = os.path.basename(f)[:-5]
-        if id[-7:-2] == '.data':
-            id = id[:-7]
-        else:
-            id = id[:-3]
 
         with uproot.open("{}".format(f)) as _f:
-            _df = _f[treename].arrays(vars+ ['RUNNUMBER', 'EVENTNUMBER'], library="pd")
+            _df = _f[treename].arrays(vars+ ["file_id", "RUNNUMBER", "EVENTNUMBER"], library="pd")
         _df.dropna(inplace = True)
 
 
-        _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
+        _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'], inplace=True)
         
         #Drop rows which are not selected. Keep one per unique event_entry to ensure correct efficiency calculation
         _df = pd.concat([
@@ -184,31 +180,25 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
     bestModel.eval()
 
-    # columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID, 'B_Tr_T_Origin_Flag', 'B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID,]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
     if data_type == 'Data' :
         columns_to_drop.append('signal_weights')
 
     if data_type == 'Data':
         sweights = test_df['signal_weights']
-    # sweights_sel1 = test_df.query('selected==1')['signal_weights']
 
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     print(f'Columns:{test_df.columns}')
-
-    # test_df_sel1 = test_df.query('selected==1').copy()
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
 
-    test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)#[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values   
+    test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)# bestModel.evaluate_model returns predicted probabilities for label 1, true values   
     
 
     test_df[f"{tagger}_Eta"] = 1 - test_df['yPred']
-    # test_df = test_df[['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID]]
-    # test_df.drop(columns=test_df.columns.difference(['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred', 'B_Tr_T_Origin_Flag', 'B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']), inplace=True)
     test_df.drop(columns=test_df.columns.difference(['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred', ]), inplace=True)
 
 
@@ -230,7 +220,7 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     plt.savefig(f"{target_path}/testSet_prob1distrib.pdf")
 
 
-    pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Test', BID = BID)
+    pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Test')
 
 
     
@@ -268,13 +258,13 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
 
     # Calibrating the tagger and saving parameters
-    mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, BID = BID, weights=sweights_TagParticles)
+    mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles)
     
     # Try both calibration functions
-    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', BID = BID, weights=sweights_TagParticles)
+    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', weights=sweights_TagParticles)
 
     # Try both calibration functions
-    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='rlogit', BID = BID, weights=sweights_TagParticles)
+    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='rlogit', weights=sweights_TagParticles)
 
     end = datetime.datetime.now()
     print(f'testing ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
@@ -306,25 +296,15 @@ if __name__ == '__main__':
     pprint(cfg)
     pd.set_option('display.max_columns', 30)
     pd.set_option('display.width', 200)
-    BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
+    BID = 'B_ID'
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
+    features = translate_mc_names_to_data(features, cfg.decay_type, False)
+    print(f"Features used: {features}", flush = True)
 
-
-    if cfg.data_type == 'Data':
-        print(f'features are {features}')
-        for i in range(len(features)):
-            features[i] = features[i].replace("BPVIP", "OWNPVIP")
-            features[i] = features[i].replace("B_TRUEID", "B_ID")
-
-    vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] #'B_Tr_T_Charge',
+    vars = features + [BID, 'selected', 'label', f"{cfg.tagger}_TagDec"]
     if cfg.data_type == 'Data':
         vars = vars + ['signal_weights']
-
-
-    # if cfg.data_type == 'MC':
-    #     vars = vars + ['B_Tr_T_Origin_Flag', 'B_Tr_T_MC_MOTHER_ID','B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_ID']
-
     print(vars, flush = True)
 
 

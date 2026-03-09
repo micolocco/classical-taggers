@@ -50,7 +50,7 @@ if __name__ == '__main__':
     taggers_dataframes = []  # List to store DataFrames for each tagger
     # Loop over all taggers
     for tagger in cfg.tagger:
-        vars = run2_taggers_variables + ['RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', BID]
+        vars = run2_taggers_variables + ['file_id', 'RUNNUMBER', 'EVENTNUMBER', f'{tagger}_TagDec', f'{tagger}_Eta', BID]
         input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, f'trained_{cfg.trained_on}/*.root')
         print(f'input path: {input_path}')
         input_files = glob.glob(input_path)
@@ -63,14 +63,9 @@ if __name__ == '__main__':
             with uproot.open(f) as _f:
                 _df = _f[cfg.treename].arrays(vars, library="pd")
             _df.dropna(inplace=True)
-            id = os.path.basename(f)[:-5]
-            if id[-7:-2] == '.data':
-                id = id[:-7]
-            else:
-                id = id[:-3]
 
-            _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-            _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER'], inplace=True)
+            _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+            _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'], inplace=True)
 
             singleTagger_dataframes.append(_df)
             

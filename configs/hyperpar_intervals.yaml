@@ -8,5 +8,5 @@
 -dropout: 0.1
 -min_delta: 0
 -n_epochs: 500
--patience: 50 #TODO change to 100
+-patience: 50 
 -train_val_split: 0.6

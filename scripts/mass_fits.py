@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import os
 from os.path import join
-import glob
 import matplotlib.pyplot as plt
 import mplhep as hep
 hep.style.use("LHCb2")
@@ -19,13 +18,13 @@ from zfit.models.basic import Exponential
 from zfit.models.functor import SumPDF
 from hepstats.splot import compute_sweights
 
-
 import datetime
-import tensorflow as tf
 import psutil
-from scripts.train_BDT import vars_by_decay
 from scripts.train_BDT import KFoldBDT
 import pickle
+import yaml
+from adding_features import translate_mc_names_to_data
+from pprint import pprint
 
 
 def get_tex_decay(decay):
@@ -35,10 +34,19 @@ def get_tex_decay(decay):
         tex_decay = r"$B^{0} \to J/\psi K^*$"
     return tex_decay
 
-# def get_mc_names(bdt_features):
+def fit_valid(result):
+    if not result.valid:
+        return [False, "fit is not valid, zfit reports invalid fit"]
+    if result.edm > 1e-3:
+        return [False, "fit is not valid, High edm"]
+    
+    relative_unc = [result.params[param]['hesse']['error'] / abs(result.params[param]['value']) if result.params[param]['value'] != 0 else np.nan for param in result.params]
+    if any(unc > 0.25 for unc in relative_unc):
+        return [False, "fit is not valid, High relative uncertainty"]
+    return [True, "Fit is valid"]
 
 
-def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, compute_weights, generate_figures, obs_name, prefix=''):
+def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, compute_weights, generate_figures, obs_name, prefix='', is_selected = True):
     print(f"Starting mass fit for {tex_decay}", flush=True)
     if not simulation: # Fix signal tail shape from MC
         with open(sim_fit) as f:
@@ -51,9 +59,9 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
 
     else:
         alphaL = zfit.Parameter("alphaL",  3.0,  0,      5.0, floating=True)
-        nL     = zfit.Parameter("nL",      1.7,  0.01, 200.0, floating=True)
+        nL     = zfit.Parameter("nL",      1.5,  0.01, 200.0, floating=True)
         alphaR = zfit.Parameter("alphaR",  3.0,  0.0,    5.0, floating=True)
-        nR     = zfit.Parameter("nR",      1.7,  0.01, 200.0, floating=True)
+        nR     = zfit.Parameter("nR",      1.6,  0.01, 200.0, floating=True)
         
 
 
@@ -93,31 +101,36 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
 
     if not simulation:
         # Background (Exponential)
-        yield_min = len(df) * 0.1 if compute_weights else len(df) * 0.5 #compute_weights also means BDT selection happened
+        yield_min = len(df) * 0.1 if is_selected else len(df) * 0.5
         yield_bkg = zfit.Parameter("yield_bkg", yield_min, 0, len(df))
 
 
-        if not compute_weights: # Pre BDT cuts the background is not exponentially shaped -> chebyshev
-            c1 = zfit.Parameter("c1",  0.1)
+        if not is_selected: # Pre BDT cuts the background is not exponentially shaped -> chebyshev
+            c1 = zfit.Parameter("c1",  0.05)
             c2 = zfit.Parameter("c2", -0.2)
             c3 = zfit.Parameter("c3",  0.0)
-            c4 = zfit.Parameter("c4",  0.0)
+            c4 = zfit.Parameter("c4",  0.01)
             bkg_model = zfit.pdf.Chebyshev(obs=obs, coeffs=[c1, c2, c3, c4])
         else:
-            lambd = zfit.Parameter("lambda", -0.01, -1, 0) 
-            bkg_model = zfit.pdf.Exponential(obs=obs, lambda_=lambd)
+            lambd = zfit.Parameter("lambda", -0.01, -1, -5e-4) 
+            comb_model = zfit.pdf.Exponential(obs=obs, lambda_=lambd)
 
-        if r"$B^{0}" in tex_decay: #For B0 decays: add a peaking background structure from Bs decays. same shape as signal just shifted and scaled
-            mean_bs = zfit.ComposedParameter("mean_bs", lambda mean: mean + 87.45, mean)
+            if r"$B^{0}" in tex_decay: #For B0 decays: add a peaking background structure from Bs decays. same shape as signal just shifted and scaled
+                mean_bs = zfit.ComposedParameter("mean_bs", lambda mean: mean + 87.45, params=mean)
 
-            double_cb_bs = GeneralizedCB(obs=obs, mu=mean_bs, sigmal=sigmaL, sigmar=sigmaR, alphal=alphaL, nl=nL, alphar=alphaR, nr=nR)
-            gauss_bs1 = zfit.pdf.Gauss(obs=obs, mu=mean_bs, sigma=g_sigma1)
-            gauss_bs2 = zfit.pdf.Gauss(obs=obs, mu=mean_bs, sigma=g_sigma2)
+                double_cb_bs = GeneralizedCB(obs=obs, mu=mean_bs, sigmal=sigmaL, sigmar=sigmaR, alphal=alphaL, nl=nL, alphar=alphaR, nr=nR)
+                gauss_bs1 = zfit.pdf.Gauss(obs=obs, mu=mean_bs, sigma=g_sigma1)
+                gauss_bs2 = zfit.pdf.Gauss(obs=obs, mu=mean_bs, sigma=g_sigma2)
 
-            model_bs = zfit.pdf.SumPDF([double_cb_bs, gauss_bs1, gauss_bs2], [sig_frac, g_frac1])
+                gauss_bs = zfit.pdf.SumPDF([gauss_bs1, gauss_bs2], [g_frac1])
+                
 
-            bs_bkg_frac = zfit.Parameter("yield_bs", 1e-5, 0, 1)
-            bkg_model = zfit.pdf.SumPDF([model_bs, bkg_model], [bs_bkg_frac])
+                model_bs = zfit.pdf.SumPDF([double_cb_bs, gauss_bs], [sig_frac])
+                
+                bs_bkg_frac = zfit.Parameter("yield_bs", 0.01, 0, 1)
+                bkg_model = zfit.pdf.SumPDF([model_bs, comb_model], [bs_bkg_frac])
+            else:
+                bkg_model = comb_model
 
 
 
@@ -133,19 +146,30 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
     data = zfit.Data.from_numpy(obs=obs, array=masses)
     # Perform fit
     nll = zfit.loss.ExtendedUnbinnedNLL(model, data)
-    minimizer = zfit.minimize.Minuit(gradient=False, tol= 1e-4) #Maybe look into using tol, or strategy might work better??
+    minimizer = zfit.minimize.Minuit(gradient=False, tol= 1e-4, verbosity=5)
     result = minimizer.minimize(nll)
+    result.hesse()
 
     print(f"Initial fit converged: {result.converged} with edm: {result.edm}", flush=True)
-    print(f"Initial fit is valid: {result.valid}", flush=True)
 
-    if not result.valid or result.edm > 1e-4:  # If the fit is not valid or edm is too high, try again
-        print(f"Initial fit is not valid or edm is to high, trying again starting with the values from result", flush=True)
+    validity = fit_valid(result)
+    print(f'Initial fit')
+    print(validity[1], flush=True)
+    i = 0
+    while not validity[0] and i < 3:  # If the fit is not valid or edm is too high, try again
         result = minimizer.minimize(nll, init=result)
+        result.hesse()
+        validity = fit_valid(result)
+        print(f'Fit attempt {i+1}')
+        print(validity[1], flush=True)
+        i += 1
+
+
+    if not validity[0]:  # If the fit is not valid or edm is too high, try again
+        result = minimizer.minimize(nll, init=result)
+        result.hesse()
     
-    result.hesse()
     cov_matrix = result.covariance()
-    params = result.params
     print(result, flush=True)
     print(f'Result message: {result.message}', flush=True)
     
@@ -175,9 +199,14 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
     total_signal_eval = signal_scaled
 
     if not simulation:
-        background_pdf_eval = bkg_model.pdf(x_plot, norm_range=obs)
-        # background_pdf_eval = exp.pdf(x_plot, norm_range=obs)
-        bkg_yield_val = params[yield_bkg]['value']
+        if r"$B^{0}" not in tex_decay or not is_selected:
+            background_pdf_eval = bkg_model.pdf(x_plot, norm_range=obs)
+            bkg_yield_val = params[yield_bkg]['value']
+        else:
+            background_pdf_eval = comb_model.pdf(x_plot, norm_range=obs)
+            bkg_yield_val = params[yield_bkg]['value'] * (1 - params["yield_bs"]["value"])
+
+
         bkg_scaled = bkg_yield_val * background_pdf_eval * binwidth
         total_pdf_eval = signal_scaled + bkg_scaled
     
@@ -189,8 +218,17 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
         fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [4, 1]}, sharex=True)
 
         if not simulation:
-            ax1.plot(x_plot, bkg_scaled, label="Combinatorial", color="green", linestyle = "--", linewidth=2)
-            ax1.plot(x_plot, total_pdf_eval, label="Total Fit", color='red',linewidth=3)
+            if r"$B^{0}" in tex_decay and is_selected:
+                bs_pdf_eval = model_bs.pdf(x_plot, norm_range=obs)
+                bs_scaled = params[yield_bkg]['value'] * params["yield_bs"]["value"] * bs_pdf_eval * binwidth 
+
+                total_pdf_eval += bs_scaled    
+                
+
+                ax1.fill_between(x_plot,bkg_scaled, bkg_scaled+bs_scaled, label=tex_decay.replace("B^{0}", "B_{s}"), color="goldenrod", linewidth=2)
+
+            ax1.plot(x_plot, total_pdf_eval, label="Total Fit", color='darkred',linewidth=3)
+            ax1.fill_between(x_plot, bkg_scaled, label="Combinatorial", color="lightgray", linewidth=2)
 
 
 
@@ -219,22 +257,23 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
             total_pdf_eval = signal_scaled
         else:
             total_pdf_eval = signal_scaled + bkg_scaled
+            if r"$B^{0}" in tex_decay and is_selected:
+                total_pdf_eval += bs_scaled
         total_fit_at_bin_centers = np.interp(bin_centers, x_plot, total_pdf_eval)
         residuals = (counts - total_fit_at_bin_centers) / errors
-        print(f"Residuals: {residuals}", flush=True)
         ax2.axhline(0, color='black', linestyle='dashed')
         ax2.axhline(2, color='red', linestyle='dotted')
         ax2.axhline(-2, color='red', linestyle='dotted')
-        ax2.hist(bin_centers, weights=residuals, bins=bins, histtype='step', linestyle='-', linewidth=1.5, facecolor='gray', alpha=0.5, fill = True, color = 'gray')
+        ax2.bar(bin_centers, residuals, width=binwidth, color='gray', alpha=0.5, label="Residuals")
         ax2.set_ylim(-5, 5)        
         ax2.set_ylabel("Pull")
 
-        if "Bu2JpsiK" in cfg.decayType:
+        if r"$B^+ \to J/\psi K^+$" in tex_decay:
             xlabel = r"$ m(J/\psi K^{\pm})~[\mathrm{MeV}/c^2]$"
-        elif "Bd2JpsiKst" in cfg.decayType:
+        elif r"$B^{0} \to J/\psi K^*$" in tex_decay:
             xlabel = r"$ m(J/\psi K^{*})~[\mathrm{MeV}/c^2]$"
         else:
-            raise ValueError(f"Unknown decay type: {cfg.decayType}")
+            raise ValueError(f"Unknown decay type: {tex_decay}")
 
         ax2.set_xlabel(xlabel)
         ax1.set_xlim(mass_range[0], mass_range[1])
@@ -242,7 +281,7 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
         y_min = np.min(bkg_scaled) if not simulation else np.min(signal_scaled)
         if y_min <= 2:
             y_min = 2
-        ax1.set_ylim(y_min/2, np.max(counts)*2)
+        ax1.set_ylim(y_min*0.66, np.max(counts)*2)
 
         plt.tight_layout()
         plt.savefig(join(outputdir, prefix + filename))
@@ -259,13 +298,13 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
         del weights
 
         if generate_figures:
-            plt.plot(masses, df[f"{prefix}signal_weights"], marker=".", linestyle="None", color="red", markersize=0.1, label="signal")
-            plt.plot(masses, df[f"{prefix}background_weights"], marker=".", linestyle="None", color="green", markersize=0.1, label="background weights")
-            plt.plot(masses, df[f"{prefix}background_weights"] + df[f"{prefix}signal_weights"], marker=".", linestyle="None", color="black", markersize=0.1, label="Sum of three")
+            plt.plot(masses, df[f"{prefix}signal_weights"], marker=".", linestyle="None", color="red", markersize=1, label="signal")
+            plt.plot(masses, df[f"{prefix}background_weights"], marker=".", linestyle="None", color="green", markersize=1, label="background weights")
+            plt.plot(masses, df[f"{prefix}background_weights"] + df[f"{prefix}signal_weights"], marker=".", linestyle="None", color="black", markersize=1, label="Sum of three")
             plt.xlabel("m($B^{+})~[MeV]/c^{2}$")
             plt.ylabel("weights")
             plt.legend()
-            plt.savefig(join(outputdir, prefix + f"validate_sweights.png"))
+            plt.savefig(join(outputdir, prefix + f"validate_sweights.pdf"))
             plt.close()
 
         #Calculate and save the pdf_ratio
@@ -284,32 +323,27 @@ if __name__ == '__main__':
         description='Apply a preselection for the tagging particles',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--data_files', nargs='+')
+    parser.add_argument('--input_files', nargs='+')
     parser.add_argument('--treename', help='TreeName of the input file', type=str, default="BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree")
     parser.add_argument('--obs', help='Observable to fit', type=str, default="B_DTF_PV_Jpsi_MASS")
     parser.add_argument('--range', help='Observable range', nargs="+")
     parser.add_argument('--output', help='Where fit results and plots will be stored', type=str)
     parser.add_argument('--simulation', action="store_true")
     parser.add_argument('--sim_fit', help="Fit results from mc")
-    parser.add_argument('--sim_files', help="MC files", nargs="+")
-    parser.add_argument('--decayType', help='Decay used', type=str)
+    parser.add_argument('--decay_type', help='Decay used', type=str)
     parser.add_argument('--seed', help='RNG seed used', type=int)
     parser.add_argument('--cut', help='Cut desired', type=str)
     parser.add_argument('--BDT', help='Path of BDT for event selection') 
     parser.add_argument('--obs_name', help='Name of observable', type=str, default="B_DTF_PV_Jpsi_MASS")
     parser.add_argument('--num_threads', help='Number of threads to use for the fits', type=int, default=1)
-
-    # to do parse background model 
+    parser.add_argument('--signal_class_features', help='Path to yaml file containing the features used for the signal classification BDT')
 
     cfg = parser.parse_args()
-    # pprint(cfg)
+    pprint(cfg)
 
-    # id = ''
-    # if cfg.sim_fit:
-    #     id =  os.path.basename(cfg.data_files)[:-5] + '_'    
     massname = cfg.obs
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
-    outputdir = join(cfg.output, "mc_fit") if cfg.simulation else join(cfg.output, "data_fit")
+    outputdir = cfg.output
     os.makedirs(outputdir, exist_ok=True)
 
     zfit.run.set_n_cpu(n_cpu=cfg.num_threads)
@@ -317,78 +351,47 @@ if __name__ == '__main__':
 
     print(f'Reading files started on {datetime.datetime.now().strftime("%H:%M:%S")}')
     BDT = None
-    bdt_features = vars_by_decay[cfg.decayType]
+    with open(cfg.signal_class_features, 'r') as f:
+        bdt_features = yaml.safe_load(f)
+        
+        bdt_features = translate_mc_names_to_data(bdt_features[cfg.decay_type], cfg.decay_type, drop_mc_cols=False)
 
     with open(cfg.BDT, 'rb') as f:
         loaded_data = pickle.load(f)
 
     BDT = loaded_data['model']        
     cut   = loaded_data['cut']
+    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER', massname]
 
     if not cfg.simulation:
-        vars = ['RUNNUMBER', 'EVENTNUMBER', massname, 'B_ID']
-        
-        input_files = cfg.data_files
-        if isinstance(input_files, str):
-            input_files = [input_files]
-        # Loop over all files
-        dataframes = []
-
-
-
-
-
-        for i, f in enumerate(input_files):
-            print(f"Reading input file {i+1}/{len(input_files)}: {f}")
-            print(f'Megabites used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
-
-            sample_number = int(os.path.basename(f)[10:-14])  # to match weights with the data in add_weights.py
-
-            filenumber = os.path.basename(f)[:-7]
-
-
-            with uproot.open(f) as _f:
-                _df = _f[cfg.treename].arrays(vars+bdt_features, library="pd")
-            _df.dropna(inplace=True)
-            _df['SAMPLENUMBER'] = sample_number
-            _df["event_entry"] = filenumber + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-            # _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'SAMPLENUMBER'], inplace=True)
-
-            _df = _df.groupby("event_entry").first()
-            _df.reset_index(inplace=True)
-            _df['signalness'] = BDT.predict_proba(_df[bdt_features].to_numpy(), _df["event_entry"].values)
-            _df.drop(columns=bdt_features, inplace=True)
-
-            dataframes.append(_df)
-        #print(f'{pd.concat(singleTagger_dataframes).shape[0]}')
-        df_data=pd.concat(dataframes, ignore_index=True)
-        del dataframes
-
+        vars += ['B_ID']
     else:
-        df_data = pd.DataFrame()
-        input_files = cfg.sim_files
+        vars += ['B_BKGCAT']
 
-        # bdt_features = get_mc_names(bdt_features)
-
-        for i, file in enumerate(input_files):
-            print(f"Reading input file {i+1}/{len(input_files)}: {file}", flush=True)
-            filenumber = os.path.basename(file)[:-3] + 'mc'
-
-            with uproot.open(file) as f:
-                _df = f[cfg.treename].arrays([massname, 'RUNNUMBER', 'EVENTNUMBER', 'B_BKGCAT']+ bdt_features, library="pd")
-            _df.dropna(inplace=True)
+    input_files = cfg.input_files
+    df_data = None
+    for i, f in enumerate(input_files):
+        print(f"Reading input file {i+1}/{len(input_files)}: {f}")
+        print(f'Megabites used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
+        with uproot.open(f) as _f:
+            _df = _f[cfg.treename].arrays(vars+bdt_features, library="pd")
+        _df.dropna(inplace=True)
+        
+        if cfg.simulation:
             _df = _df.query("B_BKGCAT == 0")  
-            
-            _df["event_entry"] = filenumber + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-            _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'B_BKGCAT'], inplace=True)
+        
+        _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
 
-            _df = _df.groupby("event_entry").first()
-            _df.reset_index(inplace=True)
-            _df['signalness'] = BDT.predict_proba(_df[bdt_features].to_numpy(), _df["event_entry"].values)
-            _df.drop(columns=bdt_features, inplace=True)
+        _df = _df.groupby("event_entry").first()
+        _df.reset_index(inplace=True)
+        _df['signalness'] = BDT.predict_proba(_df[bdt_features].to_numpy(), _df["event_entry"].values)
+        _df.drop(columns=bdt_features, inplace=True)
 
+        if df_data is None:
+            df_data = _df
+        else:
+            df_data = pd.concat([df_data, _df], ignore_index=True)
 
-            df_data = pd.concat([df_data, _df], ignore_index = True)
     print(f'Reading files ended on {datetime.datetime.now().strftime("%H:%M:%S")}')
 
 
@@ -398,21 +401,16 @@ if __name__ == '__main__':
     obs = zfit.Space("mass", limits=mass_range)
 
 
-    tex_decay = get_tex_decay(cfg.decayType)
-
-
-
-
-    res_name = "mc_res" if cfg.simulation else "data_res"
-    massfit(obs, masses, tex_decay, res_name+'_before_cut', cfg.simulation, cfg.sim_fit, f"fit_res_before_cut.png", df_data, 
-            compute_weights=False, generate_figures=True, obs_name=cfg.obs_name)
+    tex_decay = get_tex_decay(cfg.decay_type)
+    massfit(obs, masses, tex_decay, 'fit_before_cut', cfg.simulation, cfg.sim_fit, f"fit_res_before_cut.pdf", df_data, 
+            compute_weights=False, generate_figures=True, obs_name=cfg.obs_name, is_selected = False)
 
 
     if cfg.simulation:
         print(f'Running mass fit for simulation with cut {cut}', flush=True)
         df_data = df_data.query(f'signalness > {cut}')
         masses  = df_data[massname].values
-        massfit(obs, masses, tex_decay, res_name+'_after_cut', cfg.simulation, cfg.sim_fit, f"fit_res_after_cut.png", df_data, False, True, cfg.obs_name)
+        massfit(obs, masses, tex_decay, 'fit_after_cut', cfg.simulation, cfg.sim_fit, f"fit_res_after_cut.pdf", df_data, False, True, cfg.obs_name)
     else:
         pd.set_option('display.max_columns', 15)
 
@@ -428,7 +426,7 @@ if __name__ == '__main__':
 
             
             masses  = df_fit[massname].values
-            massfit(obs, masses, tex_decay, res_name+f'_after_cut_BID{id}', cfg.simulation, sim_fit_after_cut, f"fit_after_cut.png", df_fit, 
+            massfit(obs, masses, tex_decay, f'fit_after_cut_BID{id}', cfg.simulation, sim_fit_after_cut, f"fit_after_cut.pdf", df_fit, 
                     compute_weights= True, generate_figures= True, obs_name = cfg.obs_name, prefix=f'BID{id}_', )
             
             # print(df_data.head(10))
@@ -440,7 +438,7 @@ if __name__ == '__main__':
 
         print(f'Calculating total Sweights')
         masses  = df_data[massname].values
-        massfit(obs, masses, tex_decay, res_name+'_after_cut', cfg.simulation, sim_fit_after_cut, f"fit_after_cut.png", df_data, True, True, cfg.obs_name, )
+        massfit(obs, masses, tex_decay, 'fit_after_cut', cfg.simulation, sim_fit_after_cut, f"fit_after_cut.pdf", df_data, True, True, cfg.obs_name, )
 
         df_data.reset_index(inplace=True)
         df_data.drop(columns=['event_entry'], inplace = True)

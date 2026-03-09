@@ -31,13 +31,11 @@ if __name__ == '__main__':
         description='Split each Data sample into training, validation and test sets',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--weighted', help='File with preselection applied')
-    parser.add_argument('--target_path', help='Name of the output dir', type=str, default='../test')
-    parser.add_argument('--treename', help='Tree name of the weighted ntuples', type=str, default='DecayTree;1')
+    parser.add_argument('--to_split', help='File with preselection applied')
+    parser.add_argument('--target_path', help='Name of the output dir', type=str)
+    parser.add_argument('--treename', help='Name of the tree in the root file', type=str, default='DecayTree;1')
     parser.add_argument('--seed', help='Random seed', default=45, type = int) 
-    parser.add_argument('--decayType', help='Event decay', type=str)
     parser.add_argument('--config', help='Config yaml', type=str, default='configs/hyperpar_intervals.yaml') 
-    parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton'))
     parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
 
     cfg = parser.parse_args()
@@ -46,56 +44,22 @@ if __name__ == '__main__':
     with open(f'{cfg.config}', 'r') as file:
         config = yaml.safe_load(file)
 
-    filename = os.path.basename(cfg.weighted)[:-5]
-    if cfg.data_type != 'domain_adapted':
-        if filename[-7:-2] == '.data':
-            id = filename[:-7]
-        else:
-            id = filename[:-3]
-
     #Read File
-    print(f"Reading file: {cfg.weighted}", flush=True)
-    with uproot.open("{}".format(cfg.weighted)) as f:
+    print(f"Reading file: {cfg.to_split}", flush=True)
+    with uproot.open("{}".format(cfg.to_split)) as f:
         df = f[cfg.treename].arrays(library="pd")
     if cfg.data_type != 'domain_adapted': # for Domain adaptation nans are dropped previously and some columns are naturally assigned nans
         df.dropna(inplace = True)
     
     if cfg.data_type != 'domain_adapted':
-        df["event_entry"] = id + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+        df["event_entry"] = df["file_id"].astype(str) + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
     else:
-        # df["event_entry"] = df["file_id"].astype(str)
-
         df.loc[df['domain'] == 0, 'event_entry'] = df["file_id"].astype(str) + "_" + "data" + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
-        df.loc[df['domain'] == 1, 'event_entry'] = df["file_id"].astype(str) + "_" + "mc" + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+        df.loc[df['domain'] == 1, 'event_entry'] = df["file_id"].astype(str) + "_" + "mc"   + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
 
-    #Shuffle samples
-    print(df.head(10))
+
     df = df.sample(frac=1, random_state=cfg.seed).reset_index(drop=True)
-    print(df.head(10))
 
-    # Assignation of the tagging decision (d)
-    # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
-    if ("Bd" or "Bs" in cfg.decayType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
-        df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"]
-    else:
-        df[f"{cfg.tagger}_TagDec"] = df[f"B_Tr_T_Charge"] * (-1)
-
-    # Assignation of the label (it will be used as NN output)
-    # The label is given by the product of the tagging decision and the flavour charge of the B.
-    # It indicates if the tagging decision is wrong or correct.
-    # -1 == wrong tag  1 == correct tag
-    # When using data:
-    #   - tagging decision: the B_TRUEID must be replaced with B_ID 
-    #   - calibration: B_ID = reconstructed ID when moving to data!
-    BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
-
-    df["label"] = df[f"{cfg.tagger}_TagDec"] * df[BID]/abs(df[BID]) 
-
-    df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
-
-    #For domain adaptation data needs to unlabelled
-    if cfg.data_type == 'domain_adapted':
-        df.loc[df["domain"] == 0, "label"] = np.nan
 
     print(df.columns)
     print(df.head(10))
@@ -103,7 +67,7 @@ if __name__ == '__main__':
 
     print(f'Total: {len(df["event_entry"].unique())} events, {len(df)} tracks')
 
-    #Split into train, validation and test Dataframes, train and validation only contains selected tracks
+    #Split into train, validation and test Dataframes
     split_dfs = pyTrain.splitByEvent(df=df, seed=cfg.seed, train_val_split=config['-train_val_split'])
 
     #Write each frame to file
@@ -134,7 +98,7 @@ if __name__ == '__main__':
 
         tree_dict = {col: np.array(df_[col]) for col in df_.columns}
         path = os.path.join(cfg.target_path, p)
-        path = os.path.join(path, f'{filename}.root')
+        path = os.path.join(path, os.path.basename(cfg.to_split))
         with uproot.recreate(path) as f:
             f['DecayTree'] = tree_dict
         

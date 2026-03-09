@@ -82,14 +82,14 @@ ranges = {
         "B_Tr_T_PT": (0,10000),
         'B_nPVs': (0,18),
         'B_PT': (0,60000),
-        "B_Tr_T_BPVIPSig": (0, 10),
+        "B_Tr_T_OWNPVIPSig": (0, 10),
         "B_Tr_T_BPVIP": (0, 5),
         "B_Tr_T_OWNPVIP": (0, 5),
         "B_Tr_T_CHI2DOF": (0, 5),
         'B_Tr_T_PIDK': (-150, 150),
         'B_Tr_T_PIDP': (-150, 150),
         "B_Tr_T_GHOSTPROB": (0, 1),
-        "B_Tr_T_absIP": (0,1.5),
+        "B_Tr_T_absOWNPV_IP": (0,1.5),
         "B_Tr_T_PIDe": (-30, 30),
         "B_Tr_T_PIDmu": (-40, 40),
         "B_Tr_T_ISMUON": (0,1),
@@ -112,7 +112,7 @@ nice_names = {
         "B_Tr_T_PT": r'$p_{T}(tag)$',
         'B_nPVs': r'$\mathrm{nPVs}$',
         'B_PT': r'$p_{T}(B)$',
-        "B_Tr_T_BPVIPSig": r'$\sqrt{\chi^{2}_{\rm{IP}}(tag)~\rm{wrt}~\rm{BestPV}}$',
+        "B_Tr_T_OWNPVIPSig": r'$\sqrt{\chi^{2}_{\rm{IP}}(tag)~\rm{wrt}~\rm{BestPV}}$',
         "B_Tr_T_BPVIP": r'$\mathrm{IP}~\rm{wrt}~\rm{BestPV}$',
         "B_Tr_T_OWNPVIP": r'$\mathrm{IP}~\rm{wrt}~\rm{ownPV}$',
         "B_Tr_T_CHI2DOF": r'$\chi^2/\mathrm{ndof}~$',
@@ -121,7 +121,7 @@ nice_names = {
         'B_Tr_T_PIDe': r'$\mathrm{PID}_{e}(tag)$',
         'B_Tr_T_PIDmu': r'$\mathrm{PID}_{mu}(tag)$',
         "B_Tr_T_GHOSTPROB": r'$P_{\mathrm{ghost}}(tag)$',
-        "B_Tr_T_absIP": r'$|\mathrm{IP}|(tag)$',
+        "B_Tr_T_absOWNPV_IP": r'$|\mathrm{IP}|(tag)$',
         "B_Tr_T_PhiDistance": r'$\mathrm{\Delta}\mathrm{\Phi}(tag, signal)$' ,
         "B_Tr_T_EtaDistance": r'$\mathrm{\Delta}\mathrm{\eta}(tag, signal)$' ,
         #"B_Tr_T_eoverP": r'$E/p(tag)$',
@@ -129,8 +129,4 @@ nice_names = {
         "B_Tr_T_DeltaQ_Pion": r'$\mathrm{\Delta}\mathrm{Q}_{pi}$',
         "B_Tr_T_DeltaR": r'$\mathrm{\Delta}\mathrm{R}$',
         "B_Tr_T_Signal_TagPart_PT": r'$p_{T}(tag+signal)$',
-
-        
-
-
     }

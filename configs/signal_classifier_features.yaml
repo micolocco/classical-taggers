@@ -1,0 +1,32 @@
+{
+  'Bu2JpsiK': 
+    [
+    'B_CHI2VXNDOF',
+    'B_MIN_BPVIPCHI2',
+    'B_ETA',
+    'B_DTF_PV_Jpsi_CHI2',
+    'Jpsi_BPVIP',
+    'muPlus_BPVIP',
+    'muMinus_BPVIP',
+    'KPlus_ETA',
+    'KPlus_MINIP',
+    'KPlus_BPVIP',
+    ],
+  'Bd2JpsiKst': 
+    [
+    'B_CHI2VXNDOF',
+    'B_MIN_BPVIPCHI2',
+    'B_ETA',
+    'B_DTF_PV_Jpsi_CHI2',
+    'Jpsi_BPVIP',
+    'muPlus_BPVIP',
+    'muMinus_BPVIP',
+    'Kstar_BPVFD',
+    'Kstar_ETA',
+    'Kstar_PZ',
+    'KPlus_BPVIP',
+    'KPlus_MINIP',
+    'piMinus_BPVIP',
+    'piMinus_MINIP',
+    ]
+}

@@ -1,6 +1,7 @@
 from os.path import join, exists, dirname, basename, splitext, split
 from os import makedirs
 import numpy as np
+import pandas as pd
 import os
 import re
 from copy import deepcopy
@@ -15,6 +16,8 @@ try:
     upperMass = config['Mass_range_upper']
     repo = config['REPO']
 
+    #In how many sections combined dataframes are splint into when usind domain adaptation or combining small data files
+    combined_df_n_splits = config['combined_df_n_splits'] 
 except:
     raise RuntimeError("Make sure to specify snakemake config")
 
@@ -98,9 +101,15 @@ ntuples_eos_withUT = {
 #Data files
 with open("data_calibration/block12_list.txt", "r") as f:
     files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2]#[:100]
+files_s24c2 = [line.strip() for line in files_s24c2]
 raw_path = os.path.dirname(files_s24c2[0])
 data_ids = [os.path.basename(i)[:-5] for i in files_s24c2]
+
+
+combine_indices = [i for i in range(len(files_s24c2))]
+np.random.seed(42)
+np.random.shuffle(combine_indices)
+combine_indices = np.array_split(combine_indices, combined_df_n_splits)
 
 mc_ids = {}
 for decay in taggers_conf.keys():
@@ -113,81 +122,52 @@ for decay in taggers_conf.keys():
     mc_ids[decay] = dec_ids
 
 
-raw_data = {
-    'Bu2JpsiK': [join(out, 'Data/withUT_MC_2024/1_raw/Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
-    'Bd2JpsiKst': [join(out, 'Data/withUT_MC_2024/1_raw/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
+#Create lists of all file names after each step
+#Data
+feat_added_data = {
+    'Bu2JpsiK': [join(out, 'Data/NTuples/1_added_features/Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
+    'Bd2JpsiKst': [join(out, 'Data/NTuples/1_added_features/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
 }
 
-added_features_data = {}
-for decay, path_list in raw_data.items():
-    added_features_data.update({decay: [f.replace('1_raw', '2_added_features') for f in path_list]})
-
-selected_data = {}
-for decay, path_list in raw_data.items():
-    selected_data.update({decay: {}})
-    for tagger in taggers_conf[decay] :
-        selected_data[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
-
-weighted_data = {}
-for decay, path_list in raw_data.items():
-    weighted_data.update({decay: {}})
-    for tagger in taggers_conf[decay] :
-        weighted_data[decay].update({tagger: [f.replace('1_raw', f'1_weighted').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
+combined_data = {}
+for decay, path_list in feat_added_data.items():
+    path = os.path.dirname(path_list[0])
+    combined_data.update({decay: [join(path, f'combined/samples_{i}.root') for i in range(combined_df_n_splits)]})
 
 train_split_data = {}
-for decay, path_list in raw_data.items():
-    train_split_data.update({decay: {}})
+for decay, path_list in combined_data.items():
+    train_split_data.update({decay: [f.replace(f'1_added_features/{decay}/combined', f'2_split/{decay}').replace(decay, f'{decay}/train') for f in path_list]})
+
+
+selected_data = {}
+for decay, path_list in train_split_data.items():
+    selected_data.update({decay: {}})
+    for tagger in taggers_conf[decay] : 
+        selected_data[decay].update({tagger: [f.replace('2_split', f'3_selected').replace('train', f'{tagger}/cut_name/features/train') for f in path_list]})
+
+weighted_data = {}
+for decay, path_list in selected_data.items():
+    weighted_data.update({decay: {}})
+    for tagger, path_list in path_list.items():
+        weighted_data[decay].update({tagger: [f.replace('3_selected', f'4_weighted') for f in path_list]})
+
+
+
+#MC
+feat_added_mc = deepcopy(ntuples_eos_withUT)
+for decay, path_list in feat_added_mc.items():
+    feat_added_mc[decay] = [f.replace(os.path.dirname(f), f'{out}MC/NTuples/1_added_features/{decay}') for f in path_list]
+
+train_split_mc = {}
+for decay, path_list in feat_added_mc.items():
+    train_split_mc.update({decay: [f.replace('1_added_features', f'2_split').replace(decay, f'{decay}/train') for f in path_list]})
+
+selected_mc = {}
+for decay, path_list in train_split_mc.items():
+    selected_mc.update({decay: {}})
     for tagger in taggers_conf[decay] :
-        train_split_data[decay].update({tagger: [f.replace('1_raw', f'5_split').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN/train') for f in path_list]})
+        selected_mc[decay].update({tagger: [f.replace('2_split', f'3_selected').replace('train', f'{tagger}/cut_name/features/train') for f in path_list]})
 
-tagged_data = {}
-for decay, path_list in raw_data.items():
-    tagged_data.update({decay: {}})
-    for tagger in taggers_conf[decay] :
-        tagged_data[decay].update({tagger: [f.replace('1_raw', f'6_tagged').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
-
-
-
-# TO DO add the other configurations e.g. noUT, openVELO etc
-ntuples_raw_withUT_mc = deepcopy(ntuples_eos_withUT)
-for decay, path_list in ntuples_raw_withUT_mc.items():
-    ntuples_raw_withUT_mc[decay] = [f.replace(os.path.dirname(f), f'{out}/MC/withUT_MC_2024/1_raw/{decay}') for f in path_list]
-
-ntuples_added_features_withUT_mc = {}
-for decay, path_list in ntuples_raw_withUT_mc.items():
-    ntuples_added_features_withUT_mc.update({decay: [f.replace('1_raw', '2_added_features') for f in path_list]})
-
-ntuples_selected_withUT_mc = {}
-for decay, path_list in ntuples_raw_withUT_mc.items():
-    ntuples_selected_withUT_mc.update({decay: {}})
-    #print(decay, path_list)
-    #print('-------')
-    for tagger in taggers_conf[decay] :
-        ntuples_selected_withUT_mc[decay].update({tagger: [f.replace('1_raw', f'3_selected').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN') for f in path_list]})
-
-ntuples_train_split_withUT_mc = {}
-for decay, path_list in ntuples_raw_withUT_mc.items():
-    ntuples_train_split_withUT_mc.update({decay: {}})
-    #print(decay, path_list)
-    #print('-------')
-    for tagger in taggers_conf[decay] :
-        ntuples_train_split_withUT_mc[decay].update({tagger: [f.replace('1_raw', f'5_split').replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN/train') for f in path_list]})
-
-ntuples_tagged_withUT_mc = {}
-for decay, path_list in ntuples_raw_withUT_mc.items():
-    ntuples_tagged_withUT_mc.update({decay: {}})
-    for tagger in taggers_conf[decay]:
-        # Filter the paths to only include those ending with '4_1.mc.root'
-        filtered_paths = [
-            f.replace('1_raw', '6_tagged')
-             .replace(decay, f'{decay}/{tagger}/notSamePV_noOSP/union_PROBNN')
-            for f in path_list if f.endswith('4_1.mc.root')
-        ]
-        ntuples_tagged_withUT_mc[decay].update({tagger: filtered_paths})
-
-    #ntuples_selected_withUT_mc.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/cut_Run2Summer2017Opt_v2_noProbNN_IPSig') for f in v]})
-    #ntuples_selected_withUT_mc.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{taggers_conf[decay][i]}/{k}/cut_DT_unbalanced_minGain_maxDepth_SSKSSP_withOrigin') for f in v]})
-    #ntuples_selected_withUT_mc.update({k: [f.replace('1_raw', f'3_selected').replace(k, f'{k}/only_OSKaon') for f in v]})
 
 # Function to read paths from the generated file
 def read_generated_paths(data, file):
@@ -224,7 +204,6 @@ with open(join(repo,'configs/hyperpar_intervals.yaml'), 'r') as file:
 intervals = {key[1:]: value for key, value in intervals.items()}
 
 
-hyper_par_chunk = expand('nL{nL}_nN{nN}', nL=intervals['numlayers'], nN=intervals['numneurons'])
 weights = [
     'ones',
     'signal_weights',
@@ -237,35 +216,22 @@ wildcard_constraints:
     tagger      = '(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)',
     weight      = '|'.join(weights),
     data_type_or_adapted = '(Data|MC|domain_adapted)',
+    partition = '(train|validation|test)',
     cut_name = "[^/]+", #don't allow slashes in wildcards to avoid problems with paths
     features = "[^/]+",
     seed = '[^/]+',
     config = '[^/]+',
+    ID = '[^/]+',
 
-#In how many splits the combined DataFrame should be split when using domain adaptation
-combined_df_n_splits = 20
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/ones/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL8_nN32/ones/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL8_nN64/ones/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL8_nN128/ones/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL16_nN32/ones/testing/Data/logit/taggingInfo_logit.json',
+        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/{seed}/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
+            tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
+        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/{seed}/lr0.001_bs8192_nL6_nN64_BN/testing/Data/logit/taggingInfo_logit.json',
+            tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
 
 
-        # expand('/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/ones/testing/Data/logit/taggingInfo_logit.json',
-        #     tagger = ['OSMuon'], lr = [0.0001, 0.001], nl = [8, 16], nn = [32, 64, 128]),
-
-
-        # expand('/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json',
-        #     tagger = ['OSKaon', 'OSElectron', 'OSMuon'], lr = [0.0001, 0.001], nl = [8, 16], nn = [32, 64, 128]),
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/MC/savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/config_test/training/model.pth',
-
-        # '/ceph/users/togasa/FlavourTagging/NTuples/Data/savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/pdf_ratio/training/model.pth',
-        
-        
 
 def kernel_available():
     """
@@ -309,370 +275,375 @@ def copy_to_scratch(paths):
     return scratch_paths
 
 
-
-
-rule train_signal_classifier:
-    input:
-        script = join(repo, 'scripts/train_BDT.py'),
-        data = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids],
-        mc = lambda wildcards: [get_raw_paths(wildcards.decay, id[:-5], 'MC') for id in mc_ids[wildcards.decay]], 
-    output:
-        BDT = join(out, 'Data/1_weighted/{decay}/BDT/bdt_model.pkl')
-    log:
-        join(out, 'Data/1_weighted/{decay}/BDT/BDT_train.log')
-    resources:
-        max_retries=0,
-        mem_mb = 20_000,
-        MaxRunHours = 4,
-    threads:
-        8,
-    run:
-        out_path = os.path.dirname(output.BDT)
-        tree = find_tree_name(wildcards.decay)
-
-        if kernel_available():
-            data = path_to_kernel(input.data)
-            mc   = path_to_kernel(input.mc)
-        else:
-            data = input.data
-            mc   = input.mc
-
-        cmd = [
-            'python', input.script,
-            '--real_data', ' '.join(data),
-            '--mc_data', ' '.join(mc),
-            '--target_path', out_path,
-            '--treename', tree,
-            '--decay_type {wildcards.decay}',
-            '--massname B_DTF_PV_Jpsi_MASS',
-            '--num_threads {threads}',
-            '&> {log}',
-        ]
-
-
-        shell(' '.join(cmd))
-
-def get_raw_paths(decay, id, data_type):
+def get_raw_paths(decay, ID, data_type):
     if data_type == 'MC':
-        return join(MC, f'withUT_MC_2024/1_raw/{decay}/{id}.root')
+        return join(MC, f'{decay}/v1_taggers/{ID}.root')
     elif data_type == 'Data':
-        return join(data, f'{id[:8]}/{id[9:13]}' + f'/{id}.root')
+        return join(data, f'{ID[:8]}/{ID[9:13]}' + f'/{ID}.root')
     else:
         print(f"data type is {data_type} instead of MC or Data. Somethings broken")
         raise RuntimeError
 
-rule add_features:
-    input:
-        script = join(repo, 'scripts/adding_features.py'),
-        loading_vars = join(repo, 'configs/loading_variables.txt'),
-        signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
-        weighted = lambda wildcards: join(out, 'Data/1_weighted/{decay}/weighted_files/{id}.root') 
-                                    #  if wildcards.data_type == 'Data' else get_raw_paths(wildcards.decay, wildcards.id, 'MC'),
-                                     if wildcards.data_type == 'Data' else  join(MC, '{decay}/v1_taggers/{id}.root')
-    log:                            
-        join(out, '{data_type}/NTuples/2_added_features/{decay}/.{id,.*}.log')
-    output: 
-        root =join(out, '{data_type}/2_added_features/{decay}/{id,.*}.root'), 
-    resources:
-        max_retries=0,
-        mem_mb = 10_000,
-        MaxRunHours = 2, # short queue
-    run:
-        tree = find_tree_name(wildcards.decay) if wildcards.data_type == 'MC' else '"DecayTree;1"'
-        dataCalib = '--data_calib' if wildcards.data_type == 'Data' else ''
+# rule add_features:
+#     input:
+#         script = join(repo, 'scripts/adding_features.py'),
+#         loading_vars = join(repo, 'configs/loading_variables.txt'),
+#         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+#         raw = lambda wildcards: get_raw_paths(wildcards.decay, wildcards.ID, wildcards.data_type),
+#     output: 
+#         root =join(out, '{data_type}/NTuples/1_added_features/{decay}/{ID}.root'), 
+#     log:                            
+#         join(out, '{data_type}/NTuples/1_added_features/{decay}/.{ID}.log')
+#     resources:
+#         max_retries=0,
+#         mem_mb = 10_000,
+#         MaxRunHours = 1, # short queue
+#     run:
+#         tree = find_tree_name(wildcards.decay)
+#         dataCalib = '--data_calib' if wildcards.data_type == 'Data' else ''
 
-        cmd = [
-            'python', input.script,
-            # '--raw {input.raw}',
-            '--raw {input.weighted}',
-            '--output {output}',
-            '--evtType {wildcards.decay}',
-            '--treename', tree,
-            '--loading_features {input.loading_vars}',
-            '--signal_class_features {input.signal_class_features}',
-            f'{dataCalib}',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
+#         cmd = [
+#             'python', input.script,
+#             '--raw {input.raw}',
+#             '--output {output}',
+#             '--evtType {wildcards.decay}',
+#             '--treename', tree,
+#             '--loading_features {input.loading_vars}',
+#             '--signal_class_features {input.signal_class_features}',
+#             f'{dataCalib}',
+#             '&> {log}',
+#         ]
+#         shell(' '.join(cmd))
 
 
+# rule combine_small_files:
+#     input:
+#         script = join(repo, 'scripts/combine_dataframes.py'),
+#         data = lambda wildcards: np.array(feat_added_data[wildcards.decay])[combine_indices[int(wildcards.ID)]],
+#     output:
+#         join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.root'),
+#     log: 
+#         join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.log'),
+#     resources:
+#         max_retries=0,
+#         mem_mb = 90_000,
+#         MaxRunHours = 1, # short queue
+#     run:
+#         path = os.path.dirname(output[0])
 
-rule combine_small_files:
-    input:
-        script = join(repo, 'scripts/combine_dataframes.py'),
-        loading_vars = join(repo, 'configs/loading_variables.txt'),
-        data = lambda wildcards: [join(out, 'Data/1_weighted/{decay}/weighted_files/' +  f'{id}.root') for id in data_ids],
-    output:
-        [join(out, 'Data/1_weighted/{decay}/combined/samples') + f'_{i}.root' for i in range(combined_df_n_splits)]
+#         if kernel_available():
+#             data = path_to_kernel(input.data)
+#         else:
+#             data = input.data
+
+#         cmd = [
+#             f'python {input.script} ',
+#             f'--data_files ', ' '.join(data),  
+#             f'--target_path {path} ',  
+#             f'--treename "DecayTree;1" ', 
+#             f'--splits 1',  
+#             f'--evtType {wildcards.decay} ', 
+#             f'--index {wildcards.ID} ',
+#             f'&> {log}', 
+#         ]
+
+#         shell(' '.join(cmd))
+
+# rule split_sample:
+#     input:
+#         script = join(repo, 'scripts/split_train_val_test.py'),
+#         to_split = lambda wildcards: join(out, f'MC/NTuples/1_added_features/{wildcards.decay}/{wildcards.ID}.root') if wildcards.data_type == 'MC' 
+#                                 else join(out, f'Data/NTuples/1_added_features/{wildcards.decay}/combined/{wildcards.ID}.root'),
+
+#         hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
+#     output:
+#         train      = join(out, '{data_type}/NTuples/2_split/{decay}/train/{ID}.root'),
+#         validation = join(out, '{data_type}/NTuples/2_split/{decay}/validation/{ID}.root'),
+#         test       = join(out, '{data_type}/NTuples/2_split/{decay}/test/{ID}.root'),
+#     log:
+#         join(out, '{data_type}/NTuples/2_split/{decay}/log/.{ID}.log'),
+#     resources:
+#         max_retries=0,
+#         mem_mb = 65_000,
+#         MaxRunHours = 1,
+#     run:
+#         out_path = os.path.dirname(os.path.dirname(output.train))
+#         treename = '"DecayTree;1"' 
         
-    log: 
-        join(out, 'Data/1_weighted/{decay}/combined/samples.log'),
-    resources:
-        max_retries=0,
-        mem_mb = 60_000,
-        MaxRunHours = 1, # short queue
-    run:
-        path = os.path.dirname(output[0])
+#         cmd = [
+#             'python', input.script,
+#             '--to_split {input.to_split}',
+#             '--target_path', out_path,
+#             '--config {input.hyper_int}',
+#             '--treename', treename,
+#             '--data_type {wildcards.data_type}',
+#             '&> {log}',
+#         ]
+#         shell(' '.join(cmd))
 
-        if kernel_available():
-            data = path_to_kernel(input.data)
-        else:
-            data = input.data
+# rule train_signal_classifier:
+#     input:
+#         script = join(repo, 'scripts/train_BDT.py'),
+#         data = lambda wildcards: combined_data[wildcards.decay],
+#         mc = lambda wildcards: feat_added_mc[wildcards.decay], 
+#         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+#     output:
+#         BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl')
+#     log:
+#         join(out, 'Data/signal_classifier/{decay}/BDT_train.log')
+#     resources:
+#         max_retries=0,
+#         mem_mb = 20_000,
+#         MaxRunHours = 4,
+#     threads:
+#         8,
+#     run:
+#         out_path = os.path.dirname(output.BDT)
 
-        print((' '.join(data)))
-        cmd = [
-            f'python {input.script} ',
-            f'--data_files ', ' '.join(data),  
-            f'--target_path {path} ',  
-            f'--treename "DecayTree;1" ', 
-            f'--splits {combined_df_n_splits} ',  
-            f'--evtType {wildcards.decay} ', 
-            '--loading_features {input.loading_vars}',
-            f'&> {log}', 
-        ]
+#         if kernel_available():
+#             data = path_to_kernel(input.data)
+#             mc   = path_to_kernel(input.mc)
+#         else:
+#             data = input.data
+#             mc   = input.mc
 
-        shell(' '.join(cmd))
+#         cmd = [
+#             'python', input.script,
+#             '--real_data', ' '.join(data),
+#             '--mc_data', ' '.join(mc),
+#             '--target_path', out_path,
+#             '--treename "DecayTree;1"',
+#             '--decay_type {wildcards.decay}',
+#             '--massname B_DTF_PV_Jpsi_MASS',
+#             '--num_threads {threads}',
+#             '--signal_class_features', input.signal_class_features,
+#             '&> {log}',
+#         ]
 
 
-rule train_DT:
-    input:
-        script = join(repo, 'scripts/origin_DT_cut.py'),
-        data = join(out, 'MC/2_added_features'),
-    output:
-        pdf = join(out, 'MC/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.pdf'),
-    log:
-        join(out, 'MC/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.log')
-    resources:
-        max_retries=0,
-        mem_mb = 20_000, # Specify memory requirement in megabytes
-        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 8, # medium queue
-    run:
-        target_path = os.path.dirname(os.path.dirname(output.pdf))
+#         shell(' '.join(cmd))
 
-        cmd = (
-            f'python {input.script} '
-            f'--base_pattern {input.data} '  # Pass input root files
-            f'--target_path {target_path} '  # Pass the target path
-            f'--balanced {wildcards.balanced} '  # Specify if classes are balance dor not
-           # f'--unify_SS '  # Specify if SSKaon and SSProton should be unified in single class
-            f'--BKG0 '
-            f'&> {log}'  # Redirect stdout and stderr to log file
-        )
-        shell(cmd)
+# rule MC_Mass_Fit:
+#     input:
+#         script = join(repo, 'scripts/mass_fits.py'),
+#         data = lambda wildcards: [i.replace('train', wildcards.partition) for i in train_split_mc[wildcards.decay]],
+#         BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl'),
+#         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+#     output:
+#         join(out, 'MC/mass_fit/{decay}/{partition}/fit_before_cut.json'),
+#         mc_res = join(out, 'MC/mass_fit/{decay}/{partition}/fit_after_cut.json'),
+#     log:
+#         join(out, 'MC/mass_fit/{decay}/{partition}/fit.log'),
+#     resources:
+#         max_retries=0,
+#         mem_mb = 32_000, # Specify memory requirement in megabytes
+#         MaxRunHours = 4, # medium queue
+#     threads:
+#         4,
+#     run:
+#         out_path = os.path.dirname(output.mc_res)
+
+#         if kernel_available():
+#             data = path_to_kernel(input.data)
+#         else:
+#             data = input.data
+
+
+#         cmd = [
+#             'python {input.script}',
+#             '--input_files', ' '.join(data),
+#             '--range {lowerMass} {upperMass}', 
+#             '--treename "DecayTree;1"',
+#             '--simulation',
+#             '--BDT {input.BDT}',
+#             '--output', out_path,
+#             '--decay_type {wildcards.decay}',
+#             '--num_threads {threads}',
+#             '--signal_class_features {input.signal_class_features}',
+#             '&> {log}'
+#         ]
+#         shell(' '.join(cmd))
+
+# rule data_Mass_Fit: 
+#     input:
+#         script = join(repo, 'scripts/mass_fits.py'),
+#         mc_res = join(out, 'MC/mass_fit/{decay}/{partition}/fit_before_cut.json'),
+#         data = lambda wildcards: [i.replace('train', wildcards.partition) for i in train_split_data[wildcards.decay]],
+#         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+#         BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl'),
+#     output:
+#         data_res = join(out, 'Data/mass_fit/{decay}/{partition}/fit_after_cut.json'),
+#         weights = join(out, 'Data/mass_fit/{decay}/{partition}/weights.root'),
+#     log:
+#         join(out, 'Data/mass_fit/{decay}/{partition}/fit.log'),
+#     resources:
+#         max_retries=0,
+#         mem_mb = 20_000, 
+#         MaxRunHours = 4,
+#     threads:
+#         8,
+#     run:
+#         out_path = os.path.dirname(output.data_res)
+
+#         #Use ceph-kernel if available to increase file reading performance
+#         if kernel_available():
+#             data = path_to_kernel(input.data)
+#         else:
+#             data = input.data
+
+
+
+#         cmd = [
+#             'python {input.script}',
+#             '--input_files', ' '.join(data),
+#             '--range {lowerMass} {upperMass}', 
+#             '--obs_name B_DTF_PV_Jpsi_MASS',
+#             '--treename "DecayTree;1"',
+#             '--output', out_path,
+#             '--decay_type {wildcards.decay}',
+#             '--sim_fit {input.mc_res}',
+#             '--cut notSamePV_noOSP',
+#             '--BDT {input.BDT}',
+#             '--num_threads {threads}',
+#             '--signal_class_features {input.signal_class_features}',
+
+#             '&> {log}'
+#         ]
+#         shell(' '.join(cmd))
+
+# rule train_DT:
+#     input:
+#         script = join(repo, 'scripts/origin_DT_cut.py'),
+#         data = join(out, 'MC/2_added_features'),
+#     output:
+#         pdf = join(out, 'MC/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.pdf'),
+#     log:
+#         join(out, 'MC/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.log')
+#     resources:
+#         max_retries=0,
+#         mem_mb = 20_000, # Specify memory requirement in megabytes
+#         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+#         MaxRunHours = 8, # medium queue
+#     run:
+#         target_path = os.path.dirname(os.path.dirname(output.pdf))
+
+#         cmd = (
+#             f'python {input.script} '
+#             f'--base_pattern {input.data} '  # Pass input root files
+#             f'--target_path {target_path} '  # Pass the target path
+#             f'--balanced {wildcards.balanced} '  # Specify if classes are balance dor not
+#            # f'--unify_SS '  # Specify if SSKaon and SSProton should be unified in single class
+#             f'--BKG0 '
+#             f'&> {log}'  # Redirect stdout and stderr to log file
+#         )
+#         shell(cmd)
+
 
 rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
-        added_features = join(out, '{data_type}/2_added_features/{decay}/{id}.root'),
-
-    output: join(out, '{data_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/{id,.*}.root'),
-    log: join(out, '{data_type}/3_selected/{decay}/{tagger}/{cut_name}/{features}/.{id,.*}.log')
+        to_select = join(out, '{data_type}/NTuples/2_split/{decay}/{partition}/{ID}.root'),
+    output: join(out, '{data_type}/NTuples/3_selected/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
+    log:    join(out, '{data_type}/NTuples/3_selected/{decay}/{tagger}/{cut_name}/{features}/{partition}/.{ID}.log')
     resources:
         max_retries=0,
         mem_mb = 20_000, # Specify memory requirement in megabytes
-        MaxRunHours = 2, # short queue
+        MaxRunHours = 1, # short queue
     run:
-        # tree = find_tree_name(wildcards.decay)
-        data_calib = '--data_calib' if wildcards.data_type == 'Data' else ''
         BKG0 = '--BKG0' if wildcards.data_type == 'MC' else ''
+        cut_file = join(repo, 'cuts/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt')
        
         cmd = [
             'python', input.script,
-            '--added_features {input.added_features}',
+            '--to_select {input.to_select}',
             '--output {output}',
             # '--treename', tree,
-            '--cut_file', join(repo, 'cuts/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt'),
+            '--cut_file', cut_file,
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
             '--evtType {wildcards.decay}',
-            data_calib, BKG0,
+            BKG0,
+            '--data_type {wildcards.data_type}',
             '--repo', repo,
             '&> {log}',
         ]
         shell(' '.join(cmd))
 
-rule MC_Mass_Fit:
+
+rule train_tagger_MC: 
     input:
-        script = join(repo, 'scripts/mass_fits.py'),
-        # selected = lambda wildcards: [
-        #     f.replace('cutName', f'{wildcards.cut_name}')
-        #     for f in ntuples_selected_withUT_mc[f'{wildcards.decay}'][f'{wildcard'] 
-        #     if not f.endswith('4_1.mc.root')
-        # ],
-        raw = lambda wildcards: [get_raw_paths(wildcards.decay, id[:-5], 'MC') for id in mc_ids[wildcards.decay]],#[:1],
-        BDT = join(out, 'Data/1_weighted/{decay}/BDT/bdt_model.pkl')
+        script =join(repo, 'scripts/train_tagger.py'),
+        train = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}')
+            for f in selected_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+        ],
+        val = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'validation')
+            for f in selected_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
+        ],
+        config = join(repo, 'model_configs/{config}.yaml'),
     output:
-        join(out, 'Data/1_weighted/{decay}/mc_fit/mc_res_before_cut.json'),
-        mc_res = join(out, 'Data/1_weighted/{decay}/mc_fit/mc_res_after_cut.json'),
+        model=       join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
+        scaler=      join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
+        transformer= join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
     log:
-        join(out, 'Data/1_weighted/{decay}/mc_fit/mc_res.log'),
+        join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
+    priority: -1, # Lower priority for tagger training so all prior steps are executed first
     resources:
         max_retries=0,
-        mem_mb = 32_000, # Specify memory requirement in megabytes
-        MaxRunHours = 4, # medium queue
+        mem_mb = 30_000, # Specify memory requirement in megabytes 
+        MaxRunHours = 4, 
     threads:
         4,
     run:
-        tree = find_tree_name(wildcards.decay)
-        out_path = os.path.dirname(os.path.dirname(output.mc_res))
-
-        # raw = [f.replace(' /ceph/FlavourTagging/NTuples/Run3/MC/withUT_MC_2024/1_raw', '/scratch/togasa/MC/') for f in input.raw]
         if kernel_available():
-            raw = path_to_kernel(input.raw)
+            train = path_to_kernel(input.train)
+            val = path_to_kernel(input.val)
         else:
-            raw = input.raw
+            train = input.train
+            val = input.val
 
+
+        outpath = os.path.dirname(output.model)
 
         cmd = [
-            'python {input.script}',
-            # '--sim_files {input.selected}',
-            '--sim_files', ' '.join(raw),
-            '--range {lowerMass} {upperMass}', 
-            '--treename', tree,
-            '--simulation',
-            '--BDT {input.BDT}',
-            '--output', out_path,
-            '--decayType {wildcards.decay}',
+            'python', input.script,
+            '--training_data', ' '.join(train),
+            '--validation_data', ' '.join(val),
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
+            '--decay_type {wildcards.decay}',
+            '--repo', repo,
+            '--data_type MC',
+            '--target_path', outpath,
+            '--config {input.config}',
             '--num_threads {threads}',
-            '&> {log}'
+            '&> {log}',
         ]
+        print(' '.join(cmd))
         shell(' '.join(cmd))
-        
-
-rule thesis_mass_fit: #Plots without pulls for thesis 
-    input:
-        script = join(repo, 'scripts/no_pull_mass_plots.py'),
-        mc_res = join(out, 'Data/1_weighted/{decay}/mc_fit/mc_res_before_cut.json'),
-        data_res = join(out, 'Data/1_weighted/{decay}/data_fit/data_res_after_cut.json'),
-        
-        data_raw = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids],#[:1],
-
-        BDT = join(out, 'Data/1_weighted/{decay}/BDT/bdt_model.pkl')
-    output:
-        png = join(out, 'Data/1_weighted/{decay}/data_no_pull_plot/fit_after_cut.pdf'),
-    log:
-        join(out, 'Data/1_weighted/{decay}/data_no_pull_plot/no_pulls.log'),
-    resources:
-        max_retries=0,
-        mem_mb = 20_000, 
-        MaxRunHours = 6,
-    threads:
-        8,
-    run:
-        tree = find_tree_name(wildcards.decay)
-
-        out_path = os.path.dirname(os.path.dirname(output.png))
-
-        #Use ceph-kernel if available to increase file reading performance
-        if kernel_available():
-            raw = path_to_kernel(input.data_raw)
-        else:
-            raw = input.data_raw
-
-
-
-        cmd = [
-            'python {input.script}',
-            '--data_files ', ' '.join(raw),
-            '--range {lowerMass} {upperMass}', 
-            '--obs_name B_DTF_PV_Jpsi_MASS',
-            '--treename', tree,
-            '--output', out_path,
-            '--decayType {wildcards.decay}',
-            '--sim_fit {input.mc_res}',
-            '--data_fit {input.data_res}',
-            '--cut notSamePV_noOSP',
-            '--BDT {input.BDT}',
-            '--num_threads {threads}',
-            '&> {log}'
-        ]
-        shell(' '.join(cmd))
-
-rule data_Mass_Fit: 
-    input:
-        script = join(repo, 'scripts/mass_fits.py'),
-        mc_res = join(out, 'Data/1_weighted/{decay}/mc_fit/mc_res_before_cut.json'),
-
-
-        data_raw = lambda wildcards: [get_raw_paths(wildcards.decay, id, 'Data') for id in data_ids],
-
-        BDT = join(out, 'Data/1_weighted/{decay}/BDT/bdt_model.pkl')
-    output:
-        data_res = join(out, 'Data/1_weighted/{decay}/data_fit/data_res_after_cut.json'),
-        weights = join(out, 'Data/1_weighted/{decay}/data_fit/weights.root'),
-    log:
-        join(out, 'Data/1_weighted/{decay}/data_fit/data_res.log'),
-    resources:
-        max_retries=0,
-        mem_mb = 20_000, 
-        MaxRunHours = 6,
-    threads:
-        8,
-    run:
-        tree = find_tree_name(wildcards.decay)
-
-        out_path = os.path.dirname(os.path.dirname(output.data_res))
-
-        #Use ceph-kernel if available to increase file reading performance
-        if kernel_available():
-            raw = path_to_kernel(input.data_raw)
-        else:
-            raw = input.data_raw
-
-
-
-        cmd = [
-            'python {input.script}',
-            '--data_files ', ' '.join(raw),
-            '--range {lowerMass} {upperMass}', 
-            '--obs_name B_DTF_PV_Jpsi_MASS',
-            '--treename', tree,
-            '--output', out_path,
-            '--decayType {wildcards.decay}',
-            '--sim_fit {input.mc_res}',
-            '--cut notSamePV_noOSP',
-            '--BDT {input.BDT}',
-            '--num_threads {threads}',
-            '&> {log}'
-        ]
-        shell(' '.join(cmd))
-
-def get_memory_usage(ID):
-    ID_numb = int(ID.split('_')[-2])
-    if ID_numb > 800:
-        return 90_000  # IDs over 800 happen to be larger files in this case. No need to increase memory usage for smaller files
-    else:
-        return 30_000  # For smaller IDs, use less memory
 
 rule add_weights:
     input:
         script = join(repo, 'scripts/add_weights.py'),
         loading_vars = join(repo, 'configs/loading_variables.txt'),
-        # selected = join(out, 'Data/3_selected/{decay}/{cut_name}/{features}/{id}.data24.root'),
-        data_raw = lambda wildcards: get_raw_paths(wildcards.decay, f'{wildcards.id}.data24', 'Data'),
-        weights = join(out, 'Data/1_weighted/{decay}/data_fit/weights.root'),
-
+        selected = join(out, 'Data/NTuples/3_selected/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
+        weights = join(out, 'Data/mass_fit/{decay}/{partition}/weights.root'),
     output:
-        weighted = join(out, 'Data/1_weighted/{decay}/weighted_files/{id}.data24.root'),
+        weighted = join(out, 'Data/NTuples/4_weighted/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
     log:
-        join(out, 'Data/1_weighted/{decay}/weighted_files/{id}.data24.log'),
+        join(out, 'Data/NTuples/4_weighted/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.log'),
     resources:
         max_retries=0,
-        mem_mb = lambda wildcards: get_memory_usage(wildcards.id), 
-        MaxRunHours = 2, 
+        mem_mb = 40_000, 
+        MaxRunHours = 1, 
     run:
         out_path = os.path.dirname(output.weighted)
-        tree = find_tree_name(wildcards.decay)
 
         cmd = [
             'python {input.script}',
-            # '--data_file {input.selected}',
-            '--data_file {input.data_raw}',
-            # '--data_fit_model {input.model}',
-            # '--treename "DecayTree;1"',
-            '--treename', tree,
-            # '--sim_fit_model {input.mc_res}' ,
+            '--data_file {input.selected}',
             '--out_path', out_path,
             '--decayType {wildcards.decay}',
             '--obs_name B_DTF_PV_Jpsi_MASS',
@@ -683,6 +654,178 @@ rule add_weights:
         ]
 
         shell(' '.join(cmd))
+
+rule train_tagger_data:
+    input:
+        script = join(repo, 'scripts/train_tagger.py'),
+        train = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}')
+            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+        ],
+        val = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'validation')
+            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
+        ],
+
+        config = join(repo, 'model_configs/{config}.yaml'),
+    output:
+        model=       join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/model.pth'),
+        scaler=      join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/st_scaler.pkl'),
+        transformer= join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/powerTransformer.pkl'),
+    log:
+        join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/training_log.log'),
+    priority: -1, # Lower priority for tagger training so all prior steps are executed first
+    resources:
+        max_retries=0,
+        mem_mb = 40_000, # Specify memory requirement in megabytes 
+        MaxRunHours = 8, # long queue
+    threads:
+        8,
+    run:
+        if kernel_available():
+            train = path_to_kernel(input.train)
+            val = path_to_kernel(input.val)
+        else:
+            train = input.train
+            val = input.val
+
+
+        outpath = os.path.dirname(output.model)
+
+        cmd = [
+            'python', input.script,
+            '--training_data', ' '.join(train),
+            '--validation_data', ' '.join(val),
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
+            '--decay_type {wildcards.decay}',
+            '--weight_type {wildcards.weight_type}',
+            '--repo', repo,
+            '--data_type Data',
+            '--balance_dataset',
+            '--target_path', outpath,
+            '--config {input.config}',
+            '--num_threads {threads}',
+            '&> {log}',
+        ]
+
+        shell(' '.join(cmd))
+
+rule calibrate_on_MC:
+    input:
+        testing = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'test')
+            for f in selected_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
+        ],
+        model = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
+
+        script = join(repo, 'scripts/test_and_calibrate.py'),
+        config = join(repo, 'model_configs/{config}.yaml'),
+    output:
+        logit = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/logit/taggingInfo_logit.json'),
+        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/mistag/taggingInfo_mistag.json'),
+    log: 
+        join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/testing_log.log')
+    wildcard_constraints:
+        weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data trained taggers needs to represent the weight, for MC it is empty
+    priority: -2, # Lower priority for efficient use of requested cores
+    resources:
+        max_retries=0,
+        mem_mb = 35_000, # Specify memory requirement in megabytes 
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 2,
+    run:
+        outpath = os.path.dirname(os.path.dirname(output.logit))
+        model_path = os.path.dirname(input.model)
+
+        if kernel_available():
+            test_kernel = path_to_kernel(input.testing)
+        else:
+            test_kernel = input.testing
+
+
+        cmd = [
+            'python', input.script,
+            '--testing_data', ' '.join(test_kernel),
+            '--target_path', outpath,
+            '--train_path', model_path,
+            '--treename "DecayTree;1"',
+            '--tagger {wildcards.tagger}',
+            '--features {wildcards.features}',
+            '--config', input.config,
+            '--decay_type {wildcards.decay}',
+            '--seed {wildcards.seed}',
+            '--repo', repo,
+            '--data_type MC',
+            '--model_path', model_path,
+            '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
+rule calibrate_on_data:
+    input:
+        testing = lambda wildcards: [f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'test')
+            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
+        ],
+        model = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
+
+        script = join(repo, 'scripts/test_and_calibrate.py'),
+        config = join(repo, 'model_configs/{config}.yaml'),
+    output:
+        logit  = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/logit/taggingInfo_logit.json'),
+        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/mistag/taggingInfo_mistag.json'),
+    log: 
+        join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/testing_log.log')
+    wildcard_constraints:
+        weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data needs to represent the weight, for MC it is empty
+    priority: -2, # Lower priority for efficient use of requested cores
+    resources:
+        max_retries=0,
+        mem_mb = 35_000, # Specify memory requirement in megabytes 
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 2,
+    run:
+        outpath = os.path.dirname(os.path.dirname(output.logit))
+        model_path = os.path.dirname(input.model)
+
+        if kernel_available():
+            test_kernel = path_to_kernel(input.testing)
+        else:
+            test_kernel = input.testing
+
+
+        cmd = [
+            'python', input.script,
+            '--testing_data', ' '.join(test_kernel),
+            '--target_path', outpath,
+            '--train_path', model_path,
+            '--treename "DecayTree;1"',
+            '--tagger {wildcards.tagger}',
+            '--features {wildcards.features}',
+            '--config', input.config,
+            '--decay_type {wildcards.decay}',
+            '--seed {wildcards.seed}',
+            '--repo', repo,
+            '--data_type Data',
+            '--model_path', model_path,
+            '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
+
+
+
+
+
+
+
+###TILL HERE THE PIPELINE IS REWORKED AND FUNCTIONAL, RULES BELOW MAY NEED TO BE ADJUSTED TO NEW FOLDER STRUCTURE AND SCRIPT-CHANGES
+
+
+
+
 
 
 # Define the function to extract the decay based on the tagger
@@ -737,7 +880,7 @@ def get_model_path(wildcards):
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        split = join(out, '{data_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
+        split = join(out, '{data_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{ID}.root'),
 
         model= lambda wildcards: join(get_model_path(wildcards), 'model.pth'),
         transformer=lambda wildcards: join(get_model_path(wildcards),'powerTransformer.pkl'), 
@@ -745,9 +888,9 @@ rule add_tagDec:
 
         config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted).get("config")}.yaml'),
     output:
-        root = join(out, '{data_type}/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}/{id}.root'),
+        root = join(out, '{data_type}/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}/{ID}.root'),
     log:
-        join(out, '{data_type}/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}/{id}.log'),
+        join(out, '{data_type}/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}/{ID}.log'),
     resources:
         max_retries=0,
         mem_mb = 40_000, 
@@ -796,7 +939,7 @@ def get_tagged_paths(wildcards):
         else:
             ids = [basename(f)[:-5] for f in ntuples_train_split_withUT_mc[decay][tagger]]
 
-        all_paths.extend(join(pre_path_tagger, f'{id}.root') for id in ids)
+        all_paths.extend(join(pre_path_tagger, f'{ID}.root') for ID in ids)
 
     return all_paths
 
@@ -838,7 +981,7 @@ rule combine_MC_Data: #Combines data and MC for domain adaptation
         script = join(repo, 'scripts/combine_dataframes.py'),
         loading_vars = join(repo, 'configs/loading_variables.txt'),
         # data = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}') for f in ntuples_tagged_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']],
-        data = lambda wildcards: [join(out, f'Data/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.data_portion}/{id}.root') for id in data_ids],
+        data = lambda wildcards: [join(out, f'Data/5_split/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.data_portion}/{ID}.root') for ID in data_ids],
         MC = lambda wildcards: [
             f.replace('cutName', f'{wildcards.cut_name}').replace('train', f'{wildcards.data_portion}')
             for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
@@ -879,151 +1022,6 @@ rule combine_MC_Data: #Combines data and MC for domain adaptation
 
 
 
-rule split_sample:
-    input:
-        script = join(repo, 'scripts/split_train_val_test.py'),
-        to_split = lambda wildcards:  join(out, f'{wildcards.data_type}/3_selected/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}/{wildcards.features}/{wildcards.id}.root'),
-
-        hyper_int = join(repo, 'model_configs/hyperpar_intervals.yaml'), # For the train-val proportions
-    output:
-        train      = join(out, '{data_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/train/{id}.root'),
-        validation = join(out, '{data_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/validation/{id}.root'),
-        test       = join(out, '{data_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/test/{id}.root'),
-    log:
-        join(out, '{data_type}/5_split/{decay}/{tagger}/{cut_name}/{features}/log/.{id}.log'),
-    resources:
-        max_retries=0,
-        mem_mb = 15_000,
-        MaxRunHours = 3,
-    run:
-        out_path = os.path.dirname(os.path.dirname(output.train))
-
-        cmd = [
-            'python', input.script,
-            '--weighted {input.to_split}',
-            '--target_path', out_path,
-            '--config {input.hyper_int}',
-            '--decayType {wildcards.decay}',
-            '--treename "DecayTree;1"',
-            '--tagger {wildcards.tagger}',
-            '--data_type {wildcards.data_type}',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-
-
-rule train_tagger_MC: 
-    input:
-        script =join(repo, 'scripts/train_tagger.py'),
-        train = lambda wildcards: [
-            f.replace('cutName', f'{wildcards.cut_name}')
-            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-            # if not f.endswith('4_1.mc.root')
-        ],
-        val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
-            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
-            # if not f.endswith('4_1.mc.root')
-        ],
-        config = join(repo, 'model_configs/{config}.yaml'),
-    output:
-        model=       join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
-        scaler=      join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
-        transformer= join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
-    log:
-        join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
-    priority: -1, # Lower priority for tagger training so all prior steps are executed first
-    resources:
-        max_retries=0,
-        mem_mb = 30_000, # Specify memory requirement in megabytes 
-        #gpus = 1,
-        MaxRunHours = 24, # long queue
-    threads:
-        4,
-    run:
-        if kernel_available():
-            train_scratch = path_to_kernel(input.train)
-            val_scratch = path_to_kernel(input.val)
-        else:
-            train_scratch = input.train
-            val_scratch = input.val
-
-        # train_scratch = copy_to_scratch(input.train)
-        # val_scratch = copy_to_scratch(input.val)
-
-        outpath = os.path.dirname(output.model)
-
-        cmd = [
-            'python', input.script,
-            '--training_data', ' '.join(train_scratch),
-            '--validation_data', ' '.join(val_scratch),
-            '--tagger {wildcards.tagger}',
-            '--seed {wildcards.seed}',
-            '--features {wildcards.features}',
-            '--decay_type {wildcards.decay}',
-            '--repo', repo,
-            '--data_type MC',
-            '--target_path', outpath,
-            '--config {input.config}',
-            '--num_threads {threads}',
-            '&> {log}',
-        ]
-
-        shell(' '.join(cmd))
-
-rule train_tagger_data:
-    input:
-        script = join(repo, 'scripts/train_tagger.py'),
-        train = lambda wildcards: [
-            f.replace('cutName', f'{wildcards.cut_name}')
-            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-        ],
-        val = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'validation')
-            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-        ],
-
-        config = join(repo, 'model_configs/{config}.yaml'),
-    output:
-        model=       join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/model.pth'),
-        scaler=      join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/st_scaler.pkl'),
-        transformer= join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/powerTransformer.pkl'),
-    log:
-        join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/training_log.log'),
-    priority: -1, # Lower priority for tagger training so all prior steps are executed first
-    resources:
-        max_retries=0,
-        mem_mb = 40_000, # Specify memory requirement in megabytes 
-        #gpus = 1,
-        MaxRunHours = 8, # long queue
-    threads:
-        8,
-    run:
-        train_scratch = copy_to_scratch(input.train)
-        val_scratch = copy_to_scratch(input.val)
-
-
-        outpath = os.path.dirname(output.model)
-
-        cmd = [
-            'python', input.script,
-            '--training_data', ' '.join(train_scratch),
-            '--validation_data', ' '.join(val_scratch),
-            '--tagger {wildcards.tagger}',
-            '--seed {wildcards.seed}',
-            '--features {wildcards.features}',
-            '--decay_type {wildcards.decay}',
-            '--weight_type {wildcards.weight_type}',
-            '--repo', repo,
-            '--data_type Data',
-            '--balance_dataset',
-            # '--domain B_ID',
-            #'--clean',
-            '--target_path', outpath,
-            '--config {input.config}',
-            '--num_threads {threads}',
-            '&> {log}',
-        ]
-
-        shell(' '.join(cmd))
 
 rule train_tagger_domain_adapted:
     input:
@@ -1068,7 +1066,7 @@ rule train_tagger_domain_adapted:
             '--decay_type {wildcards.decay}',
             '--repo', repo,
             '--data_type domain_adapted',
-            '--balance_dataset',
+            # '--balance_dataset',
             '--target_path', outpath,
             '--config {input.config}',
             '--num_threads {threads}',
@@ -1078,107 +1076,3 @@ rule train_tagger_domain_adapted:
         shell(' '.join(cmd))
 
 
-rule calibrate_on_MC:
-    input:
-        testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
-            for f in ntuples_train_split_withUT_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
-            if not f.endswith('4_1.mc.root')
-        ],
-        model = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
-
-        script = join(repo, 'scripts/test_and_calibrate.py'),
-        config = join(repo, 'model_configs/{config}.yaml'),
-    output:
-        logit = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/logit/taggingInfo_logit.json'),
-        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/mistag/taggingInfo_mistag.json'),
-    log: 
-        join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/testing_log.log')
-    wildcard_constraints:
-        weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data trained taggers needs to represent the weight, for MC it is empty
-    priority: -2, # Lower priority for efficient use of requested cores
-    resources:
-        max_retries=0,
-        mem_mb = 35_000, # Specify memory requirement in megabytes 
-        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 2,
-        # request_disk = 256_000
-    run:
-        outpath = os.path.dirname(os.path.dirname(output.logit))
-        model_path = os.path.dirname(input.model)
-
-        if kernel_available():
-            test_kernel = path_to_kernel(input.testing)
-        else:
-            test_kernel = input.testing
-
-
-        cmd = [
-            'python', input.script,
-            '--testing_data', ' '.join(test_kernel),
-            '--target_path', outpath,
-            '--train_path', model_path,
-            '--treename "DecayTree;1"',
-            '--tagger {wildcards.tagger}',
-            '--features {wildcards.features}',
-            '--config', input.config,
-            '--decay_type {wildcards.decay}',
-            '--seed {wildcards.seed}',
-            '--repo', repo,
-            '--data_type MC',
-            '--model_path', model_path,
-            '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))
-
-rule calibrate_on_data:
-    input:
-        testing = lambda wildcards: [f.replace('cutName', f'{wildcards.cut_name}').replace('train', 'test')
-            for f in train_split_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-        ],
-        model = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
-
-        script = join(repo, 'scripts/test_and_calibrate.py'),
-        config = join(repo, 'model_configs/{config}.yaml'),
-    output:
-        logit = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/logit/taggingInfo_logit.json'),
-        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/mistag/taggingInfo_mistag.json'),
-    log: 
-        join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/testing_log.log')
-    wildcard_constraints:
-        weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data needs to represent the weight, for MC it is empty
-    priority: -2, # Lower priority for efficient use of requested cores
-    resources:
-        max_retries=0,
-        mem_mb = 35_000, # Specify memory requirement in megabytes 
-        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 2,
-        # request_disk = 256_000
-    run:
-        outpath = os.path.dirname(os.path.dirname(output.logit))
-        model_path = os.path.dirname(input.model)
-
-        if kernel_available():
-            test_kernel = path_to_kernel(input.testing)
-        else:
-            test_kernel = input.testing
-
-
-        cmd = [
-            'python', input.script,
-            '--testing_data', ' '.join(test_kernel),
-            '--target_path', outpath,
-            '--train_path', model_path,
-            '--treename "DecayTree;1"',
-            '--tagger {wildcards.tagger}',
-            '--features {wildcards.features}',
-            '--config', input.config,
-            '--decay_type {wildcards.decay}',
-            '--seed {wildcards.seed}',
-            '--repo', repo,
-            '--data_type Data',
-            '--model_path', model_path,
-            '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
-            '&> {log}',
-        ]
-        shell(' '.join(cmd))

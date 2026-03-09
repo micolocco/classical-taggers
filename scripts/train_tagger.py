@@ -1,14 +1,10 @@
-import sys
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 import time
 import uproot
 import pandas as pd
 from scripts.inputDataset import inputDataset
-import pickle
 from matplotlib import pyplot as plt
-from IPython import embed
 import os
 import argparse
 from pprint import pprint
@@ -18,16 +14,12 @@ import yaml
 import scripts.pyTorchTraining as pyTrain
 from scripts.NNModel import NeuralNetwork
 from scripts.NNModel import NNDomainAdapted
-from scripts import ranges, nice_names, matplotlib_lhcb_style
+from scripts import matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-import utils
 import psutil
 from scripts.shareddataset import SharedDataset
 
-from torch.distributed import init_process_group, destroy_process_group
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader, DistributedSampler
 import torch.multiprocessing as mp
 from rich.console import Console
 from rich.table import Table
@@ -36,6 +28,7 @@ import itertools
 import matplotlib
 
 from sklearn.metrics import accuracy_score
+from scripts.adding_features import translate_mc_names_to_data
 
 
 def stats_printout(tagger, decay_type, train_df, val_df, BID):
@@ -44,7 +37,6 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     '''
 
     use_weights = 'signal_weights' in train_df.columns
-    print(use_weights)
     def count_events(df, selected=None, weighted=False):
         if selected is not None:
             df = df[df.selected == selected]
@@ -206,56 +198,47 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     print(table_str)
     output.close()
 
-
-
-def read_files(files, vars, treename, reduce = False, weight_label = None,balance_data= False):
+def read_files(files, vars, treename, event_type, data_type, weight_label = None,balance_data= False):
     df = pd.DataFrame(columns=vars)
 
-    additional_vars = ['RUNNUMBER', 'EVENTNUMBER']
+    additional_vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER']
 
     if balance_data:
         additional_vars = additional_vars + ['B_Tr_T_Charge']
         if weight_label is not None:
             additional_vars = additional_vars + ['BID_signal_weights']
 
-    if 'domain' in vars:
-        additional_vars = additional_vars +['file_id']
+    if event_type[:2] == 'Bu' and data_type == 'data':
+        additional_vars = additional_vars + ['B_OWNPV_LTIME']
+
+
+    loading_vars = vars + additional_vars
+    loading_vars = translate_mc_names_to_data(loading_vars, event_type, False)
+
+    if isinstance(files, str):
+        files = [files]
 
     for i, f in enumerate(files):
         print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
         print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB')
 
-        if 'domain' not in vars:
-            id = os.path.basename(f)[:-5]
-            if id[-7:-2] == '.data':
-                id = id[:-7]
-            else:
-                id = id[:-3]
 
 
         with uproot.open("{}".format(f)) as _f:
-            _df = _f[treename].arrays(vars + additional_vars, library="pd")
+            _df = _f[treename].arrays(loading_vars, library="pd")
+
+        _df = _df[_df['selected'] == 1] #Keep only selected events, as only those are used for training and validation
         
         print(f"Number of tracks in file {i+1}: {_df.shape[0]}", flush=True)
 
         if 'domain' not in vars:
-            _df["event_entry"] = id + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+            _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
         else:
             _df.loc[_df['domain'] == 0, 'event_entry'] = _df["file_id"].astype(str) + "_" + "data" + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
             _df.loc[_df['domain'] == 1, 'event_entry'] = _df["file_id"].astype(str) + "_" + "mc" + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
 
-        if reduce: #Probably take this out after bkg rejection
-            df_event = _df.groupby("event_entry").first().reset_index()
-            n_keep = int(len(df_event) * 0.4)
-
-            # Get the indices of the rows with the highest weights
-            top_indices = df_event[weight_label].nlargest(n_keep).index
-
-            # Filter the DataFrame to keep only those rows, preserving original order
-            df_event = df_event.loc[df_event.index.isin(top_indices)]
-
-            _df = _df[_df['event_entry'].isin(df_event['event_entry'])].reset_index(drop=True)
-            del df_event
+        if event_type[:2] == 'Bu' and data_type == 'data': #remove data with a liftime greater then 2.2ps, to ensure low oscillation likelyhood
+            _df = _df[_df['B_OWNPV_LTIME'] < 0.0022]
 
 
         df = pd.concat([df, _df], ignore_index = True)
@@ -341,17 +324,24 @@ def read_files(files, vars, treename, reduce = False, weight_label = None,balanc
     return df
 
 def get_architecture(config):
+    if 'is_test' in config.keys(): #For config_test use architecture_test, a single architecture file used for testing strucural changes in architecture without the need of creating a whole set of architectures.yaml files. 
+        return 'architecture_test'
     if 'architecture' in config.keys():
         return config['architecture']
     else:
         nL = config['numlayers']
         nN = config['numneurons']
         dp = config['dropout']
-        return f'nL{nL}_nN{nN}_dp{dp}'
+        bn = '_BN' if config['use_batch_norm'] else ''
+        return f'nL{nL}_nN{nN}_dp{dp}{bn}'
+    
 
 def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_type, seed, tagger, decay_type, indexed = True):
     # Path to where the scaler parameters will be saved
+    print("Preparing datasets...", flush=True)
     torch.manual_seed(seed=seed)
+    random.seed(seed)
+    np.random.seed(seed)
     scalerPath = f"{target_path}/st_scaler.pkl"
     transformerPath = f"{target_path}/powerTransformer.pkl"
 
@@ -368,17 +358,13 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
         weights_train = train_df[weight_label].to_numpy()
         weights_val = val_df[weight_label].to_numpy()
 
-    # For training: keep only tracks that pass the pre-selections. 
-    # For calibration, events with 0 selected tracks must be kept. This is necessary to estimate the tagging efficiency correctly 
-    # Training-validation sets splitting
     if 'domain' in train_df.columns:
         stats_printout(tagger=tagger, decay_type=decay_type, train_df=train_df.loc[train_df.domain == 1], val_df=val_df.loc[val_df.domain == 1], BID=BID)
     else:
         stats_printout(tagger=tagger, decay_type=decay_type, train_df=train_df, val_df=val_df, BID=BID)
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
-    # Save test dataframe for calibration
     
-    columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]#, 'B_DTF_PV_Jpsi_MASS']
+    columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]
     if data_type == 'Data' and weight_label != 'ones':
         columns_to_drop.append(weight_label)
     if data_type == 'Data' and weight_label != 'signal_weights':
@@ -392,21 +378,13 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
     
     if config_name!='configs/config_test':
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
-    
+    print(f"Datasets prepared", flush=True)
     return train_ds, validation_ds, weights_train, weights_val
 
 def training(train_ds, validation_ds, vars,  weights_train, weights_val, 
              target_path, tagger, seed, features, config, data_type,
-             repo, num_threads = 1, clean = False, logfile = None):
-    if logfile is not None:
-        from scripts.batch_train_tagger import ThreadLocalStdout
-        sys.stdout = ThreadLocalStdout()
-        sys.stdout.set_log_file(logfile)
-        print(f'Trained in Batch mode')
-
+             repo, num_threads = 1, clean = False):
     torch.jit.enable_onednn_fusion(True)
-    
-
     start = datetime.datetime.now()
     print(f'Training started on {start.strftime("%Y-%m-%d %H:%M:%S")}')
 
@@ -418,18 +396,18 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val,
     
     # Check and eventually make output directory where training info will be saved
     pyTrain.recreate_directory(target_path, clean=clean)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Device used: {device}")
+    device ="cpu"
 
     if data_type == 'domain_adapted':
         model = NNDomainAdapted(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']},
-                               repo_path=repo, alpha=config['alpha']).to(device)
+                            repo_path=repo, alpha=config['alpha']).to(device)
     else:
         model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, 
-                              optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
+                            optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
 
     print(f'{num_threads} threads will be used for training', flush=True)
+
     if num_threads>1:
         if os.path.exists(f"{target_path}/port.temp"):#Remove port file if it remained after previous failed execution
             os.remove(f"{target_path}/port.temp")
@@ -442,10 +420,10 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val,
             validation_ds = SharedDataset(validation_ds, validation_ds_name)
 
         mp.spawn(pyTrain.train_model_EarlyStopping, args=(model, train_ds, 
-                                          validation_ds, target_path, 
-                                          config, return_dict,
-                                          weights_train, weights_val, 
-                                          num_threads), nprocs=num_threads)
+                                        validation_ds, target_path, 
+                                        config, seed, return_dict,
+                                        weights_train, weights_val, 
+                                        num_threads), nprocs=num_threads)
         train_ds.unlink(train_ds_name)
         validation_ds.unlink(validation_ds_name)
         os.remove(f"{target_path}/port.temp")
@@ -454,6 +432,7 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val,
         pyTrain.train_model_EarlyStopping(0, model, train_ds, 
                                 validation_ds, target_path, 
                                 config = config,
+                                seed = seed,
                                 return_dict = return_dict,
                                 train_weights = weights_train, 
                                 val_weights= weights_val, 
@@ -507,7 +486,7 @@ def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_
     if 'domain' in train_df.columns:
         pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path, 
                          trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_')
-        pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False, BID = BID, 
+        pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False, 
                             trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_', correct_legend= "Domain 0", wrong_legend= "Domain 1")
         plt.figure()
         plt.hist(1-train_df['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
@@ -533,11 +512,9 @@ def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_
         print(f'Class accuracy: {accuracy_score(val_df["yTrue"], val_df["yPred"]>0.5, sample_weight=val_df["yTrue"].map(class_weight))}')
 
     pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path)
-    # Fit with logistic regression and save it (non needed for the moment)
-    #clf = pyTrain.logistic_regression(df=train_df, target_path=target_path)
-    #pyTrain.plot_NNoutput_mistag(config.model_name, clf, yPredVal, yTrueVal, train_df['yPred'], train_df['yTrue'], target_path)
-    #pyTrain.plot_mistag(config.model_name, clf, yPredVal, yTrueVal, target_path, type = 'validation')
-    pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False, BID = BID)
+
+
+    pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False,)
     plt.figure()
     plt.hist(1-train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 0, only selected")
@@ -569,7 +546,6 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--num_threads', help='Number of threads to use in training', type=int, default=1)
-    parser.add_argument('--reduce', help='Whether to drop data samples with low weights', action='store_true', default=False)
     parser.add_argument('--balance_dataset', help='Whether to balance number of B_id and track charge tracks', action='store_true', default=False)
 
     cfg = parser.parse_args()
@@ -578,16 +554,10 @@ if __name__ == '__main__':
 
     print(f"training with {cfg.num_threads} threads")
 
-    BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
+    BID = 'B_ID'
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-
-
-    if cfg.data_type == 'Data':
-        print(f'features are {features}')
-        for i in range(len(features)):
-            features[i] = features[i].replace("BPVIP", "OWNPVIP")
-            features[i] = features[i].replace("B_TRUEID", "B_ID")
+    features = translate_mc_names_to_data(features, cfg.decay_type, False)
 
     vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] #'B_Tr_T_Charge',
     weight_label = None
@@ -607,12 +577,12 @@ if __name__ == '__main__':
     #Reading Data from files
     print(f'Reading of training files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.training_data)} files.", flush=True)
-    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label, balance_data = cfg.balance_dataset)
+    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type, weight_label=weight_label, balance_data = cfg.balance_dataset)
     print(f'Reading of training files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     print(f'Reading of validation files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.validation_data)} files.", flush=True)
-    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, reduce = cfg.reduce, weight_label=weight_label, balance_data = cfg.balance_dataset)
+    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type, weight_label=weight_label, balance_data = cfg.balance_dataset)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
     
 
