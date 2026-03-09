@@ -29,6 +29,7 @@ import matplotlib
 
 from sklearn.metrics import accuracy_score
 from scripts.adding_features import translate_mc_names_to_data
+import random
 
 
 def stats_printout(tagger, decay_type, train_df, val_df, BID):
@@ -198,15 +199,10 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     print(table_str)
     output.close()
 
-def read_files(files, vars, treename, event_type, data_type, weight_label = None,balance_data= False):
+def read_files(files, vars, treename, event_type, data_type, weight_label = None):
     df = pd.DataFrame(columns=vars)
 
     additional_vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER']
-
-    if balance_data:
-        additional_vars = additional_vars + ['B_Tr_T_Charge']
-        if weight_label is not None:
-            additional_vars = additional_vars + ['BID_signal_weights']
 
     if event_type[:2] == 'Bu' and data_type == 'data':
         additional_vars = additional_vars + ['B_OWNPV_LTIME']
@@ -243,82 +239,6 @@ def read_files(files, vars, treename, event_type, data_type, weight_label = None
 
         df = pd.concat([df, _df], ignore_index = True)
     del _df
-    
-    if balance_data:
-        BIDs = df[BID].unique()
-        trackCharges = df['B_Tr_T_Charge'].unique()
-
-        df.groupby('event_entry')
-
-        def num_events(df):
-            if 'BID_signal_weights' in df.columns:
-                return np.sum(df['BID_signal_weights'])
-            else:
-                return len(df)
-
-        df_events = df.groupby('event_entry').first()
-        yield_by_ID = [num_events(df_events[df_events[BID] == ID]) for ID in BIDs]
-        min_yield = min(yield_by_ID)
-
-        print(f"Before Event dropping:")
-        print(f"IDs: {BIDs}")
-        print(f"Yield by ID: {yield_by_ID}")
-        print(f"Number of events with {BIDs[0]}: {len(df_events[df_events[BID] == BIDs[0]])}")
-        print(f"Number of events with {BIDs[1]}: {len(df_events[df_events[BID] == BIDs[1]])}", flush=True)
-
-        print(df.head(), flush=True)
-
-        #Drop random events until the yield of both BIDs is roughly equal
-        for ID, ID_yield in zip(BIDs, yield_by_ID):
-            while ID_yield > min_yield:
-                # Randomly select an event to drop
-
-                n = int(ID_yield - min_yield)
-                if n == 0:
-                    n = 1
-                event_to_drop = df_events[df_events[BID] == ID].sample(n=n, random_state=42).index
-                #Drop all events_entries in event_to_drop#
-                df = df[~df['event_entry'].isin(event_to_drop)]
-
-                df_events = df.groupby('event_entry').first()
-                ID_yield = num_events(df_events[df_events[BID] == ID])
-
-        df_events = df.groupby('event_entry').first()
-        yield_by_ID = [num_events(df_events[df_events[BID] == ID]) for ID in BIDs]
-
-        print(f"After Event dropping:")
-        print(f"IDs: {BIDs}")
-        print(f"Yield by ID: {yield_by_ID}")
-        print(f"Number of events with {BIDs[0]}: {len(df_events[df_events[BID] == BIDs[0]])}")
-        print(f"Number of events with {BIDs[1]}: {len(df_events[df_events[BID] == BIDs[1]])}", flush=True)
-        del df_events
-                
-        numTracks = [
-                len(df[(df[BID] == BIDs[0]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
-                len(df[(df[BID] == BIDs[0]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
-                len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
-                len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
-        ]
-        minTracks = np.min(numTracks)
-        print(numTracks, flush=True)
-
-        #Drop random tracks until all BID and Trackcharge combinations have same number of tracks
-        for b, c in itertools.product(BIDs, trackCharges):
-            comb = df[(df[BID] == b) & (df["B_Tr_T_Charge"] == c)]
-            print(f"Before dropping tracks for {b}, {c}: {len(comb)} tracks", flush=True)
-            if len(comb) > minTracks:
-                idxs = comb.sample(n=len(comb) - minTracks, random_state=42).index
-                df.drop(idxs, inplace=True)
-
-        numTracks = [
-            len(df[(df[BID] == BIDs[0]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
-            len(df[(df[BID] == BIDs[0]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
-            len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[0])]),
-            len(df[(df[BID] == BIDs[1]) & (df["B_Tr_T_Charge"] == trackCharges[1])]),
-        ]
-        print(numTracks, flush=True)
-
-
     df.drop(columns=additional_vars, inplace=True)
         
     return df
@@ -339,9 +259,13 @@ def get_architecture(config):
 def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_type, seed, tagger, decay_type, indexed = True):
     # Path to where the scaler parameters will be saved
     print("Preparing datasets...", flush=True)
+
+    #Increase reproducibility by setting the seed
     torch.manual_seed(seed=seed)
     random.seed(seed)
     np.random.seed(seed)
+    torch.use_deterministic_algorithms(True)
+
     scalerPath = f"{target_path}/st_scaler.pkl"
     transformerPath = f"{target_path}/powerTransformer.pkl"
 
@@ -546,7 +470,6 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
     parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--num_threads', help='Number of threads to use in training', type=int, default=1)
-    parser.add_argument('--balance_dataset', help='Whether to balance number of B_id and track charge tracks', action='store_true', default=False)
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -577,12 +500,12 @@ if __name__ == '__main__':
     #Reading Data from files
     print(f'Reading of training files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.training_data)} files.", flush=True)
-    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type, weight_label=weight_label, balance_data = cfg.balance_dataset)
+    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type, weight_label=weight_label)
     print(f'Reading of training files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     print(f'Reading of validation files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.validation_data)} files.", flush=True)
-    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type, weight_label=weight_label, balance_data = cfg.balance_dataset)
+    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type, weight_label=weight_label)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
     
 

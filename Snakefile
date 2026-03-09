@@ -660,11 +660,11 @@ rule train_tagger_data:
         script = join(repo, 'scripts/train_tagger.py'),
         train = lambda wildcards: [
             f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}')
-            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+            for f in selected_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
         ],
         val = lambda wildcards: [
             f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'validation')
-            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
+            for f in selected_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
 
         config = join(repo, 'model_configs/{config}.yaml'),
@@ -703,7 +703,6 @@ rule train_tagger_data:
             '--weight_type {wildcards.weight_type}',
             '--repo', repo,
             '--data_type Data',
-            '--balance_dataset',
             '--target_path', outpath,
             '--config {input.config}',
             '--num_threads {threads}',
