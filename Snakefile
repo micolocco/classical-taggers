@@ -605,7 +605,9 @@ rule train_tagger_MC:
     threads:
         4,
     run:
+        outpath = os.path.dirname(output.model)
         if kernel_available():
+            outpath = path_to_kernel(outpath)
             train = path_to_kernel(input.train)
             val = path_to_kernel(input.val)
         else:
@@ -613,7 +615,6 @@ rule train_tagger_MC:
             val = input.val
 
 
-        outpath = os.path.dirname(output.model)
 
         cmd = [
             'python', input.script,
@@ -691,7 +692,9 @@ rule train_tagger_data:
     threads:
         8,
     run:
+        outpath = os.path.dirname(output.model)
         if kernel_available():
+            outpath = path_to_kernel(outpath)
             train = path_to_kernel(input.train)
             val = path_to_kernel(input.val)
         else:
@@ -699,7 +702,6 @@ rule train_tagger_data:
             val = input.val
 
 
-        outpath = os.path.dirname(output.model)
 
         cmd = [
             'python', input.script,
