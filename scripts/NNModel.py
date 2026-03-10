@@ -175,7 +175,7 @@ class NNDomainAdapted(NeuralNetwork):
 
 
 
-        domain_clf_layers = [GradientReversal(alpha = alpha)] +[copy.deepcopy(i) for i in  layers[int(num_layers/2*3):]] #TODO Alpha maybe hyperparameter?
+        domain_clf_layers = [GradientReversal(alpha = alpha)] +[copy.deepcopy(i) for i in  layers[int(num_layers/2*3):]] 
         domain_clf = nn.Sequential(*domain_clf_layers)
         return feat_ex, class_clf, domain_clf
 
