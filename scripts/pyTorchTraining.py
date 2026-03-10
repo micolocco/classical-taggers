@@ -10,7 +10,6 @@ from sklearn.linear_model import LogisticRegression
 import pickle
 from scipy.special import expit
 import json
-import scripts.pipeline
 from scripts.shareddataset import SharedDataset
 import traceback
 # Local imports
