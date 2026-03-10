@@ -101,10 +101,6 @@ if __name__ == '__main__':
             else:
                 print(f"File not found for seed {seed} in tagger {tagger} at path {path_bn}")
 
-            #TEMP TODO
-            #Copy loss curve files to the same location
-            shutil.copyfile(f"{base_path}{seed}/{base_config}_BN/training/Loss.pdf", f"{out_path}temp_BN/{tagger}_seed{seed}_loss.pdf")
-
     error_bar_plot(taggingPower_df, 'TaggingPower', os.path.join(out_path, 'Batch_norm_comparison.pdf'))
     box_plot(taggingPower_df, 'TaggingPower', os.path.join(out_path, 'Batch_norm_comparison_box.pdf'))
 
