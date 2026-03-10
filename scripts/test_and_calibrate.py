@@ -64,6 +64,8 @@ def study_eta_omega_dist(df, split_by, prefix, target_path, tagger, data_type):
 
     translation_dict = {'B_TRUEID': {-521: r'$B^-$', 521: r'$B^+$'},
                         'B_ID': {-521: r'$B^-$', 521: r'$B^+$'},
+                        'B_TRUEID': {-511: r'$\bar{B}^0$', 511: r'$B^0$'},
+                        'B_ID': {-511: r'$\bar{B}^0$', 511: r'$B^0$'},
                         'OSKaon_TagDec': {1: 'Positive', -1: 'Negative'},
                         'OSMuon_TagDec': {1: 'Positive', -1: 'Negative'},
                         'OSElectron_TagDec': {1: 'Positive', -1: 'Negative'},
