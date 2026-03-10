@@ -8,6 +8,8 @@ from copy import deepcopy
 import yaml
 import json
 
+configfile: 'configs/config_taggers.yaml'
+
 try:
     data = config['DATA']
     MC = config['MC']
@@ -19,7 +21,7 @@ try:
     #In how many sections combined dataframes are splint into when usind domain adaptation or combining small data files
     combined_df_n_splits = config['combined_df_n_splits'] 
 except:
-    raise RuntimeError("Make sure to specify snakemake config")
+    raise RuntimeError("No valid snakemake config found")
 
 def in_data(data_path, list_of_files):
     return [join(data_path, i) for i in list_of_files if '#' not in i and len(i) > 0]
@@ -226,8 +228,12 @@ wildcard_constraints:
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/15/lr0.001_bs8192_nL6_nN64_BN/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/15/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
+        '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
+        '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
+        
+
+        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/15/lr0.001_bs8192_nL6_nN64_BN/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/15/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
 
         # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/{seed}/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
         #     tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
@@ -287,259 +293,259 @@ def get_raw_paths(decay, ID, data_type):
         print(f"data type is {data_type} instead of MC or Data. Somethings broken")
         raise RuntimeError
 
-# rule add_features:
-#     input:
-#         script = join(repo, 'scripts/adding_features.py'),
-#         loading_vars = join(repo, 'configs/loading_variables.txt'),
-#         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
-#         raw = lambda wildcards: get_raw_paths(wildcards.decay, wildcards.ID, wildcards.data_type),
-#     output: 
-#         root =join(out, '{data_type}/NTuples/1_added_features/{decay}/{ID}.root'), 
-#     log:                            
-#         join(out, '{data_type}/NTuples/1_added_features/{decay}/.{ID}.log')
-#     resources:
-#         max_retries=0,
-#         mem_mb = 10_000,
-#         MaxRunHours = 1, # short queue
-#     run:
-#         tree = find_tree_name(wildcards.decay)
-#         dataCalib = '--data_calib' if wildcards.data_type == 'Data' else ''
+rule add_features:
+    input:
+        script = join(repo, 'scripts/adding_features.py'),
+        loading_vars = join(repo, 'configs/loading_variables.txt'),
+        signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+        raw = lambda wildcards: get_raw_paths(wildcards.decay, wildcards.ID, wildcards.data_type),
+    output: 
+        root =join(out, '{data_type}/NTuples/1_added_features/{decay}/{ID}.root'), 
+    log:                            
+        join(out, '{data_type}/NTuples/1_added_features/{decay}/.{ID}.log')
+    resources:
+        max_retries=0,
+        mem_mb = 10_000,
+        MaxRunHours = 1, # short queue
+    run:
+        tree = find_tree_name(wildcards.decay)
+        dataCalib = '--data_calib' if wildcards.data_type == 'Data' else ''
 
-#         cmd = [
-#             'python', input.script,
-#             '--raw {input.raw}',
-#             '--output {output}',
-#             '--evtType {wildcards.decay}',
-#             '--treename', tree,
-#             '--loading_features {input.loading_vars}',
-#             '--signal_class_features {input.signal_class_features}',
-#             f'{dataCalib}',
-#             '&> {log}',
-#         ]
-#         shell(' '.join(cmd))
+        cmd = [
+            'python', input.script,
+            '--raw {input.raw}',
+            '--output {output}',
+            '--evtType {wildcards.decay}',
+            '--treename', tree,
+            '--loading_features {input.loading_vars}',
+            '--signal_class_features {input.signal_class_features}',
+            f'{dataCalib}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
 
 
-# rule combine_small_files:
-#     input:
-#         script = join(repo, 'scripts/combine_dataframes.py'),
-#         data = lambda wildcards: np.array(feat_added_data[wildcards.decay])[combine_indices[int(wildcards.ID)]],
-#     output:
-#         join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.root'),
-#     log: 
-#         join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.log'),
-#     resources:
-#         max_retries=0,
-#         mem_mb = 90_000,
-#         MaxRunHours = 1, # short queue
-#     run:
-#         path = os.path.dirname(output[0])
+rule combine_small_files:
+    input:
+        script = join(repo, 'scripts/combine_dataframes.py'),
+        data = lambda wildcards: np.array(feat_added_data[wildcards.decay])[combine_indices[int(wildcards.ID)]],
+    output:
+        join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.root'),
+    log: 
+        join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 90_000,
+        MaxRunHours = 1, # short queue
+    run:
+        path = os.path.dirname(output[0])
 
-#         if kernel_available():
-#             data = path_to_kernel(input.data)
-#         else:
-#             data = input.data
+        if kernel_available():
+            data = path_to_kernel(input.data)
+        else:
+            data = input.data
 
-#         cmd = [
-#             f'python {input.script} ',
-#             f'--data_files ', ' '.join(data),  
-#             f'--target_path {path} ',  
-#             f'--treename "DecayTree;1" ', 
-#             f'--splits 1',  
-#             f'--evtType {wildcards.decay} ', 
-#             f'--index {wildcards.ID} ',
-#             f'&> {log}', 
-#         ]
+        cmd = [
+            f'python {input.script} ',
+            f'--data_files ', ' '.join(data),  
+            f'--target_path {path} ',  
+            f'--treename "DecayTree;1" ', 
+            f'--splits 1',  
+            f'--evtType {wildcards.decay} ', 
+            f'--index {wildcards.ID} ',
+            f'&> {log}', 
+        ]
 
-#         shell(' '.join(cmd))
+        shell(' '.join(cmd))
 
-# rule split_sample:
-#     input:
-#         script = join(repo, 'scripts/split_train_val_test.py'),
-#         to_split = lambda wildcards: join(out, f'MC/NTuples/1_added_features/{wildcards.decay}/{wildcards.ID}.root') if wildcards.data_type == 'MC' 
-#                                 else join(out, f'Data/NTuples/1_added_features/{wildcards.decay}/combined/{wildcards.ID}.root'),
+rule split_sample:
+    input:
+        script = join(repo, 'scripts/split_train_val_test.py'),
+        to_split = lambda wildcards: join(out, f'MC/NTuples/1_added_features/{wildcards.decay}/{wildcards.ID}.root') if wildcards.data_type == 'MC' 
+                                else join(out, f'Data/NTuples/1_added_features/{wildcards.decay}/combined/{wildcards.ID}.root'),
 
-#         hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
-#     output:
-#         train      = join(out, '{data_type}/NTuples/2_split/{decay}/train/{ID}.root'),
-#         validation = join(out, '{data_type}/NTuples/2_split/{decay}/validation/{ID}.root'),
-#         test       = join(out, '{data_type}/NTuples/2_split/{decay}/test/{ID}.root'),
-#     log:
-#         join(out, '{data_type}/NTuples/2_split/{decay}/log/.{ID}.log'),
-#     resources:
-#         max_retries=0,
-#         mem_mb = 65_000,
-#         MaxRunHours = 1,
-#     run:
-#         out_path = os.path.dirname(os.path.dirname(output.train))
-#         treename = '"DecayTree;1"' 
+        hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
+    output:
+        train      = join(out, '{data_type}/NTuples/2_split/{decay}/train/{ID}.root'),
+        validation = join(out, '{data_type}/NTuples/2_split/{decay}/validation/{ID}.root'),
+        test       = join(out, '{data_type}/NTuples/2_split/{decay}/test/{ID}.root'),
+    log:
+        join(out, '{data_type}/NTuples/2_split/{decay}/log/.{ID}.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 65_000,
+        MaxRunHours = 1,
+    run:
+        out_path = os.path.dirname(os.path.dirname(output.train))
+        treename = '"DecayTree;1"' 
         
-#         cmd = [
-#             'python', input.script,
-#             '--to_split {input.to_split}',
-#             '--target_path', out_path,
-#             '--config {input.hyper_int}',
-#             '--treename', treename,
-#             '--data_type {wildcards.data_type}',
-#             '&> {log}',
-#         ]
-#         shell(' '.join(cmd))
+        cmd = [
+            'python', input.script,
+            '--to_split {input.to_split}',
+            '--target_path', out_path,
+            '--config {input.hyper_int}',
+            '--treename', treename,
+            '--data_type {wildcards.data_type}',
+            '&> {log}',
+        ]
+        shell(' '.join(cmd))
 
-# rule train_signal_classifier:
-#     input:
-#         script = join(repo, 'scripts/train_BDT.py'),
-#         data = lambda wildcards: combined_data[wildcards.decay],
-#         mc = lambda wildcards: feat_added_mc[wildcards.decay], 
-#         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
-#     output:
-#         BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl')
-#     log:
-#         join(out, 'Data/signal_classifier/{decay}/BDT_train.log')
-#     resources:
-#         max_retries=0,
-#         mem_mb = 20_000,
-#         MaxRunHours = 4,
-#     threads:
-#         8,
-#     run:
-#         out_path = os.path.dirname(output.BDT)
+rule train_signal_classifier:
+    input:
+        script = join(repo, 'scripts/train_BDT.py'),
+        data = lambda wildcards: combined_data[wildcards.decay],
+        mc = lambda wildcards: feat_added_mc[wildcards.decay], 
+        signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+    output:
+        BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl')
+    log:
+        join(out, 'Data/signal_classifier/{decay}/BDT_train.log')
+    resources:
+        max_retries=0,
+        mem_mb = 20_000,
+        MaxRunHours = 4,
+    threads:
+        8,
+    run:
+        out_path = os.path.dirname(output.BDT)
 
-#         if kernel_available():
-#             data = path_to_kernel(input.data)
-#             mc   = path_to_kernel(input.mc)
-#         else:
-#             data = input.data
-#             mc   = input.mc
+        if kernel_available():
+            data = path_to_kernel(input.data)
+            mc   = path_to_kernel(input.mc)
+        else:
+            data = input.data
+            mc   = input.mc
 
-#         cmd = [
-#             'python', input.script,
-#             '--real_data', ' '.join(data),
-#             '--mc_data', ' '.join(mc),
-#             '--target_path', out_path,
-#             '--treename "DecayTree;1"',
-#             '--decay_type {wildcards.decay}',
-#             '--massname B_DTF_PV_Jpsi_MASS',
-#             '--num_threads {threads}',
-#             '--signal_class_features', input.signal_class_features,
-#             '&> {log}',
-#         ]
-
-
-#         shell(' '.join(cmd))
-
-# rule MC_Mass_Fit:
-#     input:
-#         script = join(repo, 'scripts/mass_fits.py'),
-#         data = lambda wildcards: [i.replace('train', wildcards.partition) for i in train_split_mc[wildcards.decay]],
-#         BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl'),
-#         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
-#     output:
-#         join(out, 'MC/mass_fit/{decay}/{partition}/fit_before_cut.json'),
-#         mc_res = join(out, 'MC/mass_fit/{decay}/{partition}/fit_after_cut.json'),
-#     log:
-#         join(out, 'MC/mass_fit/{decay}/{partition}/fit.log'),
-#     resources:
-#         max_retries=0,
-#         mem_mb = 32_000, # Specify memory requirement in megabytes
-#         MaxRunHours = 4, # medium queue
-#     threads:
-#         4,
-#     run:
-#         out_path = os.path.dirname(output.mc_res)
-
-#         if kernel_available():
-#             data = path_to_kernel(input.data)
-#         else:
-#             data = input.data
+        cmd = [
+            'python', input.script,
+            '--real_data', ' '.join(data),
+            '--mc_data', ' '.join(mc),
+            '--target_path', out_path,
+            '--treename "DecayTree;1"',
+            '--decay_type {wildcards.decay}',
+            '--massname B_DTF_PV_Jpsi_MASS',
+            '--num_threads {threads}',
+            '--signal_class_features', input.signal_class_features,
+            '&> {log}',
+        ]
 
 
-#         cmd = [
-#             'python {input.script}',
-#             '--input_files', ' '.join(data),
-#             '--range {lowerMass} {upperMass}', 
-#             '--treename "DecayTree;1"',
-#             '--simulation',
-#             '--BDT {input.BDT}',
-#             '--output', out_path,
-#             '--decay_type {wildcards.decay}',
-#             '--num_threads {threads}',
-#             '--signal_class_features {input.signal_class_features}',
-#             '&> {log}'
-#         ]
-#         shell(' '.join(cmd))
+        shell(' '.join(cmd))
 
-# rule data_Mass_Fit: 
-#     input:
-#         script = join(repo, 'scripts/mass_fits.py'),
-#         mc_res = join(out, 'MC/mass_fit/{decay}/{partition}/fit_before_cut.json'),
-#         data = lambda wildcards: [i.replace('train', wildcards.partition) for i in train_split_data[wildcards.decay]],
-#         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
-#         BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl'),
-#     output:
-#         data_res = join(out, 'Data/mass_fit/{decay}/{partition}/fit_after_cut.json'),
-#         weights = join(out, 'Data/mass_fit/{decay}/{partition}/weights.root'),
-#     log:
-#         join(out, 'Data/mass_fit/{decay}/{partition}/fit.log'),
-#     resources:
-#         max_retries=0,
-#         mem_mb = 20_000, 
-#         MaxRunHours = 4,
-#     threads:
-#         8,
-#     run:
-#         out_path = os.path.dirname(output.data_res)
+rule MC_Mass_Fit:
+    input:
+        script = join(repo, 'scripts/mass_fits.py'),
+        data = lambda wildcards: [i.replace('train', wildcards.partition) for i in train_split_mc[wildcards.decay]],
+        BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl'),
+        signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+    output:
+        join(out, 'MC/mass_fit/{decay}/{partition}/fit_before_cut.json'),
+        mc_res = join(out, 'MC/mass_fit/{decay}/{partition}/fit_after_cut.json'),
+    log:
+        join(out, 'MC/mass_fit/{decay}/{partition}/fit.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 32_000, # Specify memory requirement in megabytes
+        MaxRunHours = 4, # medium queue
+    threads:
+        4,
+    run:
+        out_path = os.path.dirname(output.mc_res)
 
-#         #Use ceph-kernel if available to increase file reading performance
-#         if kernel_available():
-#             data = path_to_kernel(input.data)
-#         else:
-#             data = input.data
+        if kernel_available():
+            data = path_to_kernel(input.data)
+        else:
+            data = input.data
 
 
+        cmd = [
+            'python {input.script}',
+            '--input_files', ' '.join(data),
+            '--range {lowerMass} {upperMass}', 
+            '--treename "DecayTree;1"',
+            '--simulation',
+            '--BDT {input.BDT}',
+            '--output', out_path,
+            '--decay_type {wildcards.decay}',
+            '--num_threads {threads}',
+            '--signal_class_features {input.signal_class_features}',
+            '&> {log}'
+        ]
+        shell(' '.join(cmd))
 
-#         cmd = [
-#             'python {input.script}',
-#             '--input_files', ' '.join(data),
-#             '--range {lowerMass} {upperMass}', 
-#             '--obs_name B_DTF_PV_Jpsi_MASS',
-#             '--treename "DecayTree;1"',
-#             '--output', out_path,
-#             '--decay_type {wildcards.decay}',
-#             '--sim_fit {input.mc_res}',
-#             '--cut notSamePV_noOSP',
-#             '--BDT {input.BDT}',
-#             '--num_threads {threads}',
-#             '--signal_class_features {input.signal_class_features}',
+rule data_Mass_Fit: 
+    input:
+        script = join(repo, 'scripts/mass_fits.py'),
+        mc_res = join(out, 'MC/mass_fit/{decay}/{partition}/fit_before_cut.json'),
+        data = lambda wildcards: [i.replace('train', wildcards.partition) for i in train_split_data[wildcards.decay]],
+        signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+        BDT = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl'),
+    output:
+        data_res = join(out, 'Data/mass_fit/{decay}/{partition}/fit_after_cut.json'),
+        weights = join(out, 'Data/mass_fit/{decay}/{partition}/weights.root'),
+    log:
+        join(out, 'Data/mass_fit/{decay}/{partition}/fit.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 20_000, 
+        MaxRunHours = 4,
+    threads:
+        8,
+    run:
+        out_path = os.path.dirname(output.data_res)
 
-#             '&> {log}'
-#         ]
-#         shell(' '.join(cmd))
+        #Use ceph-kernel if available to increase file reading performance
+        if kernel_available():
+            data = path_to_kernel(input.data)
+        else:
+            data = input.data
 
-# rule train_DT:
-#     input:
-#         script = join(repo, 'scripts/origin_DT_cut.py'),
-#         data = join(out, 'MC/2_added_features'),
-#     output:
-#         pdf = join(out, 'MC/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.pdf'),
-#     log:
-#         join(out, 'MC/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.log')
-#     resources:
-#         max_retries=0,
-#         mem_mb = 20_000, # Specify memory requirement in megabytes
-#         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-#         MaxRunHours = 8, # medium queue
-#     run:
-#         target_path = os.path.dirname(os.path.dirname(output.pdf))
 
-#         cmd = (
-#             f'python {input.script} '
-#             f'--base_pattern {input.data} '  # Pass input root files
-#             f'--target_path {target_path} '  # Pass the target path
-#             f'--balanced {wildcards.balanced} '  # Specify if classes are balance dor not
-#            # f'--unify_SS '  # Specify if SSKaon and SSProton should be unified in single class
-#             f'--BKG0 '
-#             f'&> {log}'  # Redirect stdout and stderr to log file
-#         )
-#         shell(cmd)
+
+        cmd = [
+            'python {input.script}',
+            '--input_files', ' '.join(data),
+            '--range {lowerMass} {upperMass}', 
+            '--obs_name B_DTF_PV_Jpsi_MASS',
+            '--treename "DecayTree;1"',
+            '--output', out_path,
+            '--decay_type {wildcards.decay}',
+            '--sim_fit {input.mc_res}',
+            '--cut notSamePV_noOSP',
+            '--BDT {input.BDT}',
+            '--num_threads {threads}',
+            '--signal_class_features {input.signal_class_features}',
+
+            '&> {log}'
+        ]
+        shell(' '.join(cmd))
+
+rule train_DT:
+    input:
+        script = join(repo, 'scripts/origin_DT_cut.py'),
+        data = join(out, 'MC/2_added_features'),
+    output:
+        pdf = join(out, 'MC/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.pdf'),
+    log:
+        join(out, 'MC/DT_outputs/notSamePV_noOSP/{balanced}/treeSchema.log')
+    resources:
+        max_retries=0,
+        mem_mb = 20_000, # Specify memory requirement in megabytes
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 8, # medium queue
+    run:
+        target_path = os.path.dirname(os.path.dirname(output.pdf))
+
+        cmd = (
+            f'python {input.script} '
+            f'--base_pattern {input.data} '  # Pass input root files
+            f'--target_path {target_path} '  # Pass the target path
+            f'--balanced {wildcards.balanced} '  # Specify if classes are balance dor not
+           # f'--unify_SS '  # Specify if SSKaon and SSProton should be unified in single class
+            f'--BKG0 '
+            f'&> {log}'  # Redirect stdout and stderr to log file
+        )
+        shell(cmd)
 
 
 rule add_selection:
