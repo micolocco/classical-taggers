@@ -415,27 +415,6 @@ if __name__ == '__main__':
         pd.set_option('display.max_columns', 15)
 
         sim_fit_after_cut = cfg.sim_fit.replace('before_cut', 'after_cut')
-
-
-        df_data = df_data[df_data['signalness'] > cut]
-        df_data['BID_signal_weights'] = 0
-        df_data['BID_background_weights'] = 0
-        for id in df_data['B_ID'].unique():
-            print(f'Calculating Sweights for BID={id}')
-            df_fit = df_data[df_data['B_ID'] == id]
-
-            
-            masses  = df_fit[massname].values
-            massfit(obs, masses, tex_decay, f'fit_after_cut_BID{id}', cfg.simulation, sim_fit_after_cut, f"fit_after_cut.pdf", df_fit, 
-                    compute_weights= True, generate_figures= True, obs_name = cfg.obs_name, prefix=f'BID{id}_', )
-            
-            # print(df_data.head(10))
-
-            # print(df_data.loc[df_data['B_ID'] == id])
-            # print(df_fit['BID_signal_weights'].values)
-            df_data.loc[df_data['B_ID'] == id, 'BID_signal_weights'] = df_fit[f'BID{id}_signal_weights'].values
-            df_data.loc[df_data['B_ID'] == id, 'BID_background_weights'] = df_fit[f'BID{id}_background_weights'].values
-
         print(f'Calculating total Sweights')
         masses  = df_data[massname].values
         massfit(obs, masses, tex_decay, 'fit_after_cut', cfg.simulation, sim_fit_after_cut, f"fit_after_cut.pdf", df_data, True, True, cfg.obs_name, )
