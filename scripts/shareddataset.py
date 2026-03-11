@@ -114,7 +114,7 @@ class SharedDataset(Dataset):
         sample.append(tensor.view(self.sample_shapes[i]))
       sample = tuple(sample)
 
-    return sample, index
+    return sample
 
   def __len__(self):
     """Return the length of the dataset (number of samples). Defers to the wrapped Dataset.

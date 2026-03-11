@@ -15,10 +15,7 @@ import copy
 class NeuralNetwork(nn.Module):
 
     def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, 
-                 seed=6, loss=nn.BCELoss(reduction='none'), repo_path="", create_network=True): 
-        '''
-        The loss function's reduce flag must be set to none to enable individual sample weighting.
-        '''
+                 seed=6, loss=nn.BCELoss(), repo_path="", create_network=True): 
         super().__init__()
         torch.manual_seed(seed) # needed to be sure the result is reproducible
         self.features = features
@@ -54,46 +51,36 @@ class NeuralNetwork(nn.Module):
         return str(self.NN)
 
     # train the model
-    def train_model(self, train_dl, epoch,n_epochs, sample_weights=None):
-        n_total_steps = len(train_dl)
+    def train_model(self, train_dl):
         stepLoss = []
         self.train() #Sets model to training mode
         # enumerate mini batches
 
-        for i, ((inputsTrain, targetsTrain), indices) in enumerate(train_dl):
+        for inputsTrain, targetsTrain in train_dl:
             # Clear the gradients
             self.optimizer.zero_grad(set_to_none=True)
             # compute the model output
             yPredTrain = self(inputsTrain)
-            if sample_weights is not None:
-                batch_weights = sample_weights[indices]
-            else:
-                batch_weights = None
-            training_loss = self.calc_loss(yPredTrain, targetsTrain, sample_weights=batch_weights)
+
+            training_loss = self.calc_loss(yPredTrain, targetsTrain)
             stepLoss.append(training_loss.tolist())
             if isinstance(self, NNDomainAdapted):
                 training_loss = training_loss.sum() #Sum the losses for class and domain classifier
             training_loss.backward()
             # update model weights
             self.optimizer.step()
-            # Calculate per batch loss
-            #if (i+1) % 1000 == 0:
-                #print (f'Epoch [{epoch+1}/{n_epochs}], Step [{i+1}/{n_total_steps}], Loss: {training_loss.item():.4f}')
+
         return stepLoss
     
-    def validate_model(self, validation_dl, sample_weights=None):
+    def validate_model(self, validation_dl):
         self.eval() #Sets model to evaluation mode
         validationStep_loss = []
-        for i, ((inputsVal, targetsVal), indices) in enumerate(validation_dl):
+        for inputsVal, targetsVal in validation_dl:
     
             # Forward pass
             yPredVal = self(inputsVal)
-            if sample_weights is not None:
-                batch_weights = sample_weights[indices]
-            else:
-                batch_weights = None
             with torch.no_grad():
-                validation_loss = self.calc_loss(yPredVal, targetsVal, sample_weights=batch_weights)
+                validation_loss = self.calc_loss(yPredVal, targetsVal)
             validationStep_loss.append(validation_loss.tolist())
         return validationStep_loss
     
@@ -103,24 +90,15 @@ class NeuralNetwork(nn.Module):
 
         return -torch.mul(x, target.float()) - torch.mul(y, (1 - target).float())
 
-    def calc_loss(self, yPred, target, sample_weights = None):
-        # if sample_weights is None:
-        #     sample_weights = torch.ones(target.shape)
-
-
-        loss = self.criterion(yPred.view(-1, 1), target.view(-1, 1)).view(-1)
-
-        if sample_weights is not None:
-            loss = torch.matmul(loss,sample_weights.float()) / torch.sum(sample_weights)
-
-
-        return loss.mean()
+    def calc_loss(self, yPred, target, ):
+        loss = self.criterion(yPred.view(-1, 1), target.view(-1, 1))
+        return loss
 
     # Evaluate the model
     def evaluate_model(self, test_dl):
         self.eval()
         predictions, actuals = list(), list()
-        for i, ((inputs, targets), _) in enumerate(test_dl):
+        for inputs, targets in test_dl:
             # evaluate the model on the test set
             with torch.no_grad():
                 yPred = self(inputs)
@@ -146,10 +124,7 @@ class NeuralNetwork(nn.Module):
 class NNDomainAdapted(NeuralNetwork):
 
     def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, 
-                 loss=nn.BCELoss(reduction='none'), repo_path="", alpha= 1.0): 
-        '''
-        The loss function's reduce flag must be set to none to enable individual sample weighting.
-        '''
+                 loss=nn.BCELoss(), repo_path="", alpha= 1.0): 
         super().__init__(features, architecture, optimizer=optimizer, optimizer_kwargs={}, seed=seed, 
                          loss=loss, repo_path=repo_path, create_network = False)
 
@@ -186,10 +161,10 @@ class NNDomainAdapted(NeuralNetwork):
         
         return torch.stack([class_pred, domain_pred], axis=1).view(-1,2)
     
-    def calc_loss(self, yPred, target, sample_weights = None):
+    def calc_loss(self, yPred, target):
 
         class_loss = super().calc_loss(yPred[:,0][target[:,1] == 1], target[:,0][target[:,1] == 1], None) #Only train label classifier on domain 1 (MC) samples
-        dom_loss = super().calc_loss(yPred[:,1], target[:,1], sample_weights)
+        dom_loss = super().calc_loss(yPred[:,1], target[:,1])
 
         return torch.stack([class_loss, dom_loss])
 

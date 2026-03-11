@@ -228,8 +228,10 @@ wildcard_constraints:
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
+        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/config_test/testing/Data/logit/taggingInfo_logit.json',
+
+        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
         
 
         # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/15/lr0.001_bs8192_nL6_nN64_BN/testing/Data/logit/taggingInfo_logit.json',
@@ -631,7 +633,6 @@ rule train_tagger_MC:
             '--num_threads {threads}',
             '&> {log}',
         ]
-        print(' '.join(cmd))
         shell(' '.join(cmd))
 
 
@@ -650,11 +651,11 @@ rule train_tagger_data:
 
         config = join(repo, 'model_configs/{config}.yaml'),
     output:
-        model=       join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/model.pth'),
-        scaler=      join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/st_scaler.pkl'),
-        transformer= join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/powerTransformer.pkl'),
+        model=       join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
+        scaler=      join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
+        transformer= join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
     log:
-        join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_type}/training/training_log.log'),
+        join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
     priority: -1, # Lower priority for tagger training so all prior steps are executed first
     resources:
         max_retries=0,
@@ -682,7 +683,6 @@ rule train_tagger_data:
             '--seed {wildcards.seed}',
             '--features {wildcards.features}',
             '--decay_type {wildcards.decay}',
-            '--weight_type {wildcards.weight_type}',
             '--repo', repo,
             '--data_type Data',
             '--target_path', outpath,
@@ -690,7 +690,7 @@ rule train_tagger_data:
             '--num_threads {threads}',
             '&> {log}',
         ]
-
+        print(' '.join(cmd))
         shell(' '.join(cmd))
 
 rule calibrate_on_MC:

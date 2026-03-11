@@ -10,8 +10,7 @@ import torch
 # Dataset definition
 class inputDataset(Dataset):
     # load the dataset
-    def __init__(self, df, indexed=True):
-        self.indexed = indexed
+    def __init__(self, df):
         if 'domain' in df.columns:
             self.y = df[['label', 'domain']].astype(np.float32).to_numpy().reshape(-1, 2)
             self.X = df.drop(columns=['label', 'domain']).astype(np.float32).to_numpy()
@@ -26,11 +25,8 @@ class inputDataset(Dataset):
 
     # Get a row at an index
     def __getitem__(self, index):
-        if self.indexed:
-            return [self.X[index], self.y[index]], index
-        else:
-            # return [torch.from_numpy(self.X[index]), torch.from_numpy(self.y[index])]
-            return [self.X[index], self.y[index]]
+        return [self.X[index], self.y[index]]
+
     # Apply scaling
     def scale (self, test, scalerPath, transformerPath):
         if test:

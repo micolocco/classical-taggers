@@ -37,39 +37,31 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     Function to print statistics about the dataset composition
     '''
 
-    use_weights = 'signal_weights' in train_df.columns
-    def count_events(df, selected=None, weighted=False):
+    def count_events(df, selected=None):
         if selected is not None:
             df = df[df.selected == selected]
-        if weighted:
-            return df.groupby('event_entry')['signal_weights'].first().sum()
-        else:
-            return df['event_entry'].nunique()
+        return df['event_entry'].nunique()
 
-    def count_tracks(df, selected=None, weighted=False):
+    def count_tracks(df, selected=None):
         if selected is not None:
             df = df[df.selected == selected]
-        if weighted:
-            return df['signal_weights'].sum()
-        else:
-            return df.shape[0]
+        return df.shape[0]
 
-    # Compute all stats, both weighted and unweighted if signal_weights present
+    # Compute all stats
     stats = {}
-    for weighted in ([False, True] if use_weights else [False]):
-        suffix = "_sweighted" if weighted else ""
-        stats[f"train_evts{suffix}"] = count_events(train_df, weighted=weighted)
-        stats[f"train_sel_evts{suffix}"] = count_events(train_df, selected=1, weighted=weighted)
-        stats[f"val_evts{suffix}"] = count_events(val_df, weighted=weighted)
-        stats[f"val_sel_evts{suffix}"] = count_events(val_df, selected=1, weighted=weighted)
-        stats[f"tot_evts{suffix}"] = stats[f"train_evts{suffix}"] + stats[f"val_evts{suffix}"]
-        stats[f"sel_evts{suffix}"] = stats[f"train_sel_evts{suffix}"] + stats[f"val_sel_evts{suffix}"]
-        stats[f"train_tracks{suffix}"] = count_tracks(train_df, weighted=weighted)
-        stats[f"train_sel_tracks{suffix}"] = count_tracks(train_df, selected=1, weighted=weighted)
-        stats[f"val_tracks{suffix}"] = count_tracks(val_df, weighted=weighted)
-        stats[f"val_sel_tracks{suffix}"] = count_tracks(val_df, selected=1, weighted=weighted)
-        stats[f"tot_tracks{suffix}"] = stats[f"train_tracks{suffix}"] + stats[f"val_tracks{suffix}"]
-        stats[f"sel_tracks{suffix}"] = stats[f"train_sel_tracks{suffix}"] + stats[f"val_sel_tracks{suffix}"]
+
+    stats[f"train_evts"] = count_events(train_df)
+    stats[f"train_sel_evts"] = count_events(train_df, selected=1)
+    stats[f"val_evts"] = count_events(val_df)
+    stats[f"val_sel_evts"] = count_events(val_df, selected=1)
+    stats[f"tot_evts"] = stats[f"train_evts"] + stats[f"val_evts"]
+    stats[f"sel_evts"] = stats[f"train_sel_evts"] + stats[f"val_sel_evts"]
+    stats[f"train_tracks"] = count_tracks(train_df)
+    stats[f"train_sel_tracks"] = count_tracks(train_df, selected=1)
+    stats[f"val_tracks"] = count_tracks(val_df)
+    stats[f"val_sel_tracks"] = count_tracks(val_df, selected=1)
+    stats[f"tot_tracks"] = stats[f"train_tracks"] + stats[f"val_tracks"]
+    stats[f"sel_tracks"] = stats[f"train_sel_tracks"] + stats[f"val_sel_tracks"]
 
     print(f"\n Statistics used in the {tagger} pipeline\n")
 
@@ -79,41 +71,29 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     table.add_column("", justify="left")
     table.add_column("Events", justify="left", style='cyan')
     table.add_column("Tracks", justify="left", style='green')
-    if use_weights:
-        table.add_column("Events (sweighted)", justify="left", style='cyan')
-        table.add_column("Tracks (sweighted)", justify="left", style='green')
 
-    def fmt(val, weighted):
-        return f"{val:.2f}" if weighted else f"{int(val)}"
+    def fmt(val):
+        return f"{int(val)}"
 
-    # Unweighted row
     table.add_row(
         "Before selection",
-        fmt(stats["tot_evts"], False),
-        fmt(stats["tot_tracks"], False),
-        fmt(stats["tot_evts_sweighted"], True) if use_weights else "",
-        fmt(stats["tot_tracks_sweighted"], True) if use_weights else ""
+        fmt(stats["tot_evts"]),
+        fmt(stats["tot_tracks"]),
     )
     table.add_row(
         "After selection",
-        fmt(stats["sel_evts"], False),
-        fmt(stats["sel_tracks"], False),
-        fmt(stats["sel_evts_sweighted"], True) if use_weights else "",
-        fmt(stats["sel_tracks_sweighted"], True) if use_weights else ""
+        fmt(stats["sel_evts"]),
+        fmt(stats["sel_tracks"]),
     )
     table.add_row(
         "Train",
-        fmt(stats["train_evts"], False),
-        fmt(stats["train_tracks"], False),
-        fmt(stats["train_evts_sweighted"], True) if use_weights else "",
-        fmt(stats["train_tracks_sweighted"], True) if use_weights else ""
+        fmt(stats["train_evts"]),
+        fmt(stats["train_tracks"]),
     )
     table.add_row(
         "Validation",
-        fmt(stats["val_evts"], False),
-        fmt(stats["val_tracks"], False),
-        fmt(stats["val_evts_sweighted"], True) if use_weights else "",
-        fmt(stats["val_tracks_sweighted"], True) if use_weights else ""
+        fmt(stats["val_evts"]),
+        fmt(stats["val_tracks"]),
     )
     # console.print(table)
 
@@ -135,20 +115,16 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     if decay_type[:2]=='Bs':
         ID=531
 
-    def count_label(df, label, bid, weighted=False):
+    def count_label(df, label, bid):
         mask = (df.label == label) & (df[BID] == bid)
-        if weighted:
-            return df.loc[mask, 'signal_weights'].sum()
-        else:
-            return df.loc[mask].shape[0]
+        return df.loc[mask].shape[0]
 
     label_stats = {}
-    for weighted in ([False, True] if use_weights else [False]):
-        suffix = "_sweighted" if weighted else ""
-        label_stats[f"B_correct_train{suffix}"] = count_label(train_df, 1, -ID, weighted=weighted)
-        label_stats[f"antiB_correct_train{suffix}"] = count_label(train_df, 1, ID, weighted=weighted)
-        label_stats[f"B_wrong_train{suffix}"] = count_label(train_df, 0, -ID, weighted=weighted)
-        label_stats[f"antiB_wrong_train{suffix}"] = count_label(train_df, 0, ID, weighted=weighted)
+
+    label_stats[f"B_correct_train"] = count_label(train_df, 1, -ID)
+    label_stats[f"antiB_correct_train"] = count_label(train_df, 1, ID)
+    label_stats[f"B_wrong_train"] = count_label(train_df, 0, -ID)
+    label_stats[f"antiB_wrong_train"] = count_label(train_df, 0, ID)
 
     def asymm(a, b):
         return f"{100*(a-b)/(a + b):.2f}%"
@@ -162,33 +138,16 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     table.add_column("l=0, B", justify="left", style='green', overflow="fold", width=8)
     table.add_column("l=0, antiB", justify="left", style='green', overflow="fold", width=8)
     table.add_column("l=0 \n (N(B)-N(antiB))/N", justify="left", style='green', overflow="fold", width=8)
-    if use_weights:
-        table.add_column("l=1, B (sweighted)", justify="left", style='cyan', overflow="fold", width=8)
-        table.add_column("l=1, antiB (sweighted)", justify="left", style='cyan', overflow="fold", width=8)
-        table.add_column("asymm (sweighted)", justify="left", style='cyan', overflow="fold", width=8)
-        table.add_column("l=0, B (sweighted)", justify="left", style='green', overflow="fold", width=8)
-        table.add_column("l=0, antiB (sweighted)", justify="left", style='green', overflow="fold", width=8)
-        table.add_column("asymm (sweighted)", justify="left", style='green', overflow="fold", width=8)
 
-    # Unweighted row
     row = [
         "Training set",
-        fmt(label_stats["B_correct_train"], False),
-        fmt(label_stats["antiB_correct_train"], False),
+        fmt(label_stats["B_correct_train"]),
+        fmt(label_stats["antiB_correct_train"]),
         asymm(label_stats["B_correct_train"], label_stats["antiB_correct_train"]),
-        fmt(label_stats["B_wrong_train"], False),
-        fmt(label_stats["antiB_wrong_train"], False),
+        fmt(label_stats["B_wrong_train"]),
+        fmt(label_stats["antiB_wrong_train"]),
         asymm(label_stats["B_wrong_train"], label_stats["antiB_wrong_train"])
     ]
-    if use_weights:
-        row += [
-            fmt(label_stats["B_correct_train_sweighted"], True),
-            fmt(label_stats["antiB_correct_train_sweighted"], True),
-            asymm(label_stats["B_correct_train_sweighted"], label_stats["antiB_correct_train_sweighted"]),
-            fmt(label_stats["B_wrong_train_sweighted"], True),
-            fmt(label_stats["antiB_wrong_train_sweighted"], True),
-            asymm(label_stats["B_wrong_train_sweighted"], label_stats["antiB_wrong_train_sweighted"])
-        ]
     table.add_row(*row)
     # console.print(table)
 
@@ -199,7 +158,7 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     print(table_str)
     output.close()
 
-def read_files(files, vars, treename, event_type, data_type, weight_label = None):
+def read_files(files, vars, treename, event_type, data_type):
     df = pd.DataFrame(columns=vars)
 
     additional_vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER']
@@ -256,7 +215,7 @@ def get_architecture(config):
         return f'nL{nL}_nN{nN}_dp{dp}{bn}'
     
 
-def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_type, seed, tagger, decay_type, indexed = True):
+def get_dataSets(train_df, val_df, config_name, target_path, seed, tagger, decay_type):
     # Path to where the scaler parameters will be saved
     print("Preparing datasets...", flush=True)
 
@@ -269,45 +228,30 @@ def get_dataSets(train_df, val_df, config_name, target_path, data_type, weight_t
     scalerPath = f"{target_path}/st_scaler.pkl"
     transformerPath = f"{target_path}/powerTransformer.pkl"
 
-    if data_type == 'Data':
-        weight_label = weight_type
-
     train_df = train_df.sample(frac=1, random_state=seed).reset_index(drop=True)
     val_df = val_df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
-    
-    weights_train = None
-    weights_val = None
-    if data_type == 'Data' and weight_label != 'ones': 
-        weights_train = train_df[weight_label].to_numpy()
-        weights_val = val_df[weight_label].to_numpy()
-
-    if 'domain' in train_df.columns:
-        stats_printout(tagger=tagger, decay_type=decay_type, train_df=train_df.loc[train_df.domain == 1], val_df=val_df.loc[val_df.domain == 1], BID=BID)
-    else:
-        stats_printout(tagger=tagger, decay_type=decay_type, train_df=train_df, val_df=val_df, BID=BID)
+    if 'config_test' not in config_name: #Skip this step when testing to accelerate testing process
+        if 'domain' in train_df.columns:
+            stats_printout(tagger=tagger, decay_type=decay_type, train_df=train_df.loc[train_df.domain == 1], val_df=val_df.loc[val_df.domain == 1], BID=BID)
+        else:
+            stats_printout(tagger=tagger, decay_type=decay_type, train_df=train_df, val_df=val_df, BID=BID)
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID]
-    if data_type == 'Data' and weight_label != 'ones':
-        columns_to_drop.append(weight_label)
-    if data_type == 'Data' and weight_label != 'signal_weights':
-        columns_to_drop.append('signal_weights')
-
     
     print(train_df.drop(columns = columns_to_drop).columns)
     print(features)
     
-    train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), seed=seed, scalerPath=scalerPath, transformerPath=transformerPath, indexed=indexed)
+    train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), scalerPath=scalerPath, transformerPath=transformerPath)
     
-    if config_name!='configs/config_test':
+    if 'config_test' not in config_name:
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
     print(f"Datasets prepared", flush=True)
-    return train_ds, validation_ds, weights_train, weights_val
+    return train_ds, validation_ds
 
-def training(train_ds, validation_ds, vars,  weights_train, weights_val, 
-             target_path, tagger, seed, features, config, data_type,
-             repo, num_threads = 1, clean = False):
+def training(train_ds, validation_ds, vars, target_path, tagger, seed, features, 
+             config, data_type, repo, num_threads = 1, clean = False):
     torch.jit.enable_onednn_fusion(True)
     start = datetime.datetime.now()
     print(f'Training started on {start.strftime("%Y-%m-%d %H:%M:%S")}')
@@ -346,7 +290,6 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val,
         mp.spawn(pyTrain.train_model_EarlyStopping, args=(model, train_ds, 
                                         validation_ds, target_path, 
                                         config, seed, return_dict,
-                                        weights_train, weights_val, 
                                         num_threads), nprocs=num_threads)
         train_ds.unlink(train_ds_name)
         validation_ds.unlink(validation_ds_name)
@@ -358,8 +301,6 @@ def training(train_ds, validation_ds, vars,  weights_train, weights_val,
                                 config = config,
                                 seed = seed,
                                 return_dict = return_dict,
-                                train_weights = weights_train, 
-                                val_weights= weights_val, 
                                 num_threads=num_threads)
     
     print(return_dict)
@@ -468,7 +409,6 @@ if __name__ == '__main__':
     parser.add_argument('--clean', help='Decide whatever cleaning the directories before running, w=False, a=True', action='store_true')
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
-    parser.add_argument('--weight_type', help="Type of sample weight to be used for training on data", choices=('signal_weights', 'pdf_ratio', 'ones'))
     parser.add_argument('--num_threads', help='Number of threads to use in training', type=int, default=1)
 
     cfg = parser.parse_args()
@@ -483,14 +423,6 @@ if __name__ == '__main__':
     features = translate_mc_names_to_data(features, cfg.decay_type, False)
 
     vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] #'B_Tr_T_Charge',
-    weight_label = None
-    if cfg.data_type == 'Data':
-        weight_label = cfg.weight_type
-        if weight_label != 'ones':
-            vars = vars + [weight_label]
-        if weight_label != 'signal_weights':
-            vars = vars + ['signal_weights']
-
     if cfg.data_type == 'domain_adapted':
         vars = vars + ['domain']
 
@@ -500,12 +432,12 @@ if __name__ == '__main__':
     #Reading Data from files
     print(f'Reading of training files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.training_data)} files.", flush=True)
-    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type, weight_label=weight_label)
+    train_df = read_files(cfg.training_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type)
     print(f'Reading of training files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
 
     print(f'Reading of validation files begins {datetime.datetime.now().strftime("%H:%M:%S")}')
     print(f"Reading a total of {len(cfg.validation_data)} files.", flush=True)
-    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type, weight_label=weight_label)
+    val_df = read_files(cfg.validation_data, vars = vars, treename=cfg.treename, event_type=cfg.decay_type, data_type=cfg.data_type)
     print(f'Reading of validation files ends {datetime.datetime.now().strftime("%H:%M:%S")}')
     
 
@@ -520,14 +452,13 @@ if __name__ == '__main__':
         print(f'number of domain 0 in training set: {train_df[train_df.domain==0].shape[0]}')
         print(f'number of domain 1 in training set: {train_df[train_df.domain==1].shape[0]}')
 
-    train_ds, validation_ds, weights_train, weights_val = get_dataSets(train_df=train_df, val_df=val_df, config_name=cfg.config, 
-                                                                          target_path=cfg.target_path, data_type=cfg.data_type, 
-                                                                          weight_type=cfg.weight_type, seed=cfg.seed, tagger=cfg.tagger, 
-                                                                          decay_type=cfg.decay_type, indexed= cfg.num_threads == 1)
+    train_ds, validation_ds = get_dataSets(train_df=train_df, val_df=val_df, config_name=cfg.config, 
+                                           target_path=cfg.target_path, seed=cfg.seed, tagger=cfg.tagger, 
+                                           decay_type=cfg.decay_type)
 
-    model = training(train_ds=train_ds, validation_ds=validation_ds, vars=vars, weights_train=weights_train, data_type=cfg.data_type,
-                                      weights_val=weights_val, target_path=cfg.target_path, tagger=cfg.tagger, seed=cfg.seed, 
-                                      features=features, config=cfg.config, repo=cfg.repo, num_threads=cfg.num_threads, clean=cfg.clean)
+    model = training(train_ds=train_ds, validation_ds=validation_ds, vars=vars, data_type=cfg.data_type, 
+                     target_path=cfg.target_path, tagger=cfg.tagger, seed=cfg.seed, features=features, 
+                     config=cfg.config, repo=cfg.repo, num_threads=cfg.num_threads, clean=cfg.clean)
     #No shared memory needed for plot generation, as such the inputDataset must be indexed
     train_ds.indexed = True
     validation_ds.indexed = True

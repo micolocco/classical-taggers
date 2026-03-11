@@ -68,13 +68,6 @@ def get_features(tagger, yaml_file, repo_path):
             print(f"Error: Tagger {tagger} not found in configuration.\n Please check {yaml_file} file ")
             return []
 
-# def apply_log(df, features):
-#     log_features = ['Column1']
-#     for feature in features:
-#         if 'log' in feature:
-#             df.eval(f'log({feature}) = log({feature})', inplace = True)
-#     return features
-
 
 def splitByEvent (df, seed, train_val_split):
     '''Function to random split by events (not by index) the dataset into training and test set
@@ -90,11 +83,11 @@ def splitByEvent (df, seed, train_val_split):
     return train_df, val_df, test_df
     
 
-def prepare_data(train_df, val_df, seed, scalerPath, transformerPath, indexed = True): #, train_batch_size, test_batch_size = 1024, distributed = False
+def prepare_data(train_df, val_df, scalerPath, transformerPath):
     # Load the dataset
-    train_dataset = inputDataset(df=train_df, indexed=indexed) #scaler=PowerTransformer() 
+    train_dataset = inputDataset(df=train_df) #scaler=PowerTransformer() 
     train_dataset.scale(test=False, scalerPath=scalerPath, transformerPath=transformerPath)
-    val_dataset = inputDataset(df=val_df, indexed=indexed)
+    val_dataset = inputDataset(df=val_df)
     val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
 
     return train_dataset, val_dataset
@@ -219,7 +212,6 @@ def report_memory_distributed():
         print(f"Total RAM used by all Processes: {local_mem.item():.2f} MiB")
 
 def format_loss(loss): #such that a float as well as a array (case of domain adaptation) can be handled
-    # print(type(loss))
     if isinstance(loss, np.float64):
         formatted_loss = f"{loss:.6f}"
     else:
@@ -229,11 +221,10 @@ def format_loss(loss): #such that a float as well as a array (case of domain ada
 
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed()
-    numpy.random.seed(worker_seed)
+    np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, seed, return_dict, train_weights = None, 
-                              val_weights= None, num_threads=1):
+def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, seed, return_dict, num_threads=1):
         lossValBest = 10000
         stopped = False
         bestEpoch = 0
@@ -244,10 +235,6 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
         
         i = 1
-        if train_weights is not None:
-            train_weights = torch.from_numpy(train_weights)
-        if val_weights is not None:
-            val_weights = torch.from_numpy(val_weights)
 
         if num_threads>1:
             port = ddp_setup(rank, num_threads, target_path) 
@@ -276,33 +263,26 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
-        initialValidation_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean(axis=0)
+        temp = module.validate_model(validation_dl)
+        initialValidation_loss = np.array(temp).mean(axis=0)
         if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
             print(f"The initial Validation Loss: {format_loss(initialValidation_loss)}")
         
         epochtimes = []
         for epoch in range(config['n_epochs']):
             epoch_start = time.time()
-            # if num_threads>1:
-            #     train_dl.sampler.set_epoch(epoch)
-            #     validation_dl.sampler.set_epoch(epoch)
             if rank == 0:
                 print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
             # Train over mini-batches
-            stepLoss = np.array(module.train_model(train_dl, epoch, config['n_epochs'], sample_weights=train_weights)).mean(axis=0)
+            stepLoss = np.array(module.train_model(train_dl)).mean(axis=0)
             trainingEpoch_loss.append(stepLoss)
             # Compute validation loss
-            validationStep_loss = np.array(module.validate_model(validation_dl, sample_weights=val_weights)).mean(axis=0)
+            validationStep_loss = np.array(module.validate_model(validation_dl)).mean(axis=0)
             validationEpoch_loss.append(validationStep_loss)
             if rank == 0:
                 print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
-            if num_threads==1:
-                print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
-            # else:
-            #     try:
-            #         report_memory_distributed() #To print the memory usage of all processes
-            #     except Exception as e:
-            #         print(f'Memory report failed in rank {rank}')
+                print(f'Estimated total RAM used: {psutil.Process(os.getpid()).memory_info().rss*num_threads / 1024 ** 2} MiB', flush=True)
+
             epochtimes.append((time.time()-epoch_start))
 
             if early_stopper.early_stop(validationEpoch_loss[-1]): #Ensure that early stopping is not triggered too early
@@ -373,21 +353,7 @@ def eval_model_multiprocessed(rank, model, ds, target_path, return_dict, num_thr
 def save_model(model, target_path, filename = 'model.pth'):
     # target_path = name_formatter.assign_name(folder, target_path)
     torch.save(copy.deepcopy(model.state_dict()), f"{target_path}/{filename}")
-    #save_hyperparameters(model, target_path)
 
-def save_hyperparameters(model, target_path):
-    info_dict = {
-                'ModelName:' : model.modelName, 
-                'learning_rate' : config.learning_rate,
-                'patience' : config.patience,
-                'min_delta' : config.min_delta,
-                'activation_function' : config.activation_function,
-                'n_epochs' : config.n_epochs,
-                'train_val_split' : config.train_val_split,
-                'train_batch_size': config.train_batch_size,
-                }
-    with open(f"{target_path}/hyperparameters.json", "w") as f:
-        json.dump(info_dict, f)
 
 
 def load_model(model, target_path):
