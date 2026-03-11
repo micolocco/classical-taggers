@@ -634,36 +634,7 @@ rule train_tagger_MC:
         print(' '.join(cmd))
         shell(' '.join(cmd))
 
-rule add_weights:
-    input:
-        script = join(repo, 'scripts/add_weights.py'),
-        loading_vars = join(repo, 'configs/loading_variables.txt'),
-        selected = join(out, 'Data/NTuples/3_selected/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
-        weights = join(out, 'Data/mass_fit/{decay}/{partition}/weights.root'),
-    output:
-        weighted = join(out, 'Data/NTuples/4_weighted/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
-    log:
-        join(out, 'Data/NTuples/4_weighted/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.log'),
-    resources:
-        max_retries=0,
-        mem_mb = 40_000, 
-        MaxRunHours = 1, 
-    run:
-        out_path = os.path.dirname(output.weighted)
 
-        cmd = [
-            'python {input.script}',
-            '--data_file {input.selected}',
-            '--out_path', out_path,
-            '--decayType {wildcards.decay}',
-            '--obs_name B_DTF_PV_Jpsi_MASS',
-            '--range {lowerMass} {upperMass}',
-            '--weight_file {input.weights}',
-            '--loading_features {input.loading_vars}',
-            '&> {log}'
-        ]
-
-        shell(' '.join(cmd))
 
 rule train_tagger_data:
     input:
@@ -774,6 +745,37 @@ rule calibrate_on_MC:
         ]
         shell(' '.join(cmd))
 
+rule add_weights:
+    input:
+        script = join(repo, 'scripts/add_weights.py'),
+        loading_vars = join(repo, 'configs/loading_variables.txt'),
+        selected = join(out, 'Data/NTuples/3_selected/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
+        weights = join(out, 'Data/mass_fit/{decay}/{partition}/weights.root'),
+    output:
+        weighted = join(out, 'Data/NTuples/4_weighted/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
+    log:
+        join(out, 'Data/NTuples/4_weighted/{decay}/{tagger}/{cut_name}/{features}/{partition}/{ID}.log'),
+    resources:
+        max_retries=0,
+        mem_mb = 40_000, 
+        MaxRunHours = 1, 
+    run:
+        out_path = os.path.dirname(output.weighted)
+
+        cmd = [
+            'python {input.script}',
+            '--data_file {input.selected}',
+            '--out_path', out_path,
+            '--decayType {wildcards.decay}',
+            '--obs_name B_DTF_PV_Jpsi_MASS',
+            '--range {lowerMass} {upperMass}',
+            '--weight_file {input.weights}',
+            '--loading_features {input.loading_vars}',
+            '&> {log}'
+        ]
+
+        shell(' '.join(cmd))
+
 rule calibrate_on_data:
     input:
         testing = lambda wildcards: [f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'test')
@@ -823,6 +825,7 @@ rule calibrate_on_data:
             '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
             '&> {log}',
         ]
+        print(' '.join(cmd))
         shell(' '.join(cmd))
 
 
