@@ -1,9 +1,7 @@
 import numpy as np
 import torch
-import time
 import uproot
 import pandas as pd
-from scripts.inputDataset import inputDataset
 from matplotlib import pyplot as plt
 import os
 import argparse
@@ -24,7 +22,6 @@ import torch.multiprocessing as mp
 from rich.console import Console
 from rich.table import Table
 from io import StringIO
-import itertools
 import matplotlib
 
 from sklearn.metrics import accuracy_score
@@ -315,6 +312,8 @@ def training(train_ds, validation_ds, vars, target_path, tagger, seed, features,
     print(f'Training ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
     print(f'Training time: {end - start}')
     return bestModel
+
+
 
 def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_path, tagger):
     # Plot ROC curves for validation and train test

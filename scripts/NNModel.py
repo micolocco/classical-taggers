@@ -38,6 +38,13 @@ class NeuralNetwork(nn.Module):
             layers.append(layer_class(**layer_params))
         return nn.Sequential(*layers)
 
+    def add_DDP(self):
+        self.NN = nn.parallel.DistributedDataParallel(self.NN)
+
+    def remove_DDP(self):
+        if isinstance(self.NN, nn.parallel.DistributedDataParallel):
+            self.NN = self.NN.module
+
     def forward(self, x): # from the input tensor x it gives the output tensor of the NN
         if x.dim() == 1:
             x = x.unsqueeze(0) # Add batch dimension if input is a single sample
@@ -60,7 +67,7 @@ class NeuralNetwork(nn.Module):
             # Clear the gradients
             self.optimizer.zero_grad(set_to_none=True)
             # compute the model output
-            yPredTrain = self(inputsTrain)
+            yPredTrain = self.forward(inputsTrain)
 
             training_loss = self.calc_loss(yPredTrain, targetsTrain)
             stepLoss.append(training_loss.tolist())
@@ -78,17 +85,11 @@ class NeuralNetwork(nn.Module):
         for inputsVal, targetsVal in validation_dl:
     
             # Forward pass
-            yPredVal = self(inputsVal)
+            yPredVal = self.forward(inputsVal)
             with torch.no_grad():
                 validation_loss = self.calc_loss(yPredVal, targetsVal)
             validationStep_loss.append(validation_loss.tolist())
         return validationStep_loss
-    
-    def BCELoss(self, yPred, target): #Testing purpose
-        x = torch.log(yPred)
-        y = torch.log(1 - yPred)
-
-        return -torch.mul(x, target.float()) - torch.mul(y, (1 - target).float())
 
     def calc_loss(self, yPred, target, ):
         loss = self.criterion(yPred.view(-1, 1), target.view(-1, 1))
@@ -101,7 +102,7 @@ class NeuralNetwork(nn.Module):
         for inputs, targets in test_dl:
             # evaluate the model on the test set
             with torch.no_grad():
-                yPred = self(inputs)
+                yPred = self.forward(inputs)
             # retrieve numpy array
             yPred = yPred.detach().numpy()
             actual = targets.numpy()

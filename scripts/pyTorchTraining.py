@@ -238,15 +238,13 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
 
         if num_threads>1:
             port = ddp_setup(rank, num_threads, target_path) 
-            ddpmodel = DDP(model)
+            model.add_DDP()
 
-            module = ddpmodel.module
             train_sampler = DistributedSampler(train_ds, num_replicas=num_threads, rank=rank, shuffle=True, drop_last=True, seed=seed)
             validation_sampler = DistributedSampler(validation_ds, num_replicas=num_threads, rank=rank, shuffle=False, drop_last=True, seed=seed)
             shuffle=False
-            shuffle=False #Shuffling the dataloader and setting a sampler is mutually exclusive
+            shuffle=False #Shuffling the dataloader and setting a sampler is mutually exclusive, sampler is shuffleing the data
         else:
-            module = model
             train_sampler = None
             validation_sampler = None
             shuffle=True
@@ -263,7 +261,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         
         trainingEpoch_loss = []
         validationEpoch_loss = []
-        temp = module.validate_model(validation_dl)
+        temp = model.validate_model(validation_dl)
         initialValidation_loss = np.array(temp).mean(axis=0)
         if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
             print(f"The initial Validation Loss: {format_loss(initialValidation_loss)}")
@@ -271,18 +269,26 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         epochtimes = []
         for epoch in range(config['n_epochs']):
             epoch_start = time.time()
+            if num_threads > 1:
+                train_sampler.set_epoch(epoch)
             if rank == 0:
                 print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
             # Train over mini-batches
-            stepLoss = np.array(module.train_model(train_dl)).mean(axis=0)
+            stepLoss = np.array(model.train_model(train_dl)).mean(axis=0)
             trainingEpoch_loss.append(stepLoss)
             # Compute validation loss
-            validationStep_loss = np.array(module.validate_model(validation_dl)).mean(axis=0)
+            validationStep_loss = np.array(model.validate_model(validation_dl)).mean(axis=0)
             validationEpoch_loss.append(validationStep_loss)
             if rank == 0:
                 print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
-                print(f'Estimated total RAM used: {psutil.Process(os.getpid()).memory_info().rss*num_threads / 1024 ** 2} MiB', flush=True)
-
+            if num_threads==1:
+                print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
+            else:
+                try:
+                    report_memory_distributed() #To print the memory usage of all processes
+                except Exception as e:
+                    print(f'Memory report failed in rank {rank}')
+ 
             epochtimes.append((time.time()-epoch_start))
 
             if early_stopper.early_stop(validationEpoch_loss[-1]): #Ensure that early stopping is not triggered too early
@@ -292,7 +298,8 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
                 lossValBest = validationEpoch_loss[-1]
                 lossTrainBest = trainingEpoch_loss[-1]
                 bestEpoch = epoch
-                bestModel = copy.deepcopy(module)
+                bestModel = copy.deepcopy(model)
+                bestModel.remove_DDP()
             i +=1
         if num_threads>1:
             destroy_process_group()
