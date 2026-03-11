@@ -205,7 +205,7 @@ def read_files(files, vars, treename, event_type, data_type, weight_label = None
     additional_vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER']
 
     if event_type[:2] == 'Bu' and data_type == 'data':
-        additional_vars = additional_vars + ['B_OWNPV_LTIME']
+        additional_vars = additional_vars + ['B_DTF_PV_Jpsi_TAU']
 
 
     loading_vars = vars + additional_vars
@@ -234,7 +234,7 @@ def read_files(files, vars, treename, event_type, data_type, weight_label = None
             _df.loc[_df['domain'] == 1, 'event_entry'] = _df["file_id"].astype(str) + "_" + "mc" + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
 
         if event_type[:2] == 'Bu' and data_type == 'data': #remove data with a liftime greater then 2.2ps, to ensure low oscillation likelyhood
-            _df = _df[_df['B_OWNPV_LTIME'] < 0.0022]
+            _df = _df[_df['B_DTF_PV_Jpsi_TAU'] < 2.2]
 
 
         df = pd.concat([df, _df], ignore_index = True)

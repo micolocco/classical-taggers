@@ -100,6 +100,9 @@ if __name__ == '__main__':
         loading_variables += ["B_Tr_T_IsInTree", "FillNumber"]
         loading_variables = [var for var in loading_variables if var != "B_Tr_T_Origin_Flag"] # only in MC, replace with B_Tr_T_IsInTree in data
 
+    if 'Bu' not in cfg.evtType and cfg.data_type == 'Data':
+        loading_variables.append('B_DTF_PV_Jpsi_TAU')
+
     loading_variables = translate_mc_names_to_data(loading_variables, cfg.evtType, drop_mc_cols=False)    
     loading_variables = list(dict.fromkeys(loading_variables)) #removes all duplicates
     print(loading_variables)

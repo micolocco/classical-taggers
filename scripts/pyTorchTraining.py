@@ -30,6 +30,8 @@ import torch.multiprocessing as mp
 import socket
 import random
 import fcntl
+import lhcb_ftcalib as ft
+
 
 
 def recreate_directory(target_path, clean=False):
@@ -593,10 +595,9 @@ def bins_by_yield(etas, weights, nbins):
 
     return bin_edges
 
-def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag',nbins = 7, weights = None):
+def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag',nbins = 7, weights = None, mode='Bu'):
 
     #Calibration of the taggers and parameters saving
-    import lhcb_ftcalib as ft
 
     taggers = ft.TaggerCollection()
        
@@ -604,7 +605,18 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
         weights = np.ones(len(df_tag))
     
     
-    taggers.create_tagger(name = tagger, eta_data = df_tag[f"{tagger}_Eta"].tolist(), dec_data = df_tag[f"{tagger}_TagDec"].tolist(), weight = weights, B_ID = df_tag['B_ID'].tolist(),mode = eventType[:2] )
+    if mode != 'Bu':
+        tau_ps = df_tag['B_DTF_PV_Jpsi_TAU'].to_numpy()
+    else:
+        tau_ps = None
+    
+    taggers.create_tagger(name = tagger, 
+                          eta_data = df_tag[f"{tagger}_Eta"].to_numpy(), 
+                          dec_data = df_tag[f"{tagger}_TagDec"].to_numpy(), 
+                          weight = weights, 
+                          B_ID = df_tag['B_ID'].to_numpy(),
+                          mode = mode , 
+                          tau_ps = tau_ps)
 
     npar = 2
     if calibration_option=='logit':
@@ -620,57 +632,43 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     target_path = f'{target_path}/{calibration_option}'
     if os.path.isdir(f'{target_path}') == False:
         os.system(f"mkdir {target_path}")
-    try:
-        taggers.calibrate()
+
+    taggers.calibrate()
 
 
-        scale = "linear"
-        if weights is not None:
-            #distribute the bins such that each bin has the same yield, aka the same sum of weights
-            bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
-            print(bins)
-            if any(bins[:-1] == bins[1:]):
-                print("Warning: Bins are not unique, using linspace instead.")
-                bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
+    scale = "linear"
+    if weights is not None:
+        #distribute the bins such that each bin has the same yield, aka the same sum of weights
+        bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
+        print(bins)
 
-            class_indices = df_tag['B_ID'].values
-            class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\bar{B}^0$', }
+        if any(bins[:-1] == bins[1:]):
+            print("Warning: Bins are not unique, using linspace instead.")
+            bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
 
-
-            taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-                                                 file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
-                                                 nbins = nbins, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
-
-            taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
+        class_indices = df_tag['B_ID'].values
+        class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\bar{B}^0$', }
 
 
-        else:
-            taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
+
+        taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+                                                file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
+                                                nbins = nbins, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
+
+        taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
 
 
-        info_dict = {"TaggingEfficiency"     : taggers[tagger].stats.tagging_efficiency(calibrated = False),
-                    "TaggingPower"           : taggers[tagger].stats.tagging_power(     calibrated = False),
-                    "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True ), 
-                    "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(     calibrated = True ),
-                    "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(  calibrated = True ), 
-                    "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False),}
-        for i in range(npar):
-            info_dict[f"Fitpar_p{i}"]      = [taggers[tagger].stats.params.params_delta[i],      taggers[tagger].stats.params.errors_delta[i]]
-            info_dict[f"Fitpar_deltap{i}"] = [taggers[tagger].stats.params.params_delta[i+npar], taggers[tagger].stats.params.errors_delta[i+npar]]
+    info_dict = {"TaggingEfficiency"     : taggers[tagger].stats.tagging_efficiency(calibrated = False),
+                "TaggingPower"           : taggers[tagger].stats.tagging_power(     calibrated = False),
+                "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True ), 
+                "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(     calibrated = True ),
+                "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(  calibrated = True ), 
+                "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False),}
+    for i in range(npar):
+        info_dict[f"Fitpar_p{i}"]      = [taggers[tagger].stats.params.params_delta[i],      taggers[tagger].stats.params.errors_delta[i]]
+        info_dict[f"Fitpar_deltap{i}"] = [taggers[tagger].stats.params.params_delta[i+npar], taggers[tagger].stats.params.errors_delta[i+npar]]
 
-    except Exception as e: # Catch exceptions. Often caused by convergence issues in the training of the tagger
-        print(f"An unexpected error occurred during calibration: {e}")
-        print(traceback.format_exc())
-        info_dict = {"TaggingEfficiency"     : [np.nan, np.nan],
-                    "TaggingPower"           : [np.nan, np.nan],
-                    "TaggingEfficiency_Cali" : [np.nan, np.nan], 
-                    "TaggingPower_Cali"      : [np.nan, np.nan],
-                    "EffectiveMistag_Cali"   : [np.nan, np.nan], 
-                    "EffectiveMistag"        : [np.nan, np.nan],}
-        for i in range(npar):
-            info_dict[f"Fitpar_p{i}"]      = [np.nan, np.nan]
-            info_dict[f"Fitpar_deltap{i}"] = [np.nan, np.nan]
-            
+
     with open(f"{target_path}/taggingInfo_{calibration_option}.json", "w") as f:
         json.dump(info_dict, f)
     print(f"Tagger parameters saved at {target_path}\n")

@@ -63,6 +63,8 @@ def process_chunk(df, is_data):
     df.loc[:,f'B_Tr_T_DeltaQ_Kaon'] = DeltaQ(df, 493.677)
     df.loc[:,f'B_Tr_T_OWNPVIPSig'] = np.sqrt(df[f'B_Tr_T_OWNPVIPCHI2'])
     df.loc[:,f'B_Tr_T_absOWNPV_IP'] = np.abs(df[f'B_Tr_T_OWNPVIP'])
+    df.loc[:,f'B_DTF_PV_Jpsi_TAU'] = df[f'Bd_DTF_PV_Jpsi_CTAU']/0.29979 #Convert from mm to ps using speed of light in mm/ps
+    
 
      
 
@@ -150,7 +152,7 @@ def get_loading_vars(evtType, data_calib, loading_var_path = "configs/loading_va
 
 
         if 'Bd' in evtType: #Add Lifetime for Bd for liftime cut during training as well as for the callibration
-            loading_variables.append('B_OWNPV_LTIME')
+            loading_variables.append('Bd_DTF_PV_Jpsi_CTAU')
         
 
     loading_variables.append(get_mass_label(evtType))

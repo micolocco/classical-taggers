@@ -185,9 +185,10 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID,]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
     if data_type == 'Data' :
         columns_to_drop.append('signal_weights')
-
-    if data_type == 'Data':
         sweights = test_df['signal_weights']
+
+        if 'Bu' not in decay_type:
+            columns_to_drop.append('B_DTF_PV_Jpsi_TAU')
 
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     print(f'Columns:{test_df.columns}')
@@ -197,31 +198,22 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
 
-    test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)# bestModel.evaluate_model returns predicted probabilities for label 1, true values   
+    test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)
     
 
     test_df[f"{tagger}_Eta"] = 1 - test_df['yPred']
-    test_df.drop(columns=test_df.columns.difference(['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred', ]), inplace=True)
+    cols_to_keep = ['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred', ]
+    if data_type == 'Data' and 'Bu' not in decay_type:
+        cols_to_keep.append('B_DTF_PV_Jpsi_TAU')
+    test_df.drop(columns=test_df.columns.difference(cols_to_keep), inplace=True)
 
-
+    print(f'Columns after prediction: {test_df.columns}', flush = True)
 
 
     print(f"Test set has {np.sum(test_df['selected']==1)} tracks selected as tagging particles")
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
     
     pyTrain.plot_ROC(tagger=tagger, val_df=test_df[test_df['selected'] == 1], target_path =target_path)
-    
-
-    plt.figure()
-    plt.hist(1-test_df[test_df['selected'] == 1]['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Test set: Probability of label 0, only selected")
-    plt.savefig(f"{target_path}/testSet_prob0distrib.pdf")
-    plt.figure()
-    plt.hist(test_df[test_df['selected'] == 1]['yPred'],bins = 100 , density = True , histtype = "stepfilled" )
-    plt.title(r"Test set: Probability of label 1")
-    plt.savefig(f"{target_path}/testSet_prob1distrib.pdf")
-
-
     pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Test')
 
 
@@ -239,7 +231,6 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
     # Check if measured mistag is stricly rising depending on predicted mistag -> only then a good tagger
     study_eta_omega_dist(test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), BID               , f'{BID}_bestTracks_'  , target_path, tagger, data_type)
-    study_eta_omega_dist(test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first(), f"{tagger}_TagDec", f'Tag_dec_bestTracks_', target_path, tagger, data_type)
 
 
     df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
@@ -254,19 +245,18 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     print(f"{df_TagParticles.shape[0]} tracks used for calibrating", flush = True)
     pyTrain.plot_tagDec(tagger =tagger, df_TagParticles=df_TagParticles,  plot_name=f'{target_path}/Normalized_TagDec.pdf')
 
-
+    mode = decay_type[:2]
+    if data_type == 'MC':
+        mode = 'Bu' #When truth information is availiable Bd or Bs mode is not needed
     
     
 
 
     # Calibrating the tagger and saving parameters
-    mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles)
+    mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles, mode=mode)
     
     # Try both calibration functions
-    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', weights=sweights_TagParticles)
-
-    # Try both calibration functions
-    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='rlogit', weights=sweights_TagParticles)
+    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', weights=sweights_TagParticles, mode=mode)
 
     end = datetime.datetime.now()
     print(f'testing ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
@@ -307,6 +297,8 @@ if __name__ == '__main__':
     vars = features + [BID, 'selected', 'label', f"{cfg.tagger}_TagDec"]
     if cfg.data_type == 'Data':
         vars = vars + ['signal_weights']
+        if 'Bu' not in cfg.decay_type:
+            vars.append('B_DTF_PV_Jpsi_TAU')
     print(vars, flush = True)
 
 
