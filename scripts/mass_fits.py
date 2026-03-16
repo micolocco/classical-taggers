@@ -414,6 +414,11 @@ if __name__ == '__main__':
     else:
         pd.set_option('display.max_columns', 15)
 
+
+        df_data = df_data.query(f'signalness > {cut}')
+        df_data['BID_signal_weights'] = 0
+        df_data['BID_background_weights'] = 0
+
         sim_fit_after_cut = cfg.sim_fit.replace('before_cut', 'after_cut')
         print(f'Calculating total Sweights')
         masses  = df_data[massname].values
