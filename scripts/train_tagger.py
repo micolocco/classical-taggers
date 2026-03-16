@@ -278,16 +278,18 @@ def training(train_ds, validation_ds, vars, target_path, tagger, seed, features,
             os.remove(f"{target_path}/port.temp")
 
         return_dict = mp.Manager().dict()
+        return_dict['early_stopping'] = False #Flag to signal early stopping to all processes
         train_ds_name = f'train_set{id(train_ds)}'
         validation_ds_name = f'validation_set{id(validation_ds)}'
         if not isinstance(train_ds, SharedDataset):
             train_ds = SharedDataset(train_ds, train_ds_name)
             validation_ds = SharedDataset(validation_ds, validation_ds_name)
 
-        mp.spawn(pyTrain.train_model_EarlyStopping, args=(model, train_ds, 
-                                        validation_ds, target_path, 
-                                        config, seed, return_dict,
-                                        num_threads), nprocs=num_threads)
+        mp.spawn(pyTrain.train_worker, args=(model, train_ds, 
+                                validation_ds, target_path, 
+                                config, seed, return_dict,
+                                num_threads), nprocs=num_threads)
+
         train_ds.unlink(train_ds_name)
         validation_ds.unlink(validation_ds_name)
         os.remove(f"{target_path}/port.temp")
@@ -315,14 +317,15 @@ def training(train_ds, validation_ds, vars, target_path, tagger, seed, features,
 
 
 
-def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_path, tagger):
+def gen_training_plots(model, num_threads, train_df, val_df, train_ds, validation_ds, target_path, tagger):
     # Plot ROC curves for validation and train test
     model.eval()
     print("Generating Plots")
 
     start = datetime.datetime.now()
-    print(f"Evaluating model on validation set {start.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
+    print(f"Evaluating model on validation and test set {start.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
     if 'domain' in train_df.columns:
+        #TODO Change to new parallelized inference function
 
         pred, true = model.evaluate_model(validation_ds)
 
@@ -340,11 +343,13 @@ def gen_training_plots(model, train_df, val_df, train_ds, validation_ds, target_
         train_df['dTrue'] = list(true[:,1]) #Domain true
         del pred, true
     else:
-        val_df['yPred'], val_df['yTrue'] = model.evaluate_model(validation_ds)
-        train_df['yPred'], train_df['yTrue'] = model.evaluate_model(train_ds)
-    
+        val_df['yPred'], val_df['yTrue'] = pyTrain.infere_model(model, validation_ds, target_path, num_threads)
+        print('Validation set done', flush=True)
+        train_df['yPred'], train_df['yTrue'] = pyTrain.infere_model(model, train_ds, target_path, num_threads)
+        print('Training set done', flush=True)
+
     end = datetime.datetime.now()
-    print(f"Validation set evaluation done {end.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
+    print(f"Evaluation done {end.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
 
 
     if 'domain' in train_df.columns:
@@ -458,10 +463,7 @@ if __name__ == '__main__':
     model = training(train_ds=train_ds, validation_ds=validation_ds, vars=vars, data_type=cfg.data_type, 
                      target_path=cfg.target_path, tagger=cfg.tagger, seed=cfg.seed, features=features, 
                      config=cfg.config, repo=cfg.repo, num_threads=cfg.num_threads, clean=cfg.clean)
-    #No shared memory needed for plot generation, as such the inputDataset must be indexed
-    train_ds.indexed = True
-    validation_ds.indexed = True
 
-    gen_training_plots(model, train_df, val_df, train_ds, validation_ds, cfg.target_path, cfg.tagger)
+    gen_training_plots(model, cfg.num_threads, train_df, val_df, train_ds, validation_ds, cfg.target_path, cfg.tagger)
 
     print(f"Training finished, model saved in {cfg.target_path}")

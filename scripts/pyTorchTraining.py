@@ -31,6 +31,8 @@ import socket
 import random
 import fcntl
 import lhcb_ftcalib as ft
+import traceback
+import logging  
 
 
 
@@ -85,7 +87,7 @@ def splitByEvent (df, seed, train_val_split):
 
 def prepare_data(train_df, val_df, scalerPath, transformerPath):
     # Load the dataset
-    train_dataset = inputDataset(df=train_df) #scaler=PowerTransformer() 
+    train_dataset = inputDataset(df=train_df)
     train_dataset.scale(test=False, scalerPath=scalerPath, transformerPath=transformerPath)
     val_dataset = inputDataset(df=val_df)
     val_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
@@ -224,9 +226,26 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
+
+def train_worker(rank, model, train_ds, validation_ds, target_path, config, seed, return_dict, num_threads=1):
+
+    logging.basicConfig(
+        filename=os.path.join(target_path, f"log_rank_{rank}.log"),
+        level=logging.INFO,
+    )
+
+    try:
+        train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, seed, return_dict, num_threads)
+    except Exception as e:
+        logging.error(f"Worker {rank} crashed at {time.time()}:")
+        logging.error(traceback.format_exc())
+        traceback.print_exc()
+        raise
+
+
+
 def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, seed, return_dict, num_threads=1):
         lossValBest = 10000
-        stopped = False
         bestEpoch = 0
 
                
@@ -234,12 +253,14 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         training_start = time.time()
         early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
         
-        i = 1
 
         if num_threads>1:
             port = ddp_setup(rank, num_threads, target_path) 
+            print(f"Rank {rank} starting training with {num_threads} threads", flush=True)
             model.add_DDP()
 
+
+            print(f"Rank {rank} preparing samplers", flush=True)
             train_sampler = DistributedSampler(train_ds, num_replicas=num_threads, rank=rank, shuffle=True, drop_last=True, seed=seed)
             validation_sampler = DistributedSampler(validation_ds, num_replicas=num_threads, rank=rank, shuffle=False, drop_last=True, seed=seed)
             shuffle=False
@@ -250,24 +271,26 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             shuffle=True
             shuffle=True
 
-        
+        print(f"Rank {rank} preparing dataloaders", flush=True)
         train_batch_size = config['train_batch_size']//num_threads #Ensures same effective batch size regardless of number of threads
         val_batch_size = config['train_batch_size']//num_threads #Might want to change this to a seperate hyperparameter in the config file
         
         g = torch.Generator()
         g.manual_seed(seed)
-        train_dl = DataLoader(train_ds, batch_size=train_batch_size, shuffle=shuffle, sampler=train_sampler, worker_init_fn=seed_worker, generator=g)
-        validation_dl = DataLoader(validation_ds, batch_size=val_batch_size, shuffle=shuffle, sampler=validation_sampler, worker_init_fn=seed_worker, generator=g)
-        
+        train_dl =      DataLoader(train_ds,      batch_size=train_batch_size, shuffle=shuffle, sampler=train_sampler,      worker_init_fn=seed_worker, generator=g)
+        validation_dl = DataLoader(validation_ds, batch_size=val_batch_size,   shuffle=shuffle, sampler=validation_sampler, worker_init_fn=seed_worker, generator=g)
+        print(f"Rank {rank} dataloaders ready")
         trainingEpoch_loss = []
         validationEpoch_loss = []
-        temp = model.validate_model(validation_dl)
-        initialValidation_loss = np.array(temp).mean(axis=0)
+        initialValidation_loss = np.array(model.validate_model(validation_dl)).mean(axis=0)
         if rank == 0: #Only print on rank 0, to avoid duplicate printing in multi-threading
             print(f"The initial Validation Loss: {format_loss(initialValidation_loss)}")
         
+        if num_threads > 1:
+            dist.barrier() #Ensure all processes have finished validation before starting training, to avoid possible issues with early stopping if one process is much faster than the others
+        epoch = 0
         epochtimes = []
-        for epoch in range(config['n_epochs']):
+        while return_dict.get('early_stopping', False) == False and epoch <= config['n_epochs']: 
             epoch_start = time.time()
             if num_threads > 1:
                 train_sampler.set_epoch(epoch)
@@ -279,6 +302,7 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             # Compute validation loss
             validationStep_loss = np.array(model.validate_model(validation_dl)).mean(axis=0)
             validationEpoch_loss.append(validationStep_loss)
+
             if rank == 0:
                 print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
             if num_threads==1:
@@ -291,17 +315,23 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
  
             epochtimes.append((time.time()-epoch_start))
 
-            if early_stopper.early_stop(validationEpoch_loss[-1]): #Ensure that early stopping is not triggered too early
-                stopped = True 
-                break
-            if early_stopper.counter == 0:
-                lossValBest = validationEpoch_loss[-1]
-                lossTrainBest = trainingEpoch_loss[-1]
-                bestEpoch = epoch
-                bestModel = copy.deepcopy(model)
-                bestModel.remove_DDP()
-            i +=1
+            if rank == 0:
+                return_dict['early_stopping'] = early_stopper.early_stop(validationEpoch_loss[-1]) 
+                if early_stopper.counter == 0:
+                    lossValBest = validationEpoch_loss[-1]
+                    lossTrainBest = trainingEpoch_loss[-1]
+                    bestEpoch = epoch
+                    bestModel = copy.deepcopy(model)
+                    bestModel.remove_DDP()
+                epoch +=1
+            
+            if num_threads>1:
+                dist.barrier()
+                
+
         if num_threads>1:
+            print(f"Rank {rank} finished training, cleaning up DDP", flush=True)
+            dist.barrier() #Ensure all processes have finished training before cleaning up
             destroy_process_group()
             release_port(target_path, port)
     
@@ -314,14 +344,74 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             epochtimes_std = np.std(epochtimes)
 
             print(f'Average time per epoch: {epochtimes_mean} +/- {epochtimes_std} seconds')
-            print(f"Training finished in {training_time} min, {i-1} epochs, early stopping: {stopped}")
+            print(f"Training finished in {training_time} min, {epoch-1} epochs, early stopping: {return_dict.get('early_stopping')}")
 
             return_dict['bestModel'] = bestModel
             return_dict['trainingEpoch_loss'] = trainingEpoch_loss
             return_dict['validationEpoch_loss'] = validationEpoch_loss
             return_dict['bestEpoch'] = bestEpoch
             return_dict['bestLosses'] = np.array([lossTrainBest, lossValBest], dtype=float)
+        
+        print(f"Rank {rank} exiting training function", flush=True)
 
+def __infere_model(rank, num_threads, model, ds, target_path, return_dict):
+    if num_threads>1:
+        port = ddp_setup(rank, num_threads, target_path) 
+    model.eval()
+
+    sampler = DistributedSampler(ds, num_replicas=num_threads, rank=rank, shuffle=False)
+    loader = DataLoader(ds, batch_size=1, sampler=sampler, shuffle=False)
+    all_results = [None for i in range(num_threads)]
+
+    with torch.no_grad():
+        results = {'idx': [], 'yPred': [], 'yTrue': []}
+        for idx, (x, y_true) in zip(loader.sampler, loader):
+            y_pred = model(x)
+            results['yPred'].append(y_pred.numpy()[0])
+            results['yTrue'].append(y_true.numpy()[0][0])
+            results['idx'].append(idx)
+
+
+    all_gather_object(all_results, results)
+
+    if rank == 0:
+        # Merge results from all processes
+        return_dict['yPred'] = []
+        return_dict['yTrue'] = []
+        return_dict['idx'] = []
+        for res in all_results:
+            return_dict['yPred'] += res['yPred']
+            return_dict['yTrue'] += res['yTrue']
+            return_dict['idx'] += res['idx']
+
+
+        #sort by index and drop padding
+        pos = np.unique(return_dict['idx'], return_index=True)[1]
+
+        return_dict['idx'] = np.array(return_dict['idx'])[pos]
+        return_dict['yPred'] = np.array(return_dict['yPred'])[pos]
+        return_dict['yTrue'] = np.array(return_dict['yTrue'])[pos]
+
+    print(f"Rank {rank} finished inference", flush=True)
+    if num_threads>1:
+        release_port(target_path, port)
+
+def infere_model(model, ds, target_path, num_threads = 1):
+    if num_threads>1:
+        return_dict = mp.Manager().dict()
+        ds_name = f'train_set{id(ds)}'
+        _ds = SharedDataset(ds, ds_name)
+    else:
+        return_dict = {}
+        _ds = ds
+    
+    mp.spawn(__infere_model, args=(num_threads, model, _ds, target_path, return_dict), nprocs=num_threads)
+    
+    if num_threads>1:
+        _ds.unlink(ds_name)
+        os.remove(f"{target_path}/port.temp")
+    
+    return return_dict['yPred'], return_dict['yTrue']
 
 def eval_model_multiprocessed(rank, model, ds, target_path, return_dict, num_threads=4):
     if num_threads == 1:
@@ -494,8 +584,11 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
     plt.yscale("log")
     min_pred = np.min(1-df[predLabel])
     max_pred = np.max(1-df[predLabel])
-    bins = np.linspace(min_pred, max_pred, nbins+1)
-
+    if min_pred != max_pred:
+        bins = np.linspace(min_pred, max_pred, nbins+1)
+    else:
+        bins = np.linspace(0, 1, nbins+1)
+        
     if show_trueB:
         plt.hist(1-df[(df[trueLabel]==0)&(df['B_ID']<0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
         plt.hist(1-df[(df[trueLabel]==0)&(df['B_ID']>0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
@@ -610,33 +703,32 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
 
     scale = "linear"
-    if weights is not None:
-        #distribute the bins such that each bin has the same yield, aka the same sum of weights
-        bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
-        print(bins)
+    #distribute the bins such that each bin has the same yield, aka the same sum of weights
+    bins = bins_by_yield(df_tag[f"{tagger}_Eta"].values, weights, nbins)
+    print(bins)
 
-        if any(bins[:-1] == bins[1:]):
-            print("Warning: Bins are not unique, using linspace instead.")
-            bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
+    if any(bins[:-1] == bins[1:]):
+        print("Warning: Bins are not unique, using linspace instead.")
+        bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
 
-        class_indices = df_tag['B_ID'].values
-        class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\bar{B}^0$', }
-
+    class_indices = df_tag['B_ID'].values
+    class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\bar{B}^0$', }
 
 
-        taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-                                                file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
-                                                nbins = nbins, x_scale = scale, y_scale = scale)#, share_y= True, share_x = True)
 
-        taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
+    taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+                                            file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
+                                            nbins = nbins, x_scale = scale, y_scale = scale)
+    
+    taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
 
 
     info_dict = {"TaggingEfficiency"     : taggers[tagger].stats.tagging_efficiency(calibrated = False),
                 "TaggingPower"           : taggers[tagger].stats.tagging_power(     calibrated = False),
+                "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False),
                 "TaggingEfficiency_Cali" : taggers[tagger].stats.tagging_efficiency(calibrated = True ), 
                 "TaggingPower_Cali"      : taggers[tagger].stats.tagging_power(     calibrated = True ),
-                "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(  calibrated = True ), 
-                "EffectiveMistag"        : taggers[tagger].stats.effective_mistag(  calibrated = False),}
+                "EffectiveMistag_Cali"   : taggers[tagger].stats.effective_mistag(  calibrated = True ),} 
     for i in range(npar):
         info_dict[f"Fitpar_p{i}"]      = [taggers[tagger].stats.params.params_delta[i],      taggers[tagger].stats.params.errors_delta[i]]
         info_dict[f"Fitpar_deltap{i}"] = [taggers[tagger].stats.params.params_delta[i+npar], taggers[tagger].stats.params.errors_delta[i+npar]]

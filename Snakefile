@@ -228,18 +228,25 @@ wildcard_constraints:
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/config_test/testing/Data/logit/taggingInfo_logit.json',
 
-        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
-        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
-        
 
-        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/15/lr0.001_bs8192_nL6_nN64_BN/testing/Data/logit/taggingInfo_logit.json',
-        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/15/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #     tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #     tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #     tagger=['SSPion', 'SSProton'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #     tagger=['SSPion', 'SSProton'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
 
         # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/{seed}/lr0.001_bs8192_nL6_nN64/testing/Data/logit/taggingInfo_logit.json',
         #     tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
         # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/{seed}/lr0.001_bs8192_nL6_nN64_BN/testing/Data/logit/taggingInfo_logit.json',
+        #     tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
+
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/{seed}/lr0.001_bs8192_nL16_nN64/testing/Data/logit/taggingInfo_logit.json',
+        #     tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/{seed}/lr0.001_bs8192_nL16_nN64_BN/testing/Data/logit/taggingInfo_logit.json',
         #     tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
 
 
@@ -603,7 +610,7 @@ rule train_tagger_MC:
     resources:
         max_retries=0,
         mem_mb = 30_000, # Specify memory requirement in megabytes 
-        MaxRunHours = 4, 
+        MaxRunHours = 15, 
     threads:
         4,
     run:
@@ -633,6 +640,7 @@ rule train_tagger_MC:
             '--num_threads {threads}',
             '&> {log}',
         ]
+        print(' '.join(cmd))
         shell(' '.join(cmd))
 
 
@@ -642,11 +650,11 @@ rule train_tagger_data:
         script = join(repo, 'scripts/train_tagger.py'),
         train = lambda wildcards: [
             f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}')
-            for f in selected_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
         ],
         val = lambda wildcards: [
             f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'validation')
-            for f in selected_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
+            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
 
         config = join(repo, 'model_configs/{config}.yaml'),
@@ -660,7 +668,7 @@ rule train_tagger_data:
     resources:
         max_retries=0,
         mem_mb = 40_000, # Specify memory requirement in megabytes 
-        MaxRunHours = 8, # long queue
+        MaxRunHours = 12, # long queue
     threads:
         8,
     run:
@@ -699,23 +707,25 @@ rule calibrate_on_MC:
             f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'test')
             for f in selected_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
-        model = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
+        model = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
 
         script = join(repo, 'scripts/test_and_calibrate.py'),
         config = join(repo, 'model_configs/{config}.yaml'),
     output:
-        logit = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/logit/taggingInfo_logit.json'),
-        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/mistag/taggingInfo_mistag.json'),
+        logit = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/MC/logit/taggingInfo_logit.json'),
+        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/MC/mistag/taggingInfo_mistag.json'),
     log: 
-        join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/MC/testing_log.log')
-    wildcard_constraints:
-        weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data trained taggers needs to represent the weight, for MC it is empty
+        join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/MC/testing_log.log')
+    # wildcard_constraints:
+    #     weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data trained taggers needs to represent the weight, for MC it is empty
     priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
         mem_mb = 35_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 2,
+        MaxRunHours = 4
+    # threads:
+    #     4,
     run:
         outpath = os.path.dirname(os.path.dirname(output.logit))
         model_path = os.path.dirname(input.model)
@@ -741,6 +751,7 @@ rule calibrate_on_MC:
             '--data_type MC',
             '--model_path', model_path,
             '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
+            '--num_threads {threads}',
             '&> {log}',
         ]
         shell(' '.join(cmd))
@@ -781,23 +792,25 @@ rule calibrate_on_data:
         testing = lambda wildcards: [f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'test')
             for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
         ],
-        model = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}training/model.pth'),
+        model = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
 
         script = join(repo, 'scripts/test_and_calibrate.py'),
         config = join(repo, 'model_configs/{config}.yaml'),
     output:
-        logit  = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/logit/taggingInfo_logit.json'),
-        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/mistag/taggingInfo_mistag.json'),
+        logit  = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/Data/logit/taggingInfo_logit.json'),
+        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/Data/mistag/taggingInfo_mistag.json'),
     log: 
-        join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/{weight_or_empty}testing/Data/testing_log.log')
-    wildcard_constraints:
-        weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data needs to represent the weight, for MC it is empty
+        join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/Data/testing_log.log')
+    # wildcard_constraints:
+    #     weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data needs to represent the weight, for MC it is empty
     priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
         mem_mb = 35_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 2,
+        MaxRunHours = 4,
+    # threads:
+    #     4,
     run:
         outpath = os.path.dirname(os.path.dirname(output.logit))
         model_path = os.path.dirname(input.model)
@@ -823,6 +836,7 @@ rule calibrate_on_data:
             '--data_type Data',
             '--model_path', model_path,
             '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
+            '--num_threads {threads}',
             '&> {log}',
         ]
         print(' '.join(cmd))
@@ -884,8 +898,6 @@ def get_model_path(wildcards):
 
     model = join(out, f'{data_type}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{best["seed"]}/{best["config"]}')
 
-    if data_type == 'Data':
-        model = join(model, 'pdf_ratio')
     
     return join(model, 'training')
 

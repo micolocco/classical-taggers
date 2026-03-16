@@ -21,7 +21,7 @@ from scripts.NNModel import NeuralNetwork
 from scripts.NNModel import NNDomainAdapted
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-import utils
+# import utils
 import psutil
 import json
 from os.path import join
@@ -44,6 +44,8 @@ def read_files_reduce_unselected(files, vars, treename, seed):
         _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'], inplace=True)
         
         #Drop rows which are not selected. Keep one per unique event_entry to ensure correct efficiency calculation
+        print(f'Number of events with selected tracks before reduction: {_df[_df["selected"] == 1].event_entry.nunique()} out of {_df.event_entry.nunique()} total events', flush = True)
+
         _df = pd.concat([
             _df[_df['selected'] == 1],
             _df[_df['selected'] == 0].drop_duplicates('event_entry')
@@ -62,10 +64,8 @@ def study_eta_omega_dist(df, split_by, prefix, target_path, tagger, data_type):
     #Remove any duplicate bin edges. May happen with very strong bunching around eta = 0.5
     bins = np.unique(bins)
 
-    translation_dict = {'B_TRUEID': {-521: r'$B^-$', 521: r'$B^+$'},
-                        'B_ID': {-521: r'$B^-$', 521: r'$B^+$'},
-                        'B_TRUEID': {-511: r'$\bar{B}^0$', 511: r'$B^0$'},
-                        'B_ID': {-511: r'$\bar{B}^0$', 511: r'$B^0$'},
+    translation_dict = {'B_TRUEID': {-521: r'$B^-$', 521: r'$B^+$',-511: r'$\bar{B}^0$', 511: r'$B^0$'},
+                        'B_ID': {-521: r'$B^-$', 521: r'$B^+$',-511: r'$\bar{B}^0$', 511: r'$B^0$'},
                         'OSKaon_TagDec': {1: 'Positive', -1: 'Negative'},
                         'OSMuon_TagDec': {1: 'Positive', -1: 'Negative'},
                         'OSElectron_TagDec': {1: 'Positive', -1: 'Negative'},
@@ -152,7 +152,7 @@ def study_eta_omega_dist(df, split_by, prefix, target_path, tagger, data_type):
 
 
 def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, features, config,
-                     decay_type, seed, repo, data_type, model_path, domain_adapted=False):
+                     decay_type, seed, repo, data_type, model_path, domain_adapted=False, num_threads=1):
     start = datetime.datetime.now()
     print(f'Testing started on {start.strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
     # Load YAML configuration file
@@ -198,8 +198,19 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
 
+    start_time = time.time()
+    # yPred, yTrue = bestModel.evaluate_model(test_dl)
     test_df['yPred'], test_df['yTrue'] = bestModel.evaluate_model(test_dl)
     
+    print(f"Time taken for inference: {time.time() - start_time:.2f} seconds", flush=True)
+    
+    # start_time = time.time()
+    # test_df['yPred'], test_df['yTrue'] = pyTrain.infere_model(model=bestModel, ds=test_dataset, target_path=target_path, num_threads=num_threads)
+    # print(f"Time taken for parallel inference: {time.time() - start_time:.2f} seconds", flush=True)
+
+    # print("trues")
+    # print(list(yTrue))
+    # print(test_df['yTrue'].tolist())
 
     test_df[f"{tagger}_Eta"] = 1 - test_df['yPred']
     cols_to_keep = ['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred', ]
@@ -235,6 +246,8 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
     df_TagParticles = test_df.sort_values(by = ["selected",f"{tagger}_Eta"] , ascending = [False,True]).groupby("event_entry").first()
     del test_df
+
+    print(f"Number of events with selected tracks: {df_TagParticles[df_TagParticles['selected'] == 1].shape[0]} out of {df_TagParticles.shape[0]} total events", flush = True)
     
     if data_type == 'Data':
         sweights_TagParticles = df_TagParticles['signal_weights'].to_numpy().astype(np.float64)
@@ -283,6 +296,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help="Type of Data used, MC or Data",choices=('MC', 'Data'))
     parser.add_argument('--model_path', help='Path to trained model', type=str)
     parser.add_argument('--domain_adapted', action='store_true', help='Model is domain adapted', )
+    parser.add_argument('--num_threads', help='Number of threads to use for inference', default=1, type=int)
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -323,4 +337,4 @@ if __name__ == '__main__':
     testing_pipeline(test_df=test_df, vars=vars, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
                      tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
                      seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, model_path = cfg.model_path,
-                     domain_adapted=cfg.domain_adapted)
+                     domain_adapted=cfg.domain_adapted, num_threads=cfg.num_threads)
