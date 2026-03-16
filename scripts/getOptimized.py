@@ -97,10 +97,10 @@ if __name__ == '__main__':
         description='Apply a preselection for the tagging particles',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/togasa/FlavourTagging/NTuples')
+    parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/togasa/FlavourTagging')
     parser.add_argument('--cut', help='Cut type to be used', type=str, default='notSamePV_noOSP')
     parser.add_argument('--outpath', help='Where the best tagger candidates configs will be saved', type=str, default='./best_tagger_candidates')
-    parser.add_argument('--plot_path', help='Where the plots will be saved', type=str, default='/ceph/users/togasa/FlavourTagging/NTuples')
+    parser.add_argument('--plot_path', help='Where the plots will be saved', type=str, default='/ceph/users/togasa/FlavourTagging/')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--data_type', help='Type of data to be used', type=str, choices=['MC', 'Data'])  # 'MC' or 'Data'
     parser.add_argument('--tagger_input', help='File of the tagger inputs, only needed for num parameter plot', type=str, default='/ceph/users/togasa/classical-taggers/tagger_inputFeatures/union_PROBNN.yaml')
@@ -116,8 +116,8 @@ if __name__ == '__main__':
         "OSKaon": "Bu2JpsiK",
         "OSElectron": "Bu2JpsiK",
         "OSMuon": "Bu2JpsiK",
-        # "SSPion": "Bd2JpsiKst",
-        # "SSProton": "Bd2JpsiKst",
+        "SSPion": "Bd2JpsiKst",
+        "SSProton": "Bd2JpsiKst",
         # "SSKaon": "Bs2DsPi",
     }
 
@@ -145,11 +145,11 @@ if __name__ == '__main__':
     combinations = list(product(seeds, learning_rates, train_batch_sizes, num_layers, num_neurons))
     print(combinations)
 
-    full_df =          pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc', 'p_diff', 'p_diff_unc', 'link'])
+    full_df =          pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc', 'link'])
     max_ratios = {}
     best_models = {}
     for link in  ['logit', 'mistag']:
-        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc', 'p_diff', 'p_diff_unc'])
+        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc'])
 
         for tagger, decay in tagger_dict.items():
             max_ratio = -np.inf
@@ -158,12 +158,9 @@ if __name__ == '__main__':
             for seed, lr, bs, nl, nn in combinations:
 
                 # Read tagging power values from JSON files
-                results_folder = f"{cfg.model_prePath}/{data_type}/savedModels/withUT_MC_2024/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed
+                results_folder = f"{cfg.model_prePath}/{data_type}/savedModels/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed
                 config = f"lr{lr}_bs{bs}_nL{nl}_nN{nn}"
                 folder_path = os.path.join(results_folder, config)
-
-                if data_type == 'Data':
-                    folder_path = os.path.join(folder_path, 'pdf_ratio')
 
                 json_file_data = os.path.join(folder_path, f"testing/Data/{link}/taggingInfo_{link}.json")
                 json_file_mc = os.path.join(folder_path, f"testing/MC/{link}/taggingInfo_{link}.json")
@@ -178,14 +175,6 @@ if __name__ == '__main__':
                         tagging_power_mc = data_mc['TaggingPower_Cali']
                     else:
                         tagging_power_mc = ufloat(np.nan, np.nan)
-
-                    ones_path = json_file_data.replace('pdf_ratio', 'ones')
-                    data_ones = utils.load_and_process_json(ones_path)
-                    tagging_power_ones = data_ones['TaggingPower_Cali']
-
-                    p_diff = tagging_power - tagging_power_ones
-
-                    print(f"weight differences for {tagger} with seed {seed}, lr {lr}, bs {bs}, nl {nl}, nn {nn}: {tagging_power - tagging_power_ones}")
 
 
                     if not np.isnan(tagging_power.nominal_value) and tagging_power.nominal_value != 0:
@@ -211,8 +200,8 @@ if __name__ == '__main__':
                                     "precision": ratio_precision,
                                 }
                                 best_model = json_file_data
-                            print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}, Tagging Power MC: {tagging_power_mc.nominal_value}, weighting performance diff: {p_diff.nominal_value}")
-                            performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value, tagging_power.std_dev, tagging_power_mc.nominal_value, tagging_power_mc.std_dev, p_diff.nominal_value, p_diff.std_dev]
+                            print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}, Tagging Power MC: {tagging_power_mc.nominal_value}")
+                            performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value, tagging_power.std_dev, tagging_power_mc.nominal_value, tagging_power_mc.std_dev]
 
             if best_hyperparams:
                 max_ratios[tagger] = best_hyperparams
@@ -249,38 +238,7 @@ if __name__ == '__main__':
 
     # Save the full DataFrame to a CSV file
     df_path = os.path.dirname(plot_path)
-    full_df.to_csv(os.path.join(df_path, 'performances.csv'), index=False)
-
-
-
-    plt.clf()
-    bins = np.linspace(-0.25, 0.05, 13)
-    df = pd.DataFrame.from_dict({tagger: full_df[full_df['tagger']==tagger]['p_diff'] for tagger in ['OSKaon', 'OSMuon', 'OSElectron']})
-    df.plot.hist(bins=bins,  stacked=True)
-    # p_diff= [full_df[full_df['tagger']==tagger]['p_diff'] for tagger in ['OSKaon', 'OSMuon', 'OSElectron']]
-    # plt.hist(p_diff[0], bins=bins, color = 'red', alpha=0.5, label='OSKaon', stacked=True)
-    # plt.hist(p_diff[1], bins=bins, color = 'blue', alpha=0.5, label='OSMuon', stacked=True)
-    # plt.hist(p_diff[2], bins=bins, color = 'green', alpha=0.5, label='OSElectron', stacked=True)
-    plt.xlabel('Tagging Power (pdf_ratio - Ones)')
-    plt.ylabel('count per 0.025 bin')
-    plt.legend()
-    plt.savefig(os.path.join(df_path, 'p_diff_histogram.png'))
-
-    plt.clf()
-    bins = np.linspace(-6.5, 0.5, 15)
-    full_df['p_diff_sig'] = full_df['p_diff'] / full_df['p_diff_unc']
-    df = pd.DataFrame.from_dict({tagger: full_df[full_df['tagger']==tagger]['p_diff_sig'] for tagger in ['OSKaon', 'OSMuon', 'OSElectron']})
-
-    df.plot.hist(bins=bins,  stacked=True)
-    # plt.hist(full_df[full_df['tagger']=='OSKaon']['p_diff_sig'], bins=bins, color = 'red', alpha=0.5, label='OSKaon', stacked=True)
-    # plt.hist(full_df[full_df['tagger']=='OSMuon']['p_diff_sig'], bins=bins, color = 'blue', alpha=0.5, label='OSMuon', stacked=True)
-    # plt.hist(full_df[full_df['tagger']=='OSElectron']['p_diff_sig'], bins=bins, color = 'green', alpha=0.5, label='OSElectron', stacked=True)
-    plt.xlabel('Significance of Difference (pdf_ratio - Ones)')
-    plt.ylabel('count per 0.5 bin')
-    plt.legend()
-    plt.savefig(os.path.join(df_path, 'p_diff_sig_histogram.png'))
-
-    
+    full_df.to_csv(os.path.join(df_path, 'performances.csv'), index=False)   
 
 
     print(f"All results saved to {cfg.outpath}/{cfg.cut}/{data_type}/")
