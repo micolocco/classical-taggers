@@ -70,39 +70,42 @@ def box_plot(df, label, file):
 
 if __name__ == '__main__':
     taggers = ['OSKaon', 'OSMuon', 'OSElectron']
-    base_config = 'lr0.001_bs8192_nL6_nN64'
+    configs = ['lr0.001_bs8192_nL6_nN64', 'lr0.001_bs8192_nL16_nN64']
+    file_prefixes = ['6L64', '16L64']
+
     out_path = f"/ceph/users/togasa/FlavourTagging/MC/savedModels/control_plots/seeds/"
 
-    taggingPower_df = pd.DataFrame(columns=['Tagger', 'Seed', 'BN', 'TaggingPower', 'TaggingPower_sig'])
-    for tagger in taggers:
-        base_path = f"/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/"
-        final_path = f"/testing/Data/logit/taggingInfo_logit.json"
+    for base_config, file_prefix in zip(configs, file_prefixes):
+        taggingPower_df = pd.DataFrame(columns=['Tagger', 'Seed', 'BN', 'TaggingPower', 'TaggingPower_sig'])
+        for tagger in taggers:
+            base_path = f"/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/"
+            final_path = f"/testing/Data/logit/taggingInfo_logit.json"
 
-        #get all seeds used, by looking at the folders in the base path
-        seeds = [int(folder) for folder in os.listdir(base_path)]
-        for seed in seeds:
+            #get all seeds used, by looking at the folders in the base path
+            seeds = [int(folder) for folder in os.listdir(base_path)]
+            for seed in seeds:
 
-            path = f"{base_path}{seed}/{base_config}{final_path}"   
-            if os.path.exists(path):
-                data = utils.load_and_process_json(path)
-                tagging_power = data['TaggingPower_Cali']
+                path = f"{base_path}{seed}/{base_config}{final_path}"   
+                if os.path.exists(path):
+                    data = utils.load_and_process_json(path)
+                    tagging_power = data['TaggingPower_Cali']
 
-                taggingPower_df.loc[len(taggingPower_df)] = [tagger, seed, 'noBN', tagging_power.nominal_value, tagging_power.nominal_value/tagging_power.std_dev]
+                    taggingPower_df.loc[len(taggingPower_df)] = [tagger, seed, 'noBN', tagging_power.nominal_value, tagging_power.nominal_value/tagging_power.std_dev]
 
-            else:
-                print(f"File not found for seed {seed} in tagger {tagger} at path {path}")
+                else:
+                    print(f"File not found for seed {seed} in tagger {tagger} at path {path}")
 
-            path_bn = f"{base_path}{seed}/{base_config}_BN{final_path}"   
-            if os.path.exists(path_bn):
-                data = utils.load_and_process_json(path_bn)
-                tagging_power = data['TaggingPower_Cali']
-                
-                taggingPower_df.loc[len(taggingPower_df)] = [tagger, seed, 'BN', tagging_power.nominal_value, tagging_power.nominal_value/tagging_power.std_dev]
-            else:
-                print(f"File not found for seed {seed} in tagger {tagger} at path {path_bn}")
+                path_bn = f"{base_path}{seed}/{base_config}_BN{final_path}"   
+                if os.path.exists(path_bn):
+                    data = utils.load_and_process_json(path_bn)
+                    tagging_power = data['TaggingPower_Cali']
+                    
+                    taggingPower_df.loc[len(taggingPower_df)] = [tagger, seed, 'BN', tagging_power.nominal_value, tagging_power.nominal_value/tagging_power.std_dev]
+                else:
+                    print(f"File not found for seed {seed} in tagger {tagger} at path {path_bn}")
 
-    error_bar_plot(taggingPower_df, 'TaggingPower', os.path.join(out_path, 'Batch_norm_comparison.pdf'))
-    box_plot(taggingPower_df, 'TaggingPower', os.path.join(out_path, 'Batch_norm_comparison_box.pdf'))
+        error_bar_plot(taggingPower_df, 'TaggingPower', os.path.join(out_path, f'{file_prefix}_Batch_norm_comparison.pdf'))
+        box_plot(taggingPower_df, 'TaggingPower', os.path.join(out_path, f'{file_prefix}_Batch_norm_comparison_box.pdf'))
 
-    error_bar_plot(taggingPower_df, 'TaggingPower_sig', os.path.join(out_path, 'Sig_Batch_norm_comparison.pdf'))
-    box_plot(taggingPower_df, 'TaggingPower_sig', os.path.join(out_path, 'Sig_Batch_norm_comparison_box.pdf'))
+        error_bar_plot(taggingPower_df, 'TaggingPower_sig', os.path.join(out_path, f'{file_prefix}_Sig_Batch_norm_comparison.pdf'))
+        box_plot(taggingPower_df, 'TaggingPower_sig', os.path.join(out_path, f'{file_prefix}_Sig_Batch_norm_comparison_box.pdf'))
