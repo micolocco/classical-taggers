@@ -80,7 +80,8 @@ if __name__ == '__main__':
         for tagger in taggers:
             base_path = f"/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/"
             final_path = f"/testing/Data/logit/taggingInfo_logit.json"
-
+            print(f"Processing tagger {tagger} with base config {base_config}", flush=True)
+            
             #get all seeds used, by looking at the folders in the base path
             seeds = [int(folder) for folder in os.listdir(base_path)]
             for seed in seeds:
