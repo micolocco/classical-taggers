@@ -230,7 +230,6 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
     
 
-    #print(test_df.loc[test_df.selected == 1][f"{tagger}_Eta"]) 
 
     test_df.loc[test_df.selected == 0, f"{tagger}_TagDec"] = 0  # classic
     test_df.loc[test_df.selected == 0, f"{tagger}_Eta"] = 0.5  # classic
