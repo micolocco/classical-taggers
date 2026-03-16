@@ -4,9 +4,9 @@ dropout: 0.1
 learning_rate: 0.001
 min_delta: 0
 n_epochs: 5
-numlayers: 6
+numlayers: 2
 numneurons: 32
-patience: 50
+patience: 3
 train_batch_size: 8192
 train_val_split: 0.6
 is_test: True
