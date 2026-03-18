@@ -33,7 +33,7 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
     print(cuts)
     print(data_type)
     if data_type == 'Data':
-        print("replaceing B_Tr_T_Origin_Flag with B_Tr_T_IsInTree in the cut string for data")
+        print("replacing B_Tr_T_Origin_Flag with B_Tr_T_IsInTree in the cut string for data")
         cuts = np.char.replace(cuts, "(B_Tr_T_Origin_Flag!=0)", "(B_Tr_T_IsInTree!=1)")
         print(cuts)
     cuts = np.char.replace(cuts, "BPV", "OWNPV")
@@ -120,9 +120,7 @@ if __name__ == '__main__':
     # The label is given by the product of the tagging decision and the flavour charge of the B.
     # It indicates if the tagging decision is wrong or correct.
     # -1 == wrong tag  1 == correct tag
-    # When using data:
-    #   - tagging decision: the B_TRUEID must be replaced with B_ID 
-    #   - calibration: B_ID = reconstructed ID when moving to data!
+
 
     df["label"] = df[f"{cfg.tagger}_TagDec"] * df['B_ID']/abs(df['B_ID']) 
 
