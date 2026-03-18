@@ -1,0 +1,3 @@
+(B_Tr_T_PROBNN_E <= 0.6606) & (B_Tr_T_PROBNN_MU <= 0.6472) & (B_Tr_T_diff_z <= 6.7063) & (B_Tr_T_PROBNN_PI > 0.9496) & (B_Tr_T_PIDK <= -1.6081) & (B_Tr_T_Origin_Flag!=0)
+OR
+(B_Tr_T_PROBNN_E <= 0.6606) & (B_Tr_T_PROBNN_MU <= 0.6472) & (B_Tr_T_diff_z <= 6.7063) & (B_Tr_T_PROBNN_PI > 0.9496) & (B_Tr_T_PIDK > -1.6081) & (B_Tr_T_Origin_Flag!=0)
