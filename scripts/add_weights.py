@@ -6,6 +6,7 @@ hep.style.use("LHCb2")
 import argparse
 import os
 import awkward as ak
+from pprint import pprint
 
 
 from scripts.adding_features import get_loading_vars
@@ -34,6 +35,7 @@ if __name__ == '__main__':
 
 
     cfg = parser.parse_args()
+    pprint(cfg)
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
 
     #Load Dataset
@@ -43,7 +45,6 @@ if __name__ == '__main__':
 
 
     df_data["event_entry"] =  df_data["file_id"].astype(str) + "_" + df_data["RUNNUMBER"].astype(str) + "_" + df_data["EVENTNUMBER"].astype(str)
-    df_data = df_data.query(f'{cfg.obs_name} < {mass_range[1]} and {cfg.obs_name} > {mass_range[0]}')
 
     #Load Weightfile
     with uproot.open(cfg.weight_file) as _f:
