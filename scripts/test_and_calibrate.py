@@ -25,7 +25,6 @@ matplotlib_lhcb_style(plt)
 import psutil
 import json
 from os.path import join
-from scripts.adding_features import translate_mc_names_to_data
 
 def read_files_reduce_unselected(files, vars, treename, seed):
     df = pd.DataFrame(columns=vars)
@@ -262,7 +261,7 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
         mode = 'Bu' #When truth information is availiable Bd or Bs mode is not needed
     
     
-
+    
 
     # Calibrating the tagger and saving parameters
     mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles, mode=mode)
@@ -304,7 +303,6 @@ if __name__ == '__main__':
     BID = 'B_ID'
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    features = translate_mc_names_to_data(features, cfg.decay_type, False)
     print(f"Features used: {features}", flush = True)
 
     vars = features + [BID, 'selected', 'label', f"{cfg.tagger}_TagDec"]

@@ -25,7 +25,6 @@ from io import StringIO
 import matplotlib
 
 from sklearn.metrics import accuracy_score
-from scripts.adding_features import translate_mc_names_to_data
 import random
 
 
@@ -165,7 +164,6 @@ def read_files(files, vars, treename, event_type, data_type):
 
 
     loading_vars = vars + additional_vars
-    loading_vars = translate_mc_names_to_data(loading_vars, event_type, False)
 
     if isinstance(files, str):
         files = [files]
@@ -424,7 +422,6 @@ if __name__ == '__main__':
     BID = 'B_ID'
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    features = translate_mc_names_to_data(features, cfg.decay_type, False)
 
     vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] #'B_Tr_T_Charge',
     if cfg.data_type == 'domain_adapted':

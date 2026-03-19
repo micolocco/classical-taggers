@@ -7,8 +7,9 @@ import re
 from copy import deepcopy
 import yaml
 import json
+import glob
 
-configfile: 'configs/config_taggers.yaml'
+configfile: 'configs/config_taggers.yaml' #Default config file, can be overwritten when calling snakemake with --configfile <file>
 
 try:
     data = config['DATA']
@@ -30,106 +31,43 @@ taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
     'Bd2JpsiKst': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon'],
     'Bs2DsPi': ['SSKaon'],
-    # 'Bd2DmPi': ['SSPion', 'SSProton', 'OSKaon', 'OSElectron', 'OSMuon',],
-    # 'Bs2JpsiPhi': ['OSKaon', 'OSElectron', 'OSMuon', 'SSPion', 'SSProton', 'SSKaon']
-
-    
-}
-# TO DO create a rules that copy the files from eos to the cluster
-
-
-
-ntuples_eos_withUT = {
-    'Bu2JpsiK': in_data(MC, '''
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000004_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000004_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000002_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000003_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237568/0000/00237568_00000005_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000002_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237567/0000/00237567_00000003_1.mc.root
-'''.split('\n')),
-
-    'Bd2JpsiKst': in_data(MC, '''
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000002_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237569/0000/00237569_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237569/0000/00237569_00000002_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237569/0000/00237569_00000003_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237569/0000/00237569_00000004_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000003_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000004_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237614/0000/00237614_00000005_1.mc.root
-'''.split('\n')),
-#     'Bd2DmPi': in_data(MC, '''
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214045/0000/00214045_00000001_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214045/0000/00214045_00000002_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214045/0000/00214045_00000003_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214043/0000/00214043_00000001_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214043/0000/00214043_00000002_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/MC/Dev/MC.ROOT/00214043/0000/00214043_00000003_1.mc.root
-# '''.split('\n')),
-    'Bs2DsPi': in_data(MC, '''
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237578/0000/00237578_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237578/0000/00237578_00000002_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237578/0000/00237578_00000003_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237578/0000/00237578_00000004_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237578/0000/00237578_00000005_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237578/0000/00237578_00000006_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237578/0000/00237578_00000007_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237578/0000/00237578_00000008_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237585/0000/00237585_00000001_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237585/0000/00237585_00000002_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237585/0000/00237585_00000003_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237585/0000/00237585_00000004_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237585/0000/00237585_00000005_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237585/0000/00237585_00000006_1.mc.root
-        root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/2024/MC.ROOT/00237585/0000/00237585_00000007_1.mc.root
-'''.split('\n')),
-#     'Bs2JpsiPhi': in_data(MC, '''
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000001_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000002_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226269/0000/00226269_00000003_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226271/0000/00226271_00000001_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhMC/anaprod/lhcb/MC/Dev/MC.ROOT/00226273/0000/00226273_00000001_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000001_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000002_1.mc.root
-#         root://eoslhcb.cern.ch//eos/lhcb/grid/prod/lhcb/anaprod/lhcb/MC/Dev/MC.ROOT/00226275/0000/00226275_00000003_1.mc.root
-# '''.split('\n'))
 }
 
-#Data files
-with open("data_calibration/block12_list.txt", "r") as f:
-    files_s24c2 = f.readlines()
-files_s24c2 = [line.strip() for line in files_s24c2]
-raw_path = os.path.dirname(files_s24c2[0])
-data_ids = [os.path.basename(i)[:-5] for i in files_s24c2]
+def get_raw_paths(decay, ID, data_type):
+    end_path = f'withUT_MC_2024/1_raw/{decay}/{ID}.root'
+    if data_type == 'MC':
+        # return join(MC, f'{decay}/v1_taggers/{ID}.root')
+        return join(MC, end_path)
+    elif data_type == 'Data':
+        return join(data, f'{ID[:8]}/{ID[9:13]}' + f'/{ID}.root')
+        # return join(data, end_path)
+    else:
+        raise RuntimeError(f"data type is {data_type} instead of MC or Data. Somethings broken")
 
-
-combine_indices = [i for i in range(len(files_s24c2))]
-np.random.seed(42)
-np.random.shuffle(combine_indices)
-combine_indices = np.array_split(combine_indices, combined_df_n_splits)
-
-mc_ids = {}
+#Raw Data Files
+raw_data = {}
 for decay in taggers_conf.keys():
-    path = join(MC, 'withUT_MC_2024/1_raw/' + decay + '/')
+    base_path = join(dirname(get_raw_paths(decay, '00266999_00000001_1.data24', 'Data')) , '*.root')
+    files = glob.glob(base_path)
+    raw_data[decay] = files
+combine_indices = {decay: list(range(len(raw_data[decay]))) for decay in taggers_conf.keys()}
+np.random.seed(42)
+for decay in taggers_conf.keys():
+    np.random.shuffle(combine_indices[decay])
+    combine_indices[decay] = np.array_split(combine_indices[decay], combined_df_n_splits)
 
-    dec_ids = []
-    for f in os.listdir(join(path)):
-        if '.root' in f:
-            dec_ids.append(f)
-    mc_ids[decay] = dec_ids
+#Raw MC files
+raw_mc = {}
+for decay in taggers_conf.keys():
+    base_path = join(dirname(get_raw_paths(decay, 'ID', 'MC')) , '*.root')
+    files = glob.glob(base_path)
+    raw_mc[decay] = files
+
 
 
 #Create lists of all file names after each step
 #Data
-feat_added_data = {
-    'Bu2JpsiK': [join(out, 'Data/NTuples/1_added_features/Bu2JpsiK', os.path.basename(f)) for f in files_s24c2],
-    'Bd2JpsiKst': [join(out, 'Data/NTuples/1_added_features/Bd2JpsiKst', os.path.basename(f)) for f in files_s24c2]
-}
+feat_added_data = {key: [join(out, 'Data/NTuples/1_added_features', key, os.path.basename(f)) for f in raw_data[key]] for key in taggers_conf.keys()}
 
 combined_data = {}
 for decay, path_list in feat_added_data.items():
@@ -139,7 +77,6 @@ for decay, path_list in feat_added_data.items():
 train_split_data = {}
 for decay, path_list in combined_data.items():
     train_split_data.update({decay: [f.replace(f'1_added_features/{decay}/combined', f'2_split/{decay}').replace(decay, f'{decay}/train') for f in path_list]})
-
 
 selected_data = {}
 for decay, path_list in train_split_data.items():
@@ -161,7 +98,7 @@ for decay, path_list in selected_data.items():
 
 
 #MC
-feat_added_mc = deepcopy(ntuples_eos_withUT)
+feat_added_mc = deepcopy(raw_mc)
 for decay, path_list in feat_added_mc.items():
     feat_added_mc[decay] = [f.replace(os.path.dirname(f), f'{out}MC/NTuples/1_added_features/{decay}') for f in path_list]
 
@@ -239,20 +176,33 @@ wildcard_constraints:
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/training/model.pth',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/training/model.pth',
-        '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/training/model.pth',
-        '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/training/model.pth',
+        '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_weighted/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_weighted/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_weighted/Bd2JpsiKst/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_weighted/Bd2JpsiKst/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_weighted/Bd2JpsiKst/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_weighted/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_weighted/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_weighted/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        
+        '/ceph/users/togasa/FlavourTagging/MC/NTuples/3_selected/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/00267659_00000001_1.mc.root',
+        '/ceph/users/togasa/FlavourTagging/MC/NTuples/3_selected/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/00267659_00000001_1.mc.root',
+        '/ceph/users/togasa/FlavourTagging/MC/NTuples/3_selected/Bd2JpsiKst/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/00267659_00000001_1.mc.root',
+        '/ceph/users/togasa/FlavourTagging/MC/NTuples/3_selected/Bd2JpsiKst/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/00267659_00000001_1.mc.root',
+        '/ceph/users/togasa/FlavourTagging/MC/NTuples/3_selected/Bd2JpsiKst/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/00267659_00000001_1.mc.root',
+        '/ceph/users/togasa/FlavourTagging/MC/NTuples/3_selected/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/00266989_00000001_1.mc.root',
+        '/ceph/users/togasa/FlavourTagging/MC/NTuples/3_selected/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/00266989_00000001_1.mc.root',
+        '/ceph/users/togasa/FlavourTagging/MC/NTuples/3_selected/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/00266989_00000001_1.mc.root',
+        '/ceph/users/togasa/FlavourTagging/Data/signal_classifier/Bd2JpsiKst/bdt_model.pkl',
+        '/ceph/users/togasa/FlavourTagging/Data/signal_classifier/Bu2JpsiK/bdt_model.pkl',
+        '/ceph/users/togasa/FlavourTagging/Data_from_Old_tuples/savedModels/Bu2JpsiK/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/testing/Data/logit/taggingInfo_logit.json'
         
 
-        # '/ceph/users/togasa/FlavourTagging/Data/NTuples/3_selected/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
-        # '/ceph/users/togasa/FlavourTagging/Data/NTuples/3_selected/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
-        # '/ceph/users/togasa/FlavourTagging/Data/NTuples/3_selected/Bd2JpsiKst/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
-        # '/ceph/users/togasa/FlavourTagging/Data/NTuples/3_selected/Bd2JpsiKst/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
-        # '/ceph/users/togasa/FlavourTagging/Data/NTuples/3_selected/Bd2JpsiKst/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
-        # '/ceph/users/togasa/FlavourTagging/Data/NTuples/3_selected/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
-        # '/ceph/users/togasa/FlavourTagging/Data/NTuples/3_selected/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
-        # '/ceph/users/togasa/FlavourTagging/Data/NTuples/3_selected/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/train/samples_0.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/training/model.pth',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/training/model.pth',
+        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/training/model.pth',
+        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL6_nN32/training/model.pth',
+
 
 
 
@@ -293,7 +243,7 @@ rule all:
         #     tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
         # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/{seed}/lr0.001_bs8192_nL16_nN64_BN/testing/Data/logit/taggingInfo_logit.json',
         #     tagger = ['OSKaon', 'OSMuon', 'OSElectron'], seed = [1, 3, 12, 18, 22, 28, 32, 42, 55, 65, 71, 81, 101, 111, 121, 123]),
-        
+
 
 
 
@@ -342,15 +292,6 @@ def copy_to_scratch(paths):
     return scratch_paths
 
 
-def get_raw_paths(decay, ID, data_type):
-    if data_type == 'MC':
-        return join(MC, f'{decay}/v1_taggers/{ID}.root')
-    elif data_type == 'Data':
-        return join(data, f'{ID[:8]}/{ID[9:13]}' + f'/{ID}.root')
-    else:
-        print(f"data type is {data_type} instead of MC or Data. Somethings broken")
-        raise RuntimeError
-
 rule add_features:
     input:
         script = join(repo, 'scripts/adding_features.py'),
@@ -367,8 +308,7 @@ rule add_features:
         MaxRunHours = 1, # short queue
     run:
         tree = find_tree_name(wildcards.decay)
-        dataCalib = '--data_calib' if wildcards.data_type == 'Data' else ''
-
+       
         cmd = [
             'python', input.script,
             '--raw {input.raw}',
@@ -377,7 +317,7 @@ rule add_features:
             '--treename', tree,
             '--loading_features {input.loading_vars}',
             '--signal_class_features {input.signal_class_features}',
-            f'{dataCalib}',
+            '--data_type {wildcards.data_type}',
             '&> {log}',
         ]
         shell(' '.join(cmd))
@@ -386,7 +326,7 @@ rule add_features:
 rule combine_small_files:
     input:
         script = join(repo, 'scripts/combine_dataframes.py'),
-        data = lambda wildcards: np.array(feat_added_data[wildcards.decay])[combine_indices[int(wildcards.ID)]],
+        data = lambda wildcards: np.array(feat_added_data[wildcards.decay])[combine_indices[wildcards.decay][int(wildcards.ID)]],
     output:
         join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.root'),
     log: 
@@ -765,8 +705,6 @@ rule calibrate_on_MC:
         mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/MC/mistag/taggingInfo_mistag.json'),
     log: 
         join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/MC/testing_log.log')
-    # wildcard_constraints:
-    #     weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data trained taggers needs to represent the weight, for MC it is empty
     priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
@@ -850,9 +788,7 @@ rule calibrate_on_data:
         mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/Data/mistag/taggingInfo_mistag.json'),
     log: 
         join(out, '{data_type_or_adapted}/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/Data/testing_log.log')
-    # wildcard_constraints:
-    #     weight_or_empty = '(' + '|'.join([i + '/' for i in weights] + ['']) + ')', #For Data needs to represent the weight, for MC it is empty
-    priority: -2, # Lower priority for efficient use of requested cores
+   priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
         mem_mb = 35_000, # Specify memory requirement in megabytes 

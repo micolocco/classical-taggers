@@ -23,7 +23,6 @@ import psutil
 from scripts.train_BDT import KFoldBDT
 import pickle
 import yaml
-from adding_features import translate_mc_names_to_data
 from pprint import pprint
 
 
@@ -354,7 +353,6 @@ if __name__ == '__main__':
     with open(cfg.signal_class_features, 'r') as f:
         bdt_features = yaml.safe_load(f)
         
-        bdt_features = translate_mc_names_to_data(bdt_features[cfg.decay_type], cfg.decay_type, drop_mc_cols=False)
 
     with open(cfg.BDT, 'rb') as f:
         loaded_data = pickle.load(f)

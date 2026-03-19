@@ -17,7 +17,6 @@ from scripts.NNModel import NeuralNetwork
 matplotlib_lhcb_style(plt)
 from scripts.preSelections import run2_taggers_variables
 from scripts.train_tagger import get_architecture
-from scripts.adding_features import translate_mc_names_to_data
 
 def plot_tagDec(tagger, df_TagParticles, plotPath):
     plt.figure()
@@ -63,7 +62,6 @@ if __name__ == '__main__':
     pprint(cfg)
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    features = translate_mc_names_to_data(features, cfg.decayType, drop_mc_cols = False)
 
     loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 
                                                             'RUNNUMBER', 'EVENTNUMBER', 'file_id', 

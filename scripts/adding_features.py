@@ -98,7 +98,7 @@ def process_chunk(df, is_data):
     df.loc[:,f'B_Tr_T_atanPT_PZ'] = np.arctan2(df[f'B_Tr_T_PT'], df[f'B_Tr_T_PZ'])
 
     with_na=df.shape[0]
-    print(f"Dropping NaN values and converting data types for chunk with shape {df.shape}", flush=True)
+    print(f"\nDropping NaN values and converting data types for chunk with shape {df.shape}", flush=True)
     # Drop NaN values and convert data types
     df.dropna(inplace=True)
     print("Dropped tracks=", with_na - df.shape[0], flush=True)
@@ -107,35 +107,17 @@ def process_chunk(df, is_data):
     df.reset_index(drop=True, inplace=True)
     return df
 
-def translate_mc_names_to_data(vars,event_type, drop_mc_cols = True, inverse_translation = False):
-    translations = OrderedDict(data_vars_translation)
-    translations["BPV"] = "OWNPV_"
-    translations["Tr_T_OWNPV_IP"] = "Tr_T_OWNPVIP"
-    translations["END_V"] = "ENDV_"
-    translations["muMinus"] = "muminus"
-    translations["muPlus"] = "muplus"  
-    translations["Kstar_"] = "X_"
-    translations["KPlus"] = "hplus"
-    translations["piMinus"] = "hminus"
-    translations["_TRUEID"] = "_ID"
-    translations[event_type[:2] + "_"] = "B_"
+def mc_vars_to_data_vars(variables):
+        variables = [v for v in variables if ("TRUE" not in v and "BKGCAT" not in v and "Origin_Flag" not in v and "MC" not in v)]  
+        variables.append("B_Tr_T_IsInTree")
+        variables.append("B_ID")
+        variables.append("FillNumber")
+        #Add Lifetime for Bd for liftime cut during training as well as for the callibration
+        variables.append('B_DTF_PV_Jpsi_CTAU')
+        return variables
 
 
-    if inverse_translation:
-        translations = OrderedDict({v: k for k, v in reversed(translations.items())})
-
-    res = []
-    for v in vars:
-        if drop_mc_cols and ("TRUE" in v or "BKGCAT" in v or "Origin_Flag" in v or "MC" in v): continue
-        for key, value in translations.items():
-            if key in v:
-                v = v.replace(key, value)
-        res.append(v)
-        
-
-    return res
-
-def get_loading_vars(evtType, data_calib, loading_var_path = "configs/loading_variables.txt", signal_class_feat_path = "configs/signal_classifier_features.yaml"):
+def get_loading_vars(evtType, data_type, loading_var_path = "configs/loading_variables.txt", signal_class_feat_path = "configs/signal_classifier_features.yaml"):
     with open(loading_var_path, 'r') as f:
         loading_variables = f.read().splitlines()
     with open(signal_class_feat_path, 'r') as f:
@@ -145,13 +127,8 @@ def get_loading_vars(evtType, data_calib, loading_var_path = "configs/loading_va
     
 
     # BPV -> OWNPV will need to be changed for everything in the future productions!!!!
-    if data_calib:
-        loading_variables = translate_mc_names_to_data(loading_variables, evtType)
-        loading_variables.append("B_Tr_T_IsInTree")
-        loading_variables.append("B_ID")
-        loading_variables.append("FillNumber")
-        #Add Lifetime for Bd for liftime cut during training as well as for the callibration
-        loading_variables.append('B_DTF_PV_Jpsi_CTAU')
+    if data_type == 'Data':
+        loading_variables = mc_vars_to_data_vars(loading_variables)
         
 
     loading_variables.append(get_mass_label(evtType))
@@ -166,8 +143,8 @@ if __name__ == '__main__':
     parser.add_argument('--output', help='Name of the output file', type=str)
     parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
-    parser.add_argument('--batch_size', help='Size of the data batch to process at a time', type=int, default=1000) 
-    parser.add_argument('--data_calib', action="store_true", default=False)
+    parser.add_argument('--batch_size', help='Size of the data batch to process at a time', type=int, default=2500) 
+    parser.add_argument('--data_type', help='Type of data (MC or Data)', type=str, choices=('MC', 'Data'))
     parser.add_argument('--loading_features', help='Path to file containing all features to load', type=str)
     parser.add_argument('--signal_class_features', help='Path to yaml file containing the features used by the signal classifier', type=str)
     
@@ -177,14 +154,13 @@ if __name__ == '__main__':
 
 
 
-    prefix = cfg.evtType[:2] + "_" if not cfg.data_calib else "B_"
+    prefix = cfg.evtType[:2] + "_" if cfg.data_type == 'MC' else "B_"
     abs_id_map = {'Bs2DsPi': 531, 'Bd2JpsiKst': 511, 'Bu2JpsiK': 521, 'Bd2DmPi': 511, 'Bs2JpsiPhi': 531}
     abs_id = abs_id_map.get(cfg.evtType)
 
-    loading_variables = get_loading_vars(cfg.evtType, cfg.data_calib, cfg.loading_features, cfg.signal_class_features)
-    if not cfg.data_calib:
+    loading_variables = get_loading_vars(cfg.evtType, cfg.data_type, cfg.loading_features, cfg.signal_class_features)
+    if cfg.data_type == 'MC':
         print(f'Loading variables before translation: {loading_variables}')
-        loading_variables = translate_mc_names_to_data(loading_variables, cfg.evtType, drop_mc_cols=False, inverse_translation=True)
 
     print(f'Loading variables: {loading_variables}')
     print('Started processing')
@@ -201,26 +177,26 @@ if __name__ == '__main__':
 
         for i, chunk in enumerate(tqdm(chunk_iter, desc="Processing chunks")):
             chunk = ak.to_dataframe(chunk)
+            missing_cols = [col for col in loading_variables if col not in chunk.columns]
+            if len(missing_cols) > 0:
+                raise ValueError(f"Missing columns in chunk {i}: {missing_cols}")
+
             chunk.reset_index(inplace=True)
             chunk.loc[:,'file_id'] = file_id
             start = time()
             chunk = chunk.copy()
 
-            if cfg.data_calib:
+            if cfg.data_type == 'Data':
                 chunk = chunk[chunk[f'B_Tr_T_IsInTree'] != 1]
             else:
-                chunk = chunk[np.abs(chunk[f'{prefix}TRUEID']) == abs_id]
+                chunk = chunk[np.abs(chunk[f'B_TRUEID']) == abs_id]
                 chunk.reset_index(drop=True, inplace=True)
-                chunk[f'{prefix}Tr_T_absID'] = np.abs(chunk[f'{prefix}Tr_T_TRUEID'])
+                chunk[f'B_Tr_T_absID'] = np.abs(chunk[f'B_Tr_T_TRUE_PARTICLE_ID'])
+            
+                translation_dict = {'B_TRUEID': 'B_ID'}
+                chunk.rename(columns=translation_dict, inplace=True)
 
-            if not cfg.data_calib:
-                translated_vars =  translate_mc_names_to_data(loading_variables, cfg.evtType, False)
-                trans_dict = {var: trans_var for var, trans_var in zip(loading_variables, translated_vars)}
-                chunk.rename(columns=trans_dict, inplace=True)
-            columns = list(chunk.columns)
-            duplicates = [col for col in columns if columns.count(col) > 1]
-            chunk = process_chunk(chunk, cfg.data_calib)
-
+            chunk = process_chunk(chunk, cfg.data_type == 'Data')
             if i == 0:
                 fout["DecayTree"] = chunk
             else:

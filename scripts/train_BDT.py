@@ -21,7 +21,6 @@ from scripts import matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 
 import yaml
-from adding_features import translate_mc_names_to_data
 
 #Bu2JpsiK classifier from sin2beta ananote (not all variables are available in the current ntuples, so some are left out)
 # B_Vtx_Chi2NDOF                     -> B_CHI2VXNDOF
@@ -192,9 +191,6 @@ if __name__ == '__main__':
 
     with open(cfg.signal_class_features, 'r') as f:
         training_vars = yaml.safe_load(f)
-        
-        training_vars = translate_mc_names_to_data(training_vars[cfg.decay_type], cfg.decay_type, drop_mc_cols=False)
-
 
     vars_to_load = training_vars + [cfg.massname]
 

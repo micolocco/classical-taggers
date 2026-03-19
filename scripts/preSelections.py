@@ -6,7 +6,6 @@ import argparse
 import os
 from pprint import pprint
 from adding_features import get_mass_label
-from adding_features import translate_mc_names_to_data
 
 
 def extract_selection_var(cut_file):
@@ -30,12 +29,16 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
     with uproot.open("{}".format(notSelected_rootPath)) as f:
         df = f[treename].arrays(loading_variables, library="pd")
     cuts = np.genfromtxt(f"{cut_file}", dtype = str, delimiter=",")
+
     print(cuts)
-    print(data_type)
+    if cuts.size > 1:
+        print('Parsing Cuts')
+        cuts = ''.join(cuts)
+        cuts = np.char.replace(cuts, "OR", "|")
+
     if data_type == 'Data':
         print("replacing B_Tr_T_Origin_Flag with B_Tr_T_IsInTree in the cut string for data")
         cuts = np.char.replace(cuts, "(B_Tr_T_Origin_Flag!=0)", "(B_Tr_T_IsInTree!=1)")
-        print(cuts)
     cuts = np.char.replace(cuts, "BPV", "OWNPV")
     cuts = np.char.replace(cuts, "OWNPV_IP", "OWNPVIP")
     print(f"The applied cut is: {cuts}")
@@ -49,22 +52,16 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
 run2_taggers_variables = [
         'B_Run2_SSPion_Dec',
         'B_Run2_SSPion_Omega',
-        'B_Run2_SSPion_MVA',
         'B_Run2_SSKaon_Dec',
         'B_Run2_SSKaon_Omega',
-        'B_Run2_SSKaon_MVA',
         'B_Run2_SSProton_Dec',
         'B_Run2_SSProton_Omega',
-        'B_Run2_SSProton_MVA',
         'B_Run2_OSKaon_Dec',
         'B_Run2_OSKaon_Omega',
-        'B_Run2_OSKaon_MVA',
         'B_Run2_OSElectron_Dec',
         'B_Run2_OSElectron_Omega',
-        'B_Run2_OSElectron_MVA',
         'B_Run2_OSMuon_Dec',
         'B_Run2_OSMuon_Omega',
-        'B_Run2_OSMuon_MVA',
     ]
 
 if __name__ == '__main__':
@@ -89,7 +86,7 @@ if __name__ == '__main__':
 
     selection_variables = extract_selection_var(cfg.cut_file)
     tagger_features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    extra_variables = ['entry', 'subentry', 'file_id', 'RUNNUMBER', 'EVENTNUMBER', 'B_TRUEID', 'B_Tr_T_Charge']
+    extra_variables = ['entry', 'subentry', 'file_id', 'RUNNUMBER', 'EVENTNUMBER', 'B_ID', 'B_Tr_T_Charge']
     
     loading_variables = tagger_features + selection_variables + extra_variables + run2_taggers_variables
     loading_variables = np.unique(loading_variables).tolist()
@@ -98,12 +95,11 @@ if __name__ == '__main__':
 
     if cfg.data_type == 'Data':
         loading_variables += ["B_Tr_T_IsInTree", "FillNumber"]
-        loading_variables = [var for var in loading_variables if var != "B_Tr_T_Origin_Flag"] # only in MC, replace with B_Tr_T_IsInTree in data
+        loading_variables.remove('B_Tr_T_Origin_Flag') # only in MC, replace with B_Tr_T_IsInTree in data
 
-    if 'Bu' not in cfg.evtType and cfg.data_type == 'Data':
+    if cfg.data_type == 'Data':
         loading_variables.append('B_DTF_PV_Jpsi_TAU')
 
-    loading_variables = translate_mc_names_to_data(loading_variables, cfg.evtType, drop_mc_cols=False)    
     loading_variables = list(dict.fromkeys(loading_variables)) #removes all duplicates
     print(loading_variables)
     df = apply_preSelections(cfg.to_select, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_type)
