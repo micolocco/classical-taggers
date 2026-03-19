@@ -13,12 +13,12 @@ import shutil
 def box_plot(df, label, file):
     fig, axs = plt.subplots(1, 4, figsize=(20, 5))
     x_plot = list(range(4))
+    axs[0].set_ylabel(label)
 
     for ax, tagger in zip(axs, ['OSKaon', 'OSMuon', 'OSElectron']):
         ax.set_xticks([1.5, 3.5])
         ax.set_xticklabels(['Baseline', 'Batch Normalized'])
-        ax.set_title(f'Tagger')
-        ax.set_ylabel(label)
+        ax.set_title(tagger)
         ax.grid()
 
         df_tagger = df[df['Tagger'] == tagger]
