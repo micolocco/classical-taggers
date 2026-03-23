@@ -190,7 +190,7 @@ if __name__ == '__main__':
     mc_files = cfg.mc_data
 
     with open(cfg.signal_class_features, 'r') as f:
-        training_vars = yaml.safe_load(f)
+        training_vars = yaml.safe_load(f)[cfg.decay_type]
 
     vars_to_load = training_vars + [cfg.massname]
 
