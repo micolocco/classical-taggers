@@ -39,8 +39,10 @@ for rule_name, data in rules.items():
     in_progress = total - done
     print(f"{rule_name}: total={total}, done={done}, in_progress={in_progress}")
 
-# for id in  rules["train_tagger_domain_adapted"]["job_ids"]:
-#     if id not in rules["train_tagger_domain_adapted"]["done"]:
-#         print(f"Job {id} is in progress or not finished.")
-#     else:
-#         print(f"Job {id} is done.")
+#Running jobs
+
+for rule_name, data in rules.items():
+    print(f"\n{rule_name}:")
+    for id in data["job_ids"]:
+        if id not in data["done"]:
+            print(f"  Job {id} is not finished.")
