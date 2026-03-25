@@ -77,34 +77,98 @@ def matplotlib_lhcb_style(plt):
 
 
 ranges = {
-        "B_nTracks": (0,600),
-        "B_Tr_T_P": (0,60000),
-        "B_Tr_T_PT": (0,10000),
-        'B_nPVs': (0,18),
-        'B_PT': (0,60000),
-        "B_Tr_T_OWNPVIPSig": (0, 10),
-        "B_Tr_T_BPVIP": (0, 5),
-        "B_Tr_T_OWNPVIP": (0, 5),
-        "B_Tr_T_CHI2DOF": (0, 5),
-        'B_Tr_T_PIDK': (-150, 150),
-        'B_Tr_T_PIDP': (-150, 150),
-        "B_Tr_T_GHOSTPROB": (0, 1),
-        "B_Tr_T_absOWNPV_IP": (0,1.5),
-        "B_Tr_T_PIDe": (-30, 30),
-        "B_Tr_T_PIDmu": (-40, 40),
-        "B_Tr_T_ISMUON": (0,1),
-        #"B_Tr_T_eoverP": (),
-        #"B_Tr_T_DeltaQ_Electron": r'$\Delta\mathrm{Q}_{e}$',
-        "B_Tr_T_DeltaQ_Pion": (0, 1000),
-        "B_Tr_T_DeltaR": (0, 20),
-        "B_Tr_T_Signal_TagPart_PT": (0, 100000),
-        "B_Tr_T_PhiDistance": (-3.14, 3.14),
-        "B_Tr_T_EtaDistance": (0, 4),
-        
+    # PV info
+    "B_OWNPV_X": (0.2, 0.6),      # mm
+    "B_OWNPV_Y": (-0.2, 0.2),      # mm
+    "B_OWNPV_Z": (-300, 300),      # mm
+    "B_ENDV_X": (-7.5, 7.5),         # mm
+    "B_ENDV_Y": (-7.5, 7.5),         # mm
+    "B_ENDV_Z": (-300, 300),       # mm
 
+    # B kinematics
+    "B_ENERGY": (0, 3e5),          # MeV
+    "B_ETA": (1.5, 5.0),
+    "B_M": (5000, 5600),           # MeV/c²
+    "B_P": (0, 5e5),               # MeV/c
+    "B_PHI": (-3.14, 3.14),
+    "B_PT": (0, 6e4),              # MeV/c
+    "B_PX": (-5e4, 5e4),
+    "B_PY": (-5e4, 5e4),
+    "B_PZ": (0, 5e5),
+    "B_nPVs": (0, 17),
+    "B_nTracks": (0, 600),
 
+    # Tag track basic info
+    "B_Tr_T_TRACKISLONG": (0, 1),
+    "B_Tr_T_Charge": (-1, 1),
+    "B_Tr_T_ISMUON": (0, 1),
 
-    }
+    # IP-related
+    "B_Tr_T_OWNPVIP": (0, 2),              # mm
+    "B_Tr_T_OWNPVIPSig": (0, 10),
+    "B_Tr_T_OWNPVIPCHI2": (0, 700),
+    "B_Tr_T_absOWNPV_IP": (0, 1),
+    "B_Tr_T_IPChi2BVTX": (0, 1000),
+    "B_Tr_T_IPBVTX": (0, 5),
+    "B_Tr_T_absIP": (0, 5),
+
+    # Tag kinematics
+    "B_Tr_T_ENERGY": (0, 1e5),             # MeV
+    "B_Tr_T_P": (0, 8e4),                  # MeV/c
+    "B_Tr_T_PT": (0, 8e3),                 # MeV/c
+    "B_Tr_T_PX": (-7e3, 7e3),
+    "B_Tr_T_PY": (-7e3, 7e3),
+    "B_Tr_T_PZ": (0, 1e5),
+    "B_Tr_T_X": (-2.5, 2.5),                 # mm
+    "B_Tr_T_Y": (-2.5, 2.5),                 # mm
+    "B_Tr_T_Z": (-300, 300),               # mm
+    "B_Tr_T_Eta": (1.5, 5.0),
+
+    # Track quality
+    "B_Tr_T_MINIP": (0, 2),                 # mm
+    "B_Tr_T_MINIPChi2": (0, 700),
+    "B_Tr_T_CHI2DOF": (0, 5),
+    "B_Tr_T_GHOSTPROB": (0, 1),
+
+    # PID
+    "B_Tr_T_PIDK": (-100, 100),
+    "B_Tr_T_PIDe": (-50, 50),
+    "B_Tr_T_PIDmu": (-25, 25),
+    "B_Tr_T_PIDP": (-100, 100),
+    "B_Tr_T_PROBNN_GHOST": (0, 1),
+    "B_Tr_T_PROBNN_E": (0, 1),
+    "B_Tr_T_PROBNN_K": (0, 1),
+    "B_Tr_T_PROBNN_P": (0, 1),
+    "B_Tr_T_PROBNN_MU": (0, 1),
+    "B_Tr_T_PROBNN_PI": (0, 1),
+
+    # Δ variables & angular distances
+    "B_Tr_T_PhiDistance": (-3.14, 3.14),
+    "B_Tr_T_cos_PhiDistance": (-1, 1),
+    "B_Tr_T_EtaDistance": (0, 4),
+    "B_Tr_T_DeltaR": (0, 10),
+    "B_Tr_T_diff_z": (0, 150),           # mm
+
+    # ΔQ
+    "B_Tr_T_DeltaQ_Kaon": (0, 3e3),
+    "B_Tr_T_DeltaQ_Electron": (0, 3e3),
+    "B_Tr_T_DeltaQ_Muon": (0, 3e3),
+    "B_Tr_T_DeltaQ_Pion": (0, 3e3),
+    "B_Tr_T_DeltaQ_Proton": (0, 3e3),
+
+    # Tag+signal
+    "B_Tr_T_Signal_TagPart_PT": (0, 2e4),
+
+    # Other features
+    "B_Tr_T_EoverP": (-0.001, 0.001),
+    "diff_P": (0, 3e5),
+    "P_proj": (0, 1e5),
+    "t": (-0.1, 0.1),                          
+    "EVIP": (0, 10),
+    "logEVIP": (0, 6),
+    "logP_proj": (0, 12),
+    "B_Tr_T_atanPT_PZ": (0, 0.5)
+}
 
 nice_names = {
     # B candidate kinematics & PV
