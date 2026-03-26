@@ -54,7 +54,7 @@ if __name__ == '__main__':
         if 'Bu' not in cfg.decayType:
             vars.append('B_TAU')
     for tagger in cfg.tagger:
-        all_vars = vars + [f'{tagger}_TagDec', f'{tagger}_Eta']
+        all_vars = vars + [f'{tagger}_TagDec', f'{tagger}_Eta',f'{tagger}_CDEC', f'{tagger}_OMEGA', f'{tagger}_OMEGA_ERR']
 
         input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, f'trained_{cfg.trained_on}/*.root')
         print(f'input path: {input_path}')

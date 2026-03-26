@@ -41,10 +41,9 @@ if __name__ == '__main__':
         description='Add tagging decision and mistag',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--selected', help='Files with applied pre-selections', type=str)
+    parser.add_argument('--to_tag', help='Files with applied to which tagging information is to be added', type=str)
     parser.add_argument('--config', help='', type=str, default='logit')
-    parser.add_argument('--cut', help='Cut used', type=str)
-    parser.add_argument('--link', help='Link fucntion used for calibration', type=str, default='logit', choices=('mistag','logit'))
+    parser.add_argument('--link', help='Link function used for calibration', type=str, default='logit', choices=('mistag','logit'))
     parser.add_argument('--taggedData', help='Name of data (tagged data)', type=str)
     parser.add_argument('--model', help='Path to where the NN models are saved up to cut type', type=str)
     parser.add_argument('--decayType', help='Event decay for calibration', type=str)
@@ -57,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help='Type of data: Data or MC', type=str, choices=('Data', 'MC'))
     parser.add_argument('--repo', help="Path to repository")
     parser.add_argument('--domain_adapted', help='If the model is domain adapted', action='store_true') 
+    parser.add_argument('--calibration', help='Path to the calibration json file', type=str)
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -66,11 +66,9 @@ if __name__ == '__main__':
     loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 
                                                             'RUNNUMBER', 'EVENTNUMBER', 'file_id', 
                                                             'label', f'{cfg.tagger}_TagDec', 'B_ID',
-                                                            'B_DTF_PV_Jpsi_MASS']
+                                                            'B_DTF_PV_Jpsi_MASS', 'B_TAU']
     if cfg.data_type == 'Data':
         loading_variables += ["FillNumber", 'signal_weights']
-        if 'Bu' not in cfg.decayType:
-            loading_variables.append("B_DTF_PV_Jpsi_TAU")
         
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
@@ -90,7 +88,7 @@ if __name__ == '__main__':
     bestModel.eval()
 
     ## Data loading
-    with uproot.open("{}".format(cfg.selected)) as f:
+    with uproot.open("{}".format(cfg.to_tag)) as f:
         test_df = f[cfg.treename].arrays(loading_variables, library="pd")    
 
     test_df['event_entry'] = test_df['file_id'].astype(str) + "_" + test_df['RUNNUMBER'].astype(str) + "_" + test_df['EVENTNUMBER'].astype(str)
@@ -113,18 +111,49 @@ if __name__ == '__main__':
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
 
+
+    # Aplly calibration to get omegas
+    import lhcb_ftcalib as ft
+    mode=cfg.decayType[:2]
+
+    tau_ps = None
+    if mode != "Bu":
+        tau_ps = test_df["B_TAU"].values
     
+    weights = None
+    if cfg.data_type == 'Data':
+        weights = test_df['signal_weights'].values
+
+    tagger = ft.apply_tagger.TargetTagger(cfg.tagger, 
+                                          eta_data=test_df[f"{cfg.tagger}_Eta"].values, 
+                                          dec_data=test_df[f"{cfg.tagger}_TagDec"].values, 
+                                          B_ID=test_df["B_ID"].values, 
+                                          mode = mode, 
+                                          tau_ps=tau_ps, 
+                                          weight=weights)
+    tagger.load(cfg.calibration, tagger_name = cfg.tagger, style='delta')
+    tagger.apply()
+    tagger_df = tagger.get_dataframe(True)
+    print('Calibrated tagging information')
+    print(tagger_df.head())
+    test_df[f"{cfg.tagger}_CDEC"] = tagger_df[f"{cfg.tagger}_CDEC"].values
+    test_df[f"{cfg.tagger}_OMEGA"] = tagger_df[f"{cfg.tagger}_OMEGA"].values
+    test_df[f"{cfg.tagger}_OMEGA_ERR"] = tagger_df[f"{cfg.tagger}_OMEGA_ERR"].values
+    
+
+
     # Take only tagging track with best mistag
     test_df = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['event_entry']).first().reset_index()
     print(f"Tagging efficiency: {len(test_df[test_df[f'{cfg.tagger}_TagDec'] != 0]) / len(test_df)}")
+    print(f"Calibrated Tagging efficiency: {len(test_df[test_df[f'{cfg.tagger}_CDEC'] != 0]) / len(test_df)}")
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
-    save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER','file_id',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', "B_ID"]+run2_taggers_variables
+    save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER','file_id',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", f"{cfg.tagger}_OMEGA_ERR", "B_ID"]+run2_taggers_variables
     if cfg.data_type == 'Data':
-        save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", 'signal_weights']
-        if 'Bu' not in cfg.decayType:
-            save_vars.append("B_DTF_PV_Jpsi_TAU")
+        save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", 'signal_weights', "B_TAU"]
+        # if 'Bu' not in cfg.decayType:
+        #     save_vars.append()
     with uproot.recreate(f"{cfg.taggedData}") as file:
         file["DecayTree"] = test_df[save_vars]
         

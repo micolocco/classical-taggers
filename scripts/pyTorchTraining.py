@@ -739,10 +739,12 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
         json.dump(info_dict, f)
     print(f"Tagger parameters saved at {target_path}\n")
     print(f"Tagging information in a presentation-friendly format:\n")
+
+    ft.save_calibration(taggers[tagger], title=f"calibration.json", save_path=target_path)
+
     # Process the data
     processed_data = {key: propagate_and_round(value, 'Fitpar' not in key) for key, value in info_dict.items()}
     # Format the output
-    formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
     formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
     # Print the formatted data
     for key, value in formatted_data.items():
