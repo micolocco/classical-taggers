@@ -198,17 +198,23 @@ if __name__ == '__main__':
     print(f"Reading a total of {len(data_files)} files.", flush=True)
     data = read_files(data_files, vars_to_load, cfg.treename, only_upper = True, massname = cfg.massname)
     data['label'] = 0
+    print(f'num_rows: {len(data["event_entry"])} unique events: {data["event_entry"].nunique()}', flush=True)
     print(f'Reading of data files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
 
     print(f'Reading of MC files begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
     print(f"Reading a total of {len(mc_files)} files.", flush=True)
     MC = read_files(mc_files, vars_to_load, f'{cfg.treename}', only_upper = False, massname = cfg.massname)
     MC['label'] = 1
+    print(f'num_rows: {len(MC["event_entry"])} unique events: {MC["event_entry"].nunique()}', flush=True)
     print(f'Reading of MC files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
 
-
+    MC = MC.sample(frac=1, random_state=seed).reset_index(drop=True)
+    if len(MC) > len(data):
+        MC = MC.head(len(data)) #Downsample MC to have at most the number of events as data to avoid too much imbalance and reduce training time without much loss in performance
 
     df = pd.concat([data, MC])
+    del MC
+    del data
     df= df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
     print(f'num_rows: {len(df["event_entry"])} unique events: {df["event_entry"].nunique()}', flush=True)
