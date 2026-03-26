@@ -827,9 +827,10 @@ rule add_tagDec:
                              else join(out, '{data_type}/NTuples/4_track_selected/{decay}/{tagger}/{cut_name}/{features}/test/{ID}.root'),
         
 
-        model= lambda wildcards: join(get_model_path(wildcards), 'model.pth'),
-        transformer=lambda wildcards: join(get_model_path(wildcards),'powerTransformer.pkl'), 
-        scaler=lambda wildcards: join(get_model_path(wildcards),'st_scaler.pkl'), 
+        model=       lambda wildcards: join(get_model_path(wildcards), 'model.pth'),
+        transformer= lambda wildcards: join(get_model_path(wildcards), 'powerTransformer.pkl'), 
+        scaler=      lambda wildcards: join(get_model_path(wildcards), 'st_scaler.pkl'), 
+        calibration =lambda wildcards: join(get_model_path(wildcards).replace('training', f'testing/{wildcards.data_type}'), 'logit/calibration.json'),
 
         config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted).get("config")}.yaml'),
     output:
@@ -858,9 +859,9 @@ rule add_tagDec:
             '--features {wildcards.features}',
             '--data_type {wildcards.data_type}', 
             f'--seed {config.get("seed")}',
+            '--calibration {input.calibration}',
             '--repo', repo,
             domain,
-            '--cut {wildcards.cut_name}',
             '&>{log}'
         ]
         shell(' '.join(cmd))
