@@ -216,6 +216,7 @@ if __name__ == '__main__':
         path_name = os.path.join(cfg.outpath, f'{cfg.cut}/{data_type}')
         plot_path = os.path.join(cfg.plot_path, f'{data_type}/hyperparameters_plots/{cfg.cut}/{link}')
         os.makedirs(plot_path, exist_ok=True)
+        os.makedirs(path_name, exist_ok=True)
 
         #save best_models to a json file. Makes it easier to check the calibrations
         with open(os.path.join(plot_path, f'best_models_{link}.json'), 'w') as f:
