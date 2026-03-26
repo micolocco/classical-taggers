@@ -1,0 +1,11 @@
+{
+  "__comment": "Definition of binning schemes for different cross-checks",
+  "Tau": {
+    "Bd2JpsiKst": ['0', '0.7749',  '1.3900',  '2.4415', 'inf'],
+    "Bu2JpsiK":   ['0', '0.8367',  '1.5009',  '2.6363', 'inf'],
+  }, 
+  "Tau_1_2_unmerged": {
+    "Bd2JpsiKst": ['0',  '0.3385',  '0.7749',  '1.3900',  '2.4415', 'inf'],
+    "Bu2JpsiK":   ['0',  '0.3655',  '0.8367',  '1.5009',  '2.6363', 'inf'],
+  }, 
+}

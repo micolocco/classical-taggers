@@ -40,7 +40,7 @@ def fit_valid(result):
         return [False, "fit is not valid, High edm"]
     
     relative_unc = [result.params[param]['hesse']['error'] / abs(result.params[param]['value']) if result.params[param]['value'] != 0 else np.nan for param in result.params]
-    if any(unc > 0.25 for unc in relative_unc):
+    if any(unc > 0.5 for unc in relative_unc):
         return [False, "fit is not valid, High relative uncertainty"]
     return [True, "Fit is valid"]
 
@@ -58,9 +58,10 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
 
     else:
         alphaL = zfit.Parameter("alphaL",  3.0,  0,      5.0, floating=True)
-        nL     = zfit.Parameter("nL",      1.5,  0.01, 200.0, floating=True)
+        nL     = zfit.Parameter("nL",      1.5,  0.01,  15.0, floating=True)
         alphaR = zfit.Parameter("alphaR",  3.0,  0.0,    5.0, floating=True)
-        nR     = zfit.Parameter("nR",      1.6,  0.01, 200.0, floating=True)
+        nR     = zfit.Parameter("nR",      1.6,  0.01,  15.0, floating=True)
+
         
 
 
@@ -150,10 +151,11 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
     result.hesse()
 
     print(f"Initial fit converged: {result.converged} with edm: {result.edm}", flush=True)
-
+    
     validity = fit_valid(result)
     print(f'Initial fit')
     print(validity[1], flush=True)
+    print(result, flush=True)
     i = 0
     while not validity[0] and i < 3:  # If the fit is not valid or edm is too high, try again
         result = minimizer.minimize(nll, init=result)
@@ -161,6 +163,7 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
         validity = fit_valid(result)
         print(f'Fit attempt {i+1}')
         print(validity[1], flush=True)
+        print(result, flush=True)
         i += 1
 
 
@@ -319,28 +322,26 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Apply a preselection for the tagging particles',
+        description='Massfits for B+ and B0 decays to extract sWeights',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--input_files', nargs='+')
     parser.add_argument('--treename', help='TreeName of the input file', type=str, default="BuToJpsiKplus_JpsiToMuMu_Detached/DecayTree")
-    parser.add_argument('--obs', help='Observable to fit', type=str, default="B_DTF_PV_Jpsi_MASS")
     parser.add_argument('--range', help='Observable range', nargs="+")
     parser.add_argument('--output', help='Where fit results and plots will be stored', type=str)
     parser.add_argument('--simulation', action="store_true")
     parser.add_argument('--sim_fit', help="Fit results from mc")
     parser.add_argument('--decay_type', help='Decay used', type=str)
-    parser.add_argument('--seed', help='RNG seed used', type=int)
-    parser.add_argument('--cut', help='Cut desired', type=str)
-    parser.add_argument('--BDT', help='Path of BDT for event selection') 
+    # parser.add_argument('--BDT', help='Path of BDT for event selection') 
     parser.add_argument('--obs_name', help='Name of observable', type=str, default="B_DTF_PV_Jpsi_MASS")
     parser.add_argument('--num_threads', help='Number of threads to use for the fits', type=int, default=1)
-    parser.add_argument('--signal_class_features', help='Path to yaml file containing the features used for the signal classification BDT')
+    # parser.add_argument('--signal_class_features', help='Path to yaml file containing the features used for the signal classification BDT')
+    parser.add_argument('--selected', action="store_true", help='Whether the input data has already been selected with the BDT cut.')
 
     cfg = parser.parse_args()
     pprint(cfg)
 
-    massname = cfg.obs
+    massname = cfg.obs_name
     mass_range = (int(cfg.range[0]), int(cfg.range[1]))
     outputdir = cfg.output
     os.makedirs(outputdir, exist_ok=True)
@@ -349,21 +350,9 @@ if __name__ == '__main__':
 
 
     print(f'Reading files started on {datetime.datetime.now().strftime("%H:%M:%S")}')
-    BDT = None
-    with open(cfg.signal_class_features, 'r') as f:
-        bdt_features = yaml.safe_load(f)
-        
+    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER', massname, 'B_ID']
 
-    with open(cfg.BDT, 'rb') as f:
-        loaded_data = pickle.load(f)
-
-    BDT = loaded_data['model']        
-    cut   = loaded_data['cut']
-    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER', massname]
-
-    if not cfg.simulation:
-        vars += ['B_ID']
-    else:
+    if cfg.simulation:
         vars += ['B_BKGCAT']
 
     input_files = cfg.input_files
@@ -372,7 +361,7 @@ if __name__ == '__main__':
         print(f"Reading input file {i+1}/{len(input_files)}: {f}")
         print(f'Megabites used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2}', flush=True)
         with uproot.open(f) as _f:
-            _df = _f[cfg.treename].arrays(vars+bdt_features, library="pd")
+            _df = _f[cfg.treename].arrays(vars, library="pd")
         _df.dropna(inplace=True)
         
         if cfg.simulation:
@@ -382,8 +371,8 @@ if __name__ == '__main__':
 
         _df = _df.groupby("event_entry").first()
         _df.reset_index(inplace=True)
-        _df['signalness'] = BDT.predict_proba(_df[bdt_features].to_numpy(), _df["event_entry"].values)
-        _df.drop(columns=bdt_features, inplace=True)
+        # _df['signalness'] = BDT.predict_proba(_df[bdt_features].to_numpy(), _df["event_entry"].values)
+        # _df.drop(columns=bdt_features, inplace=True)
 
         if df_data is None:
             df_data = _df
@@ -393,51 +382,32 @@ if __name__ == '__main__':
     print(f'Reading files ended on {datetime.datetime.now().strftime("%H:%M:%S")}')
 
 
-    df_data = df_data.query(f'{cfg.obs} < {mass_range[1]} and {cfg.obs} > {mass_range[0]}')
+    df_data = df_data.query(f'{massname} < {mass_range[1]} and {massname} > {mass_range[0]}')
 
     masses = df_data[massname].values
     obs = zfit.Space("mass", limits=mass_range)
 
 
     tex_decay = get_tex_decay(cfg.decay_type)
-    massfit(obs, masses, tex_decay, 'fit_before_cut', cfg.simulation, cfg.sim_fit, f"fit_res_before_cut.pdf", df_data, 
-            compute_weights=False, generate_figures=True, obs_name=cfg.obs_name, is_selected = False)
+    selected_string = f'selected' if cfg.selected else 'non_selected'
+    filename = f'event_{selected_string}_fit'
+    prefix = '' if cfg.selected else 'non_selected_'
+    massfit(obs, masses, tex_decay, filename, cfg.simulation, cfg.sim_fit, f"fit_res_{selected_string}.pdf", df_data, 
+            compute_weights= not cfg.simulation, generate_figures=True, obs_name=cfg.obs_name, is_selected = cfg.selected, prefix=prefix)
+    
+    #Save weighted dataframe to disk
+    tree_dict = {col: np.array(df_data[col]) for col in df_data.columns if col != 'event_entry'}
+    print(tree_dict)
+
+    for col in tree_dict:
+        print(f'{col}: {tree_dict[col][0]} ({type(tree_dict[col][0])})')
+
+    del df_data
+    print('Writing file to disk')
 
 
-    if cfg.simulation:
-        print(f'Running mass fit for simulation with cut {cut}', flush=True)
-        df_data = df_data.query(f'signalness > {cut}')
-        masses  = df_data[massname].values
-        massfit(obs, masses, tex_decay, 'fit_after_cut', cfg.simulation, cfg.sim_fit, f"fit_res_after_cut.pdf", df_data, False, True, cfg.obs_name)
-    else:
-        pd.set_option('display.max_columns', 15)
-
-
-        df_data = df_data.query(f'signalness > {cut}')
-        df_data['BID_signal_weights'] = 0
-        df_data['BID_background_weights'] = 0
-
-        sim_fit_after_cut = cfg.sim_fit.replace('before_cut', 'after_cut')
-        print(f'Calculating total Sweights')
-        masses  = df_data[massname].values
-        massfit(obs, masses, tex_decay, 'fit_after_cut', cfg.simulation, sim_fit_after_cut, f"fit_after_cut.pdf", df_data, True, True, cfg.obs_name, )
-
-        df_data.reset_index(inplace=True)
-        df_data.drop(columns=['event_entry'], inplace = True)
-
-        #Save weighted dataframe to disk
-        tree_dict = {col: np.array(df_data[col]) for col in df_data.columns if col != 'event_entry'}
-        print(tree_dict)
-
-        for col in tree_dict:
-            print(f'{col}: {tree_dict[col][0]} ({type(tree_dict[col][0])})')
-
-        del df_data
-        print('Writing file to disk')
-
-
-        with uproot.recreate(join(outputdir, 'weights.root')) as f:
-            f['DecayTree'] = tree_dict
+    with uproot.recreate(join(outputdir, f'weights_{selected_string}.root')) as f:
+        f['DecayTree'] = tree_dict
 
 
     print(f'Mass fit script ended on {datetime.datetime.now().strftime("%H:%M:%S")}')
