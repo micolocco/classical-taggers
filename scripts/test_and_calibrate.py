@@ -150,7 +150,7 @@ def study_eta_omega_dist(df, split_by, prefix, target_path, tagger, data_type):
         pickle.dump(bin_contents, f)
 
 
-def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, features, config,
+def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, config,
                      decay_type, seed, repo, data_type, model_path, domain_adapted=False, num_threads=1):
     start = datetime.datetime.now()
     print(f'Testing started on {start.strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
@@ -186,8 +186,7 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
         columns_to_drop.append('signal_weights')
         sweights = test_df['signal_weights']
 
-        if 'Bu' not in decay_type:
-            columns_to_drop.append('B_DTF_PV_Jpsi_TAU')
+        columns_to_drop.append('B_TAU')
 
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     print(f'Columns:{test_df.columns}')
@@ -213,8 +212,7 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
 
     test_df[f"{tagger}_Eta"] = 1 - test_df['yPred']
     cols_to_keep = ['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred', ]
-    if data_type == 'Data' and 'Bu' not in decay_type:
-        cols_to_keep.append('B_DTF_PV_Jpsi_TAU')
+    cols_to_keep.append('B_TAU')
     test_df.drop(columns=test_df.columns.difference(cols_to_keep), inplace=True)
 
     print(f'Columns after prediction: {test_df.columns}', flush = True)
@@ -267,7 +265,8 @@ def testing_pipeline(test_df, vars, BID, target_path, train_path, tagger, featur
     mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles, mode=mode)
     
     # Try both calibration functions
-    logit_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, calibration_option='logit', weights=sweights_TagParticles, mode=mode)
+    logit_info  = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles, mode=mode, calibration_option='logit', )
+
 
     end = datetime.datetime.now()
     print(f'testing ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
@@ -309,7 +308,7 @@ if __name__ == '__main__':
     if cfg.data_type == 'Data':
         vars = vars + ['signal_weights']
         if 'Bu' not in cfg.decay_type:
-            vars.append('B_DTF_PV_Jpsi_TAU')
+            vars.append('B_TAU')
     print(vars, flush = True)
 
 
@@ -331,7 +330,7 @@ if __name__ == '__main__':
     print(f'Average number of tracks per event: {test_df.shape[0]/test_df.event_entry.nunique()}', flush = True)
     print(f'Average number of selected tracks per event: {test_df.selected.sum()/test_df[test_df.selected == 1].event_entry.nunique()}', flush = True)
 
-    testing_pipeline(test_df=test_df, vars=vars, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
+    testing_pipeline(test_df=test_df, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
                      tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
                      seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, model_path = cfg.model_path,
                      domain_adapted=cfg.domain_adapted, num_threads=cfg.num_threads)

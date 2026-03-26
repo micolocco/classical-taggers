@@ -668,11 +668,12 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     taggers = ft.TaggerCollection()
        
     if weights is None:
-        weights = np.ones(len(df_tag))
+        weights = np.ones(df_tag.shape[0])
+
     
     
     if mode != 'Bu':
-        tau_ps = df_tag['B_DTF_PV_Jpsi_TAU'].to_numpy()
+        tau_ps = df_tag['B_TAU'].to_numpy()
     else:
         tau_ps = None
     

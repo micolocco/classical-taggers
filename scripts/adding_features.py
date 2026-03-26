@@ -46,7 +46,7 @@ def dPhi(df):
     # df[f'B_Tr_T_minPhiDistance'] = df.groupby('entry')[f'B_Tr_T_PhiDistance'].transform(lambda x: np.abs(x).min())
     return df
 
-def process_chunk(df, is_data):
+def process_chunk(df, evtType):
     df = df.copy()
 
 
@@ -63,8 +63,7 @@ def process_chunk(df, is_data):
     df.loc[:,f'B_Tr_T_DeltaQ_Kaon'] = DeltaQ(df, 493.677)
     df.loc[:,f'B_Tr_T_OWNPVIPSig'] = np.sqrt(df[f'B_Tr_T_OWNPVIPCHI2'])
     df.loc[:,f'B_Tr_T_absOWNPV_IP'] = np.abs(df[f'B_Tr_T_OWNPVIP'])
-    if is_data:
-        df.loc[:,f'B_DTF_PV_Jpsi_TAU'] = df[f'B_DTF_PV_Jpsi_CTAU']/0.29979 #Convert from mm to ps using speed of light in mm/ps
+    df.loc[:,f'B_TAU'] = df[get_mass_label(evtType).replace("MASS", "CTAU")]/0.29979 #Convert from mm to ps using speed of light in mm/ps
     
 
      
@@ -112,17 +111,20 @@ def mc_vars_to_data_vars(variables):
         variables.append("B_Tr_T_IsInTree")
         variables.append("B_ID")
         variables.append("FillNumber")
-        #Add Lifetime for Bd for liftime cut during training as well as for the callibration
-        variables.append('B_DTF_PV_Jpsi_CTAU')
         return variables
 
 
 def get_loading_vars(evtType, data_type, loading_var_path = "configs/loading_variables.txt", signal_class_feat_path = "configs/signal_classifier_features.yaml"):
     with open(loading_var_path, 'r') as f:
         loading_variables = f.read().splitlines()
-    with open(signal_class_feat_path, 'r') as f:
-        signal_class_features = yaml.safe_load(f)
-        loading_variables += signal_class_features[evtType]
+    if 'Bs' not in evtType:
+        with open(signal_class_feat_path, 'r') as f:
+            signal_class_features = yaml.safe_load(f)
+            loading_variables += signal_class_features[evtType]
+
+    #Add CTAU
+    loading_variables.append(get_mass_label(evtType).replace("MASS", "CTAU"))
+    
 
     
 
@@ -196,7 +198,7 @@ if __name__ == '__main__':
                 translation_dict = {'B_TRUEID': 'B_ID'}
                 chunk.rename(columns=translation_dict, inplace=True)
 
-            chunk = process_chunk(chunk, cfg.data_type == 'Data')
+            chunk = process_chunk(chunk, cfg.evtType)
             if i == 0:
                 fout["DecayTree"] = chunk
             else:

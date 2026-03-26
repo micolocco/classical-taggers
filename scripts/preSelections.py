@@ -98,7 +98,7 @@ if __name__ == '__main__':
         loading_variables.remove('B_Tr_T_Origin_Flag') # only in MC, replace with B_Tr_T_IsInTree in data
 
     if cfg.data_type == 'Data':
-        loading_variables.append('B_DTF_PV_Jpsi_TAU')
+        loading_variables.append('B_TAU')
 
     loading_variables = list(dict.fromkeys(loading_variables)) #removes all duplicates
     print(loading_variables)

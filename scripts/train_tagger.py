@@ -160,7 +160,7 @@ def read_files(files, vars, treename, event_type, data_type):
     additional_vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER']
 
     if event_type[:2] == 'Bu' and data_type == 'data':
-        additional_vars = additional_vars + ['B_DTF_PV_Jpsi_TAU']
+        additional_vars = additional_vars + ['B_TAU']
 
 
     loading_vars = vars + additional_vars
@@ -188,7 +188,7 @@ def read_files(files, vars, treename, event_type, data_type):
             _df.loc[_df['domain'] == 1, 'event_entry'] = _df["file_id"].astype(str) + "_" + "mc" + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
 
         if event_type[:2] == 'Bu' and data_type == 'data': #remove data with a liftime greater then 2.2ps, to ensure low oscillation likelyhood
-            _df = _df[_df['B_DTF_PV_Jpsi_TAU'] < 2.2]
+            _df = _df[_df['B_TAU'] < 2.2]
 
 
         df = pd.concat([df, _df], ignore_index = True)
@@ -423,7 +423,7 @@ if __name__ == '__main__':
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
 
-    vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] #'B_Tr_T_Charge',
+    vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] 
     if cfg.data_type == 'domain_adapted':
         vars = vars + ['domain']
 

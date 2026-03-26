@@ -52,7 +52,7 @@ if __name__ == '__main__':
     if cfg.data_type == 'Data':
         vars += ['signal_weights']
         if 'Bu' not in cfg.decayType:
-            vars.append('B_DTF_PV_Jpsi_TAU')
+            vars.append('B_TAU')
     for tagger in cfg.tagger:
         all_vars = vars + [f'{tagger}_TagDec', f'{tagger}_Eta']
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     if cfg.data_type == 'Data':
         merge_columns += ['signal_weights']
         if 'Bu' not in cfg.decayType:
-            merge_columns.append('B_DTF_PV_Jpsi_TAU')
+            merge_columns.append('B_TAU')
     
     for single_df in taggers_dataframes[1:]:
         df = pd.merge(df, single_df, on=merge_columns, how='inner')
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     if cfg.data_type == 'Data':
         weights = df['signal_weights'].to_numpy()
         if 'Bu' not in cfg.decayType:
-            tau = df['B_DTF_PV_Jpsi_TAU'].to_numpy()
+            tau = df['B_TAU'].to_numpy()
             mode = cfg.decayType[:2]
 
 
