@@ -106,7 +106,10 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
         if col in features_DT_used:
             ax.set_yscale('log')  # Set y-axis to logarithmic scale for better visibility
         plt.tight_layout(pad=0.2)
-        plt.savefig(f"{target_path}/{col}_byOrigin.png", dpi=300, bbox_inches='tight', transparent=False)
+        if not os.path.exists(f"{target_path}/feature_plots"):
+            os.makedirs(f"{target_path}/feature_plots")
+    
+        plt.savefig(f"{target_path}/feature_plots/{col}_byOrigin.pdf", bbox_inches='tight', transparent=False)
         plt.close(fig)
 
 
@@ -128,10 +131,7 @@ def plot_used_features(data, features, target_path, nbins=100):
     
     plt.legend() 
     plt.tight_layout()
-    if not os.path.exists(f"{target_path}/feature_plots"):
-        os.makedirs(f"{target_path}/feature_plots")
-    
-    plt.savefig(f"{target_path}/feature_plots/onlyUsed_DT_features_byOrigin.pdf")
+    plt.savefig(f"{target_path}/onlyUsed_DT_features_byOrigin.pdf")
 
 def plot_features_byParticle(data, features, nbins=100):
    

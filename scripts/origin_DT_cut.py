@@ -10,10 +10,11 @@ from sklearn.metrics import accuracy_score, roc_curve ,auc
 import time
 import uproot
 import os
-import glob
 import argparse
 import datetime
 from collections import defaultdict
+from sklearn.tree import export_text
+import re
 
 # Local import
 from scripts import ranges, nice_names, matplotlib_lhcb_style
@@ -51,8 +52,9 @@ if __name__ == '__main__':
     parser.add_argument('--balanced', help='If classes are balanced or unbalanced', choices=('balanced', 'unbalanced'), type=str, default='balanced')
     parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' ) # action='store_true' means args.unify_SS will be set to True if the --unify_SS argument is provided on the command line.
     # Per default BKG0==0 are removed
-    parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --0 argument is provided on the command line.
-    parser.add_argument('--load', help='If specified, DT is loaded, or trained',  action='store_true') # action='store_true' means args.load will be set to True if the --load argument is provided on the command line.
+    parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true')
+    parser.add_argument('--load', help='If specified, DT is loaded, or trained',  action='store_true')
+    parser.add_argument('--all_plots', help='If specified, a histogramm of all variables is plotted',  action='store_true') 
 
     print(f'Run at time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush=True)
 
@@ -161,23 +163,11 @@ if __name__ == '__main__':
         decay = os.path.basename(os.path.dirname(f))
         print(f"Reading input file: {f}", flush=True)
         with uproot.open("{}".format(f)) as _f:
-            _df = _f[cfg.treename].arrays(loading_variables, library="pd")[:10000] #TODO remove the slice just for crude testing
+            _df = _f[cfg.treename].arrays(loading_variables, library="pd")
             _df['decay'] = decay
             #print(f'Number of tracks per file: {_df.shape[0]}', flush=True)
             df = pd.concat([df, _df], ignore_index = True)
             #print(f'Number of tracks in concatenated df {df.shape[0]}', flush=True)
-    # for decay in folders:
-    #     pattern = f'{cfg.base_pattern}/{decay}/*01_1.mc.root'
-    #     root_files = []
-    #     root_files.extend(glob.glob(pattern))
-    #     for f in root_files:
-    #         print(f"Reading input file: {f}", flush=True)
-    #         with uproot.open("{}".format(f)) as _f:
-    #             _df = _f[cfg.treename].arrays(loading_variables, library="pd")
-    #             _df['decay'] = decay
-    #             #print(f'Number of tracks per file: {_df.shape[0]}', flush=True)
-    #             df = pd.concat([df, _df], ignore_index = True)
-    #             #print(f'Number of tracks in concatenated df {df.shape[0]}', flush=True)
     df.dropna(inplace=True)
     print(f"Total number of tracks (all decays, all particles): {df.shape[0]}", flush=True)
 
@@ -201,12 +191,7 @@ if __name__ == '__main__':
     #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1)  & (df.B_Tr_T_Origin_Flag != 100), "otherP"),
     #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSProton"),
     ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
-    ] #
-
-    print(condition_particle_pairs, flush=True)
-    print(condition_particle_pairs[0], flush=True)
-    print(condition_particle_pairs[0][0], flush=True)
-    print(type(condition_particle_pairs[0][0]), flush=True)
+    ]
     
 
     if cfg.unify_SS:
@@ -323,23 +308,10 @@ if __name__ == '__main__':
 
     else:
         # Plot features
-        print("Plotting features...", flush=True)
-        # Post training: to make a plot of only the features used
-        features_DT_used = [
-        "B_Tr_T_PROBNN_E",
-        "B_Tr_T_PROBNN_MU",
-        "B_Tr_T_diff_z",
-        "B_Tr_T_PROBNN_PI",
-        "B_Tr_T_PIDK",
-        "B_Tr_T_IPChi2BVTX",
-        "B_Tr_T_PROBNN_K",
-        "B_Tr_T_OWNPVIPCHI2",
-        "B_Tr_T_PROBNN_P"
-        ]
-        DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
-        DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path, nbins=50)   
+        if cfg.all_plots:
+            print("Plotting features...", flush=True)
+            DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path, nbins=50)   
 
-        exit()
         print("Start fitting", flush=True)
         start_fit = time.time()
         clf = tree.DecisionTreeClassifier(max_depth = 6,class_weight=weights, min_impurity_decrease=0.009)
@@ -351,7 +323,7 @@ if __name__ == '__main__':
         with open(f"{output_path}/decision_tree_model.pkl", "wb") as f:
             pickle.dump(clf, f)
             
-        from sklearn.tree import export_text
+        
         # Get the text representation of the tree
         tree_rules = export_text(clf, feature_names=features)
         # Save the rules into a text file
@@ -374,6 +346,24 @@ if __name__ == '__main__':
         # Combine conditions using AND for a single path.
         combined = " & ".join(conditions)
         paths_by_class[label].append(combined)
+
+    #Get all features used by the DT
+    features_DT_used = set()
+    for label, conditions_list in paths_by_class.items():
+        for conditions in conditions_list:
+            # conditions_names = re.sub('[<>()!=&.0123456789]', '', conditions).split() 
+            tokens = re.sub(r'[<>()!=&.-]', '', conditions).split() #removes every character in the conditions that are not the names of variables and splits into list of variables
+        
+            # discard tokens that are purely numbers
+            conditions_names = [t for t in tokens if not t.isdigit()]
+
+            features_DT_used.update(conditions_names)
+    features_DT_used = list(features_DT_used)
+    features_DT_used.remove('B_Tr_T_Origin_Flag')
+    DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
+
+
+
 
     # Write the conditions for each class into separate files.
     os.makedirs(f'{output_path}/cuts', exist_ok=True)
