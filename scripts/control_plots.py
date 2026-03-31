@@ -58,7 +58,7 @@ if __name__ == '__main__':
     mc_path   = f'/ceph-kernel/users/togasa/FlavourTagging/MC/NTuples/2_split/{decay}/test/*.root'
     data_files = glob.glob(data_path)
     mc_files = glob.glob(mc_path)
-    weight_file = f'/ceph-kernel/users/togasa/FlavourTagging/Data/mass_fit/{decay}/test/weights.root'
+    weight_file = f'/ceph-kernel/users/togasa/FlavourTagging/Data/mass_fit/{decay}/test/weights_selected.root'
 
 
 
@@ -70,6 +70,10 @@ if __name__ == '__main__':
         'B_Tr_T_PROBNN_E',
         'B_Tr_T_PROBNN_MU',
         'B_Tr_T_PROBNN_PI',
+        'B_Tr_T_PIDK',
+        'B_Tr_T_PIDe',
+        'B_Tr_T_PIDmu',
+        'B_Tr_T_PIDP',
         'B_Tr_T_GHOSTPROB',
     ]
     event_entry_vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER']
@@ -78,9 +82,9 @@ if __name__ == '__main__':
     df_data = read_files(data_files, tree, vars, weight_file)
     df_mc = read_files(mc_files, tree, vars)
 
-    plt.figure(figsize=(18, 12))
+    plt.figure(figsize=(14, 6))
     for i, var in enumerate(vars):
-        plt.subplot(2, 3, i+1)
+        plt.subplot(2, 5, i+1)
         min_val = min(df_data[var].min(), df_mc[var].min())
         max_val = max(df_data[var].max(), df_mc[var].max())
         bins = np.linspace(min_val, max_val, nbins+1)
@@ -93,4 +97,4 @@ if __name__ == '__main__':
         plt.legend()
     outfile = os.path.join(outpath, f'{decay}_control_plots.pdf')
     print(f'Control plots saved at {outfile}')
-    plt.savefig(outfile)
+    plt.savefig(outfile, bbox_inches='tight',)
