@@ -7,45 +7,7 @@ matplotlib_lhcb_style(plt)
 plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
 plt.rcParams.update({'axes.unicode_minus' : False})
 
-"""
-def plot_features_byOrigin(data, features, target_path, nbins=100):
-    # Plot input features 
-    plt.figure(figsize=(100,100))
-    for i, col in enumerate(features):
-        plt.subplot(10, 7, i + 1)
-        # Ranges and names must be adapted
-        #plt.hist(data[col][data['particle']==particle_type['OSKaon']], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=)
-        #plt.hist(data[col][data['particle']==particle_type['OSMuon']], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['particle']==particle_type['OSElectron']], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['particle']==particle_type['SSPion']], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['particle']==particle_type['SSProton']], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-        #plt.hist(data[col][data['particle']==particle_type['SSKaon']], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
-       
 
-        #plt.hist(data[col][data['particle']==6], density = True, bins=nbins, label = f"{particle_type[6]}", histtype='step', color='r', )
-        if col in nice_names.keys(): #uGly hack
-            plt.xlabel(nice_names[col])
-            plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
-            plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=ranges[col])
-            plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
-            plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
-            plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
-            plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-            plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
-        
-        else:
-            plt.xlabel(col)
-            plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
-            plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, )
-            plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, )
-            plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, )
-            plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, )
-            plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, )
-            plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, )
-        plt.legend() 
-        plt.tight_layout()
-    plt.savefig(f"{target_path}/DT_features_byOrigin.pdf")
-"""
 import matplotlib.pyplot as plt
 import os
 from IPython import embed
@@ -191,69 +153,7 @@ def count_BKGCAT(df):
             print(f"B_BKGCAT {bkgcat}: {percentage:.2f}%")
         print('\n')
 
-
-def old_metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, savepath=None,):      
-    '''
-    Function to get metrics (in form of a table) for the amount of true VS predicted particle types
-    Denominator can be the amount of predicted particles or of true partricle for a specific type
-    Each table cell is filled with:
-        n(true=possible_particle_A & pred=possible_particle_B) / n(true=possible_particle_A)
-        or
-        n(true=possible_particle_A & pred=possible_particle_B) / n(pred=possible_particle_B)
-    with n=number of cases
-    The normalization parameter allows to choose if computing the %s with respect to the predicted (type B) or 
-    true particles (type A)
-    '''
-    from rich.console import Console
-    from rich.table import Table
-    import numpy as np
-    from rich import print as rprint
-
-
-    console = Console()
-
-    table = Table(show_header=True, title=title)
-    table.add_column("True \ Predicted", justify="left", style='cyan')
-    #table.add_column("OSKaon", justify="right", style="green")
-    #table.add_column("OSMuon", justify="right", style="green")
-    #table.add_column("OSElectron", justify="right", style="green")
-    #table.add_column("SSPion", justify="right", style="green")
-    #table.add_column("SSProton+SSKaon", justify="right", style="green")
-    #table.add_column("SSKaon", justify="right", style="green")
-    #table.add_column("OSProton", justify="right", style="green")
-    for key in possible_particle:
-        table.add_column(key, justify="right", style="green")
- 
-    for particle_A in possible_particle: #for possible_particle in sorted(y_true.unique())
-        percVector = []
-        for particle_B in possible_particle: # for particle in possible_particle:
-            if particle_B in sorted(np.unique(y_predicted)):
-                if normalization == 'predicted':
-                    denom = len(y_predicted[y_predicted == particle_B])
-                else:
-                    denom = len(y_true[y_true == particle_A])
-                
-                unique_values, counts = np.unique(y_true[y_predicted == particle_B] == particle_A, return_counts=True)
-
-                # Check if 'True' exists in unique_values before accessing counts[1]
-                if True in unique_values:
-                    true_count_index = np.where(unique_values == True)[0][0]
-                    true_count = counts[true_count_index]
-                    percentage = (true_count / denom) * 100
-                    percVector.append("{:.2f}".format(percentage))
-                else:
-                    percVector.append("0.00")  # No 'True' values, so 0% match
-            else:
-                percVector.append("Not predicted")
-
-        table.add_row(particle_A, *percVector)
-    if savepath:
-        with open(savepath, "w") as f:
-            rprint(table, file=f)
-    else:
-        console.print(table)
-
-def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, savepath=None, unify_classes=None):
+def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, savepath=None, unify_classes=None, create_heatmap=True):
     '''
     Function to get metrics (in form of a table) for the amount of true VS predicted particle types.
     Denominator can be the amount of predicted particles or of true particles for a specific type.
@@ -265,7 +165,7 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
     import numpy as np
     from rich import print as rprint
 
-    console = Console()
+    console = Console(width = 400)  # Set console width for better table display, is saved to file anyway
 
     if unify_classes is None:
         unify_classes = []
@@ -279,18 +179,19 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
 
     # Adjust the possible_particle list to include the unified class
     possible_particle_unified = [p for p in possible_particle if p not in unify_classes]
-    if "UnifiedOthers" not in possible_particle_unified:
+    if "UnifiedOthers" not in possible_particle_unified and unify_classes != []:
         possible_particle_unified.append("UnifiedOthers")
 
     # Initialize the table
-    table = Table(show_header=True, title=title)
+    table = Table(show_header=True, title=title, expand=True)
     table.add_column("True \\ Predicted", justify="left", style='cyan')
     for key in possible_particle_unified:
         table.add_column(key, justify="right", style="green")
 
     # Compute percentages
+    all_perc_Vectors = []
     for particle_A in possible_particle_unified:
-        percVector = []
+        perc_Vector = []
         for particle_B in possible_particle_unified:
             if particle_B in sorted(np.unique(y_predicted_unified)):
                 if normalization == 'predicted':
@@ -305,13 +206,30 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
                     true_count_index = np.where(unique_values == True)[0][0]
                     true_count = counts[true_count_index]
                     percentage = (true_count / denom) * 100
-                    percVector.append("{:.2f}".format(percentage))
+                    perc_Vector.append("{:.2f}".format(percentage))
                 else:
-                    percVector.append("0.00")  # No 'True' values, so 0% match
+                    perc_Vector.append("0.00")  # No 'True' values, so 0% match
             else:
-                percVector.append("Not predicted")
+                perc_Vector.append("Not predicted")
+        all_perc_Vectors.append(perc_Vector)
+        table.add_row(particle_A, *perc_Vector)
 
-        table.add_row(particle_A, *percVector)
+    if create_heatmap:
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+
+        # Create a heatmap from the percentage vectors
+        heatmap_data = np.array([[float(value) if value != "Not predicted" else 0 for value in perc_Vector] for perc_Vector in all_perc_Vectors])
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(heatmap_data, annot=True, fmt=".2f", xticklabels=possible_particle_unified, yticklabels=possible_particle_unified, cmap="YlGnBu")
+        plt.title(title)
+        plt.xlabel("Predicted")
+        plt.ylabel("True")
+        plt.tight_layout()
+        if savepath:
+            plt.savefig(savepath.replace(".txt", "_heatmap.pdf"))
+
+
 
     # Print or save the table
     if savepath:
@@ -320,54 +238,6 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
     else:
         console.print(table)
 
-
-
-def new_metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, balanced=False, savepath=None, uncertainty=False):
-    from rich.console import Console
-    from rich.table import Table
-    import numpy as np
-    from rich import print as rprint
-
-
-    console = Console()
-    table = Table(show_header=True, title=title)
-    table.add_column("True \ Predicted", justify="left", style='cyan')
-
-    # Initialize weights
-    weight = np.ones_like(y_true, dtype=float)
-    if balanced:
-        for particle_truth in possible_particle:
-            mask = (y_true == particle_truth)
-            weight[mask] = np.nan_to_num(1 / np.sum(mask))
-
-    # Add columns
-    for key in possible_particle:
-        table.add_column(key, justify="right", style="green")
-
-    # Precompute counts
-    true_counts = {particle: np.sum(weight * (y_true == particle)) for particle in possible_particle}
-    predicted_counts = {particle: np.sum(weight * (y_predicted == particle)) for particle in possible_particle}
-
-    # Compute metrics
-    for particle_truth in possible_particle:
-        perc_vector = []
-        for particle_prediction in possible_particle:
-            k = np.sum(weight * ((y_predicted == particle_prediction) & (y_true == particle_truth)))
-            n = predicted_counts[particle_prediction] if normalization == 'predicted' else true_counts[particle_truth]
-            if n > 0:
-                if uncertainty:
-                    perc_vector.append(f"{(k/n)*100:.4f} ± {(((k/n)*(1-k/n))/n)*100:.4f}")
-                else:
-                    perc_vector.append(f"{(k/n)*100:.2f}")
-            else:
-                perc_vector.append("Not predicted")
-        table.add_row(particle_truth, *perc_vector)
-
-    # Output table
-    # console.print(table)
-    if savepath:
-        with open(savepath, "w") as f:
-            rprint(table, file=f)
 
 def get_decision_paths(clf, feature_names):
     """
@@ -400,55 +270,4 @@ def get_decision_paths(clf, feature_names):
     
     recurse(0, [])
     return paths
-'''
-def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, balanced=False, savepath=None, uncertainty=False):
-    
-    #Function to get metrics (in form of a table) for the amount of true VS predicted particle types
-    #Denominator can be the amount of predicted particles or of true partricle for a specific type
-    #Each table cell is filled with:
-    #    n(true=possible_particle_A & pred=possible_particle_B) / n(true=possible_particle_A)
-    #    or
-    #    n(true=possible_particle_A & pred=possible_particle_B) / n(pred=possible_particle_B)
-    #with n=number of cases
-    #The normalization parameter allows to choose if computing the %s with respect to the predicted (type B) or 
-    #true particles (type A)
-    
-    from rich.console import Console
-    from rich.table import Table
-    from rich import print as rprint
-    import numpy as np
-
-    console = Console()
-
-    table = Table(show_header=True, title=title)
-    table.add_column("True \ Predicted", justify="left", style='cyan')
-
-    weight = 1
-    if balanced:
-        weight = np.sum([np.nan_to_num((y_true == particle_truth) / np.sum(y_true == particle_truth)) for particle_truth in possible_particle], axis=0)
-
-    for key in possible_particle:
-        table.add_column(key, justify="right", style="green")
-    for particle_truth in possible_particle: #for possible_particle in sorted(y_true.unique())
-        percVector = []
-        for particle_prediction in possible_particle: # for particle in possible_particle:
-            if particle_prediction in np.unique(y_predicted):
-                k = np.sum(((y_predicted == particle_prediction) & (y_true == particle_truth)) * weight)
-                if normalization=='predicted':
-                    n = np.sum((y_predicted == particle_prediction) * weight)
-                else:
-                    n = np.sum((y_true == particle_truth) * weight)
-                if uncertainty:
-                    percVector.append("{:.4f} ± {:.4f}".format((k/n)*100, (((k/n)*(1-k/n))/n)*100)) # Binominal variance of the efficiency from https://indico.cern.ch/event/66256/contributions/2071577/attachments/1017176/1447814/EfficiencyErrors.pdf
-                    # percVector.append("{:.4f} ± {:.4f}".format((k/n)*100, ((((k+1)*(k+2))/((n+2)*(n+3)))-(((k+1)**2)/((n+2)**2)))*100)) # Bayesian variance of the efficiency from https://indico.cern.ch/event/66256/contributions/2071577/attachments/1017176/1447814/EfficiencyErrors.pdf
-                else:
-                    percVector.append("{:.2f}".format((k/n)*100))
-            else:
-                percVector.append("Not predicted")
-        table.add_row(particle_truth, *percVector)
-    console.print(table)
-    if savepath:
-        with open(savepath, "w") as f:
-            rprint(table, file=f)
-'''
 
