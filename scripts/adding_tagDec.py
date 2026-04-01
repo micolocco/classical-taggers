@@ -17,6 +17,7 @@ from scripts.NNModel import NeuralNetwork
 matplotlib_lhcb_style(plt)
 from scripts.preSelections import run2_taggers_variables
 from scripts.train_tagger import get_architecture
+import lhcb_ftcalib as ft
 
 def plot_tagDec(tagger, df_TagParticles, plotPath):
     plt.figure()
@@ -113,7 +114,7 @@ if __name__ == '__main__':
 
 
     # Aplly calibration to get omegas
-    import lhcb_ftcalib as ft
+
     mode=cfg.decayType[:2]
 
     tau_ps = None
@@ -149,7 +150,7 @@ if __name__ == '__main__':
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
-    save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER','file_id',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", f"{cfg.tagger}_OMEGA_ERR", "B_ID"]+run2_taggers_variables
+    save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER','file_id', 'selected',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", f"{cfg.tagger}_OMEGA_ERR", "B_ID"]+run2_taggers_variables
     if cfg.data_type == 'Data':
         save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", 'signal_weights', "B_TAU"]
         # if 'Bu' not in cfg.decayType:
