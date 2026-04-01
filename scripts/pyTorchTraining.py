@@ -736,7 +736,7 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
 
     with open(f"{target_path}/taggingInfo_{calibration_option}.json", "w") as f:
-        json.dump(info_dict, f)
+        json.dump(info_dict, f, indent=4)
     print(f"Tagger parameters saved at {target_path}\n")
     print(f"Tagging information in a presentation-friendly format:\n")
 
