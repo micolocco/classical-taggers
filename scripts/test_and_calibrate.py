@@ -168,7 +168,6 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
     print(f"Device used: {device}")
     
 
-    test_df.sample(frac=1, random_state=cfg.seed).reset_index(drop=True)
 
     #Load model
     bestModel = NeuralNetwork(features=features, architecture=get_architecture(config_dict), seed=seed, optimizer_kwargs={"lr" : config_dict['learning_rate']}, repo_path=repo)
@@ -307,8 +306,7 @@ if __name__ == '__main__':
     vars = features + [BID, 'selected', 'label', f"{cfg.tagger}_TagDec"]
     if cfg.data_type == 'Data':
         vars = vars + ['signal_weights']
-        if 'Bu' not in cfg.decay_type:
-            vars.append('B_TAU')
+        vars.append('B_TAU')
     print(vars, flush = True)
 
 

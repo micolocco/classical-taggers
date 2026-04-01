@@ -789,7 +789,7 @@ rule test_and_calibrate:
             '--decay_type {wildcards.decay}',
             '--seed {wildcards.seed}',
             '--repo', repo,
-            '--data_type MC',
+            '--data_type {wildcards.data_type}',
             '--model_path', model_path,
             '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else '',
             '--num_threads {threads}',
