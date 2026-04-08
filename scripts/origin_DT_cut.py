@@ -53,7 +53,7 @@ if __name__ == '__main__':
     parser.add_argument('--unify_SS', help='If unify SSKaon and SSProton in a single class', action='store_true' ) # action='store_true' means args.unify_SS will be set to True if the --unify_SS argument is provided on the command line.
     # Per default BKG0==0 are removed
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true')
-    parser.add_argument('--load', help='If specified, DT is loaded, or trained',  action='store_true')
+    parser.add_argument('--load', help='If specified, DT is loaded, instead of trained',  action='store_true')
     parser.add_argument('--all_plots', help='If specified, a histogramm of all variables is plotted',  action='store_true') 
 
     print(f'Run at time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush=True)
@@ -149,7 +149,10 @@ if __name__ == '__main__':
     # PVndof not clear
     # TRGHP alias for TRACKGHOSTPROB
     features = features_noMC + features_added
-    mc_info = ["B_BKGCAT", "B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_ID", "B_Tr_T_MC_MOTHER_ID"]    
+    mc_info = ["B_BKGCAT", "B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_ID", "B_Tr_T_MC_MOTHER_ID", 
+               'B_Tr_T_MC_MOTHER_KEY', 'B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_MOTHER_KEY', 
+               'B_Tr_T_MC_GD_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_KEY']
+
     loading_variables = features + mc_info + load_extra
  
     folders = ['Bd2JpsiKst', 'Bs2DsPi', 'Bu2JpsiK']
@@ -177,21 +180,23 @@ if __name__ == '__main__':
     # List of (condition, particle_type) tuples
 
     condition_particle_pairs = [
-    ((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag == 2), "OSKaon"),
-    ((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag == 2), "OSMuon"),
-    ((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22), "OSElectron"),
-    ((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag == 1), "SSPion"),
-    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1), "SSProton"),
-    ((df.B_Tr_T_absID==321) & (df.B_Tr_T_Origin_Flag==1), "SSKaon"),
-    #((df.B_Tr_T_absID == 321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "otherK"),
-    #((df.B_Tr_T_absID == 13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "otherMu"),
-    #((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag != 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22) & (df.B_Tr_T_Origin_Flag != 100), "otherE"),
-    #((df.B_Tr_T_absID == 11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22), "photonOSEl"),
-    #((df.B_Tr_T_absID == 211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 100), "otherPi"),
-    #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1)  & (df.B_Tr_T_Origin_Flag != 100), "otherP"),
-    #((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag != 100), "noOSSSProton"),
+    ((df.B_Tr_T_absID == 321)  & (df.B_Tr_T_Origin_Flag == 2),                                                                         "OSKaon"),
+    ((df.B_Tr_T_absID == 13)   & (df.B_Tr_T_Origin_Flag == 2),                                                                         "OSMuon"),
+    ((df.B_Tr_T_absID == 11)   & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22 ),                                  "OSElectron"),
+    ((df.B_Tr_T_absID == 211)  & (df.B_Tr_T_Origin_Flag == 1),                                                                         "SSPion"),
+    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1),                                                                         "SSProton"),
+    ((df.B_Tr_T_absID == 321)  & (df.B_Tr_T_Origin_Flag == 1),                                                                         "SSKaon"),
+    ((df.B_Tr_T_absID == 321)  & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherK"),
+    ((df.B_Tr_T_absID == 13)   & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherMu"),
+    ((df.B_Tr_T_absID == 11)   & (df.B_Tr_T_Origin_Flag != 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22 ) & (df.B_Tr_T_Origin_Flag != 100), "otherE"),
+    ((df.B_Tr_T_absID == 11)   & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22 ),                                  "photonOSEl"),
+    ((df.B_Tr_T_absID == 211)  & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherPi"),
+    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherP"),
+    
     ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
     ]
+
+    train_particle_types = ["OSKaon", "OSMuon", "OSElectron", "SSPion", "SSProton", "SSKaon", "notSamePV"]
     
 
     if cfg.unify_SS:
@@ -215,84 +220,82 @@ if __name__ == '__main__':
 
     # Assign particle types based on conditions, with default "Others" for unmatched rows
     df['particle'] = np.select(conditions, particle_type, default="Others")
-    
-    
-    # To remove all the other particles
-    df = df.loc[(df.particle != 'Others' )]
+    print(f"Number of tracks for each particle type:\n{df['particle'].value_counts()}", flush=True)
+
+    #Save the dataframe with ids, flags and particles types to a root file for exploration
+    with uproot.recreate(f"{cfg.target_path}/ids_flags_particles.root") as file:
+        file["DecayTree"] = df[mc_info + ['particle']]
+    print('Exploration dataframe with particle types, IDs and flags saved to root file', flush=True)
+
 
     print(f"Total number of tracks after removing 'Others': {df.shape[0]}", flush=True)
  
-    # For SS case if B_Tr_T_Charge has same sign of B_TRUE_ID is a correct tagging particle candidate
-    # We want to remove all the SSKaon from Bd2JpsiKst and the SSPion, SSProton from Bs2DsPi
-    # We want to remove all the SSKaon (or SSPion/SSProton) that will return a wrong tagging decision
-    #df['sign_tag'] = (df['B_TRUEID']/abs(df['B_TRUEID'])) * df['B_Tr_T_Charge']
+
     print(f"Total number of tracks for each B candidate (by TRUE_ID):\n{df['B_ID'].value_counts()}", flush=True)
-   # plot_features(df, features, )
-    
-    '''
-    removal_conditions = (
-        # Remove all SSPions/SSProtons from Bs2DsPi
-        (((df['particle']=='SSPion') | (df['particle']=='SSProton')) & (df['decay']=='Bs2DsPi'))
-        |  
-        # Remove all SSKaons from Bd2JpsiKst
-        ((df['particle']=='SSKaon') & (df['decay']=='Bd2JpsiKst'))
-        |
-        # Remove all SS particles from Bu2JpsiK
-        (((df['particle']=='SSKaon') | (df['particle']=='SSPion') | (df['particle']=='SSProton')) & (df['decay']=='Bu2JpsiK'))
-        )
-    # Filter the DataFrame to remove rows that meet the combined condition
-    print(f"Applying removal conditions", flush=True)
-    df_filtered = df[~removal_conditions].copy()
-    '''
-    df_filtered = df.copy()
+
     # Leaving it as an option, but only BKG_CAT==0 should be the default
     if cfg.BKG0:
-        df_filtered['B_BKGCAT'] = df_filtered['B_BKGCAT'].astype(int)
+        df['B_BKGCAT'] = df['B_BKGCAT'].astype(int)
         print("Filtering tracks based on decay and B_BKGCAT values...", flush=True)
 
         mask = (
-            (df_filtered['decay'].str.contains('Bs2DsPi') & (df_filtered['B_BKGCAT'] == 20)) # Only for Bs2DsPi due to problems with the BKG_CAT
-            | (~df_filtered['decay'].str.contains('Bs2DsPi') & (df_filtered['B_BKGCAT'] == 0))
+            (df['decay'].str.contains('Bs2DsPi') & (df['B_BKGCAT'] == 20)) # Only for Bs2DsPi due to problems with the BKG_CAT
+            | (~df['decay'].str.contains('Bs2DsPi') & (df['B_BKGCAT'] == 0))
         )
-        df_filtered = df_filtered.loc[mask]
-        print(f"New number of tracks: {df_filtered.shape[0]}", flush=True)
+        df = df.loc[mask]
+        print(f"New number of tracks: {df.shape[0]}", flush=True)
     else:
-        DT_utils.count_BKGCAT(df_filtered)
+        DT_utils.count_BKGCAT(df)
 
-    print(f"\nComposition (%) before splitting in training-test set:\n{round(df_filtered.particle.value_counts()/df_filtered.shape[0],4)*100}", flush=True)
-    print(f"\nComposition before splitting in training-test set:\n{df_filtered.particle.value_counts()}", flush=True)
+    print(f"\nComposition (%) before splitting in training-test set:\n{round(df.particle.value_counts()/df.shape[0],4)*100}", flush=True)
+    print(f"\nComposition before splitting in training-test set:\n{df.particle.value_counts()}", flush=True)
     
     if downsampling:
         # Downsample the 'notSamePV', 'Others' classes. 
         # Get the count of the largest class excluding "notSamePV"
-        max_class_size = df_filtered[df_filtered.particle == 'otherPi'].particle.value_counts().max()
+        max_class_size = df[df.particle == 'otherPi'].particle.value_counts().max()
         # Filter the 'notSamePV' rows
-        not_same_pv_rows = df_filtered[df_filtered.particle == 'notSamePV']
-        #others_rows = df_filtered[df_filtered.particle == 'Others']
+        not_same_pv_rows = df[df.particle == 'notSamePV']
+        #others_rows = df[df.particle == 'Others']
         # Randomly sample the maximum class size from 'notSamePV'
         sampled_not_same_pv = not_same_pv_rows.sample(n=max_class_size, random_state=42)
         #others_rows = others_rows.sample(n=max_class_size, random_state=42)
         # Filter out 'notSamePV' from the original dataframe to keep the other rows
-        #df_filtered = df_filtered[(df_filtered.particle != 'notSamePV') & (df_filtered.particle != 'Others')]
-        df_filtered = df_filtered[(df_filtered.particle != 'notSamePV')]
+        #df = df[(df.particle != 'notSamePV') & (df.particle != 'Others')]
+        df = df[(df.particle != 'notSamePV')]
         # Concatenate the sampled 'notSamePV' rows back with the other classes
-        df_filtered = pd.concat([df_filtered, sampled_not_same_pv])
-        #df_filtered = pd.concat([df_filtered, others_rows])
+        df = pd.concat([df, sampled_not_same_pv])
+        #df = pd.concat([df, others_rows])
     # Optionally, shuffle the dataframe (to mix rows)
 
-    df_filtered = df_filtered.sample(frac=1, random_state=42).reset_index(drop=True)
+    df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
-    x = df_filtered[features + ["particle"]].copy()
+    x = df[features + ["particle"]].copy()
     y = x["particle"].copy()
 
     print(f'The features used are {len(features)}: {features}', flush=True)
     print('-----------------------------------------', flush=True)
     # To get same amount of not_taggingPart
-    #x = pd.concat([x, df.loc[df.particle == 0][features + ["particle"]].head(len(x))])
     x.drop(columns=["particle"] , inplace = True)
     x_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.01, random_state=42)
-    #print(f"Composition of the training sample:\n{round(x.particle.value_counts()/x.shape[0],4)*100}") , flush=True 
+    print(type(x_train))
+    # Drop 'Other' particles from training dataset
+    #Drop all particles that are not in train_particle_types, other particles are included for monitoring during testing
+    mask = np.isin(y_train, train_particle_types)
 
+    x_train = x_train[mask]
+    y_train = y_train[mask]
+
+    print(y_train)
+
+    print(f"Classes used in training set: {y_train.unique()}", flush=True)
+
+    print(f"Number of tracks in training set: {x_train.shape[0]}", flush=True)
+    print(f"Composition of training set:\n{y_train.value_counts()}", flush=True)
+
+    print(f"Number of tracks in test set: {x_test.shape[0]}", flush=True)
+    print(f"Composition of test set:\n{y_test.value_counts()}", flush=True)
+    
     if cfg.balanced == 'unbalanced':
         weights = None
     else:
@@ -310,7 +313,7 @@ if __name__ == '__main__':
         # Plot features
         if cfg.all_plots:
             print("Plotting features...", flush=True)
-            DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path, nbins=50)   
+            DT_utils.plot_features_byOrigin(df, features, target_path=cfg.target_path, nbins=50)   
 
         print("Start fitting", flush=True)
         start_fit = time.time()
@@ -331,12 +334,10 @@ if __name__ == '__main__':
             file.write(tree_rules)
 
         # Visualize the decision tree
-        #dot_data = tree.export_graphviz(clf,feature_names=features,class_names=list(particle_type.keys()),filled=True, rounded=True,special_characters=True) 
         dot_data = tree.export_graphviz(clf,feature_names=features,class_names=clf.classes_,filled=True, rounded=True, special_characters=True, proportion=True) 
         graph = graphviz.Source(dot_data) 
         graph.render(f"{output_path}/tree_schema")
         print("Model saved successfully!", flush=True)
-    #print(f"Accuracy:{clf.score(x_test,y_test)}", flush=True)
     # Get all decision paths from the classifier
     paths = DT_utils.get_decision_paths(clf, features)
 
@@ -347,20 +348,24 @@ if __name__ == '__main__':
         combined = " & ".join(conditions)
         paths_by_class[label].append(combined)
 
+    print(f"Number of paths for each class:\n", flush=True)
+    for label, conditions_list in paths_by_class.items():
+        print(f"  {label}: {len(conditions_list)}", flush=True)
+
     #Get all features used by the DT
     features_DT_used = set()
     for label, conditions_list in paths_by_class.items():
         for conditions in conditions_list:
-            # conditions_names = re.sub('[<>()!=&.0123456789]', '', conditions).split() 
-            tokens = re.sub(r'[<>()!=&.-]', '', conditions).split() #removes every character in the conditions that are not the names of variables and splits into list of variables
-        
+            #removes every character in the conditions that are not the names of variables or sequences of numbers and splits into list of tokens
+            tokens = re.sub(r'[<>()!=&.-]', '', conditions).split() 
             # discard tokens that are purely numbers
             conditions_names = [t for t in tokens if not t.isdigit()]
 
             features_DT_used.update(conditions_names)
     features_DT_used = list(features_DT_used)
     features_DT_used.remove('B_Tr_T_Origin_Flag')
-    DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
+    DT_utils.plot_used_features(df, features_DT_used, target_path=cfg.target_path, nbins=50)
+    print(f"Features used by the Decision Tree:\n {features_DT_used}", flush=True)
 
 
 
@@ -376,25 +381,35 @@ if __name__ == '__main__':
         print(f"Saved cuts for class '{label}' in {filename}", flush=True)
     
     print("Metrics for particle type composition: true VS predicted\n", flush=True)
-    unify_classes = ["otherK", "otherMu", "otherE", "photonOSEl", "otherPi", "otherP", "Others"]
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), title='Versus True (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_truth.txt", unify_classes=unify_classes)
-    DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/pruned_confusion_normalised_by_prediction.txt", unify_classes=unify_classes)
+    unify_classes = ["otherK", "otherMu", "otherE", "photonOSEl", "otherPi", "otherP"]
+    y_pred_test = clf.predict(x_test)
+    
+    #Define order of particles in table/heatmap
+    ordered_particles = ['OSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton', 'SSKaon','notSamePV', 'otherK', 'otherMu', 'otherE', 'photonOSEl', 'otherPi', 'otherP', 'Others']
+    #Add in any potenially missing particles in the dataset (e.g. if some particle types are not present in the ordererd list but are in the dataset)
+    for p in y_test.unique():
+        if p not in ordered_particles:
+            ordered_particles.append(p)
 
-    #DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), normalization='predicted', title='Versus Predicted (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_prediction.txt")
-    ##DT_utils.metric_table(y_true=y_train, y_predicted=clf.predict(x_train), possible_particle=sorted(df_filtered['particle'].unique()), balanced=True, title='Versus True (balanced)') # same as unbalanced
+
+    DT_utils.metric_table(y_true=y_test, y_predicted=y_pred_test, possible_particle=ordered_particles, title='Versus True (pruned)', savepath=f"{output_path}/unified_pruned_confusion_normalised_by_truth.txt", unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_test, y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/unified_pruned_confusion_normalised_by_prediction.txt", unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_test, y_predicted=y_pred_test, possible_particle=ordered_particles, title='Versus True (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_truth.txt", unify_classes=None)
+    DT_utils.metric_table(y_true=y_test, y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/pruned_confusion_normalised_by_prediction.txt", unify_classes=None)
+
+    
     print(f'Running the script required: {time.time()-start}s', flush=True)
+
     # Compute feature importance
-    '''
-        print(f"Feature importance:\n", flush=True)
-        feat_import = clf.tree_.compute_feature_importances(normalize=True)
-        feat_import.sort()
-        for i in range(len(feat_import)):
-            print(features[i],round(100*feat_import[i],2), flush=True)
-        print('-----------------------------------------', flush=True)
-        print(f"Permutation importance:\n", flush=True)
-        perm_import = clf.tree_.compute_feature_importances(normalize=True)
-        perm_import.sort()
-        for i in range(len(perm_import)):
-            print(features[i],round(100*perm_import[i],2), flush=True)
-        print('-----------------------------------------', flush=True)
-    '''
+    # print(f"Feature importance:\n", flush=True)
+    # feat_import = clf.tree_.compute_feature_importances(normalize=True)
+    # feat_import.sort()
+    # for i in range(len(feat_import)):
+    #     print(features[i],round(100*feat_import[i],2), flush=True)
+    # print('-----------------------------------------', flush=True)
+    # print(f"Permutation importance:\n", flush=True)
+    # perm_import = clf.tree_.compute_feature_importances(normalize=True)
+    # perm_import.sort()
+    # for i in range(len(perm_import)):
+    #     print(features[i],round(100*perm_import[i],2), flush=True)
+    # print('-----------------------------------------', flush=True)
