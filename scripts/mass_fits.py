@@ -79,7 +79,7 @@ def massfit(obs, masses, tex_decay, outname, simulation, sim_fit, filename, df, 
     sig_frac = zfit.Parameter("sig_frac",  0.5,    0.0,    1)
     g_frac1  = zfit.Parameter("g_frac1",   0.1,    0.0,    1)
 
-    yield_signal = zfit.Parameter("yield_signal", len(df), 0, len(df))
+    yield_signal = zfit.Parameter("yield_signal", len(df), 0, len(df)*1.01)
     
     double_cb = GeneralizedCB(obs=obs, mu=mean, sigmal=sigmaL, sigmar=sigmaR, alphal=alphaL, nl=nL, alphar=alphaR, nr=nR)
     

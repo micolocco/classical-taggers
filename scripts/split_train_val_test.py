@@ -1,7 +1,6 @@
 import numpy as np
 import uproot
 import pandas as pd
-from matplotlib import pyplot as plt
 from IPython import embed
 import os
 import argparse
@@ -9,8 +8,7 @@ from pprint import pprint
 import yaml
 # Local import
 import scripts.pyTorchTraining as pyTrain
-from scripts import ranges, nice_names, matplotlib_lhcb_style
-matplotlib_lhcb_style(plt)
+
 
 
 def ascii_histogram(data, bins=10, symbol='#'):
