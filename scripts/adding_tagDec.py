@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
 
-    loading_variables = features+ run2_taggers_variables + ['entry','B_Tr_T_Charge','selected', 
+    loading_variables = features+ run2_taggers_variables + ['B_Tr_T_Charge','selected', 
                                                             'RUNNUMBER', 'EVENTNUMBER', 'file_id', 
                                                             'label', f'{cfg.tagger}_TagDec', 'B_ID',
                                                             'B_DTF_PV_Jpsi_MASS', 'B_TAU']
@@ -93,13 +93,12 @@ if __name__ == '__main__':
         test_df = f[cfg.treename].arrays(loading_variables, library="pd")    
 
     test_df['event_entry'] = test_df['file_id'].astype(str) + "_" + test_df['RUNNUMBER'].astype(str) + "_" + test_df['EVENTNUMBER'].astype(str)
-
     # Data pre-processing 
     scalerPath = cfg.scaler
     transformerPath = cfg.transformer
 
 
-    columns_to_drop = ['entry', "B_ID", 'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec', 'file_id']
+    columns_to_drop = ["B_ID", 'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec', 'file_id']
 
     test_dataset = inputDataset(df=test_df[features+['label']])
     test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
@@ -150,7 +149,7 @@ if __name__ == '__main__':
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
-    save_vars = ['entry', 'RUNNUMBER', 'EVENTNUMBER','file_id', 'selected',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", f"{cfg.tagger}_OMEGA_ERR", "B_ID"]+run2_taggers_variables
+    save_vars = ['RUNNUMBER', 'EVENTNUMBER','file_id', 'selected',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", f"{cfg.tagger}_OMEGA_ERR", "B_ID"]+run2_taggers_variables
     if cfg.data_type == 'Data':
         save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", 'signal_weights', "B_TAU"]
         # if 'Bu' not in cfg.decayType:

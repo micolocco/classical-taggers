@@ -133,12 +133,13 @@ def read_files(files, vars, treename, only_upper, massname):
         print(f"Reading input file {i+1}/{len(files)}: {f}", flush=True)
         print(f'Total RAM used: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB', flush=True)
         with uproot.open("{}".format(f)) as _f:
-            _df = _f[treename].arrays(vars+ ['file_id', 'RUNNUMBER', 'EVENTNUMBER'], library="pd")
+            _df = _f[treename].arrays(vars+ ['file_id', 'RUNNUMBER', 'EVENTNUMBER', 'candidate_index'], library="pd")
         
         _df.dropna(inplace = True)
         _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', "file_id"], inplace=True)
-        _df = _df.groupby("event_entry").first()
+        _df['candidate_entry'] = _df['file_id'].astype(str) + "_" + _df['candidate_index'].astype(str)
+        _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', "file_id", "candidate_index"], inplace=True)
+        _df = _df.groupby("candidate_entry").first()
         _df.reset_index(inplace=True)
 
         if only_upper: #Only take upper mass sideband from data as example of combinatorial background
@@ -239,11 +240,11 @@ if __name__ == '__main__':
     }
 
     model = KFoldBDT(bdtargs, n_folds=5)
-    X = df.drop(columns=[cfg.massname, 'label', 'event_entry'])
+    X = df.drop(columns=[cfg.massname, 'label', 'event_entry', 'candidate_entry'])
     print(list(X.columns), flush=True)
     X = X.to_numpy()
     y = df['label'].to_numpy()
-    indices = df['event_entry'].to_numpy()
+    indices = df['candidate_entry'].to_numpy()
 
     print(f'Training begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
     train_losses, val_losses = model.fit(X[:10000], y[:10000], indices[:10000])

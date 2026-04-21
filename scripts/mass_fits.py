@@ -350,7 +350,7 @@ if __name__ == '__main__':
 
 
     print(f'Reading files started on {datetime.datetime.now().strftime("%H:%M:%S")}')
-    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER', massname, 'B_ID']
+    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER', massname, 'B_ID', 'candidate_index']
 
     if cfg.simulation:
         vars += ['B_BKGCAT']
@@ -368,11 +368,10 @@ if __name__ == '__main__':
             _df = _df.query("B_BKGCAT == 0")  
         
         _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        _df['candidate_entry'] = _df['file_id'].astype(str) + "_" + _df['candidate_index'].astype(str)
 
-        _df = _df.groupby("event_entry").first()
+        _df = _df.groupby("candidate_entry").first()
         _df.reset_index(inplace=True)
-        # _df['signalness'] = BDT.predict_proba(_df[bdt_features].to_numpy(), _df["event_entry"].values)
-        # _df.drop(columns=bdt_features, inplace=True)
 
         if df_data is None:
             df_data = _df
@@ -396,7 +395,7 @@ if __name__ == '__main__':
             compute_weights= not cfg.simulation, generate_figures=True, obs_name=cfg.obs_name, is_selected = cfg.selected, prefix=prefix)
     
     #Save weighted dataframe to disk
-    tree_dict = {col: np.array(df_data[col]) for col in df_data.columns if col != 'event_entry'}
+    tree_dict = {col: np.array(df_data[col]) for col in df_data.columns if col != 'event_entry' and col != 'candidate_entry'}
     print(tree_dict)
 
     for col in tree_dict:

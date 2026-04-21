@@ -53,16 +53,32 @@ if __name__ == "__main__":
         signal_class_features = yaml.safe_load(f)[cfg.decay_type]
     
     df["event_entry"] = df["file_id"].astype(str) + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+    df['candidate_entry'] = df['file_id'].astype(str) + "_" + df['candidate_index'].astype(str)
     print(f"Input file contains {df['event_entry'].nunique()} unique events", flush=True)
 
     # Apply the BDT to select signal events
-    df_events = df[signal_class_features + ['event_entry']].groupby("event_entry").first().reset_index(drop=False)
+    # Grouped by entry not event_entry because one event may have several candidates, due to (almost purely) incorrect reconstruction, 
+    # multiplicity is removed after prediction
+    df_candidates = df[signal_class_features + ['event_entry', 'candidate_entry']].groupby('candidate_entry').first().reset_index(drop=False)
     print(f"Prediction of signalness starts at {datetime.datetime.now()}", flush=True)
-    df_events['signalness'] = BDT.predict_proba(df_events[signal_class_features].to_numpy(), df_events["event_entry"].values)
+    print(signal_class_features, flush=True)
+    print(df_candidates[signal_class_features].head(), flush=True)
+    df_candidates['signalness'] = BDT.predict_proba(df_candidates[signal_class_features].to_numpy(), df_candidates["candidate_entry"].values)
     print(f"Prediction of signalness ends at {datetime.datetime.now()}", flush=True)
-    df_events = df_events[df_events['signalness'] > cut]
-    df = df.merge(df_events[["event_entry", "signalness"]], on="event_entry", how="inner")
-    del df_events
+    df_candidates = df_candidates[df_candidates['signalness'] > cut]
+
+    #Drop Multiplicit candidates, i.e. events with more than one candidate passing the selection, almost allways incorrect reconstructions
+    #-> Choose one candidate per event, which is the one with the highest signalness, as the most probable correct reconstruction
+    df_candidates = df_candidates.sort_values('signalness').groupby("event_entry").last().reset_index(drop=False)
+
+    #Merge the selected candidates back to the dataframe, dropping all non-selected candidates, 
+    # and keeping only one candidate per event, which is the one with the highest signalness
+
+    print(list(df.columns), flush=True)
+    print(list(df_candidates.columns), flush=True)
+
+    df = df.merge(df_candidates[["candidate_entry", "signalness"]], on="candidate_entry", how="inner")
+    del df_candidates
 
     print(f"Number of events after selection: {df['event_entry'].nunique()}", flush=True)
 

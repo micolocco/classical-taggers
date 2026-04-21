@@ -43,7 +43,6 @@ def dPhi(df):
     x_arctan = cos_Tr_T_Phi * sin_Phi - cos_Phi * sin_Tr_T_Phi
     y_arctan = cos_Tr_T_Phi * cos_Phi + sin_Phi * sin_Tr_T_Phi
     df[f'B_Tr_T_PhiDistance'] = np.arctan2(x_arctan, y_arctan)
-    # df[f'B_Tr_T_minPhiDistance'] = df.groupby('entry')[f'B_Tr_T_PhiDistance'].transform(lambda x: np.abs(x).min())
     return df
 
 def process_chunk(df, evtType):
@@ -174,16 +173,20 @@ if __name__ == '__main__':
         file_id = file_id[:-3]
     file_id = int(file_id)
     #Optimize memory usage by input files batch by batch instead of loading the whole file at once.  
+    candidate_index = 0
     with uproot.recreate(cfg.output) as fout:
         chunk_iter = uproot.iterate({cfg.raw: cfg.treename}, filter_name=loading_variables, library="ak", step_size=cfg.batch_size)
 
         for i, chunk in enumerate(tqdm(chunk_iter, desc="Processing chunks")):
+            chunk['candidate_index'] = np.arange(len(chunk)) + candidate_index
+            candidate_index += len(chunk)
             chunk = ak.to_dataframe(chunk)
+
             missing_cols = [col for col in loading_variables if col not in chunk.columns]
             if len(missing_cols) > 0:
                 raise ValueError(f"Missing columns in chunk {i}: {missing_cols}")
 
-            chunk.reset_index(inplace=True)
+            chunk.reset_index(drop=True, inplace=True)
             chunk.loc[:,'file_id'] = file_id
             start = time()
             chunk = chunk.copy()

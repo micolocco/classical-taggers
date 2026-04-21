@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
     taggers_dataframes = []  # List to store DataFrames for each tagger
     # Loop over all taggers
-    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER',  'B_ID']# + run2_taggers_variables
+    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER',  'B_ID',]# + run2_taggers_variables
     if cfg.data_type == 'Data':
         vars += ['signal_weights']
         if 'Bu' not in cfg.decayType:
@@ -90,6 +90,8 @@ if __name__ == '__main__':
             
         df_merged=pd.concat(singleTagger_dataframes, ignore_index=True)
         print(df_merged['event_entry'].nunique())
+        assert df_merged['event_entry'].nunique() == len(df_merged), f"There are duplicate event entries in the merged DataFrame. Check {f}."
+
         df_merged = df_merged.groupby("event_entry").first()
         taggers_dataframes.append(df_merged)
         
@@ -101,16 +103,16 @@ if __name__ == '__main__':
         print(df.head())
     assert all(taggers_dataframes[0].shape[1] == single_df.shape[1] for single_df in taggers_dataframes), "DataFrames have different number of columns. Check the input files."
     df = taggers_dataframes[0]
-    common_columns = ['B_ID'] #+run2_taggers_variables
+    common_columns = ['B_ID', ] #+run2_taggers_variables
     if cfg.data_type == 'Data':
         common_columns += ['signal_weights']
         if 'Bu' not in cfg.decayType:
             common_columns.append('B_TAU')
     
     for single_df in taggers_dataframes[1:]:
-        single_df = single_df.drop(columns=common_columns)
+        # single_df = single_df.drop(columns=['old_event_entry'])
 
-        df = pd.merge(df, single_df, on=['event_entry'], how='outer')
+        df = pd.merge(df, single_df, on=['event_entry']+common_columns, how='outer')
     del taggers_dataframes  # Free memory
     df.reset_index(drop=False, inplace=True)  # Reset index after merging
     print(df.shape)
@@ -120,6 +122,16 @@ if __name__ == '__main__':
     runs=['Run3']
     if cfg.run2:
         runs.append('Run2')
+
+    #Print number of and rows containing NaN values 
+    print(f'Number of rows containing NaN values: {df.isna().any(axis=1).sum()}')
+    print(f'Number of NaN values in each column:\n{df.isna().sum()}')
+
+    #print head of a dataframe where at least one of columns is NaN
+    print(df[df.isna().any(axis=1)].head())
+
+    assert not df.isna().any().any(), "There are NaN values in the DataFrame. Please check the input files and merging process."
+
 
 
     weights = None
@@ -198,13 +210,13 @@ if __name__ == '__main__':
         class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: '$\overline{B}^0$'}
 
         print(type(tagger_combination))
-        taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-                                                file_name = 'split_calibration_curves.pdf', savepath = f'{savepath}', omega_range="minimal", 
-                                                nbins = 10, x_scale = 'linear', y_scale = 'linear')
+        # taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+        #                                         file_name = 'split_calibration_curves.pdf', savepath = f'{savepath}', omega_range="minimal", 
+        #                                         nbins = 10, x_scale = 'linear', y_scale = 'linear')
         
-        ft.plotting.draw_split_calibration_curve(tagger_combination, nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-                                                file_name = 'split_calibration_curves.pdf', savepath = f'{savepath}', omega_range="minimal", 
-                                                nbins = 10, x_scale = 'linear', y_scale = 'linear')
+        # ft.plotting.draw_split_calibration_curve(tagger_combination, nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+        #                                         file_name = 'split_calibration_curves.pdf', savepath = f'{savepath}', omega_range="minimal", 
+        #                                         nbins = 10, x_scale = 'linear', y_scale = 'linear')
 
         print(f'{run} combination created at {outputPath}')
         print(f"Tagger: {cfg.combinationName}")

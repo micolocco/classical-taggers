@@ -25,6 +25,7 @@ def read_files(files, treename, vars=None):
         _df.dropna(inplace = True)
         print(f"Number of tracks in file {i+1}: {_df.shape[0]}", flush=True)
         _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
+        _df['candidate_entry'] = _df['file_id'].astype(str) + "_" + _df['candidate_index'].astype(str)
 
 
         if 'selected' in _df.columns:
@@ -103,7 +104,11 @@ if __name__ == '__main__':
     # Split dataframe and save each split to a separate file
     # This allows training on subsets of the data during development and debugging without reading the entire dataset 
     df_combined = df_combined.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle the DataFrame
-
+    
+    print(f"Total number of unique events in combined DataFrame: {df_combined['event_entry'].nunique()}", flush=True)
+    print(f"Total number of unique candidates in combined DataFrame: {df_combined['candidate_entry'].nunique()}", flush=True)
+    print(f"Total number of tracks in combined DataFrame: {len(df_combined)}", flush=True)
+    
 
     event_entries = df_combined['event_entry'].unique()
 
