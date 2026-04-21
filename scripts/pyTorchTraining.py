@@ -717,9 +717,9 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
 
 
 
-    taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-                                            file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
-                                            nbins = nbins, x_scale = scale, y_scale = scale)
+    # taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+    #                                         file_name = 'split_calibration_curves.pdf', savepath = f'{target_path}', omega_range="minimal", 
+    #                                         nbins = nbins, x_scale = scale, y_scale = scale)
     
     taggers.plot_calibration_curves(savepath = f'{target_path}', omega_range="minimal", nbins = nbins, x_scale = scale, y_scale = scale)
 
