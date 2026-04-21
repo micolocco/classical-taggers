@@ -62,9 +62,12 @@ if __name__ == '__main__':
     print(df_data.head(), flush = True)
     print(df_data.shape, flush = True)
     df_data.drop(columns=["level_0"], inplace=True)
-    df_data = df_data[df_data["event_entry"].isin(df_weight["event_entry"])] #Drops all events that have not been selected in the mass_fit script
+    df_data = df_data[df_data["event_entry"].isin(df_weight["event_entry"])] #Drops all events that have no sweight assigned by the mass_fit script
 
-
+    if 'non_selected_signal_weights' in df_weight.columns:
+        df_weight.rename(columns={'non_selected_signal_weights':     'signal_weights'},     inplace=True)
+        df_weight.rename(columns={'non_selected_background_weights': 'background_weights'}, inplace=True)
+        
 
     df_weight.drop(columns=["B_DTF_PV_Jpsi_MASS", 'RUNNUMBER', 'EVENTNUMBER', "B_ID", "file_id", ], inplace=True)
     df_data = df_data.merge(df_weight.reset_index(drop=True), on=["event_entry"], how='left')
