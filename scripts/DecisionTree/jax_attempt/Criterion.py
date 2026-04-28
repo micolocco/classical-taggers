@@ -2,9 +2,7 @@ import numpy as np
 import numba as nb
 import jax
 
-# @nb.njit(nb.float64(nb.int32[:], nb.float64[:], nb.int32, nb.int32))
-
-# @jax.jit
+@jax.jit
 def gini(       y:       np.ndarray[np.int32],
                 weights: np.ndarray[np.float64],
                 n_classes: int,

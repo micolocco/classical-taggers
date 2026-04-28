@@ -3,8 +3,26 @@ import numba as nb
 import pytreeclass as ptc
 from .Criterion import gini
 import jax
+# @nb.experimental.jitclass([
+#     ('is_leaf', nb.types.boolean),
+#     ('left', nb.optional(nb.types.pyobject)),
+#     ('right', nb.optional(nb.types.pyobject)),
+#     ('column', nb.int32),
+#     ('cut_value', nb.float64),
+#     ('weight_trained_on', nb.float64),
 
-class TreeNode:
+#     ('depth', nb.int32),
+#     ('node_index', nb.int32),
+#     ('criterion', nb.types.pyobject),
+
+#     ('n_classes', nb.int32),
+#     ('num_samples_trained_on', nb.int32),
+#     ('num_samples_per_class', nb.int32[:]),
+#     ('prediction', nb.int32),
+#     ('impurity_if_leaf', nb.float64)
+# ])
+
+class TreeNode(ptc.TreeClass):
     def __init__(self, 
                  depth: int,
                  node_index: int,

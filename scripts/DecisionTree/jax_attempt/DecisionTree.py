@@ -21,7 +21,17 @@ Termination criteria:
 '''
 
 
-class DecisionTree:
+# @nb.experimental.jitclass([
+#     ('max_depth', nb.float64),
+#     ('min_samples_split', nb.float64),
+#     ('min_samples_leaf', nb.float64),
+#     ('min_weight_fraction_leaf', nb.float64),
+#     ('min_impurity_decrease', nb.float64),
+#     ('criterion', nb.types.pyobject),
+#     ('root', nb.optional(nb.types.pyobject)),
+#     ('n_classes', nb.int32),
+# ])
+class DecisionTree(ptc.TreeClass):
     
 
     def __init__(self, criterion, max_depth = None, min_samples_split = None, min_samples_leaf = None, min_weight_fraction_leaf = None, min_impurity_decrease = None, n_threads=1):
@@ -46,6 +56,7 @@ class DecisionTree:
         self.n_threads = n_threads
 
 
+    @jax.jit
     def _get_optimal_split_of_column(self, X, y, N, weights, column,depth, node_index, return_dict):
         unique_values = np.unique(X[:, column])
         unique_values = np.sort(unique_values)
