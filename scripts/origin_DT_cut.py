@@ -166,7 +166,7 @@ if __name__ == '__main__':
         decay = os.path.basename(os.path.dirname(f))
         print(f"Reading input file: {f}", flush=True)
         with uproot.open("{}".format(f)) as _f:
-            _df = _f[cfg.treename].arrays(loading_variables, library="pd")
+            _df = _f[cfg.treename].arrays(loading_variables, library="pd")#[:500]#[:1_000_000]  # Limit the number of rows for testing TODO REMOVE
             _df['decay'] = decay
             #print(f'Number of tracks per file: {_df.shape[0]}', flush=True)
             df = pd.concat([df, _df], ignore_index = True)
@@ -225,6 +225,39 @@ if __name__ == '__main__':
     #Save the dataframe with ids, flags and particles types to a root file for exploration
     with uproot.recreate(f"{cfg.target_path}/ids_flags_particles.root") as file:
         file["DecayTree"] = df[mc_info + ['particle']]
+    
+    df_export = df.copy()
+    # convert all columns, except "particle", to float for better readability in c++
+    # For string columns translate to integers first
+    particle_dict = {"OSKaon": 0,
+                     "OSMuon": 1,
+                     "OSElectron": 2,
+                     "SSPion": 3,
+                     "SSProton": 4,
+                     "SSKaon": 5,
+                     "otherK": 6,
+                     "otherMu": 7,
+                     "otherE": 8,
+                     "photonOSEl": 9,
+                     "otherPi": 10,
+                     "otherP": 11,
+                     "Others": 12,
+                     "notSamePV": 13,}
+    decay_dict = {"Bd2JpsiKst": 0, 
+                  "Bs2DsPi": 1, 
+                  "Bu2JpsiK": 2}
+    print(df_export['particle'].unique())
+    df_export['particle'] = df_export['particle'].map(particle_dict)
+    df_export['decay'] = df_export['decay'].map(decay_dict)
+
+    df_export = df_export.astype(float)
+    print(df_export['particle'].unique())
+    df_export['particle'] = df_export['particle'].astype(int)
+
+    with uproot.recreate(f"{cfg.target_path}/DT_trainingset.root") as file:
+        file["DecayTree"] = df_export
+    del df_export
+
     print('Exploration dataframe with particle types, IDs and flags saved to root file', flush=True)
 
 
