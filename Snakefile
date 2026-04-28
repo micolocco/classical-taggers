@@ -880,10 +880,10 @@ rule test_and_calibrate:
         ]
         shell(' '.join(cmd))
 
-def extract_best(tagger, cut, data_type,link='logit'):
+def extract_best(tagger, cut, data_type,link='logit', BN = ''):
     #Read the best tagger candidate config from json file with the best hyperparameter combination
 
-    with open(join(repo, f'best_tagger_candidates/{cut}/{data_type}/candidatedTaggers_{link}.json'), 'r') as f: # trainOn
+    with open(join(repo, f'best_tagger_candidates/{cut}/{data_type}{BN}/candidatedTaggers_{link}.json'), 'r') as f: # trainOn
     # with checkpoints.get_optimized.get(tagger = tagger, cut_name = cut).output[0].open() as f:
         data = json.load(f)
 
@@ -898,7 +898,7 @@ def extract_best(tagger, cut, data_type,link='logit'):
     else:
         nl = int(data[tagger]['numlayers'])
         nn = int(data[tagger]['numneurons'])
-        config = f'lr{lr}_bs{bs}_nL{nl}_nN{nn}'
+        config = f'lr{lr}_bs{bs}_nL{nl}_nN{nn}{BN}'
         return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'numlayers':nl, 'numneurons':nn, 'tagger':tagger, 'cut':cut, 'link':link}
 
 def get_model_path(wildcards, all_taggers=False):
@@ -912,7 +912,7 @@ def get_model_path(wildcards, all_taggers=False):
     cut_name = wildcards.cut_name
     features = wildcards.features
 
-    best = [extract_best(tagger=tag, cut=cut_name,data_type=data_type) for tag in tagger]
+    best = [extract_best(tagger=tag, cut=cut_name,data_type=data_type, BN=wildcards.BN) for tag in tagger]
 
     
     model = [join(out, f'{data_type}/savedModels/{dec}/{tag}/{cut_name}/{features}/{bes["seed"]}/{bes["config"]}') for tag, dec, bes in zip(tagger, decay, best)]
@@ -934,17 +934,17 @@ rule add_tagDec:
         scaler=      lambda wildcards: join(get_model_path(wildcards), 'training/st_scaler.pkl'), 
         calibration =lambda wildcards: join(get_model_path(wildcards), f'testing/{wildcards.data_type}/logit/calibration.json'),
 
-        config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted).get("config")}.yaml'),
+        config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted, BN=wildcards.BN).get("config")}.yaml'),
     output:
-        root = join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}/{ID}.root'),
+        root = join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}{BN}/{ID}.root'),
     log:
-        join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}/{ID}.log'),
+        join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}{BN}/{ID}.log'),
     resources:
         max_retries=0,
         mem_mb = 40_000, 
         MaxRunHours = 1, 
     run:
-        config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type)
+        config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted, BN=wildcards.BN)
         
         domain = '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else ''
 
@@ -984,7 +984,7 @@ def get_tagged_paths(wildcards):
         paths = tagged_mc[decay][tagger] if data_type == 'MC' else tagged_data[decay][tagger]
         paths = np.array(paths)
         paths = np.char.replace(paths, 'cut_name/features', f'{cut_name}/{features}')
-        paths = np.char.replace(paths, 'trained_on', f'trained_{data_type_or_adapted}')
+        paths = np.char.replace(paths, 'trained_on', f'trained_{data_type_or_adapted}{wildcards.BN}')
         all_paths = np.concatenate((all_paths, paths))
 
     return all_paths
@@ -1005,7 +1005,7 @@ rule combine_tagger:
         pdf=              join(out, '{data_type}/savedModels/{decay}/combinations/Run3/trained_{data_type_or_adapted}/{cut_name}/{features}/{combinationName}/{combinationName}_Run3_Calibration.pdf'),
         all_tagged_data = join(out, '{data_type}/savedModels/{decay}/combinations/Run3/trained_{data_type_or_adapted}/{cut_name}/{features}/{combinationName}/combined_tagged.root'),
     log:    
-        join(out, '{data_type}/savedModels/{decay}/combinations/Run3/trained_{data_type_or_adapted}/{cut_name}/{features}/{combinationName}/{combinationName}_Run3_log.log')
+        join(out, '{data_type}/savedModels/{decay}/combinations/Run3/trained_{data_type_or_adapted}{BN}/{cut_name}/{features}/{combinationName}/{combinationName}_Run3_log.log')
     resources:
         max_retries=0,
         mem_mb = 40_000, 
@@ -1029,6 +1029,7 @@ rule combine_tagger:
             '--data_type {wildcards.data_type}',
             '--trained_on {wildcards.data_type_or_adapted}',
             '--calibrations', ' '.join(input.calibration),
+            '--BN' if wildcards.BN else '',
             '&> {log}',
         ]
         print(' '.join(cmd))

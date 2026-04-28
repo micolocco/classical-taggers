@@ -38,11 +38,12 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help='Type of data used for calibration: Data or MC', type=str, choices=('Data', 'MC'))
     parser.add_argument('--trained_on', help='Whether Taggers where trained on MC, Data or using domain adaptation', type=str, )
     parser.add_argument('--calibrations', help='List of calibration json files for each tagger', nargs='+')
+    parser.add_argument('--BN', help='Whether the taggers were trained with batch normalization', action='store_true') # action='store_true' means args.BN will be set to True if the --BN argument is provided on the command line.
 
     print(f'Combining taggers started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg)
-    outputPath =f'{cfg.outputPath}/{cfg.decayType}/combinations/'
+    outputPath =os.path.join(f'{cfg.outputPath}', f'{cfg.decayType}/combinations/')
     os.makedirs(outputPath, exist_ok=True)
 
 
@@ -81,7 +82,7 @@ if __name__ == '__main__':
             _df.dropna(inplace=True)
 
             _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-            _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'], inplace=True)
+            # _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'], inplace=True)
 
 
             singleTagger_dataframes.append(_df)
@@ -110,7 +111,7 @@ if __name__ == '__main__':
             common_columns.append('B_TAU')
     
     for single_df in taggers_dataframes[1:]:
-        # single_df = single_df.drop(columns=['old_event_entry'])
+        single_df = single_df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'])
 
         df = pd.merge(df, single_df, on=['event_entry']+common_columns, how='outer')
     del taggers_dataframes  # Free memory
@@ -201,7 +202,10 @@ if __name__ == '__main__':
         df[f"{cfg.combinationName}_{run}_OMEGA"] = tagger_df[f"{cfg.combinationName}_{run}_OMEGA"].values
         df[f"{cfg.combinationName}_{run}_OMEGA_ERR"] = tagger_df[f"{cfg.combinationName}_{run}_OMEGA_ERR"].values
 
-        savepath = f'{outputPath}/{run}/trained_{cfg.trained_on}/{cfg.cut}/{cfg.features}/{cfg.combinationName}'
+        savepath = os.path.join(outputPath, run, f'trained_{cfg.trained_on}', cfg.cut, cfg.features, cfg.combinationName)
+        if cfg.BN:
+            savepath = savepath.replace(f'trained_{cfg.trained_on}', f'trained_{cfg.trained_on}_BN')
+
         taggers.plot_calibration_curves(savepath = savepath, omega_range="minimal", nbins=10)
         ft.plotting.draw_calibration_curve(tagger_combination, savepath=savepath)
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=savepath)
