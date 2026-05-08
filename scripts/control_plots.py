@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     if not os.path.exists(outpath):
         os.makedirs(outpath)
-    signal_class_features = '/ceph/users/togasa/classical-taggers/configs/signal_classifier_features.yaml'
+    signal_class_features = '/home/togasa/classical-taggers/configs/signal_classifier_features.yaml'
     bdt_model = f'/ceph/users/togasa/FlavourTagging/Data/signal_classifier/{decay}/bdt_model.pkl'
 
     data_path = f'/ceph-kernel/users/togasa/FlavourTagging/Data/NTuples/2_split/{decay}/test/*.root'

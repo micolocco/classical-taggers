@@ -5,7 +5,7 @@ from collections import defaultdict
 #Helpfull little tool to scrape the sometimes very large snakemake log file and find out which rules jobs are done and which are in progress.
 
 # Path to your log file
-log_path = "/ceph/users/togasa/classical-taggers/.snakemake.log"
+log_path = "/home/togasa/classical-taggers/.snakemake.log"
 
 # Read the entire file at once
 with open(log_path, "r", encoding="utf-8") as f:

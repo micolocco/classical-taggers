@@ -5,9 +5,9 @@
     "OUT": "/ceph/users/togasa/FlavourTagging/",
     "Mass_range_lower" : 5200,
     "Mass_range_upper" : 5400,
-    "REPO": "/ceph/users/togasa/classical-taggers",
+    "REPO": "/home/togasa/classical-taggers",
     "nCPUs":      "1",
-    "LOCALTMP": "/ceph/users/togasa/classical-taggers/outdir/tmp",
-    "LOG": "/ceph/users/togasa/classical-taggers/outdir/log",
+    "LOCALTMP": "/home/togasa/classical-taggers/outdir/tmp",
+    "LOG": "/home/togasa/classical-taggers/outdir/log",
     "combined_df_n_splits": 75,
 }

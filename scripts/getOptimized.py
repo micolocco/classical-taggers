@@ -103,8 +103,8 @@ if __name__ == '__main__':
     parser.add_argument('--plot_path', help='Where the plots will be saved', type=str, default='/ceph/users/togasa/FlavourTagging/')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--data_type', help='Type of data to be used', type=str, choices=['MC', 'Data'])  # 'MC' or 'Data'
-    parser.add_argument('--tagger_input', help='File of the tagger inputs, only needed for num parameter plot', type=str, default='/ceph/users/togasa/classical-taggers/tagger_inputFeatures/union_PROBNN.yaml')
-
+    parser.add_argument('--tagger_input', help='File of the tagger inputs, only needed for num parameter plot', type=str, default='/home/togasa/classical-taggers/tagger_inputFeatures/union_PROBNN.yaml')
+    parser.add_argument('--BN', help='Whether to check batch normalized models', action='store_true')
     
     cfg = parser.parse_args()
 
