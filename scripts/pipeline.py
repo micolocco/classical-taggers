@@ -89,7 +89,7 @@ if __name__ == '__main__':
     
     #Ensures a shared training set exists at <.../anchor/filename>.
     #If missing (or overwrite=True), saves it using uproot.
-    base_dir = pyTrain.get_anchor_dir(model_path=cfg.target_path, anchor=cfg.features )#anchor="hold_out_bis")#had to redo with holdout sample, otherwise anchor=cfg.features)
+    base_dir = pyTrain.get_anchor_dir(model_path=cfg.target_path, anchor="test_newNN")#anchor=cfg.features )#anchor="hold_out_bis")#had to redo with holdout sample, otherwise anchor=cfg.features)
     train_path = base_dir / "trainSet.parquet"
     val_path   = base_dir / "valSet.parquet"
     test_path  = base_dir / "testSet_full.parquet"
@@ -131,14 +131,19 @@ if __name__ == '__main__':
         df = df.sample(frac=1, random_state=45).reset_index(drop=True)  # cfg.seed if you prefer
 
         # Tagging decision
-        if ("Bd" in cfg.decayType or "Bs" in cfg.decayType) and (cfg.tagger in {"SSKaon", "SSPion"}):
-            df[f"{cfg.tagger}_TagDec"] = df["B_Tr_T_Charge"]
-        else:
-            df[f"{cfg.tagger}_TagDec"] = df["B_Tr_T_Charge"] * (-1)
+        #if ("Bd" in cfg.decayType or "Bs" in cfg.decayType) and (cfg.tagger in {"SSKaon", "SSPion"}):
+        #    df[f"{cfg.tagger}_TagDec"] = df["B_Tr_T_Charge"]
+        #else:
+        #    df[f"{cfg.tagger}_TagDec"] = df["B_Tr_T_Charge"] * (-1)
+#
+        ## Labels: -1(wrong) -> 0, +1(correct) -> 1
+        
+        #df["label"] = df[f"{cfg.tagger}_TagDec"] * df["B_TRUEID"] / abs(df["B_TRUEID"])
+        #df.loc[df["label"] == -1, "label"] = 0
 
-        # Labels: -1(wrong) -> 0, +1(correct) -> 1
-        df["label"] = df[f"{cfg.tagger}_TagDec"] * df["B_TRUEID"] / abs(df["B_TRUEID"])
-        df.loc[df["label"] == -1, "label"] = 0
+        # Rdefinition of the NN output: not anymore if the tagging decision is correct or wrong but to directly predict the B_TRUEID
+        df['label'] = df["B_TRUEID"]/abs(df["B_TRUEID"])
+        df.loc[df['label'] == -1, 'label'] = 0 # shifting the label from -1 to 0
 
         # Split
         cols_needed = features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']
@@ -167,7 +172,9 @@ if __name__ == '__main__':
     print(f"Training set has {train_df[train_df.label==1].shape[0]} correctly tagged tracks, {train_df[train_df.label==0].shape[0]} wrong tagged tracks")
     pyTrain.stats_printout_train_calib(train_df=train_df, val_df=val_df, test_df=test_df, tagger=cfg.tagger, ID=ID)
     
-    columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID',]
+    #columns_to_drop = ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID',]
+    columns_to_drop = ['event_entry', 'selected', 'B_TRUEID',]
+
     #train_df.drop(columns = columns_to_drop, inplace = True)
     #val_df.drop(columns = columns_to_drop, inplace = True)
     train_dl, validation_dl = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), train_batch_size=config['train_batch_size'], seed=cfg.seed, scalerPath=scalerPath, transformerPath=transformerPath)

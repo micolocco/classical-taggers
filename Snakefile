@@ -158,15 +158,16 @@ generated_paths_OSMuon = read_generated_paths(
     join(repo, 'paths_for_snakemake/gridSearch_paths_OSMuon.txt'))
 
 # print(expand(ntuples_selected_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK_balanced'], balanced=['balanced'],features=['union_PROBNN']),)
-FEATURES = 'explore_new'
+#FEATURES = 'explore_new'
+FEATURES = 'union_PROBNN'
 OUTPUT=[]
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/45/lr0.0001_bs8192_nL3_nN32/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/45/lr0.001_bs4096_nL3_nN32/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
-#OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/45/lr0.01_bs4096_nL3_nN32/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/45/lr0.001_bs128_nL3_nN3/asym_level1/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.0001_bs8192_nL3_nN32/asym_level1/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN32/asym_level1/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
+#OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.01_bs4096_nL3_nN32/asym_level1/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs128_nL3_nN3/asym_level1/{SPEC}/model.pth"))
 
 
 # print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))
@@ -456,7 +457,7 @@ rule train_DT:
         )
         shell(cmd)
 '''
-
+'''
 rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
@@ -491,7 +492,7 @@ rule add_selection:
             '&> {log}',
         ]
         shell(' '.join(cmd))
-
+'''
 
 rule train_tagger:
     input:
@@ -507,10 +508,10 @@ rule train_tagger:
         ],
         script = join(repo, 'scripts/pipeline.py'),
     output:
-        pdf = join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/{SPEC}/model.pth'),
+        pdf = join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/test_newNN/{seed}/{config}/{asymmetry_level}/{SPEC}/model.pth'),
         #pdf=join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/training_inputFeatures.pdf'),
         # Replaced with this to profuce only input features plot
-    log: join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/{seed}/{config}/{asymmetry_level}/{SPEC}/training_log.log')
+    log: join(modified_MC, 'savedModels/{sample_type,(withUT_MC_2024|noUT_MC_2024)}/{decay,(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)}/{tagger,(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)}/{cut_name}_{balanced}/{features}/test_newNN/{seed}/{config}/{asymmetry_level}/{SPEC}/training_log.log')
     resources:
         mem_mb = 80000,  # Specify memory requirement in megabytes
         # gpus = 1,
