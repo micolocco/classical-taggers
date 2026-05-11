@@ -6,7 +6,7 @@ from scripts.replace_path import seeds  # your seeds
 
 """
 Example:
-python scripts/getOptimized.py --model_prePath /ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024 --cut allBKGCAT_notSamePV_noOSP_SSK_balanced --file_interval configs/hyperpar_intervals_larger --features union_PROBNN --asym asym_level1 --outfile candidatedTaggers_overall_large --maximize nominal
+python scripts/getOptimized.py --model_prePath /ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024 --cut allBKGCAT_notSamePV_noOSP_SSK_balanced --file_interval configs/hyperpar_intervals_larger --features union_PROBNN --spec asym_level1/hold_out_bis --outfile candidatedTaggers_overall_large --maximize nominal
 """
 
 def tp_nominal_sigma(tp):
@@ -28,7 +28,7 @@ if __name__ == '__main__':
                    help='cut folder, e.g. allBKGCAT_notSamePV_noOSP_SSK_balanced')
     p.add_argument('--file_interval', help='yaml file with intervals explored in grid search' ,type=str, default='configs/hyperpar_intervals',)
     p.add_argument('--features', type=str, default='union_PROBNN')
-    p.add_argument('--asym', type=str, default='asym_level1')
+    p.add_argument('--spec', type=str, default='asym_level1')
     p.add_argument('--outputPath', type=str, default='/home/molocco/classical-taggers/best_tagger_candidates')
     p.add_argument('--outfile', type=str, default='candidateTaggers_overall', help='Name of the JSON output.')
     p.add_argument('--maximize', type=str, choices=('ratio', 'nominal'), default='ratio', help='Whether to maximize TP_cali/sigma (ratio) or TP_cali (nominal). TP=tagging power.')
@@ -71,7 +71,7 @@ if __name__ == '__main__':
             # trial dir = .../<seed> / lr..._bs..._nL..._nN... / <asym>
             trial_dir = os.path.join(
                 args.model_prePath, decay, tagger, args.cut, args.features,
-                str(seed), f"lr{lr}_bs{bs}_nL{nL}_nN{nN}", args.asym,
+                str(seed), f"lr{lr}_bs{bs}_nL{nL}_nN{nN}", args.spec,
             )
             if not os.path.isdir(trial_dir):
                 continue
@@ -141,7 +141,7 @@ if __name__ == '__main__':
         print("Found", n_found, "valid calibrations for tagger", tagger)
 
     # write output
-    out_file = os.path.join(args.outputPath, args.cut, args.features, args.asym, f"{args.outfile}_{args.maximize}.json")
+    out_file = os.path.join(args.outputPath, args.cut, args.features, args.spec, f"{args.outfile}_{args.maximize}.json")
 
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
     with open(out_file, "w") as f:

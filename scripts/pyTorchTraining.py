@@ -128,7 +128,7 @@ def recreate_directory(target_path, clean=False):
     except Exception as e:
         print(f'Failed to create {target_path}. Reason: {e}')
 
-def plot_features_byID(data, features_list, ID, target_path, name, nbins=100):
+def plot_features_byID(data, features_list, ID, target_path, name, log_scale=False, tagger='NN', nbins=100):
     # Plot input features 
     plt.figure(figsize=(24,25))
     pos=0
@@ -144,11 +144,27 @@ def plot_features_byID(data, features_list, ID, target_path, name, nbins=100):
                 plt.xlabel(nice_names[col])
                 #if "PROBNN" in col:
                 #    plt.yscale('log')
-                plt.yscale('log')
+                if log_scale:
+                    plt.yscale('log')
+               # plt.yscale('log')
             plt.legend()
-            plt.tight_layout()
             pos+=1
-    plt.savefig(f"{target_path}/{name}.pdf")
+        plt.tight_layout()
+
+    #SUBPLOTS_TOP_POS = 0.95  # reserved top position for subplots
+    # We set y to be halfway between the figure top (1.0) and the subplot top (0.95), 
+    # which is (1.0 + 0.95) / 2 = 0.975
+    #plt.suptitle(f"{tagger} input features", fontsize=24, y=(1.0 + SUBPLOTS_TOP_POS) / 2)
+    
+    # 2. Call tight_layout LAST, using 'rect' to reserve space for the title
+    # We use the reserved top position (SUBPLOTS_TOP_POS) here.
+    # We also include a small bottom margin (0.03) for x-labels.
+    #plt.tight_layout(rect=[0, 0.03, 1, SUBPLOTS_TOP_POS])
+    if log_scale:
+        plt.savefig(f"{target_path}/{name}_log.pdf")
+    else:
+        plt.savefig(f"{target_path}/{name}.pdf")
+    
     
 def get_features(tagger, yaml_file, repo_path):
     '''Function for assigning the input features corresponding to each tagger.
@@ -382,20 +398,25 @@ def prepare_data(train_df, val_df, scalerPath, transformerPath, train_batch_size
     return train_dl, validation_dl 
 
 
-def plot_features(data, features_list, target_path, name, flag, nbins=100):
+def plot_features(data, features_list, target_path, name, flag, tagger="NN", log_scale=False, nbins=100):
     # Plot input features 
     plt.figure(figsize=(24,25))
     pos=0
     for i, col in enumerate(data.columns.to_list()):
         if col in features_list:
+            #plt.subplot(5, 5 , pos + 1) # hardcoded according to the number of features
             plt.subplot(5, 4 , pos + 1) # hardcoded according to the number of features
+            
             if col in nice_names.keys():
                 plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b', histtype='step',  lw=2, range=ranges[col])
                 plt.hist(data[col][data[flag]==1], density = True, bins=nbins, label = f"{flag} = 1",color='r', histtype='step',  lw=2, range=ranges[col])
                 plt.xlabel(nice_names[col])
                 #if "PROBNN" in col:
                 #    plt.yscale('log')
-                plt.yscale('log')
+                plt.ylabel("Normalized counts")
+                #if col!="B_Tr_T_PhiDistance": 
+                if log_scale:
+                    plt.yscale('log')
 
             else:
                 plt.hist(data[col][data[flag]==0], density = True, bins=nbins, label = f"{flag} = 0",color='b',histtype='step',  lw=2, )
@@ -405,7 +426,23 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
             plt.legend()
             plt.tight_layout()
             pos+=1
-    plt.savefig(f"{target_path}/{name}.pdf")
+    # Add title
+    # 1. Add the title and manually set its vertical position (y)
+    #SUBPLOTS_TOP_POS = 0.95  # reserved top position for subplots
+    # We set y to be halfway between the figure top (1.0) and the subplot top (0.95), 
+    # which is (1.0 + 0.95) / 2 = 0.975
+    #plt.suptitle(f"{tagger} input features", fontsize=24, y=(1.0 + SUBPLOTS_TOP_POS) / 2)
+    
+    # 2. Call tight_layout LAST, using 'rect' to reserve space for the title
+    # We use the reserved top position (SUBPLOTS_TOP_POS) here.
+    # We also include a small bottom margin (0.03) for x-labels.
+    #plt.tight_layout(rect=[0, 0.03, 1, SUBPLOTS_TOP_POS])
+    #plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    if log_scale:
+        plt.savefig(f"{target_path}/{name}_log.pdf")
+    else:
+        plt.savefig(f"{target_path}/{name}.pdf")
     
 
 def get_architecture(config):

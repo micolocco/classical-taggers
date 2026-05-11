@@ -89,7 +89,7 @@ if __name__ == '__main__':
     
     #Ensures a shared training set exists at <.../anchor/filename>.
     #If missing (or overwrite=True), saves it using uproot.
-    base_dir = pyTrain.get_anchor_dir(model_path=cfg.target_path, anchor="hold_out_bis")#had to redo with holdout sample, otherwise anchor=cfg.features)
+    base_dir = pyTrain.get_anchor_dir(model_path=cfg.target_path, anchor=cfg.features )#anchor="hold_out_bis")#had to redo with holdout sample, otherwise anchor=cfg.features)
     train_path = base_dir / "trainSet.parquet"
     val_path   = base_dir / "valSet.parquet"
     test_path  = base_dir / "testSet_full.parquet"

@@ -38,10 +38,11 @@ def setup_time_vars(time_unit, decay_time_branches, data, dm):
 
 """
 On MC:
-python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSKaon --decayType Bs2DsPi --run2 --combinationName 'B0s MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out
-python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton --decayType Bd2JpsiKst --run2 --combinationName 'B0 MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out
-python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron --decayType Bu2JpsiK --run2 --combinationName 'B+ MC OS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out
-python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron --decayType Bd2JpsiKst --run2 --combinationName 'B0 MC OS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSKaon --decayType Bs2DsPi --run2 --combinationName 'B0s MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out_bis
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron SSPion SSProton --decayType Bd2JpsiKst --run2 --combinationName 'B0 MC OS+SS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out_bis
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron --decayType Bu2JpsiK --run2 --combinationName 'B+ MC OS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out_bis
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron --decayType Bd2JpsiKst --run2 --combinationName 'B0 MC OS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out_bis
+python scripts/combineTagger.py  --tagger OSKaon OSMuon OSElectron --decayType Bs2DsPi --run2 --combinationName 'B0s MC OS'  --cut allBKGCAT_notSamePV_noOSP_SSK/balanced --tagged_prePath /ceph/users/molocco/FlavourTagging/MC/withUT_MC_2024/4_tagged/ --simulation --asymmetry_level asym_level1/hold_out_bis
 
 """
 if __name__ == '__main__':

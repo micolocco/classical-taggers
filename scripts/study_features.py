@@ -11,8 +11,8 @@ from matplotlib import pyplot as plt
 
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-    
 
+print("unicode_minus =", plt.rcParams['axes.unicode_minus'])
 pre_path = "/ceph/users/molocco/FlavourTagging/MC/savedModels/withUT_MC_2024/"
 features = 'union_PROBNN'
 cut = f'allBKGCAT_notSamePV_noOSP_SSK_balanced/{features}'
@@ -83,6 +83,9 @@ for tagger in taggers_dict.keys():
 
     target_path=f'{repo}/inputFeatures/{decay}/{tagger}/'
     os.makedirs(target_path, exist_ok=True)
-    pyTrain.plot_features(data=train_df, features_list=features,  target_path=target_path, flag='label', name=f'inputFeatures')
-    pyTrain.plot_features_byID(data=train_df, features_list=features, ID=ID, target_path=target_path, name=f'byTRUEID_inputFeatures')
+    pyTrain.plot_features(data=train_df, features_list=features,  target_path=target_path, flag='label', tagger=tagger, name=f'inputFeatures')
+    pyTrain.plot_features_byID(data=train_df, features_list=features, ID=ID, target_path=target_path, tagger=tagger, name=f'byTRUEID_inputFeatures')
+    pyTrain.plot_features(data=train_df, features_list=features,  target_path=target_path, flag='label', tagger=tagger, log_scale=True, name=f'inputFeatures')
+    pyTrain.plot_features_byID(data=train_df, features_list=features, ID=ID, target_path=target_path, tagger=tagger, log_scale=True, name=f'byTRUEID_inputFeatures')
+
     print(f"Plotted input features and saved to {target_path}")

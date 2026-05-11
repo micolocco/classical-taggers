@@ -4,11 +4,21 @@ import matplotlib.pyplot as plt
 from sklearn.tree import _tree
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
-plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
 plt.rcParams.update({'axes.unicode_minus' : False})
 
-"""
-def plot_features_byOrigin(data, features, target_path, nbins=100):
+colors = {
+        "notSamePV": "red",
+        "OSKaon": "green",
+        "OSMuon": "blue",
+        "OSElectron": "cyan",
+        "SSPion": "orange",
+        "SSProton": "brown",
+        "SSKaon": "violet"
+    }
+
+
+
+def plot_features_byOrigin(data, features, target_path, log_scale=False, nbins=100):
     # Plot input features 
     plt.figure(figsize=(100,100))
     for i, col in enumerate(features):
@@ -32,7 +42,8 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
             plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
             plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
             plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
-        
+            if log_scale:
+                plt.yscale('log')
         else:
             plt.xlabel(col)
             plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
@@ -42,15 +53,21 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
             plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, )
             plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, )
             plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, )
+        #set y axis label
+        plt.ylabel("Normalized counts")
         plt.legend() 
         plt.tight_layout()
-    plt.savefig(f"{target_path}/DT_features_byOrigin.pdf")
-"""
+    if log_scale:
+        plt.savefig(f"{target_path}/DT_features_byOrigin_log.pdf")
+    else:
+        plt.savefig(f"{target_path}/DT_features_byOrigin.pdf")
+
 import matplotlib.pyplot as plt
 import os
 from IPython import embed
 
-def plot_features_byOrigin(data, features, target_path, nbins=100):
+'''
+def plot_features_byOrigin(data, features, target_path, log_scale=False, nbins=100):
     os.makedirs(target_path, exist_ok=True)
     plt.rcParams.update({
         "figure.dpi": 300,
@@ -63,15 +80,6 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
         "lines.linewidth": 1,   # slightly thicker for clarity
     })
     
-    colors = {
-        "notSamePV": "orange",
-        "OSKaon": "violet",
-        "OSMuon": "blue",
-        "OSElectron": "cyan",
-        "SSPion": "green",
-        "SSProton": "brown",
-        "SSKaon": "red"
-    }
 
     features_DT_used = [
         "B_Tr_T_PROBNN_E",
@@ -103,32 +111,133 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
         ax.set_xlabel(xlabel)
         ax.set_ylabel("Normalised number of tracks")
         ax.legend(frameon=False, loc='best')
-        if col in features_DT_used:
+        if log_scale:
             ax.set_yscale('log')  # Set y-axis to logarithmic scale for better visibility
         plt.tight_layout(pad=0.2)
-        plt.savefig(f"{target_path}/{col}_byOrigin.png", dpi=300, bbox_inches='tight', transparent=False)
+        if log_scale:
+            plt.savefig(f"{target_path}/{col}_byOrigin_log.png", dpi=300, bbox_inches='tight', transparent=False)
+        else:
+            plt.savefig(f"{target_path}/{col}_byOrigin.png", dpi=300, bbox_inches='tight', transparent=False)
         plt.close(fig)
 
+'''
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_used_features(data, features, target_path, log_scale=False, nbins=80):
+    """
+    Thesis-quality plot of the variables used by the DT,
+    grouped by tagging particle class.
+    Layout: 2 plots per row (2 columns).
+    """
+
+    # ------------------------------
+    # Thesis-style global settings
+    # ------------------------------
+    plt.rcParams.update({
+        "font.size": 20,
+        "axes.labelsize": 20,
+        "axes.titlesize": 20,
+        "xtick.labelsize": 20,
+        "ytick.labelsize": 20,
+        "legend.fontsize": 20,
+    })
+
+    # Tagger ordering and your colour scheme
+    particles = [
+        "OSKaon",
+        "OSMuon",
+        "OSElectron",
+        "SSPion",
+        "SSProton",
+        "SSKaon",
+        "notSamePV",
+    ]
+
+    colors = {
+        "notSamePV": "green",
+        "OSKaon": "violet",
+        "OSMuon": "blue",
+        "OSElectron": "cyan",
+        "SSPion": "orange",
+        "SSProton": "brown",
+        "SSKaon": "red"
+    }
+
+    # ------------------------------
+    # Figure layout
+    # ------------------------------
+    # ------------------------------
+
+    n = len(features)
+    ncols = 3
+    nrows = (n + ncols - 1) // ncols    # ceiling division
+
+    # each subplot = (5,4)
+    subplot_w, subplot_h = 7, 6
+
+    figwidth = subplot_w * ncols
+    figheight = subplot_h * nrows
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(figwidth, figheight))
+    axes = axes.flatten()
+
+    plt.subplots_adjust(wspace=0.25, hspace=0.25)
 
 
-
-
-def plot_used_features(data, features, target_path, nbins=100):
-    plt.figure(figsize=(24,25))
+    # ------------------------------
+    # Loop over features
+    # ------------------------------
     for i, col in enumerate(features):
-        plt.subplot(3, 3, i + 1)
-        plt.xlabel(nice_names[col])
-        plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
-    
-    plt.legend() 
-    plt.tight_layout()
-    plt.savefig(f"{target_path}/onlyUsed_DT_features_byOrigin.pdf")
+        ax = axes[i]
+
+        for p in particles:
+            vals = data.loc[data["particle"] == p, col]
+            ax.hist(
+                vals,
+                bins=nbins,
+                density=True,
+                histtype="step",
+                lw=2,
+                color=colors[p],
+                label=p,
+                range=ranges.get(col, None),
+            )
+        if col == "B_Tr_T_diff_z": #set log scale
+            ax.set_yscale('log')
+        if log_scale:
+            ax.set_yscale('log')  # Set y-axis to logarithmic scale for better visibility
+
+        #    ax.set_yscale('log')
+        ax.set_xlabel(nice_names[col])
+        ax.set_ylabel("Normalized counts")
+
+
+    # ------------------------------
+    # Remove empty axes
+    # ------------------------------
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    # ------------------------------
+    # Shared legend (top center)
+    # ------------------------------
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(
+        handles, labels,
+        loc="upper center",
+        ncol=4,
+        frameon=False,
+        bbox_to_anchor=(0.5, 1.01),
+    )
+    #plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.90])
+    if log_scale:
+        fig.savefig(f"{target_path}/geometrical_DT_used_features_log.pdf")
+    else:
+        fig.savefig(f"{target_path}/geometrical_DT_used_features.pdf")
+    plt.close(fig)
+
 
 def plot_features_byParticle(data, features, nbins=100):
    

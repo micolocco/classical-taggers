@@ -5,7 +5,7 @@ import os
 import argparse
 import awkward as ak
 import datetime
-
+from IPython import embed
 import os
 #from memory_profiler import profile
 
@@ -42,7 +42,7 @@ def min_dPhi(df, prefix):
     df.eval(f'y_arctan=({prefix}Tr_T_cos_Phi*{prefix}cos_Phi) + ({prefix}sin_Phi*{prefix}Tr_T_sin_Phi)', inplace=True)
     df.eval(f'{prefix}Tr_T_PhiDistance = arctan2(x_arctan, y_arctan)', inplace=True, engine='python')
     # A bit of a hack to add the minimum distance
-    _df = df.groupby('entry').apply(lambda group: np.min(np.abs(group[f'{prefix}Tr_T_PhiDistance']))).reset_index(name=f'{prefix}Tr_T_minPhiDistance')
+    _df = df.groupby(level='entry').apply(lambda group: np.min(np.abs(group[f'{prefix}Tr_T_PhiDistance']))).reset_index(name=f'{prefix}Tr_T_minPhiDistance')
     df = pd.merge(df, _df, on='entry', how='left')
     df.drop([f'{prefix}Tr_T_cos_Phi', f'{prefix}Tr_T_sin_Phi', f'{prefix}cos_Phi', f'{prefix}sin_Phi', 'x_arctan', 'y_arctan'], axis=1, inplace=True)
     return df
@@ -53,7 +53,7 @@ def min_dPhi(df, prefix):
 # List of variables (includes MC variables)
 loading_variables = [
         'EVENTNUMBER',
-        'entry',
+        #'entry',
         'B_Tr_T_TRACKISLONG',
         'B_Tr_T_OWNPVIP',
         'B_Tr_T_Charge',
@@ -101,6 +101,8 @@ loading_variables = [
         'B_Tr_T_OWNPV_Z',
         'B_OWNPV_Z',
         'B_Tr_T_ENERGY',
+        'B_Tr_T_firstZ',
+        'B_ENDV_Z',
 
         #'B_Tr_T_TRUEPRIMARYVERTEX_X',
         #'B_Tr_T_TRUEPRIMARYVERTEX_Y',
@@ -143,14 +145,12 @@ run2_taggers_variables = [
 extra_vars = [
         'B_Tr_T_firstX',
         'B_Tr_T_firstY',
-        'B_Tr_T_firstZ',
         'B_Tr_T_firstTX',
         'B_Tr_T_firstTY',
         'B_OWNPV_X',
         'B_OWNPV_Y',
         'B_ENDV_X',
         'B_ENDV_Y',
-        'B_ENDV_Z',
         'B_Tr_T_OWNPV_X',
         'B_Tr_T_OWNPV_XERR',
         'B_Tr_T_OWNPV_Y',
@@ -228,6 +228,9 @@ def main():
         with uproot.open(cfg.raw) as f:
             df = f[cfg.treename].arrays(local_loading_variables, library="pd")
         df = df[df[f'{prefix}Tr_T_IsInTree'] != 1]
+        df.dropna(inplace=True)
+        #df["entry_multi"] =  df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+        #df.drop_duplicates(subset='entry', keep="first", inplace=True)
     # Replace B_ in the loading variables if there is a prefix
     #local_loading_variables_withPrefix = [var.replace("B_", prefix) for var in local_loading_variables]
     #print(f'{local_loading_variables_withPrefix}')
@@ -245,9 +248,14 @@ def main():
         local_loading_variables = np.unique(local_loading_variables).tolist()
         with uproot.open("{}".format(cfg.raw)) as f:
             df = f[cfg.treename].arrays(local_loading_variables, library="pd")
+        df.dropna(inplace=True)
+        #embed()
+        #df["entry_multi"] =  df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+        #df.drop_duplicates(subset='entry', keep="first", inplace=True)
+
         abs_id = B_abs_id_dic[cfg.evtType]
         df.drop(df[abs(df[f'{prefix}TRUEID']) != abs_id ].index , inplace = True)
-        df.reset_index(inplace=True, drop = False)
+        #df.reset_index(inplace=True, drop = False)
         df.eval(f'{prefix}Tr_T_absID =abs({prefix}Tr_T_TRUE_PARTICLE_ID)', inplace = True)
         df[f'{prefix}Tr_T_Origin_Flag'].astype(int)
 
@@ -255,6 +263,7 @@ def main():
     # Add some needed features
     # A bit of a hack to add the minimum distance
     df = min_dPhi(df, prefix)
+    df.eval(f'B_Tr_T_endSV_Z = abs({prefix}ENDV_Z - {prefix}Tr_T_firstZ)' , inplace = True) 
     df.eval(f'{prefix}Tr_T_diff_z = abs({prefix}OWNPV_Z - {prefix}Tr_T_OWNPV_Z)' , inplace = True)
     df.eval(f'{prefix}Tr_T_Signal_TagPart_PT = sqrt(({prefix}PX + {prefix}Tr_T_PX) **2 + ({prefix}PY + {prefix}Tr_T_PY)**2)', inplace = True)
     df.eval(f'{prefix}Tr_T_cos_PhiDistance=cos({prefix}Tr_T_PhiDistance)', inplace=True)
@@ -276,11 +285,13 @@ def main():
 
     if not cfg.data_calib: # Avoid to read not used branches for data calibration, still needed for MC for the DT training to select features
         df.eval(f'diff_P = abs({prefix}P - {prefix}Tr_T_P)', inplace = True)
-        df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
+        #df.eval(f'P_proj = {prefix}ENERGY*{prefix}Tr_T_ENERGY - ({prefix}Tr_T_PX*{prefix}PX + {prefix}Tr_T_PY*{prefix}PY +{prefix}Tr_T_PZ*{prefix}PZ ) ', inplace = True)
         df.eval(f't = ({prefix}ENDV_X**2 + {prefix}ENDV_Y**2 + {prefix}ENDV_Z**2 - {prefix}ENDV_X*{prefix}Tr_T_X - {prefix}ENDV_Y*{prefix}Tr_T_Y - {prefix}ENDV_Z*{prefix}Tr_T_Z) / ({prefix}ENDV_X * {prefix}Tr_T_PX + {prefix}ENDV_Y * {prefix}Tr_T_PY + {prefix}ENDV_Z * {prefix}Tr_T_PZ)' , inplace = True)
+        # Estimated Vertex Impact Parameter
+        # Given by The End Vertex position and the point of closest approach on the track's trajectory, L(t), where t is the value calculated in the first step.
         df.eval(f'EVIP = sqrt(({prefix}Tr_T_X**2 + {prefix}Tr_T_Y**2 + {prefix}Tr_T_Z**2) + t**2 * ({prefix}Tr_T_PX**2 + {prefix}Tr_T_PY**2 + {prefix}Tr_T_PZ**2) + 2*t*({prefix}Tr_T_X * {prefix}Tr_T_PX + {prefix}Tr_T_Y * {prefix}Tr_T_PY + {prefix}Tr_T_Z * {prefix}Tr_T_PZ))', inplace = True)
         df.eval('logEVIP = log(EVIP)', inplace = True)
-        df.eval('logP_proj = log(P_proj)', inplace = True)
+        #df.eval('logP_proj = log(P_proj)', inplace = True)
         df.eval(f'{prefix}Tr_T_atanPT_PZ = arctan2({prefix}Tr_T_PT, {prefix}Tr_T_PZ)', engine='python', inplace=True)
 
 

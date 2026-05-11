@@ -87,12 +87,12 @@ if __name__ == '__main__':
     if cfg.best_json:
         json_file = cfg.best_json
     else:
-        if cfg.data_calib:
-            # Read models trained on data for calibration
+        if cfg.data_calib: # Ugly hack
+            # Read models trained on full sample for calibration on data
             json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/full/candidatedTaggers_overall_large_nominal.json'
         else:
-            # Read models witj hold out sample for combination on MC (models are trained on MC)
-            json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/hold_out/candidatedTaggers_overall_large_nominal.json'
+            # Read models with hold out sample for combination on MC (models are trained on MC)
+            json_file = f'{cfg.repo}/best_tagger_candidates/{cfg.cut}/{cfg.features}/{cfg.asymmetry_level}/hold_out_bis/candidatedTaggers_overall_large_nominal.json'
 
     with open(json_file, 'r') as f:
         data = json.load(f)
@@ -102,7 +102,12 @@ if __name__ == '__main__':
     nL = data[cfg.tagger]['numlayers']
     nN = int(data[cfg.tagger]['numneurons'])
     config = f'lr{lr}_bs{bs}_nL{nL}_nN{nN}'
-    model_path = join(cfg.modelPrePath, f"{seed}/{config}/{cfg.asymmetry_level}/hold_out") # asymmetry level hard coded for now, to be changed in the future
+    if cfg.data_calib: # again ugly hack
+        model_path = join(cfg.modelPrePath, f"{seed}/{config}/{cfg.asymmetry_level}/full") 
+    else:
+        model_path = join(cfg.modelPrePath, f"{seed}/{config}/{cfg.asymmetry_level}/hold_out_bis")
+    print(f"Json used: {json_file}")
+    print(f'Loading model from {model_path}')
     #model_path = join(cfg.modelPrePath)
     # Load YAML configuration file
     with open(f'{cfg.repo}/configs/{config}.yaml', 'r') as file:

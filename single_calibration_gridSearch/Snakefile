@@ -130,7 +130,7 @@ print(f"[summary] total={len(CALIB_STATUS_TARGETS)}")
 # Choose meta for the aggregated output path
 
 SAMPLE_TYPE, CUT, FEATURES, ASYM = ("withUT_MC_2024", "allBKGCAT_notSamePV_noOSP_SSK_balanced", "union_PROBNN", "asym_level1")
-SPEC = "hold_out_bis" # Full (specification used to idnicate if sample is wiht holdout or full dataset, full used for models for data. hold_out_bis for models evluated on MC
+SPEC = "full" # hold_out_bis, full (specification used to idnicate if sample is wiht holdout or full dataset, full used for models for data. hold_out_bis for models evluated on MC
 FILE_INTERVAL = 'configs/hyperpar_intervals_larger'
 OUTFILE =  "candidateTaggers_overall_large"
 MAZIMIZE = "nominal"

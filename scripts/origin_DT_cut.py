@@ -19,7 +19,7 @@ from collections import defaultdict
 from scripts import ranges, nice_names, matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 plt.rcParams['text.usetex'] = False # HD cluster has some problems with dvp not found
-plt.rcParams.update({'axes.unicode_minus' : False})
+#plt.rcParams.update({'axes.unicode_minus' : False})
 import DT_utils
 
 from IPython import embed
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     else:
         output_path = f'{cfg.target_path}'
 
-    features_added = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
+    features_added = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_OWNPVIPSig', 'B_Tr_T_atanPT_PZ']
     load_extra = ['EVENTNUMBER','RUNNUMBER']
     features_noMC = [
         'B_OWNPV_X',
@@ -160,8 +160,6 @@ if __name__ == '__main__':
     loading_variables = features + mc_info + load_extra
  
     folders = ['Bd2JpsiKst', 'Bs2DsPi', 'Bu2JpsiK']
-    #folders = ['Bd2JpsiKst',  'Bu2JpsiK'] 
-    # NEED TO INCLUDE BS!!!!!!!
 
     # Iterate over each folder and collect the root files
     print(f"Loading data: Start \n")
@@ -321,18 +319,22 @@ if __name__ == '__main__':
         print("Plotting features...")
         # Post training: to make a plot of only the features used
         features_DT_used = [
-        "B_Tr_T_PROBNN_E",
-        "B_Tr_T_PROBNN_MU",
+       # "B_Tr_T_PROBNN_E",
+       # "B_Tr_T_PROBNN_MU",
+       # "B_Tr_T_PROBNN_PI",
+       # "B_Tr_T_PIDK",
+       # "B_Tr_T_PROBNN_P",
+       # "B_Tr_T_PROBNN_K",
         "B_Tr_T_diff_z",
-        "B_Tr_T_PROBNN_PI",
-        "B_Tr_T_PIDK",
         "B_Tr_T_IPChi2BVTX",
-        "B_Tr_T_PROBNN_K",
         "B_Tr_T_OWNPVIPCHI2",
-        "B_Tr_T_PROBNN_P"
         ]
-        DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=50)
-        DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path, nbins=50)   
+        DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path, nbins=100)
+        #DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path, nbins=100)   
+#
+        DT_utils.plot_used_features(df_filtered, features_DT_used, target_path=cfg.target_path,log_scale=True, nbins=100)
+        #DT_utils.plot_features_byOrigin(df_filtered, features, target_path=cfg.target_path,  log_scale=True, nbins=100)   
+        print(f"Feature plots saved at {cfg.target_path}")       
 
         exit()
         print("Start fitting")

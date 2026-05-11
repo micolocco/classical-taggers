@@ -64,7 +64,7 @@ def plot_decay(ax, title, singles_run2, singles_run3, comb_run2, comb_run3):
     )
     ax.text(
         0.45, 0.53,
-        rf"$\epsilon_{{\text{{tag}}}}^{{\text{{Run2}}}} = {comb2_val:.2f} \pm {comb2_err:.2f}$",
+        rf"$\epsilon_{{\text{{tag}}}}^{{\text{{Benchmark}}}} = {comb2_val:.2f} \pm {comb2_err:.2f}$",
         color='black', fontsize=17, ha='center', va='top',
         transform=ax.transAxes
     )
@@ -78,42 +78,42 @@ def plot_decay(ax, title, singles_run2, singles_run3, comb_run2, comb_run3):
 
 def main(save=False):
     # === Data (MC) ===
-    Bu_Run2 = {"OSElectron": (0.24, 0.02), "OSMuon": (0.79, 0.03), "OSKaon": (1.88, 0.05)}
+    Bu_Benchmark = {"OSElectron": (0.24, 0.02), "OSMuon": (0.79, 0.03), "OSKaon": (1.88, 0.05)}
     Bu_Run3 = {"OSElectron": (0.47, 0.03), "OSMuon": (1.08, 0.04), "OSKaon": (2.02, 0.06)}
-    Bu_Run2_comb = (2.86, 0.06)
+    Bu_Benchmark_comb = (2.86, 0.06)
     Bu_Run3_comb = (3.48, 0.07)
 
-    Bs_Run2 = {"OSElectron": (0.28, 0.03), "OSMuon": (0.86, 0.06), "OSKaon": (1.79, 0.08), "SSKaon": (2.97, 0.10)}
+    Bs_Benchmark = {"OSElectron": (0.28, 0.03), "OSMuon": (0.86, 0.06), "OSKaon": (1.79, 0.08), "SSKaon": (2.97, 0.10)}
     Bs_Run3 = {"OSElectron": (0.47, 0.04), "OSMuon": (1.05, 0.06), "OSKaon": (1.78, 0.08), "SSKaon": (2.81, 0.10)}
-    Bs_Run2_comb = (5.69, 0.13)
+    Bs_Benchmark_comb = (5.69, 0.13)
     Bs_Run3_comb = (5.85, 0.13)
 
 
 
-    Bd_Run2 = {"OSElectron": (0.34, 0.04), "OSMuon": (0.78, 0.06), "OSKaon": (1.84, 0.10),
+    Bd_Benchmark = {"OSElectron": (0.34, 0.04), "OSMuon": (0.78, 0.06), "OSKaon": (1.84, 0.10),
                "SSPion": (1.20, 0.08), "SSProton": (0.12, 0.02)}
     Bd_Run3 = {"OSElectron": (0.52, 0.05), "OSMuon": (1.01, 0.07), "OSKaon": (1.83, 0.10),
                "SSPion": (1.11, 0.08), "SSProton": (0.07, 0.02)}
-    Bd_Run2_comb = (4.14, 0.14)
+    Bd_Benchmark_comb = (4.14, 0.14)
     Bd_Run3_comb = (4.46, 0.15)
 
     # === Plot ===
     fig, axes = plt.subplots(1, 3, figsize=(17, 6))
     plt.subplots_adjust(top=0.73, wspace=0.25)  # leave space for shared legend
 
-    plot_decay(axes[1], r"$B_s^0 \to D_s^- \pi^+$", Bs_Run2, Bs_Run3, Bs_Run2_comb, Bs_Run3_comb)
-    plot_decay(axes[0], r"$B^+ \to J/\psi K^+$",   Bu_Run2, Bu_Run3, Bu_Run2_comb, Bu_Run3_comb)
-    plot_decay(axes[2], r"$B^0 \to J/\psi K^{*0}$", Bd_Run2, Bd_Run3, Bd_Run2_comb, Bd_Run3_comb)
+    plot_decay(axes[1], r"$B_s^0 \to D_s^- \pi^+$", Bs_Benchmark, Bs_Run3, Bs_Benchmark_comb, Bs_Run3_comb)
+    plot_decay(axes[0], r"$B^+ \to J/\psi K^+$",   Bu_Benchmark, Bu_Run3, Bu_Benchmark_comb, Bu_Run3_comb)
+    plot_decay(axes[2], r"$B^0 \to J/\psi K^{*0}$", Bd_Benchmark, Bd_Run3, Bd_Benchmark_comb, Bd_Run3_comb)
 
     # --- Shared (figure-level) legend ---
     legend_elements = [
-        Line2D([0], [0], marker='o', mec='C0',color='none', mew=1.5, mfc='none',markerfacecolor='C0', markersize=7, label=r'Run2 single taggers'),
+        Line2D([0], [0], marker='o', mec='C0',color='none', mew=1.5, mfc='none',markerfacecolor='C0', markersize=7, label=r'Benchmark single taggers'),
         Line2D([0], [0], marker='s', mec='C3',color='none', mew=1.5, mfc='none',markerfacecolor='C3', markersize=7, label=r'Run3 single taggers'),
-        Line2D([0], [0], color='C0', linestyle='--', label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Run2}}}}$ sum'),
+        Line2D([0], [0], color='C0', linestyle='--', label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Benchmark}}}}$ sum'),
         Line2D([0], [0], color='C3', linestyle='--', label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Run3}}}}$ sum'),
-        Line2D([0], [0], color='C0', linestyle='-',  label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Run2}}}}$ comb.'),
+        Line2D([0], [0], color='C0', linestyle='-',  label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Benchmark}}}}$ comb.'),
         Line2D([0], [0], color='C3', linestyle='-',  label=rf'$\epsilon_{{\text{{tag}}}}^{{\text{{Run3}}}}$ comb.'),
-        Patch(facecolor='C0', alpha=0.22, edgecolor='none', label=r'$\pm 1\sigma$ Run2 comb.'),
+        Patch(facecolor='C0', alpha=0.22, edgecolor='none', label=r'$\pm 1\sigma$ Benchmark comb.'),
         Patch(facecolor='C3', alpha=0.22, edgecolor='none', label=r'$\pm 1\sigma$ Run3 comb.'),
     ]
     fig.legend(
@@ -128,8 +128,8 @@ def main(save=False):
     #fig.suptitle("Calibrated Tagging Powers — Run 2 vs Run 3 (MC)", fontsize=16, y=0.92)
 
     if save:
-        fig.savefig("tagging_powers_Run2_vs_Run3_MC.pdf", bbox_inches='tight')
-        print("✅ Figure saved as tagging_powers_Run2_vs_Run3_MC.pdf")
+        fig.savefig("tagging_powers_Benchmark_vs_Run3_MC.pdf", bbox_inches='tight')
+        print("✅ Figure saved as tagging_powers_Benchmark_vs_Run3_MC.pdf")
     else:
         plt.show()
 

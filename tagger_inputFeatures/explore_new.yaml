@@ -1,0 +1,149 @@
+OSKaon:
+  features:
+    - B_nTracks
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_Signal_TagPart_PT
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_diff_z
+    - B_Tr_T_IPChi2BVTX
+    - B_Tr_T_endSV_Z
+    - B_Tr_T_OWNPVIPSig
+    - B_Tr_T_absOWNPV_IP
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    - B_Tr_T_DeltaQ_Kaon
+
+OSElectron:
+  features:
+    - B_nTracks
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_Signal_TagPart_PT
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_diff_z
+    - B_Tr_T_IPChi2BVTX
+    - B_Tr_T_endSV_Z
+    - B_Tr_T_OWNPVIPSig
+    - B_Tr_T_absOWNPV_IP
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    - B_Tr_T_DeltaQ_Electron
+
+OSMuon:
+  features:
+    - B_nTracks
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_Signal_TagPart_PT
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_diff_z
+    - B_Tr_T_IPChi2BVTX
+    - B_Tr_T_endSV_Z
+    - B_Tr_T_OWNPVIPSig
+    - B_Tr_T_absOWNPV_IP
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    - B_Tr_T_DeltaQ_Muon
+
+SSPion:
+  features:
+    - B_nTracks
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_Signal_TagPart_PT
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_diff_z
+    - B_Tr_T_IPChi2BVTX
+    - B_Tr_T_endSV_Z
+    - B_Tr_T_OWNPVIPSig
+    - B_Tr_T_absOWNPV_IP
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    - B_Tr_T_DeltaQ_Pion
+
+SSProton:
+  features:
+    - B_nTracks
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_Signal_TagPart_PT
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_diff_z
+    - B_Tr_T_IPChi2BVTX
+    - B_Tr_T_endSV_Z
+    - B_Tr_T_OWNPVIPSig
+    - B_Tr_T_absOWNPV_IP
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    - B_Tr_T_DeltaQ_Proton
+
+SSKaon:
+  features:
+    - B_nTracks
+    - B_nPVs
+    - B_PT
+    - B_Tr_T_P
+    - B_Tr_T_PT
+    - B_Tr_T_Signal_TagPart_PT
+    - B_Tr_T_PhiDistance
+    - B_Tr_T_EtaDistance
+    - B_Tr_T_DeltaR
+    - B_Tr_T_diff_z
+    - B_Tr_T_IPChi2BVTX
+    - B_Tr_T_endSV_Z
+    - B_Tr_T_OWNPVIPSig
+    - B_Tr_T_absOWNPV_IP
+    - B_Tr_T_CHI2DOF
+    - B_Tr_T_PROBNN_GHOST
+    - B_Tr_T_PROBNN_K
+    - B_Tr_T_PROBNN_P
+    - B_Tr_T_PROBNN_E
+    - B_Tr_T_PROBNN_MU
+    - B_Tr_T_PROBNN_PI
+    - B_Tr_T_DeltaQ_Kaon
