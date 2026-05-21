@@ -137,7 +137,7 @@ if __name__ == '__main__':
         'B_Tr_T_IPChi2BVTX',
         'B_Tr_T_IPBVTX',]
 
-    features_added += 'B_Tr_T_endSV_Z' # To test if this variable increases seperability of notSamePV and other classes
+    features_added += ['B_Tr_T_endSV_Z'] # To test if this variable increases seperability of notSamePV and other classes
         
     # Missing fetaures wrt Run2
     # TRPCHI2 dropped (CHI2 probability)
@@ -163,6 +163,8 @@ if __name__ == '__main__':
     print(f"Loading data: Start \n", flush=True)
 
     df = pd.DataFrame(columns=loading_variables)
+
+    print(df.columns)
 
     for f in cfg.input_files:
         decay = os.path.basename(os.path.dirname(f))
