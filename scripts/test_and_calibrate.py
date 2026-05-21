@@ -151,7 +151,8 @@ def study_eta_omega_dist(df, split_by, prefix, target_path, tagger, data_type):
 
 
 def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, config,
-                     decay_type, seed, repo, data_type, model_path, domain_adapted=False, num_threads=1):
+                     decay_type, seed, repo, data_type, model_path, domain_adapted=False, 
+                     calibration_config=None, benchmark_version=None, num_threads=1):
     start = datetime.datetime.now()
     print(f'Testing started on {start.strftime("%Y-%m-%d %H:%M:%S")}', flush = True)
     # Load YAML configuration file
@@ -169,12 +170,17 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
     
 
 
+    if benchmark_version:
+        arch_location = join(repo, f"benchmark_tagger/{benchmark_version}/{tagger}")
+    else:
+        arch_location = join(repo, "NNarchitectures")
+
     #Load model
-    bestModel = NeuralNetwork(features=features, architecture=get_architecture(config_dict), seed=seed, optimizer_kwargs={"lr" : config_dict['learning_rate']}, repo_path=repo)
+    bestModel = NeuralNetwork(features=features, architecture=get_architecture(config_dict), seed=seed, optimizer_kwargs={"lr" : config_dict['learning_rate']}, arch_location=arch_location)
     
     
     if not domain_adapted:
-        pyTrain.load_model(model=bestModel, target_path=model_path)
+        bestModel = pyTrain.load_model(model=bestModel, target_path=model_path)
     else:
         pyTrain.load_model_without_domain_classifier(model=bestModel, target_path=model_path)
 
@@ -191,7 +197,8 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
     print(f'Columns:{test_df.columns}')
 
     test_dataset = inputDataset(df=test_df.drop(columns = columns_to_drop))
-    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    if os.path.exists(scalerPath) and os.path.exists(transformerPath): # Check if the scaler and transformer already exist, if not assume they are included in the model
+        test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
 
@@ -257,15 +264,15 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
     if data_type == 'MC':
         mode = 'Bu' #When truth information is availiable Bd or Bs mode is not needed
     
-    
-    
-
+    npar = 2 
+    if calibration_config is not None:
+        with open(calibration_config, 'r') as f:
+            calib_config_dict = yaml.safe_load(f)
+        npar = calib_config_dict['npar']
     # Calibrating the tagger and saving parameters
     mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles, mode=mode)
-    
     # Try both calibration functions
     logit_info  = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles, mode=mode, calibration_option='logit', )
-
 
     end = datetime.datetime.now()
     print(f'testing ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
@@ -285,7 +292,7 @@ if __name__ == '__main__':
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree;1')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union') 
-    parser.add_argument('--config', help='Config yaml', type=str, default='configs/config_test') 
+    parser.add_argument('--config', help='Config yaml', type=str, default='model_configs/config_test.yaml') 
     parser.add_argument('--decay_type', help='Event decay', type=str)
     parser.add_argument('--seed', help='Random seed', default=45, type = int) 
     parser.add_argument('--repo', help="Path to repository")
@@ -293,6 +300,8 @@ if __name__ == '__main__':
     parser.add_argument('--model_path', help='Path to trained model', type=str)
     parser.add_argument('--domain_adapted', action='store_true', help='Model is domain adapted', )
     parser.add_argument('--num_threads', help='Number of threads to use for inference', default=1, type=int)
+    parser.add_argument('--calibration_config', help='Path to calibration config yaml file for benchmark taggers', type=str,)
+    parser.add_argument('--benchmark_version', help='Version of the benchmark version if a benchmark tagger is tested', type=str,)
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -331,4 +340,5 @@ if __name__ == '__main__':
     testing_pipeline(test_df=test_df, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
                      tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
                      seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, model_path = cfg.model_path,
-                     domain_adapted=cfg.domain_adapted, num_threads=cfg.num_threads)
+                     domain_adapted=cfg.domain_adapted, calibration_config=cfg.calibration_config, 
+                     benchmark_version=cfg.benchmark_version, num_threads=cfg.num_threads)

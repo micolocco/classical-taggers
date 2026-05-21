@@ -56,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--transformer', help='Path to the transformer', type=str)
     parser.add_argument('--data_type', help='Type of data: Data or MC', type=str, choices=('Data', 'MC'))
     parser.add_argument('--repo', help="Path to repository")
+    parser.add_argument('--benchmark_version', help='Version of benchmark models to use if applicable', type=str,)
     parser.add_argument('--domain_adapted', help='If the model is domain adapted', action='store_true') 
     parser.add_argument('--calibration', help='Path to the calibration json file', type=str)
 
@@ -79,14 +80,21 @@ if __name__ == '__main__':
     with open(cfg.config, 'r') as file:
         config = yaml.safe_load(file)
 
-    bestModel = NeuralNetwork(features=features, architecture=get_architecture(config), seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=cfg.repo)
+    if cfg.benchmark_version is None:
+        arch_location=join(cfg.repo, 'NNarchitectures')
+    else:
+        arch_location=join(cfg.repo, 'benchmark_tagger', cfg.benchmark_version, cfg.tagger)
+
+    bestModel = NeuralNetwork(features=features, architecture=get_architecture(config), seed=cfg.seed, optimizer_kwargs={"lr" : config['learning_rate']}, arch_location=arch_location)
 
     if not cfg.domain_adapted:
-        pyTrain.load_model(model=bestModel, target_path=os.path.dirname(cfg.model))
+        bestModel = pyTrain.load_model(model=bestModel, target_path=os.path.dirname(cfg.model))
     else:
-        pyTrain.load_model_without_domain_classifier(model=bestModel, target_path=os.path.dirname(cfg.model))
+        bestModel = pyTrain.load_model_without_domain_classifier(model=bestModel, target_path=os.path.dirname(cfg.model))
 
     bestModel.eval()
+
+    print(f"Model preprocessor {bestModel.preprocess}")
 
     ## Data loading
     with uproot.open("{}".format(cfg.to_tag)) as f:
@@ -101,11 +109,18 @@ if __name__ == '__main__':
     columns_to_drop = ["B_ID", 'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec', 'file_id']
 
     test_dataset = inputDataset(df=test_df[features+['label']])
-    test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
+    if not os.path.exists(scalerPath) or not os.path.exists(transformerPath): # Check if the scaler and transformer already exist, if assume they are included in the model
+        test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
     print('Adding tagging decision')
-    test_df[f'{cfg.tagger}_Eta'] = 1 - bestModel.evaluate_model(test_dl)[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
+
+    evaluation = bestModel.evaluate_model(test_dl)
+
+    test_df[f'{cfg.tagger}_Eta'] = 1 - evaluation[0] # bestModel.evaluate_model returns predicted probabilities for label 1, true values
+
+
+    print(evaluation)
 
     # Assign tagging decision = 0 for tracks that don't pass the pre-selection
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic

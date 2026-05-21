@@ -61,7 +61,6 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
 
     print(f"\n Statistics used in the {tagger} pipeline\n")
 
-    console = Console()
     table = Table(show_header=True)
     table.width = 120
     table.add_column("", justify="left")
@@ -148,7 +147,6 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     # console.print(table)
 
     output = StringIO()
-    console = Console(file=output, width=200)
     console.print(table)
     table_str = output.getvalue()
     print(table_str)
@@ -263,10 +261,10 @@ def training(train_ds, validation_ds, vars, target_path, tagger, seed, features,
 
     if data_type == 'domain_adapted':
         model = NNDomainAdapted(features=features, architecture=get_architecture(config), seed=seed, optimizer_kwargs={"lr" : config['learning_rate']},
-                            repo_path=repo, alpha=config['alpha']).to(device)
+                            arch_location=os.path.join(repo, "NNarchitectures"), alpha=config['alpha']).to(device)
     else:
         model = NeuralNetwork(features=features, architecture=get_architecture(config), seed=seed, 
-                            optimizer_kwargs={"lr" : config['learning_rate']}, repo_path=repo).to(device)
+                            optimizer_kwargs={"lr" : config['learning_rate']}, arch_location=os.path.join(repo, "NNarchitectures")).to(device)
     print(f"\nThe NN architecture is: \n{model}\n")
 
     print(f'{num_threads} threads will be used for training', flush=True)

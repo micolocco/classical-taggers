@@ -170,130 +170,52 @@ wildcard_constraints:
     data_type_or_adapted = '(Data|MC|domain_adapted)',
     partition = '(train|validation|test)',
     is_selected = '(selected|non_selected)',
-    cut_name = "[^/]+", #don't allow slashes in wildcards to avoid problems with paths
+    model_types = '(trained_Data|trained_MC|trained_domain_adapted|trained_Data_BN|trained_MC_BN|trained_domain_adapted_BN|Run3v1)',
+    benchmark_version = "[^/]+", #don't allow slashes in wildcards to avoid problems with paths
+    cut_name = "[^/]+",
     features = "[^/]+",
     seed = '[^/]+',
     config = '[^/]+',
     ID = '[^/]+',
+    BN = '(_BN|)', #Empty string for no BN, _BN for with BN
+    selection = '(/non_selected|)', # Added to some rules to allow for testing on non-selected data. Is empty for selected
 
 
 rule all:
     input:
-        #No BN Data
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-
-        #BN Data
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        
-        #BN MC
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-
-        #No BN MC
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
-        expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
-               tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        combined_data['Bu2JpsiK'],
+        combined_data['Bd2JpsiKst'],
+        # feat_added_mc['Bu2JpsiK'],
+        # feat_added_mc['Bd2JpsiKst'],
+        # feat_added_mc['Bs2DsPi'],
 
 
-        #OS bins Bu2JpsiK
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau1of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau2of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau3of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau4of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau1of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau2of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau3of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau4of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau1of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau2of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau3of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau4of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
 
-        #OS bins Bd2JpsiKst
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        
-        #SS bins Bd2JpsiKst
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
-        '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/notSamePV_noOSP/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
 
+
+
+
+
+        # '/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSKaon/Run3v1/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSMuon/Run3v1/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSElectron/Run3v1/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/SSPion/Run3v1/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/SSProton/Run3v1/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/SSKaon/Run3v1/testing/Data/logit/taggingInfo_logit.json',
+
+
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/combinations/Run3/trained_Data_BN/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data_BN/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data_BN/notSamePV_noOSP/union_PROBNN/SSPion_SSProton/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data_BN/notSamePV_noOSP/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
+
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/combinations/Run3/trained_Data_BN/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data_BN/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data_BN/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data_BN/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
 
         # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/combinations/Run3/trained_Data/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
         # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
@@ -306,6 +228,132 @@ rule all:
         # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
 
 
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/SSPion_SSProton/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/notSamePV_noOSP/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
+
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
+
+
+
+        # #No BN Data
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+
+        # #BN Data
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        
+        # #BN MC
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}_BN/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+
+        # #No BN MC
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/notSamePV_noOSP/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/Data/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]),
+        # expand('/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/{tagger}/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr{lr}_bs8192_nL{nl}_nN{nn}/testing/MC/logit/taggingInfo_logit.json', 
+        #        tagger=['SSPion', 'SSProton', 'OSKaon', 'OSMuon', 'OSElectron'], lr=[0.0001, 0.001], nl=[6, 8], nn=[32, 64, 128]), 
+
+
+        # #OS bins Bu2JpsiK
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau1of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau2of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau3of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau4of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau1of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau2of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau3of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau4of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau1of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau2of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau3of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiKTau4of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+
+        # #OS bins Bd2JpsiKst
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/OSKaon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/OSMuon/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/OSElectron/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        
+        # #SS bins Bd2JpsiKst
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/SSPion/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau1of4/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/SSProton/notSamePV_noOSP/union_PROBNN/12/lr0.0001_bs8192_nL8_nN64/testing/Data/logit/taggingInfo_logit.json',
 
 
 
@@ -567,10 +615,10 @@ rule train_DT:
 rule add_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
-        to_select = lambda wildcards : join(out, '{data_type}/NTuples/2_split/{decay}{binning}/{partition}/{ID}.root') if wildcards.data_type == 'MC' and wildcards.binning == ''
+        to_select = lambda wildcards : join(out, '{data_type}/NTuples/2_split/{decay}{binning}/{partition}/{ID}.root') if wildcards.data_type == 'MC' and wildcards.binning == '' and wildcards.selection == ''
                                   else join(out, '{data_type}/NTuples/3_event_selected/{decay}{binning}/{partition}/{ID}.root'),
-    output: join(out, '{data_type}/NTuples/4_track_selected/{decay}{binning}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
-    log:    join(out, '{data_type}/NTuples/4_track_selected/{decay}{binning}/{tagger}/{cut_name}/{features}/{partition}/.{ID}.log')
+    output: join(out, '{data_type}/NTuples/4_track_selected/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{partition}/{ID}.root'),
+    log:    join(out, '{data_type}/NTuples/4_track_selected/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{partition}/.{ID}.log')
     resources:
         max_retries=0,
         mem_mb = 20_000, # Specify memory requirement in megabytes
@@ -661,12 +709,10 @@ rule add_weights:
     input:
         script = join(repo, 'scripts/add_weights.py'),
         loading_vars = join(repo, 'configs/loading_variables.txt'),
-        selected = join(out, 'Data/NTuples/4_track_selected/{decay}{binning}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
-        weights = join(out, 'Data/mass_fit/{decay}{binning}/{partition}/weights_selected.root'),
-    output:
-        weighted = join(out, 'Data/NTuples/5_weighted/{decay}{binning}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
-    log:
-        join(out, 'Data/NTuples/5_weighted/{decay}{binning}/{tagger}/{cut_name}/{features}/{partition}/{ID}.log'),
+        selected     = join(out, 'Data/NTuples/4_track_selected/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{partition}/{ID}.root'),
+        weights      = lambda wildcards: join(out, 'Data/mass_fit/{decay}{binning}/{partition}', f'weights{"" if wildcards.selection == "" else "_non"}_selected.root'),
+    output: weighted = join(out, 'Data/NTuples/5_weighted/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{partition}/{ID}.root'),
+    log:               join(out, 'Data/NTuples/5_weighted/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{partition}/{ID}.log'),
     resources:
         max_retries=0,
         mem_mb = 40_000, 
@@ -823,7 +869,17 @@ def get_testing_inputs(wildcards):
     else:
         files_dict = selected_mc
 
-    return [f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'test').replace(wildcards.decay, f'{wildcards.decay}{wildcards.binning}') 
+    if hasattr(wildcards, 'benchmark_version'):
+        if wildcards.benchmark_version == 'Run3v1':
+            cut_name = 'allBKGCAT_notSamePV_noOSP_SSK_balanced'
+            features = 'union_PROBNN_edited_for_benchmark'
+        else:
+            raise ValueError(f"Unknown benchmark version: {wildcards.benchmark_version}")
+    else:
+        cut_name = wildcards.cut_name
+        features = wildcards.features
+
+    return [f.replace('cut_name', f'{cut_name}').replace('features', f'{features}{wildcards.selection}').replace('train', 'test').replace(wildcards.decay, f'{wildcards.decay}{wildcards.binning}') 
             for f in files_dict[f'{wildcards.decay}'][f'{wildcards.tagger}']]
 
 rule test_and_calibrate:
@@ -836,12 +892,12 @@ rule test_and_calibrate:
         script = join(repo, 'scripts/test_and_calibrate.py'),
         config = join(repo, 'model_configs/{config}.yaml'),
     output:
-        logit =  join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/logit/taggingInfo_logit.json'),
-        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/mistag/taggingInfo_mistag.json'),
-        calibration_logit =  join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/logit/calibration.json'),
-        calibration_mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/mistag/calibration.json'),
+        logit =  join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{seed}/{config}/testing/{data_type}/logit/taggingInfo_logit.json'),
+        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{seed}/{config}/testing/{data_type}/mistag/taggingInfo_mistag.json'),
+        calibration_logit =  join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{seed}/{config}/testing/{data_type}/logit/calibration.json'),
+        calibration_mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{seed}/{config}/testing/{data_type}/mistag/calibration.json'),
     log: 
-        join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/testing_log.log')
+        join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{seed}/{config}/testing/{data_type}/testing_log.log')
     priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
@@ -880,10 +936,61 @@ rule test_and_calibrate:
         ]
         shell(' '.join(cmd))
 
-def extract_best(tagger, cut, data_type,link='logit', BN = ''):
-    #Read the best tagger candidate config from json file with the best hyperparameter combination
+rule test_and_calibrate_benchmark:
+    input:
+        testing = get_testing_inputs,
+        model = join(repo, 'benchmark_tagger/{benchmark_version}/{tagger}/model.pth'),
+        calibration_config = join(repo, 'benchmark_tagger/{benchmark_version}/{tagger}/best_calib.yaml'),
 
-    with open(join(repo, f'best_tagger_candidates/{cut}/{data_type}{BN}/candidatedTaggers_{link}.json'), 'r') as f: # trainOn
+        script = join(repo, 'scripts/test_and_calibrate.py'),
+        config = join(repo, 'benchmark_tagger/{benchmark_version}/{tagger}/model_config.yaml'),
+    output:
+        logit              = join(out, 'MC/benchmarkModels/{decay}{binning}/{tagger}/{benchmark_version}{selection}/testing/{data_type}/logit/taggingInfo_logit.json'),
+        mistag             = join(out, 'MC/benchmarkModels/{decay}{binning}/{tagger}/{benchmark_version}{selection}/testing/{data_type}/mistag/taggingInfo_mistag.json'),
+        calibration_logit  = join(out, 'MC/benchmarkModels/{decay}{binning}/{tagger}/{benchmark_version}{selection}/testing/{data_type}/logit/calibration.json'),
+        calibration_mistag = join(out, 'MC/benchmarkModels/{decay}{binning}/{tagger}/{benchmark_version}{selection}/testing/{data_type}/mistag/calibration.json'),
+    log:                     join(out, 'MC/benchmarkModels/{decay}{binning}/{tagger}/{benchmark_version}{selection}/testing/{data_type}/testing_log.log'),
+    priority: -2, # Lower priority for efficient use of requested cores
+    resources:
+        max_retries=0,
+        mem_mb = 35_000, # Specify memory requirement in megabytes 
+        OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
+        MaxRunHours = 4
+    run:
+        outpath = os.path.dirname(os.path.dirname(output[0]))
+        model_path = os.path.dirname(input.model)
+
+        if kernel_available():
+            test_kernel = path_to_kernel(input.testing)
+        else:
+            test_kernel = input.testing
+
+
+        cmd = [
+            'python', input.script,
+            '--testing_data', ' '.join(test_kernel),
+            '--target_path', outpath,
+            '--train_path', model_path,
+            '--treename "DecayTree;1"',
+            '--tagger {wildcards.tagger}',
+            '--features union_PROBNN_edited_for_benchmark',
+            '--config', input.config,
+            '--decay_type {wildcards.decay}',
+            '--seed 45',
+            '--repo', repo,
+            '--data_type {wildcards.data_type}',
+            '--model_path', model_path,
+            '--calibration_config {input.calibration_config}',
+            '--benchmark_version {wildcards.benchmark_version}',
+            '&> {log}',
+        ]
+
+        shell(' '.join(cmd))
+
+# def extract_best(tagger, cut, data_type,link='logit', BN = ''):
+def extract_best(tagger, cut, model_type ,link='logit'):
+    #Read the best tagger candidate config from json file with the best hyperparameter combination
+    with open(join(repo, f'best_tagger_candidates/{cut}/{model_type}/candidatedTaggers_{link}.json'), 'r') as f: # trainOn
     # with checkpoints.get_optimized.get(tagger = tagger, cut_name = cut).output[0].open() as f:
         data = json.load(f)
 
@@ -902,51 +1009,84 @@ def extract_best(tagger, cut, data_type,link='logit', BN = ''):
         return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'numlayers':nl, 'numneurons':nn, 'tagger':tagger, 'cut':cut, 'link':link}
 
 def get_model_path(wildcards, all_taggers=False):
-    data_type = wildcards.data_type_or_adapted
     if not all_taggers:
         tagger = [wildcards.tagger]
+        if 'Run3v' not in wildcards.model_types:
+            data_type = wildcards.model_types.removeprefix('trained_')
     else:
         tagger = get_taggers_from_combination(wildcards.combinationName)
+        data_type = wildcards.data_type
     
+    if 'Run3v' not in wildcards.model_types:
     decay = [extract_decay(tag) for tag in tagger]
-    cut_name = wildcards.cut_name
-    features = wildcards.features
-
-    best = [extract_best(tagger=tag, cut=cut_name,data_type=data_type, BN=wildcards.BN) for tag in tagger]
-
-    
-    model = [join(out, f'{data_type}/savedModels/{dec}/{tag}/{cut_name}/{features}/{bes["seed"]}/{bes["config"]}') for tag, dec, bes in zip(tagger, decay, best)]
+        # BN = 'BN' if 'BN' in wildcards.model_types else ''
+        # best = [extract_best(tagger=tag, cut=cut_name, data_type=data_type, BN=BN) for tag in tagger]
+        best = [extract_best(tagger=tag, cut=wildcards.cut_name, model_type=wildcards.model_types) for tag in tagger]
+        model = [join(out, f'{data_type}/savedModels/{dec}/{tag}/{wildcards.cut_name}/{wildcards.features}/{bes["seed"]}/{bes["config"]}/training/model.pth') for tag, dec, bes in zip(tagger, decay, best)]
+    else:
+        model = [join(repo, f'benchmark_tagger/{wildcards.model_types}/{tag}/model.pth') for tag in tagger]
 
     if not all_taggers:
         model = model[0]
     return model
 
+def get_best_link(wildcards, tagger=None):
+    if tagger is None:
+        tagger = wildcards.tagger
+
+
+    if 'Run3v' in wildcards.model_types:
+        with open(join(repo, f'benchmark_tagger/{wildcards.model_types}/{tagger}/best_calib.yaml'), 'r') as f:
+            best = yaml.safe_load(f)
+        return best.get('link')
+    else:
+        return 'logit'
+
 
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        to_tag = lambda wildcards: join(out, '{data_type}/NTuples/5_weighted/{decay}/{tagger}/{cut_name}/{features}/test/{ID}.root') if wildcards.data_type == 'Data' 
-                             else join(out, '{data_type}/NTuples/4_track_selected/{decay}/{tagger}/{cut_name}/{features}/test/{ID}.root'),
+        to_tag = lambda wildcards: join(out, '{data_type}/NTuples/5_weighted/{decay}/{tagger}/{cut_name}/{features}{selection}/test/{ID}.root') if wildcards.data_type == 'Data' 
+                              else join(out, '{data_type}/NTuples/4_track_selected/{decay}/{tagger}/{cut_name}/{features}{selection}/test/{ID}.root'),
         
 
-        model=       lambda wildcards: join(get_model_path(wildcards), 'training/model.pth'),
-        transformer= lambda wildcards: join(get_model_path(wildcards), 'training/powerTransformer.pkl'), 
-        scaler=      lambda wildcards: join(get_model_path(wildcards), 'training/st_scaler.pkl'), 
-        calibration =lambda wildcards: join(get_model_path(wildcards), f'testing/{wildcards.data_type}/logit/calibration.json'),
+        model       = lambda wildcards:      get_model_path(wildcards),
+        transformer = lambda wildcards:      get_model_path(wildcards).replace('training/model.pth', 'training/powerTransformer.pkl'), 
+        scaler      = lambda wildcards:      get_model_path(wildcards).replace('training/model.pth', 'training/st_scaler.pkl'), 
+        calibration = lambda wildcards: join(get_model_path(wildcards), f'testing/{wildcards.data_type}/logit/calibration.json')
+                        if 'Run3v' not in wildcards.model_types 
+                        else join(out, f'MC/benchmarkModels/{wildcards.decay}/{wildcards.tagger}/{wildcards.model_types}{wildcards.selection}/testing/{wildcards.data_type}/{get_best_link(wildcards)}/calibration.json'),
 
-        config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted, BN=wildcards.BN).get("config")}.yaml'),
+
+        # config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, data_type=wildcards.data_type_or_adapted, BN=wildcards.BN).get("config")}.yaml'),
+        config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, model_type=wildcards.model_types).get("config")}.yaml') 
+                              if 'Run3v' not in wildcards.model_types 
+                              else join(repo, f'benchmark_tagger/{wildcards.model_types}/{wildcards.tagger}/model_config.yaml'),
     output:
-        root = join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}{BN}/{ID}.root'),
+        root = join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/{model_types}/{ID}.root'),
     log:
-        join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/trained_{data_type_or_adapted}{BN}/{ID}.log'),
+        join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/{model_types}/{ID}.log'),
     resources:
         max_retries=0,
         mem_mb = 40_000, 
         MaxRunHours = 1, 
     run:
-        config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name,data_type=wildcards.data_type_or_adapted, BN=wildcards.BN)
+        # config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, data_type=wildcards.data_type_or_adapted, BN=wildcards.BN)
         
-        domain = '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else ''
+        if 'Run3v' in wildcards.model_types:
+            with open(join(repo, f'benchmark_tagger/{wildcards.model_types}/{wildcards.tagger}/best_calib.yaml'), 'r') as f:
+                config = yaml.safe_load(f)
+        else:
+            config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, model_type=wildcards.model_types)
+
+
+
+        # with open(input.config, 'r') as f:
+        #     config = yaml.safe_load(f)
+
+        # domain = '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else ''
+        domain = '--domain_adapted' if 'domain_adapted' in wildcards.model_types else ''
+        benchmark_version = f'--benchmark_version {wildcards.model_types}' if 'Run3v' in wildcards.model_types else ''
 
         cmd = [
             'python', input.script,
@@ -963,6 +1103,7 @@ rule add_tagDec:
             f'--seed {config.get("seed")}',
             '--calibration {input.calibration}',
             '--repo', repo,
+            benchmark_version,
             domain,
             '&>{log}'
         ]
@@ -975,7 +1116,7 @@ def get_tagged_paths(wildcards):
     decay = wildcards.decay
     cut_name = wildcards.cut_name
     features = wildcards.features
-    data_type_or_adapted = wildcards.data_type_or_adapted
+    model_types = wildcards.model_types
 
     pre_path = join(out, f'{data_type}/Ntuples/6_tagged/{decay}')
 
@@ -984,7 +1125,7 @@ def get_tagged_paths(wildcards):
         paths = tagged_mc[decay][tagger] if data_type == 'MC' else tagged_data[decay][tagger]
         paths = np.array(paths)
         paths = np.char.replace(paths, 'cut_name/features', f'{cut_name}/{features}')
-        paths = np.char.replace(paths, 'trained_on', f'trained_{data_type_or_adapted}{wildcards.BN}')
+        paths = np.char.replace(paths, 'trained_on', model_types)
         all_paths = np.concatenate((all_paths, paths))
 
     return all_paths
@@ -992,20 +1133,25 @@ def get_tagged_paths(wildcards):
 def get_taggers_from_combination(combinationName):
     return combinationName.split('_')
 
+def get_calibrations_for_combination(wildcards):
+    
+    if "Run3v" in wildcards.model_types:
+        return [join(out, f'MC/benchmarkModels/{wildcards.decay}/{tagger}/{wildcards.model_types}{wildcards.selection}/testing/{wildcards.data_type}/{get_best_link(wildcards, tagger)}/calibration.json') 
+                for tagger in get_taggers_from_combination(wildcards.combinationName)]
+    else:
+        return [path.replace('Bu2JpsiK', wildcards.decay).replace('Bd2JpsiKst', wildcards.decay).replace(wildcards.features, f'{wildcards.features}{wildcards.selection}').replace('training/model.pth', f'testing/{wildcards.data_type}/logit/calibration.json') 
+                for path in get_model_path(wildcards, all_taggers=True)]
+
 rule combine_tagger: 
     input:
         script = join(repo, 'scripts/combineTagger.py'),
-
         tagged = get_tagged_paths,
 
-        
-        calibration = lambda wildcards: [join(path.replace('Bu2JpsiK', wildcards.decay).replace('Bd2JpsiKst', wildcards.decay), f'testing/{wildcards.data_type}/logit/calibration.json') 
-                                         for path in get_model_path(wildcards, all_taggers=True)],
+        calibration = get_calibrations_for_combination,
     output:
-        pdf=              join(out, '{data_type}/savedModels/{decay}/combinations/Run3/trained_{data_type_or_adapted}/{cut_name}/{features}/{combinationName}/{combinationName}_Run3_Calibration.pdf'),
-        all_tagged_data = join(out, '{data_type}/savedModels/{decay}/combinations/Run3/trained_{data_type_or_adapted}/{cut_name}/{features}/{combinationName}/combined_tagged.root'),
-    log:    
-        join(out, '{data_type}/savedModels/{decay}/combinations/Run3/trained_{data_type_or_adapted}{BN}/{cut_name}/{features}/{combinationName}/{combinationName}_Run3_log.log')
+        pdf=              join(out, '{data_type}/savedModels/{decay}/combinations/Run3/{model_types}/{cut_name}/{features}{selection}/{combinationName}/{combinationName}_Run3_Calibration.pdf'),
+        all_tagged_data = join(out, '{data_type}/savedModels/{decay}/combinations/Run3/{model_types}/{cut_name}/{features}{selection}/{combinationName}/combined_tagged.root'),
+    log:                  join(out, '{data_type}/savedModels/{decay}/combinations/Run3/{model_types}/{cut_name}/{features}{selection}/{combinationName}/{combinationName}_Run3_log.log')
     resources:
         max_retries=0,
         mem_mb = 40_000, 
@@ -1013,23 +1159,32 @@ rule combine_tagger:
     run:
         tagged_prePath = join(input.tagged[0].split('6_tagged')[0], '6_tagged/')
         out_path = os.path.dirname(output.pdf)
-        out_path = join(out, '{wildcards.data_type}/savedModels/')
+
+        # Get the first tagged file and replace the tagger part with a placeholder to construct the path to the calibration files
+        first_tagged = input.tagged[0]
+
+        for tagger in get_taggers_from_combination(wildcards.combinationName):
+            if tagger in first_tagged:
+                tagger_placeholder_path = os.path.dirname(first_tagged.replace(tagger, 'tagger_placeholder'))
+                break
+        print(tagger_placeholder_path)
 
 
 
         cmd = [
             'python', input.script,
             '--tagger', ' '.join(get_taggers_from_combination(wildcards.combinationName)),
-            f'--tagged_prePath {tagged_prePath}',
+            # f'--tagged_prePath {tagged_prePath}',
             '--combinationName {wildcards.combinationName}',
             '--decayType {wildcards.decay}',
+            f'--input_files {tagger_placeholder_path}',
             f'--outputPath {out_path}',
             '--features {wildcards.features}',
             '--cut {wildcards.cut_name}',
             '--data_type {wildcards.data_type}',
-            '--trained_on {wildcards.data_type_or_adapted}',
+            # '--trained_on {wildcards.data_type_or_adapted}',
             '--calibrations', ' '.join(input.calibration),
-            '--BN' if wildcards.BN else '',
+            '--BN' if "BN" in wildcards.model_types else '',
             '&> {log}',
         ]
         print(' '.join(cmd))

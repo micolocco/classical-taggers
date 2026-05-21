@@ -26,7 +26,7 @@ if __name__ == '__main__':
         description='Combine the taggers',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--tagged_prePath', help='Folder where the files with the tagging decision are saved')
+    # parser.add_argument('--tagged_prePath', help='Folder where the files with the tagging decision are saved')
     parser.add_argument('--tagger', help='List of taggers/single tagger', nargs='+', required=True)
     parser.add_argument('--decayType', help='Decay used for the calibration', type=str)
     parser.add_argument('--outputPath', help='Name of the output dir', type=str,)
@@ -36,22 +36,29 @@ if __name__ == '__main__':
     parser.add_argument('--run2', help='If Run2 tagger combination must be computed as well',  action='store_true') # action='store_true' means args.run2 will be set to True if the --Run2 argument is provided on the command line.
     parser.add_argument('--combinationName', help='Name used for the output combination', type=str)
     parser.add_argument('--data_type', help='Type of data used for calibration: Data or MC', type=str, choices=('Data', 'MC'))
-    parser.add_argument('--trained_on', help='Whether Taggers where trained on MC, Data or using domain adaptation', type=str, )
+    # parser.add_argument('--trained_on', help='Whether Taggers where trained on MC, Data or using domain adaptation', type=str, )
+    parser.add_argument('--input_files', help='Path to the input files used for the combination, used to find the data files. tagger_placeholder is used as used as placeholder for the tagger name', type=str)
     parser.add_argument('--calibrations', help='List of calibration json files for each tagger', nargs='+')
     parser.add_argument('--BN', help='Whether the taggers were trained with batch normalization', action='store_true') # action='store_true' means args.BN will be set to True if the --BN argument is provided on the command line.
 
     print(f'Combining taggers started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg)
-    outputPath =os.path.join(f'{cfg.outputPath}', f'{cfg.decayType}/combinations/')
-    os.makedirs(outputPath, exist_ok=True)
+    # outputPath =os.path.join(f'{cfg.outputPath}', f'{cfg.decayType}/combinations/')
+    # os.makedirs(outputPath, exist_ok=True)
 
 
 
     #Convert list of calibrations to dictionary with tagger names as keys
     calibration_dict = {}
     for calibration in cfg.calibrations:
-        tagger_name = calibration.split('savedModels')[1].split('/')[2]  # Extract tagger name from path
+        if 'savedModels' in calibration:
+            tagger_name = calibration.split('savedModels')[1].split('/')[2]  # Extract tagger name from path
+        elif 'benchmarkModels' in calibration:
+            tagger_name = calibration.split('benchmarkModels')[1].split('/')[2]  # Extract tagger name from path    
+        else:
+            raise ValueError(f"Calibration path {calibration} does not contain 'savedModels' or 'benchmarkModels' as landmark to extract tagger name.")
+    
         calibration_dict[tagger_name] = calibration
     print(f'Calibration dictionary: {calibration_dict}')
 
@@ -64,10 +71,14 @@ if __name__ == '__main__':
         vars += ['signal_weights']
         if 'Bu' not in cfg.decayType:
             vars.append('B_TAU')
+
     for tagger in cfg.tagger:
         all_vars = vars + [f'{tagger}_TagDec', f'{tagger}_Eta',f'{tagger}_CDEC', f'{tagger}_OMEGA', f'{tagger}_OMEGA_ERR']
 
-        input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, f'trained_{cfg.trained_on}/*.root')
+        print(f'Processing tagger {tagger}')
+        print(f'Base path {cfg.input_files}')
+        # input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, f'trained_{cfg.trained_on}/*.root')
+        input_path = os.path.join(cfg.input_files.replace('tagger_placeholder', tagger), f'*.root')
         print(f'input path: {input_path}')
         input_files = glob.glob(input_path)
         # Loop over all files
@@ -146,7 +157,7 @@ if __name__ == '__main__':
 
     npar = 2
     for run in runs:
-        os.makedirs(f'{outputPath}/{run}', exist_ok=True)
+        # os.makedirs(f'{outputPath}/{run}', exist_ok=True)
         taggers = ft.TaggerCollection()
         target_taggers = ft.TargetTaggerCollection()
         for tagger in cfg.tagger:
@@ -165,7 +176,7 @@ if __name__ == '__main__':
                                            tau_ps=tau, 
                                            weight=weights)
             
-            
+            print(f"Loading calibration for {tagger} from {calibration_dict[tagger]}")
             targetTagger.load(calibration_dict[tagger], tagger_name = tagger, style='delta')
             targetTagger.apply()
             tagger_df = targetTagger.get_dataframe(True)
@@ -202,16 +213,17 @@ if __name__ == '__main__':
         df[f"{cfg.combinationName}_{run}_OMEGA"] = tagger_df[f"{cfg.combinationName}_{run}_OMEGA"].values
         df[f"{cfg.combinationName}_{run}_OMEGA_ERR"] = tagger_df[f"{cfg.combinationName}_{run}_OMEGA_ERR"].values
 
-        savepath = os.path.join(outputPath, run, f'trained_{cfg.trained_on}', cfg.cut, cfg.features, cfg.combinationName)
-        if cfg.BN:
-            savepath = savepath.replace(f'trained_{cfg.trained_on}', f'trained_{cfg.trained_on}_BN')
+        savepath = cfg.outputPath
+        # savepath = os.path.join(outputPath, run, f'trained_{cfg.trained_on}', cfg.cut, cfg.features, cfg.combinationName)
+        # if cfg.BN:
+        #     savepath = savepath.replace(f'trained_{cfg.trained_on}', f'trained_{cfg.trained_on}_BN')
 
         taggers.plot_calibration_curves(savepath = savepath, omega_range="minimal", nbins=10)
         ft.plotting.draw_calibration_curve(tagger_combination, savepath=savepath)
         ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=savepath)
 
         class_indices = df['B_ID'].values
-        class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: '$\overline{B}^0$'}
+        class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\overline{B}^0$'}
 
         print(type(tagger_combination))
         # taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
@@ -222,7 +234,7 @@ if __name__ == '__main__':
         #                                         file_name = 'split_calibration_curves.pdf', savepath = f'{savepath}', omega_range="minimal", 
         #                                         nbins = 10, x_scale = 'linear', y_scale = 'linear')
 
-        print(f'{run} combination created at {outputPath}')
+        print(f'{run} combination created at {cfg.outputPath}')
         print(f"Tagger: {cfg.combinationName}")
         info_dict = {"TaggingEfficiency"     : tagger_combination.stats.tagging_efficiency(calibrated = False),
                     "EffectiveMistag"        : tagger_combination.stats.effective_mistag(  calibrated = False),

@@ -12,7 +12,10 @@ from scipy.special import expit
 import json
 from scripts.shareddataset import SharedDataset
 import traceback
-# Local imports
+import scripts.NNModel
+from preprocessing import StandardScalerLayer, PowerTransformerLayer, fit_freeze_preprocessing
+import collections
+
 from scripts.NNModel import EarlyStopper
 from scripts.inputDataset import inputDataset
 from scripts import ranges, nice_names, matplotlib_lhcb_style
@@ -457,8 +460,19 @@ def load_model(model, target_path):
    # target_path = name_formatter.assign_name(folder, target_path)    
     # saveName = name_formatter.assign_name(target_path, model.modelName)
     model_name = f"{target_path}/model.pth"
-    model.load_state_dict(torch.load(model_name))
-    print(f"The model used is {model_name}")
+    try:
+        loaded = torch.load(model_name, weights_only=False)
+        model.load_state_dict(loaded)
+    except TypeError:
+        print("Loading model as state dict failed, trying to load as model directly")
+        model = torch.load(model_name, weights_only=False)
+
+        print(model.__dict__)
+
+        model.preprocess = model.__dict__['_modules']['preprocess']
+        print(f"Preprocessing loaded {model.preprocess}")
+
+    return model
 
 def load_model_without_domain_classifier(model, target_path):
     model_name = f"{target_path}/model.pth"
@@ -661,7 +675,7 @@ def bins_by_yield(etas, weights, nbins):
 
     return bin_edges
 
-def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag',nbins = 7, weights = None, mode='Bu'):
+def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag', npar=2, nbins = 7, weights = None, mode='Bu'):
 
     #Calibration of the taggers and parameters saving
 
@@ -685,7 +699,6 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
                           mode = mode , 
                           tau_ps = tau_ps)
 
-    npar = 2
     if calibration_option=='logit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
     elif calibration_option=='mistag':

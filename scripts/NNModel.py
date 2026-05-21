@@ -7,26 +7,27 @@ from numpy import vstack
 from sklearn.metrics import accuracy_score
 import yaml
 
-
+from scripts.preprocessing import StandardScalerLayer, PowerTransformerLayer, fit_freeze_preprocessing
 
 from scripts.gradient_reversal.module import GradientReversal
 import copy
 
 class NeuralNetwork(nn.Module):
 
-    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, 
-                 seed=6, loss=nn.BCELoss(), repo_path="", create_network=True): 
+    def __init__(self, features, architecture, preprocess=None, optimizer=torch.optim.Adam, optimizer_kwargs={}, 
+                 seed=6, loss=nn.BCELoss(), arch_location="", create_network=True): 
         super().__init__()
         torch.manual_seed(seed) # needed to be sure the result is reproducible
         self.features = features
         self.criterion = loss
+        self.preprocess = preprocess
         if create_network:
-            self.NN = self.create_network(architecture, repo_path=repo_path)
+            self.NN = self.create_network(architecture, arch_location=arch_location)
             self.optimizer = optimizer(self.parameters(), **optimizer_kwargs)
 
 
-    def create_network(self, architecture, repo_path=""):
-        with open(f'{repo_path}/NNarchitectures/{architecture}.yaml', 'r') as file:
+    def create_network(self, architecture, arch_location=""):
+        with open(f'{arch_location}/{architecture}.yaml', 'r') as file:
             architecture_config = yaml.safe_load(file)['architecture']
         # Set in_features for the first layer dynamically
         architecture_config[0]['params']['in_features'] = len(self.features)
@@ -48,6 +49,9 @@ class NeuralNetwork(nn.Module):
     def forward(self, x): # from the input tensor x it gives the output tensor of the NN
         if x.dim() == 1:
             x = x.unsqueeze(0) # Add batch dimension if input is a single sample
+
+        if self.preprocess is not None:
+            x = self.preprocess(x)
 
         return self.NN(x).view(-1)
 
@@ -124,16 +128,16 @@ class NeuralNetwork(nn.Module):
 
 class NNDomainAdapted(NeuralNetwork):
 
-    def __init__(self, features, architecture, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, 
-                 loss=nn.BCELoss(), repo_path="", alpha= 1.0): 
-        super().__init__(features, architecture, optimizer=optimizer, optimizer_kwargs={}, seed=seed, 
-                         loss=loss, repo_path=repo_path, create_network = False)
+    def __init__(self, features, architecture, preprocess=None, optimizer=torch.optim.Adam, optimizer_kwargs={}, seed=6, 
+                 loss=nn.BCELoss(), arch_location="", alpha= 1.0): 
+        super().__init__(features, architecture, preprocess=preprocess, optimizer=optimizer, optimizer_kwargs={}, seed=seed, 
+                         loss=loss, arch_location=arch_location, create_network = False)
 
-        self.feature_extract, self.class_classifier, self.domain_classifier = self.create_network(architecture, repo_path=repo_path, alpha=alpha)
+        self.feature_extract, self.class_classifier, self.domain_classifier = self.create_network(architecture, arch_location=arch_location, alpha=alpha)
         self.optimizer = optimizer(self.parameters(), **optimizer_kwargs)
 
-    def create_network(self, architecture, repo_path="", alpha=1.0):
-        with open(f'{repo_path}/NNarchitectures/{architecture}.yaml', 'r') as file:
+    def create_network(self, architecture, arch_location="", alpha=1.0):
+        with open(f'{arch_location}/{architecture}.yaml', 'r') as file:
             architecture_config = yaml.safe_load(file)['architecture']
         # Set in_features for the firs()t layer dynamically
         architecture_config[0]['params']['in_features'] = len(self.features)
