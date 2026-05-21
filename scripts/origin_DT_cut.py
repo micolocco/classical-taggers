@@ -136,6 +136,8 @@ if __name__ == '__main__':
         #'B_Tr_T_OBJECT_KEY',
         'B_Tr_T_IPChi2BVTX',
         'B_Tr_T_IPBVTX',]
+
+    features_added += 'B_Tr_T_endSV_Z' # To test if this variable increases seperability of notSamePV and other classes
         
     # Missing fetaures wrt Run2
     # TRPCHI2 dropped (CHI2 probability)

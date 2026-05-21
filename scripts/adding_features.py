@@ -63,8 +63,9 @@ def process_chunk(df, evtType):
     df.loc[:,f'B_Tr_T_OWNPVIPSig'] = np.sqrt(df[f'B_Tr_T_OWNPVIPCHI2'])
     df.loc[:,f'B_Tr_T_absOWNPV_IP'] = np.abs(df[f'B_Tr_T_OWNPVIP'])
     df.loc[:,f'B_TAU'] = df[get_mass_label(evtType).replace("MASS", "CTAU")]/0.29979 #Convert from mm to ps using speed of light in mm/ps
-    
 
+    
+    df.loc[:,f'B_Tr_T_endSV_Z'] = np.abs(df[f'B_ENDV_Z'] - df[f'B_Tr_T_firstZ'])
      
 
     df.loc[:,'diff_P'] = np.abs(df[f'B_P'] - df[f'B_Tr_T_P'])
