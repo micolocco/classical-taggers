@@ -411,7 +411,7 @@ rule add_features:
         join(out, '{data_type}/NTuples/1_added_features/{decay}/.{ID}.log')
     resources:
         max_retries=0,
-        mem_mb = 10_000,
+        request_memory = 10_000,
         MaxRunHours = 1, # short queue
     run:
         tree = find_tree_name(wildcards.decay)
@@ -440,7 +440,7 @@ rule combine_small_files:
         join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.log'),
     resources:
         max_retries=0,
-        mem_mb = 90_000,
+        request_memory = 32_000,
         MaxRunHours = 1, # short queue
     run:
         path = os.path.dirname(output[0])
@@ -461,6 +461,7 @@ rule combine_small_files:
             f'&> {log}', 
         ]
 
+        print(' '.join(cmd))
         shell(' '.join(cmd))
 
 rule split_sample:
@@ -478,7 +479,7 @@ rule split_sample:
         join(out, '{data_type}/NTuples/2_split/{decay}/log/.{ID}.log'),
     resources:
         max_retries=0,
-        mem_mb = 65_000,
+        request_memory = 32_000,
         MaxRunHours = 1,
     run:
         out_path = os.path.dirname(os.path.dirname(output.train))
@@ -507,7 +508,7 @@ rule train_signal_classifier:
         join(out, 'Data/signal_classifier/{decay}/BDT_train.log')
     resources:
         max_retries=0,
-        mem_mb = 20_000,
+        request_memory = 20_000,
         MaxRunHours = 4,
     threads:
         8,
@@ -550,7 +551,7 @@ rule event_selection: #Applies BDT signal selection and in case a bin is supplie
         join(out, '{data_type}/NTuples/3_event_selected/{decay}{binning}/{partition}/.{ID}.log'),
     resources:
         max_retries=0,
-        mem_mb = 30_000,
+        request_memory = 30_000,
         MaxRunHours = 1,
     run:
         if kernel_available():
@@ -588,7 +589,7 @@ rule train_DT:
         cuts = expand(join(out, "MC/DT_outputs/{{cut_name}}/{{balanced}}/cuts/{tagger}_preselections.txt"), tagger=all_taggers)
     log:              join(out, "MC/DT_outputs/{cut_name}/{balanced}/tree_schema.log")
     resources:
-        mem_mb = 20000, # Specify memory requirement in megabytes
+        request_memory = 20000, # Specify memory requirement in megabytes
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 4,
     run:
@@ -621,7 +622,7 @@ rule add_selection:
     log:    join(out, '{data_type}/NTuples/4_track_selected/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{partition}/.{ID}.log')
     resources:
         max_retries=0,
-        mem_mb = 20_000, # Specify memory requirement in megabytes
+        request_memory = 20_000, # Specify memory requirement in megabytes
         MaxRunHours = 1, # short queue
     run:
         BKG0 = '--BKG0' if wildcards.data_type == 'MC' else ''
@@ -676,7 +677,7 @@ rule mass_fit:
     log:    join(out, '{data_type}/mass_fit/{decay}{binning}/{partition}/event_{is_selected}_fit.log'),
     resources:
         max_retries=0,
-        mem_mb = 32_000, # Specify memory requirement in megabytes
+request_        memory = 32_000, # Specify memory requirement in megabytes
         MaxRunHours = 4, # medium queue
     threads:
         4,
@@ -715,7 +716,7 @@ rule add_weights:
     log:               join(out, 'Data/NTuples/5_weighted/{decay}{binning}/{tagger}/{cut_name}/{features}{selection}/{partition}/{ID}.log'),
     resources:
         max_retries=0,
-        mem_mb = 40_000, 
+        request_memory = 40_000, 
         MaxRunHours = 1, 
     run:
         out_path = os.path.dirname(output.weighted)
@@ -761,7 +762,7 @@ rule train_tagger_MC:
     priority: -1, # Lower priority for tagger training so all prior steps are executed first
     resources:
         max_retries=0,
-        mem_mb = 30_000, # Specify memory requirement in megabytes 
+        request_memory = 30_000, # Specify memory requirement in megabytes 
         MaxRunHours = 15, 
     threads:
         4,
@@ -774,8 +775,6 @@ rule train_tagger_MC:
         else:
             train = input.train
             val = input.val
-
-
 
         cmd = [
             'python', input.script,
@@ -818,7 +817,7 @@ rule train_tagger_data:
     priority: -1, # Lower priority for tagger training so all prior steps are executed first
     resources:
         max_retries=0,
-        mem_mb = 40_000, # Specify memory requirement in megabytes 
+        request_memory = 40_000, # Specify memory requirement in megabytes 
         MaxRunHours = 12, # long queue
     threads:
         8,
@@ -831,8 +830,6 @@ rule train_tagger_data:
         else:
             train = input.train
             val = input.val
-
-
 
         cmd = [
             'python', input.script,
@@ -869,7 +866,7 @@ def get_testing_inputs(wildcards):
     else:
         files_dict = selected_mc
 
-    if hasattr(wildcards, 'benchmark_version'):
+    if 'benchmark_version' in wildcards.keys():
         if wildcards.benchmark_version == 'Run3v1':
             cut_name = 'allBKGCAT_notSamePV_noOSP_SSK_balanced'
             features = 'union_PROBNN_edited_for_benchmark'
@@ -901,7 +898,7 @@ rule test_and_calibrate:
     priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
-        mem_mb = 35_000, # Specify memory requirement in megabytes 
+        request_memory = 35_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 4
     # threads:
@@ -953,7 +950,7 @@ rule test_and_calibrate_benchmark:
     priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
-        mem_mb = 35_000, # Specify memory requirement in megabytes 
+        request_memory = 35_000, # Specify memory requirement in megabytes 
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 4
     run:
@@ -1068,7 +1065,7 @@ rule add_tagDec:
         join(out, '{data_type}/NTuples/6_tagged/{decay}/{tagger}/{cut_name}/{features}/{model_types}/{ID}.log'),
     resources:
         max_retries=0,
-        mem_mb = 40_000, 
+        request_memory = 40_000, 
         MaxRunHours = 1, 
     run:
         # config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, data_type=wildcards.data_type_or_adapted, BN=wildcards.BN)
@@ -1154,7 +1151,7 @@ rule combine_tagger:
     log:                  join(out, '{data_type}/savedModels/{decay}/combinations/Run3/{model_types}/{cut_name}/{features}{selection}/{combinationName}/{combinationName}_Run3_log.log')
     resources:
         max_retries=0,
-        mem_mb = 40_000, 
+        request_memory = 40_000, 
         MaxRunHours = 4,
     run:
         tagged_prePath = join(input.tagged[0].split('6_tagged')[0], '6_tagged/')
@@ -1226,7 +1223,7 @@ rule combine_MC_Data: #Combines data and MC for domain adaptation
         data_portion = 'train|validation',
     resources:
         max_retries=0,
-        mem_mb = 25_000, 
+        request_memory = 25_000, 
         MaxRunHours = 2, # short queue
     run:
         out_path = os.path.dirname(output.root[0])
@@ -1271,7 +1268,7 @@ rule train_tagger_domain_adapted:
         join(out, 'domain_adapted/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
     resources:
         max_retries=0,
-        mem_mb = 30_000, 
+        request_memory = 30_000, 
         MaxRunHours = 16, # long queue
         threads = 8, #
     threads:
