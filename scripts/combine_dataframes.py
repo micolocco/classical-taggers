@@ -5,7 +5,6 @@ import os
 import argparse
 from pprint import pprint
 import psutil
-from adding_features import get_loading_vars
 
 
 def read_files(files, treename, vars=None):
@@ -103,7 +102,13 @@ if __name__ == '__main__':
 
     # Split dataframe and save each split to a separate file
     # This allows training on subsets of the data during development and debugging without reading the entire dataset 
-    df_combined = df_combined.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle the DataFrame
+    # df_combined = df_combined.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle the DataFrame
+    
+    
+    # Shuffle dataframe without creating a copy of the entire dataframe in memory
+    indices = np.random.RandomState(42).permutation(len(df_combined)) 
+    df_combined = df_combined.iloc[indices].reset_index(drop=True)
+
     
     print(f"Total number of unique events in combined DataFrame: {df_combined['event_entry'].nunique()}", flush=True)
     print(f"Total number of unique candidates in combined DataFrame: {df_combined['candidate_entry'].nunique()}", flush=True)
@@ -115,13 +120,18 @@ if __name__ == '__main__':
     subsets = np.array_split(event_entries, cfg.splits)
 
     for i, subset in zip(range(cfg.index, cfg.index + len(subsets)), subsets):
-        subset_df = df_combined[df_combined['event_entry'].isin(subset)].reset_index(drop=True)
+
+        if cfg.splits > 1:
+            subset_df = df_combined[df_combined['event_entry'].isin(subset)].reset_index(drop=True)
+        else:
+            subset_df = df_combined
+
 
         subset_df.drop(columns=['event_entry'], inplace=True)
 
         output_file = os.path.join(cfg.target_path, f'samples_{i}.root')
         print(f"Saving combined DataFrame subset to {output_file}", flush=True)
-        tree_dict = {col: np.array(subset_df[col]) for col in subset_df.columns}
+        tree_dict = {col: subset_df[col].to_numpy(copy=False) for col in subset_df.columns}
 
         with uproot.recreate(output_file) as f:
             f['DecayTree'] = tree_dict

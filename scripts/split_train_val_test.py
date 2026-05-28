@@ -94,7 +94,7 @@ if __name__ == '__main__':
         #Drop event_entry because uproot can't write arrays of strings to disk
         df_.drop(columns=['event_entry'], inplace = True)
 
-        tree_dict = {col: np.array(df_[col]) for col in df_.columns}
+        tree_dict = {col: df_[col].to_numpy(copy=False) for col in df_.columns}
         path = os.path.join(cfg.target_path, p)
         path = os.path.join(path, os.path.basename(cfg.to_split))
         with uproot.recreate(path) as f:
