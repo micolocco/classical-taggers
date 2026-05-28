@@ -160,6 +160,7 @@ if __name__ == '__main__':
                 # Read tagging power values from JSON files
                 results_folder = f"{cfg.model_prePath}/{data_type}/savedModels/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed
                 config = f"lr{lr}_bs{bs}_nL{nl}_nN{nn}"
+                if cfg.BN: config += f"_BN"
                 folder_path = os.path.join(results_folder, config)
 
                 json_file_data = os.path.join(folder_path, f"testing/Data/{link}/taggingInfo_{link}.json")
@@ -214,9 +215,11 @@ if __name__ == '__main__':
         # filename=f'{cfg.outputPath}/{cfg.cut}/candidatedTaggers_{link}.json'
         # os.makedirs(os.path.dirname(filename), exist_ok=True)
         path_name = os.path.join(cfg.outpath, f'{cfg.cut}/{data_type}')
+        if cfg.BN: path_name = path_name.replace(data_type, data_type+'_BN')
         plot_path = os.path.join(cfg.plot_path, f'{data_type}/hyperparameters_plots/{cfg.cut}/{link}')
-        os.makedirs(plot_path, exist_ok=True)
+        if cfg.BN: plot_path = plot_path.replace(data_type, data_type+'_BN')
         os.makedirs(path_name, exist_ok=True)
+        os.makedirs(plot_path, exist_ok=True)
 
         #save best_models to a json file. Makes it easier to check the calibrations
         with open(os.path.join(plot_path, f'best_models_{link}.json'), 'w') as f:
