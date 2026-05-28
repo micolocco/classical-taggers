@@ -1,0 +1,57 @@
+{
+    "OSKaon": {
+        "calibrated tagging power": "1.074+/-0.021",
+        "calibrated tagging power MC": "1.859+/-0.022",
+        "seed": 12,
+        "learning_rate": 0.001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 128,
+        "max_ratio": 50.4057407978227,
+        "precision": 0.0198390100844068
+    },
+    "OSElectron": {
+        "calibrated tagging power": "0.396+/-0.014",
+        "calibrated tagging power MC": "0.462+/-0.011",
+        "seed": 12,
+        "learning_rate": 0.001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 32,
+        "max_ratio": 27.48413401472683,
+        "precision": 0.0363846282900589
+    },
+    "OSMuon": {
+        "calibrated tagging power": "0.872+/-0.021",
+        "calibrated tagging power MC": "1.019+/-0.016",
+        "seed": 12,
+        "learning_rate": 0.0001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 64,
+        "max_ratio": 41.81973637896715,
+        "precision": 0.023912154561140195
+    },
+    "SSPion": {
+        "calibrated tagging power": "0.92+/-0.06",
+        "calibrated tagging power MC": "1.06+/-0.05",
+        "seed": 12,
+        "learning_rate": 0.0001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 32,
+        "max_ratio": 16.100903256727555,
+        "precision": 0.06210831678540537
+    },
+    "SSProton": {
+        "calibrated tagging power": "0.343+/-0.033",
+        "calibrated tagging power MC": "0.076+/-0.013",
+        "seed": 12,
+        "learning_rate": 0.001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 128,
+        "max_ratio": 10.32733118540609,
+        "precision": 0.09683043780111697
+    }
+}
