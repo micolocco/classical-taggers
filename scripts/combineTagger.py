@@ -26,39 +26,35 @@ if __name__ == '__main__':
         description='Combine the taggers',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    # parser.add_argument('--tagged_prePath', help='Folder where the files with the tagging decision are saved')
     parser.add_argument('--tagger', help='List of taggers/single tagger', nargs='+', required=True)
     parser.add_argument('--decayType', help='Decay used for the calibration', type=str)
     parser.add_argument('--outputPath', help='Name of the output dir', type=str,)
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree')
-    parser.add_argument('--cut', help='Cut desired', type=str, required=True)
-    parser.add_argument('--features', help='Input features used for NN training',) 
-    parser.add_argument('--run2', help='If Run2 tagger combination must be computed as well',  action='store_true') # action='store_true' means args.run2 will be set to True if the --Run2 argument is provided on the command line.
+    parser.add_argument('--cut', help='Cut desired, only used for Run3', type=str, required=True)
+    parser.add_argument('--features', help='Input features used for NN training, only used for Run3',) 
+    parser.add_argument('--run', help='Whether Run3 or Run2 combination should be computed', type=str, choices=('Run3', 'Run2'))
     parser.add_argument('--combinationName', help='Name used for the output combination', type=str)
     parser.add_argument('--data_type', help='Type of data used for calibration: Data or MC', type=str, choices=('Data', 'MC'))
-    # parser.add_argument('--trained_on', help='Whether Taggers where trained on MC, Data or using domain adaptation', type=str, )
     parser.add_argument('--input_files', help='Path to the input files used for the combination, used to find the data files. tagger_placeholder is used as used as placeholder for the tagger name', type=str)
-    parser.add_argument('--calibrations', help='List of calibration json files for each tagger', nargs='+')
-    parser.add_argument('--BN', help='Whether the taggers were trained with batch normalization', action='store_true') # action='store_true' means args.BN will be set to True if the --BN argument is provided on the command line.
+    parser.add_argument('--calibrations', help='List of calibration json files for each tagger, only used for Run3', nargs='*')
 
     print(f'Combining taggers started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     cfg = parser.parse_args()
     pprint(cfg)
-    # outputPath =os.path.join(f'{cfg.outputPath}', f'{cfg.decayType}/combinations/')
-    # os.makedirs(outputPath, exist_ok=True)
 
 
 
     #Convert list of calibrations to dictionary with tagger names as keys
     calibration_dict = {}
     for calibration in cfg.calibrations:
-        if 'savedModels' in calibration:
-            tagger_name = calibration.split('savedModels')[1].split('/')[2]  # Extract tagger name from path
-        elif 'benchmarkModels' in calibration:
-            tagger_name = calibration.split('benchmarkModels')[1].split('/')[2]  # Extract tagger name from path    
-        else:
-            raise ValueError(f"Calibration path {calibration} does not contain 'savedModels' or 'benchmarkModels' as landmark to extract tagger name.")
-    
+        splits = calibration.split('/')
+
+        #find the first split that starts with SS or OS 
+        tagger_name = next((s for s in splits if s.startswith(('SS', 'OS'))),None)
+        
+        if tagger_name is None:
+            raise ValueError(f"Could not find tagger name in calibration path {calibration}. Expected a split starting with 'SS' or 'OS'.")        
+
         calibration_dict[tagger_name] = calibration
     print(f'Calibration dictionary: {calibration_dict}')
 
@@ -66,7 +62,7 @@ if __name__ == '__main__':
 
     taggers_dataframes = []  # List to store DataFrames for each tagger
     # Loop over all taggers
-    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER',  'B_ID',]# + run2_taggers_variables
+    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER',  'B_ID',] + run2_taggers_variables
     if cfg.data_type == 'Data':
         vars += ['signal_weights']
         if 'Bu' not in cfg.decayType:
@@ -115,7 +111,7 @@ if __name__ == '__main__':
         print(df.head())
     assert all(taggers_dataframes[0].shape[1] == single_df.shape[1] for single_df in taggers_dataframes), "DataFrames have different number of columns. Check the input files."
     df = taggers_dataframes[0]
-    common_columns = ['B_ID', ] #+run2_taggers_variables
+    common_columns = ['B_ID', ] + run2_taggers_variables
     if cfg.data_type == 'Data':
         common_columns += ['signal_weights']
         if 'Bu' not in cfg.decayType:
@@ -130,10 +126,6 @@ if __name__ == '__main__':
     print(df.shape)
     print(df.columns)
     print(df.head())
-
-    runs=['Run3']
-    if cfg.run2:
-        runs.append('Run2')
 
     #Print number of and rows containing NaN values 
     print(f'Number of rows containing NaN values: {df.isna().any(axis=1).sum()}')
@@ -156,107 +148,121 @@ if __name__ == '__main__':
             mode = cfg.decayType[:2]
 
     npar = 2
-    for run in runs:
-        # os.makedirs(f'{outputPath}/{run}', exist_ok=True)
-        taggers = ft.TaggerCollection()
-        target_taggers = ft.TargetTaggerCollection()
-        for tagger in cfg.tagger:
-            if run == 'Run2':
-                eta_col = f'B_{run}_{tagger}_Omega'
-                dec_col = f'B_{run}_{tagger}_Dec'
-            else:
-                eta_col = f'{tagger}_Eta'
-                dec_col = f'{tagger}_TagDec'
+    run = cfg.run
 
-            targetTagger = ft.TargetTagger(tagger,
-                                           eta_data=df[eta_col], 
-                                           dec_data=df[dec_col], 
-                                           B_ID=df["B_ID"], 
-                                           mode = mode, 
-                                           tau_ps=tau, 
-                                           weight=weights)
-            
+    if run == 'Run2':
+        taggers = ft.TaggerCollection() 
+    else:
+        taggers = ft.TargetTaggerCollection()
+
+
+    for tagger in cfg.tagger:
+        if run == 'Run2':
+            eta_col = f'B_{run}_{tagger}_Omega'
+            dec_col = f'B_{run}_{tagger}_Dec'
+            tagger_class = ft.Tagger
+        else:
+            eta_col = f'{tagger}_Eta'
+            dec_col = f'{tagger}_TagDec'
+            tagger_class = ft.TargetTagger
+
+        tagger_obj = tagger_class(tagger,
+                                    eta_data=df[eta_col], 
+                                    dec_data=df[dec_col], 
+                                    B_ID=df["B_ID"], 
+                                    mode = mode, 
+                                    tau_ps=tau, 
+                                    weight=weights)
+        
+        if run == 'Run2':
+            print(f"Calibrating {tagger}")
+            tagger_obj.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
+            tagger_obj.calibrate()
+            ft.save_calibration(taggers=tagger_obj, title=f"{tagger}.json", save_path=cfg.outputPath)
+        else:
             print(f"Loading calibration for {tagger} from {calibration_dict[tagger]}")
-            targetTagger.load(calibration_dict[tagger], tagger_name = tagger, style='delta')
-            targetTagger.apply()
-            tagger_df = targetTagger.get_dataframe(True)
-            print('Calibrated tagging information')
-            print(tagger_df.head())
-            df[f"{tagger}_CDEC"] = tagger_df[f"{tagger}_CDEC"].values
-            df[f"{tagger}_OMEGA"] = tagger_df[f"{tagger}_OMEGA"].values
-            df[f"{tagger}_OMEGA_ERR"] = tagger_df[f"{tagger}_OMEGA_ERR"].values
-
-            print(f'{tagger} has loaded tagging power of {targetTagger.stats.tagging_power(calibrated=True)}')
-
-            target_taggers.add_taggers(targetTagger)
-        target_combination = target_taggers.combine_taggers(f'{cfg.combinationName}_{run}', calibrated=True)
-
-        print(type(target_combination))
-
-
-
+            tagger_obj.load(calibration_dict[tagger], tagger_name = tagger, style='delta')
+            tagger_obj.apply()
+            
         
-        uncali_combined_df = target_combination.get_dataframe(calibrated=False) #individual taggers calibrated but not the combination
-        tagger_combination = ft.Tagger(f'{cfg.combinationName}_{run}',
-                                       eta_data=uncali_combined_df[f'{cfg.combinationName}_{run}_ETA'].to_numpy(),
-                                       dec_data=uncali_combined_df[f'{cfg.combinationName}_{run}_DEC'].to_numpy(),
-                                       B_ID=df["B_ID"].to_numpy(), 
-                                       mode = mode,
-                                       tau_ps=tau,
-                                       weight=weights)
-        
-        tagger_combination.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
-        ## And calibrate this tagger again
-        tagger_combination.calibrate()
-        tagger_df = tagger_combination.get_dataframe(True)
-        df[f"{cfg.combinationName}_{run}_CDEC"] = tagger_df[f"{cfg.combinationName}_{run}_CDEC"].values
-        df[f"{cfg.combinationName}_{run}_OMEGA"] = tagger_df[f"{cfg.combinationName}_{run}_OMEGA"].values
-        df[f"{cfg.combinationName}_{run}_OMEGA_ERR"] = tagger_df[f"{cfg.combinationName}_{run}_OMEGA_ERR"].values
 
-        savepath = cfg.outputPath
-        # savepath = os.path.join(outputPath, run, f'trained_{cfg.trained_on}', cfg.cut, cfg.features, cfg.combinationName)
-        # if cfg.BN:
-        #     savepath = savepath.replace(f'trained_{cfg.trained_on}', f'trained_{cfg.trained_on}_BN')
+        tagger_df = tagger_obj.get_dataframe(True)
+        print('Calibrated tagging information')
+        print(tagger_df.head())
+        df[f"{tagger}_CDEC"] = tagger_df[f"{tagger}_CDEC"].values
+        df[f"{tagger}_OMEGA"] = tagger_df[f"{tagger}_OMEGA"].values
+        df[f"{tagger}_OMEGA_ERR"] = tagger_df[f"{tagger}_OMEGA_ERR"].values
 
-        taggers.plot_calibration_curves(savepath = savepath, omega_range="minimal", nbins=10)
-        ft.plotting.draw_calibration_curve(tagger_combination, savepath=savepath)
-        ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=savepath)
+        print(f'{tagger} has loaded tagging power of {tagger_obj.stats.tagging_power(calibrated=True)}')
 
-        class_indices = df['B_ID'].values
-        class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\overline{B}^0$'}
+        taggers.add_taggers(tagger_obj)
 
-        print(type(tagger_combination))
-        # taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-        #                                         file_name = 'split_calibration_curves.pdf', savepath = f'{savepath}', omega_range="minimal", 
-        #                                         nbins = 10, x_scale = 'linear', y_scale = 'linear')
-        
-        # ft.plotting.draw_split_calibration_curve(tagger_combination, nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
-        #                                         file_name = 'split_calibration_curves.pdf', savepath = f'{savepath}', omega_range="minimal", 
-        #                                         nbins = 10, x_scale = 'linear', y_scale = 'linear')
+        print(f"Checking taggers after addition: {taggers._taggers}")
 
-        print(f'{run} combination created at {cfg.outputPath}')
-        print(f"Tagger: {cfg.combinationName}")
-        info_dict = {"TaggingEfficiency"     : tagger_combination.stats.tagging_efficiency(calibrated = False),
-                    "EffectiveMistag"        : tagger_combination.stats.effective_mistag(  calibrated = False),
-                    "TaggingPower"           : tagger_combination.stats.tagging_power(     calibrated = False),
-                    "TaggingEfficiency_Cali" : tagger_combination.stats.tagging_efficiency(calibrated = True ), 
-                    "EffectiveMistag_Cali"   : tagger_combination.stats.effective_mistag(  calibrated = True ), 
-                    "TaggingPower_Cali"      : tagger_combination.stats.tagging_power(     calibrated = True ),}
-        
-        # Process the data
-        processed_data = {key: pyTrain.propagate_and_round(value, 'Fitpar' not in key) for key, value in info_dict.items()}
-        # Format the output
-        formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
-        formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
-        for key, value in formatted_data.items():
-            print(f"{key}: {value}")
-        print("\n")
+    target_combination = taggers.combine_taggers(f'{cfg.combinationName}', calibrated=True)
 
-        #save the dataframe with all tagging information to root file
-        df.drop(columns=['event_entry'], inplace=True)
-        with uproot.recreate(f"{savepath}/combined_tagged.root") as file:
-            file["DecayTree"] = df
-        print(f'File with combined tagging information created at {savepath}/combined_tagged.root')
+    print(type(target_combination))
+
+
+
+    
+    uncali_combined_df = target_combination.get_dataframe(calibrated=False) #individual taggers calibrated but not the combination
+    tagger_combination = ft.Tagger(f'{cfg.combinationName}',
+                                    eta_data=uncali_combined_df[f'{cfg.combinationName}_ETA'].to_numpy(),
+                                    dec_data=uncali_combined_df[f'{cfg.combinationName}_DEC'].to_numpy(),
+                                    B_ID=df["B_ID"].to_numpy(), 
+                                    mode = mode,
+                                    tau_ps=tau,
+                                    weight=weights)
+    
+    tagger_combination.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
+    ## And calibrate this tagger again
+    tagger_combination.calibrate()
+    tagger_df = tagger_combination.get_dataframe(True)
+    df[f"{cfg.combinationName}_CDEC"] = tagger_df[f"{cfg.combinationName}_CDEC"].values
+    df[f"{cfg.combinationName}_OMEGA"] = tagger_df[f"{cfg.combinationName}_OMEGA"].values
+    df[f"{cfg.combinationName}_OMEGA_ERR"] = tagger_df[f"{cfg.combinationName}_OMEGA_ERR"].values
+
+
+    taggers.plot_calibration_curves(savepath = cfg.outputPath, omega_range="minimal", nbins=10)
+    ft.plotting.draw_calibration_curve(tagger_combination, savepath=cfg.outputPath)
+    ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=cfg.outputPath)
+
+    class_indices = df['B_ID'].values
+    class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\overline{B}^0$'}
+
+    print(type(tagger_combination))
+    # taggers.draw_split_calibration_curve(nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+    #                                         file_name = 'split_calibration_curves.pdf', savepath = f'{cfg.outputPath}', omega_range="minimal", 
+    #                                         nbins = 10, x_scale = 'linear', y_scale = 'linear')
+    
+    # ft.plotting.draw_split_calibration_curve(tagger_combination, nrows = 1, ncols = 2, class_indices = class_indices, class_label_dict = class_label_dict,
+    #                                         file_name = 'split_calibration_curves.pdf', savepath = f'{cfg.outputPath}', omega_range="minimal", 
+    #                                         nbins = 10, x_scale = 'linear', y_scale = 'linear')
+
+    print(f'{run} combination created at {cfg.outputPath}')
+    print(f"Tagger: {cfg.combinationName}")
+    info_dict = {"TaggingEfficiency"     : tagger_combination.stats.tagging_efficiency(calibrated = False),
+                "EffectiveMistag"        : tagger_combination.stats.effective_mistag(  calibrated = False),
+                "TaggingPower"           : tagger_combination.stats.tagging_power(     calibrated = False),
+                "TaggingEfficiency_Cali" : tagger_combination.stats.tagging_efficiency(calibrated = True ), 
+                "EffectiveMistag_Cali"   : tagger_combination.stats.effective_mistag(  calibrated = True ), 
+                "TaggingPower_Cali"      : tagger_combination.stats.tagging_power(     calibrated = True ),}
+    
+    # Process the data
+    processed_data = {key: pyTrain.propagate_and_round(value, 'Fitpar' not in key) for key, value in info_dict.items()}
+    # Format the output
+    formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
+    formatted_data = {key: f"{values[0]} +- {values[1]}" if len(values) > 1 else values[0] for key, values in processed_data.items()}
+    for key, value in formatted_data.items():
+        print(f"{key}: {value}")
+    print("\n")
+
+    #save the dataframe with all tagging information to root file
+    df.drop(columns=['event_entry'], inplace=True)
+    with uproot.recreate(f"{cfg.outputPath}/combined_tagged.root") as file:
+        file["DecayTree"] = df
+    print(f'File with combined tagging information created at {cfg.outputPath}/combined_tagged.root')
         
         
     
