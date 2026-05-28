@@ -16,6 +16,7 @@ dependencies:
   - ipython
   - numba==0.53
   - pip:
+    - awkward_pandas
     - lhcb-ftcalib==1.4.5
     - snakemake
     - rich
