@@ -24,7 +24,7 @@ def extract_selection_var(cut_file):
     result_array = np.unique(result_array).tolist()
     return result_array
     
-def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0, data_type):
+def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0, data_type, evtType):
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
     with uproot.open("{}".format(notSelected_rootPath)) as f:
         df = f[treename].arrays(loading_variables, library="pd")
@@ -45,7 +45,11 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
     df.eval(f"selected = {cuts}", inplace = True)
     if BKG0:
         print("Tracks with BKGCAT!=0 are removed")
-        df = df[df.B_BKGCAT==0]
+        signalvalue = 0
+        if evtType == 'Bs2DsPi': #Due to a bug in the generation of the MC, 20 is equivalent to 0 for this decay
+            signalvalue = 20
+
+        df = df[df.B_BKGCAT==signalvalue]
     df.selected = df.selected.astype(int, copy = False) 
     return df
 
@@ -77,7 +81,7 @@ if __name__ == '__main__':
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--BKG0', help='If specified, only BGKCAT=0 tracks are used',  action='store_true') # action='store_true' means args.BKG0 will be set to True if the --BKG0 argument is provided on the command line.
     parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
-    parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi'))
+    parser.add_argument('--evtType', help='Decay which is being used', type=str, choices=('Bs2DsPi', 'Bd2JpsiKst', 'Bu2JpsiK', 'Bd2DmPi', 'Bs2JpsiPhi', 'Bs2JpsiKst'))
     parser.add_argument('--repo', help="Path to repository")
 
     cfg = parser.parse_args()
@@ -102,7 +106,19 @@ if __name__ == '__main__':
 
     loading_variables = list(dict.fromkeys(loading_variables)) #removes all duplicates
     print(loading_variables)
-    df = apply_preSelections(cfg.to_select, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_type)
+    df = apply_preSelections(cfg.to_select, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_type, cfg.evtType)
+
+
+    #drop multiplicity candidates, i.e. events with more than one candidate passing the selection, almost allways incorrect reconstructions
+    # Should be done in event_selection, but for MC event_selection is currently not applied, so multiplicity candidates are removed here
+    df["event_entry"] = df["file_id"].astype(str) + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+    df['candidate_entry'] = df['file_id'].astype(str) + "_" + df['candidate_index'].astype(str)
+    df_candidates = df[['event_entry', 'candidate_entry']].groupby('candidate_entry').first().reset_index(drop=False)
+    # df_candidates = df_candidates.groupby("event_entry", group_keys=False).sample(n=1).reset_index(drop=False)
+    df_candidates = df_candidates.groupby("event_entry").first().reset_index(drop=False)
+    df = df.merge(df_candidates[["candidate_entry"]], on="candidate_entry", how="inner")
+    del df_candidates
+    df.drop(columns=["event_entry", "candidate_entry"], inplace=True)
 
 
     # Assignation of the tagging decision (d)

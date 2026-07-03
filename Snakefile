@@ -36,6 +36,7 @@ taggers_conf = {
     'Bu2JpsiK': ['OSKaon', 'OSElectron', 'OSMuon'],
     'Bd2JpsiKst': ['SSPion', 'SSProton', 'SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
     'Bs2DsPi': ['SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
+    'Bs2JpsiKst': ['SSKaon', 'OSKaon', 'OSElectron', 'OSMuon'],
 }
 
 all_taggers = set()
@@ -167,7 +168,7 @@ intervals = {key[1:]: value for key, value in intervals.items()}
 
 wildcard_constraints:
     data_type    = '(MC|Data)',
-    decay        = '(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi)',
+    decay        = '(Bs2JpsiPhi|Bu2JpsiK|Bd2JpsiKst|Bd2DmPi|Bs2DsPi|Bs2JpsiKst)',
     binning      = '(|Tau1of4|Tau2of4|Tau3of4|Tau4of4)', #Empty string for no binning, Tau1of4 for first tau bin, etc.
     tagger       = '(OSKaon|OSMuon|OSElectron|SSPion|SSProton|SSKaon)',
     data_type_or_adapted = '(Data|MC|domain_adapted)',
@@ -526,15 +527,15 @@ rule add_features:
 rule combine_small_files:
     input:
         script = join(repo, 'scripts/combine_dataframes.py'),
-        data = lambda wildcards: np.array(feat_added_data[wildcards.decay])[combine_indices[wildcards.decay][int(wildcards.ID)]],
+        data = lambda wildcards: np.array(feat_added_data[wildcards.decay if wildcards.decay != 'Bs2JpsiKst' else 'Bd2JpsiKst'])[combine_indices[wildcards.decay][int(wildcards.ID)]],
     output:
         join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.root'),
     log: 
         join(out, 'Data/NTuples/1_added_features/{decay}/combined/samples_{ID}.log'),
     resources:
         max_retries=0,
-        request_memory = 32_000,
-        mem = 32_000,
+        request_memory = 48_000,
+        mem = 48_000,
         MaxRunHours = 1, # short queue
     run:
         path = os.path.dirname(output[0])
@@ -558,11 +559,23 @@ rule combine_small_files:
         print(' '.join(cmd))
         shell(' '.join(cmd))
 
+def get_to_split(wildcards):
+    decay = wildcards.decay
+    if decay == 'Bs2JpsiKst':
+        decay = 'Bd2JpsiKst' # For Bs2JpsiKst use the Bs fraction of Bd2JpsiKst tuples
+
+
+    if wildcards.data_type == 'MC':
+        return join(out, f'MC/NTuples/1_added_features/{wildcards.decay}/{wildcards.ID}.root')
+    else:
+        return join(out, f'Data/NTuples/1_added_features/{wildcards.decay}/combined/{wildcards.ID}.root'),
+        
+
 rule split_sample:
     input:
         script = join(repo, 'scripts/split_train_val_test.py'),
-        to_split = lambda wildcards: join(out, f'MC/NTuples/1_added_features/{wildcards.decay}/{wildcards.ID}.root') if wildcards.data_type == 'MC' 
-                                else join(out, f'Data/NTuples/1_added_features/{wildcards.decay}/combined/{wildcards.ID}.root'),
+        to_split = get_to_split,
+                                
 
         hyper_int = join(repo, 'configs/hyperpar_intervals.yaml'), # For the train-val proportions
     output:
@@ -573,8 +586,8 @@ rule split_sample:
         join(out, '{data_type}/NTuples/2_split/{decay}/log/.{ID}.log'),
     resources:
         max_retries=0,
-        request_memory = 40_000,
-        mem = 40_000,
+        request_memory = 64_000,
+        mem = 64_000,
         MaxRunHours = 1,
     run:
         out_path = os.path.dirname(os.path.dirname(output.train))
@@ -587,6 +600,7 @@ rule split_sample:
             '--config {input.hyper_int}',
             '--treename', treename,
             '--data_type {wildcards.data_type}',
+            '--decay {wildcards.decay}',
             '&> {log}',
         ]
         shell(' '.join(cmd))
@@ -649,7 +663,7 @@ rule train_signal_classifier:
 rule event_selection: #Applies BDT signal selection and in case a bin is supplied in addition to the decay, also cuts away events outside the bin
     input:
         script = join(repo, 'scripts/apply_event_selection.py'),
-        classifier = join(out, 'Data/signal_classifier/{decay}/bdt_model.pkl'),
+        classifier = lambda wildcards: join(out, f'Data/signal_classifier/{wildcards.decay if wildcards.decay != 'Bs2JpsiKst' else 'Bd2JpsiKst'}/bdt_model.pkl'),
         data = join(out, '{data_type}/NTuples/2_split/{decay}/{partition}/{ID}.root'),
         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
         bin_file = lambda wildcards: join(repo, 'configs/binnings.yaml') if wildcards.binning else [],
@@ -773,15 +787,21 @@ def get_fit_input_paths(wildcards):
         else:
             files = train_split_data   [wildcards.decay]
 
+    paths = [file.replace('train', wildcards.partition).replace(wildcards.decay, f'{wildcards.decay}{wildcards.binning}') for file in files]
+    return paths
 
-    return [file.replace('train', wildcards.partition).replace(wildcards.decay, f'{wildcards.decay}{wildcards.binning}') for file in files]
+def get_fit_mc_res(wildcards):
+    if wildcards.data_type == 'MC':
+        return []
+    mc_decay = wildcards.decay if wildcards.decay != "Bs2JpsiKst" else "Bd2JpsiKst"
+    return join(out, 'MC/mass_fit/' + f'{mc_decay}' + '{binning}/{partition}/event_{is_selected}_fit.json') 
 
 rule mass_fit:
     input:
         script = join(repo, 'scripts/mass_fits.py'),
         data = get_fit_input_paths,
 
-        mc_res = lambda wildcards: join(out, 'MC/mass_fit/{decay}{binning}/{partition}/event_{is_selected}_fit.json') if wildcards.data_type == 'Data' else [],
+        mc_res = get_fit_mc_res,
     output: 
         join(out, '{data_type}/mass_fit/{decay}{binning}/{partition}/event_{is_selected}_fit.json'),
         join(out, '{data_type}/mass_fit/{decay}{binning}/{partition}/weights_{is_selected}.root'), #In case of MC weights is a dummy file containing just the information used in the fitting without weights
@@ -1083,7 +1103,7 @@ rule test_and_calibrate_benchmark:
             'python', input.script,
             '--testing_data', ' '.join(test_kernel),
             '--target_path', outpath,
-            '--train_path', model_path,
+            '--treename "DecayTree;1"',
             '--tagger {wildcards.tagger}',
             '--features union_PROBNN_edited_for_benchmark',
             '--config', input.config,

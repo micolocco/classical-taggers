@@ -45,19 +45,28 @@ if __name__ == "__main__":
     with open(cfg.BDT, 'rb') as f:
         loaded_data = pickle.load(f)
         BDT = loaded_data['model']
-        cut   = loaded_data['cut']
-
+        cut = loaded_data['cut']
+        
+        if cfg.decay_type =='Bs2JpsiKst':
+           cut = 0.9 # use a more aggressive cut for the rarer Bs2JpsiKst decay
+        
     with uproot.open(cfg.data) as f:
         df = f[cfg.treename].arrays(library='pd')
+
+    if cfg.decay_type =='Bs2JpsiKst':
+        load_decay = 'Bd2JpsiKst' # Bs2JpsiKst uses same event selection as Bd2JpsiKst
+    else:
+        load_decay = cfg.decay_type
+    
     with open(cfg.signal_class_features, 'r') as f:
-        signal_class_features = yaml.safe_load(f)[cfg.decay_type]
+        signal_class_features = yaml.safe_load(f)[load_decay]
     
     df["event_entry"] = df["file_id"].astype(str) + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
     df['candidate_entry'] = df['file_id'].astype(str) + "_" + df['candidate_index'].astype(str)
     print(f"Input file contains {df['event_entry'].nunique()} unique events", flush=True)
 
     # Apply the BDT to select signal events
-    # Grouped by entry not event_entry because one event may have several candidates, due to (almost purely) incorrect reconstruction, 
+    # Grouped by candidate_entry not event_entry because one event may have several candidates, due to (almost purely) incorrect reconstruction, 
     # multiplicity is removed after prediction
     df_candidates = df[signal_class_features + ['event_entry', 'candidate_entry']].groupby('candidate_entry').first().reset_index(drop=False)
     print(f"Prediction of signalness starts at {datetime.datetime.now()}", flush=True)
