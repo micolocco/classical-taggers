@@ -15,14 +15,19 @@ try:
     data = config['DATA']
     MC = config['MC']
     out = config['OUT']
-    lowerMass = config['Mass_range_lower']
-    upperMass = config['Mass_range_upper']
     repo = config['REPO']
 
     #In how many sections combined dataframes are splint into when usind domain adaptation or combining small data files
     combined_df_n_splits = config['combined_df_n_splits'] 
 except:
     raise RuntimeError("No valid snakemake config found")
+
+
+massranges = {'Bu2JpsiK': (5200, 5400), 
+              'Bd2JpsiKst': (5200, 5500), 
+              'Bs2JpsiKst': (5200, 5400), 
+              'Bs2DsPi': (5200, 5700),}
+
 
 def in_data(data_path, list_of_files):
     return [join(data_path, i) for i in list_of_files if '#' not in i and len(i) > 0]
@@ -586,6 +591,18 @@ rule split_sample:
         ]
         shell(' '.join(cmd))
 
+def get_obs_name(decay):
+    if decay == 'Bu2JpsiK':
+        return 'B_DTF_PV_Jpsi_MASS'
+    elif decay == 'Bd2JpsiKst':
+        return 'B_DTF_PV_Jpsi_MASS'
+    elif decay == 'Bs2JpsiKst':
+        return 'B_DTF_PV_Jpsi_MASS'
+    elif decay == 'Bs2DsPi':
+        return 'B_DTF_PV_Ds_MASS'
+    else:
+        raise ValueError(f'Unknown decay {decay}')
+
 rule train_signal_classifier:
     input:
         script = join(repo, 'scripts/train_BDT.py'),
@@ -620,7 +637,7 @@ rule train_signal_classifier:
             '--target_path', out_path,
             '--treename "DecayTree;1"',
             '--decay_type {wildcards.decay}',
-            '--massname B_DTF_PV_Jpsi_MASS',
+            f'--massname {{get_obs_name(wildcards.decay)}}',
             '--num_threads {threads}',
             '--signal_class_features', input.signal_class_features,
             '&> {log}',
@@ -787,8 +804,8 @@ rule mass_fit:
         cmd = [
             'python {input.script}',
             '--input_files', ' '.join(data),
-            '--range {lowerMass} {upperMass}', 
-            '--obs_name B_DTF_PV_Jpsi_MASS',
+            f'--range {massranges[wildcards.decay][0]} {massranges[wildcards.decay][1]}', 
+            f'--obs_name {get_obs_name(wildcards.decay)}',
             '--treename "DecayTree;1"',
             '--simulation'             if wildcards.data_type   == 'MC'       else '',
             '--sim_fit {input.mc_res}' if wildcards.data_type   == 'Data'     else '',
@@ -829,7 +846,7 @@ rule add_weights:
             '--data_file', selected,
             '--out_path', out_path,
             '--decayType {wildcards.decay}',
-            '--range {lowerMass} {upperMass}',
+           f'--range {massranges[wildcards.decay][0]} {massranges[wildcards.decay][1]}', 
             '--weight_file', weights,
             '--loading_features {input.loading_vars}',
             '&> {log}'
@@ -1016,7 +1033,6 @@ rule test_and_calibrate:
             'python', input.script,
             '--testing_data', ' '.join(test_kernel),
             '--target_path', outpath,
-            '--train_path', model_path,
             '--treename "DecayTree;1"',
             '--tagger {wildcards.tagger}',
             '--features {wildcards.features}',
@@ -1068,7 +1084,6 @@ rule test_and_calibrate_benchmark:
             '--testing_data', ' '.join(test_kernel),
             '--target_path', outpath,
             '--train_path', model_path,
-            '--treename "DecayTree;1"',
             '--tagger {wildcards.tagger}',
             '--features union_PROBNN_edited_for_benchmark',
             '--config', input.config,
@@ -1285,7 +1300,6 @@ rule combine_tagger:
             if tagger in first_tagged:
                 tagger_placeholder_path = os.path.dirname(first_tagged.replace(tagger, 'tagger_placeholder'))
                 break
-        print(tagger_placeholder_path)
 
         if wildcards.model_types == 'Run3v0':
             run = 'Run2'
