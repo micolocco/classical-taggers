@@ -62,12 +62,15 @@ class NeuralNetwork(nn.Module):
         return str(self.NN)
 
     # train the model
-    def train_model(self, train_dl):
+    def train_model(self, train_dl, device=None):
         stepLoss = []
         self.train() #Sets model to training mode
         # enumerate mini batches
 
         for inputsTrain, targetsTrain in train_dl:
+            if device is not None:
+                inputsTrain, targetsTrain = inputsTrain.to(device, non_blocking=True), targetsTrain.to(device, non_blocking=True)
+
             # Clear the gradients
             self.optimizer.zero_grad(set_to_none=True)
             # compute the model output
@@ -83,13 +86,15 @@ class NeuralNetwork(nn.Module):
 
         return stepLoss
     
-    def validate_model(self, validation_dl):
+    def validate_model(self, validation_dl, device=None):
         self.eval() #Sets model to evaluation mode
         validationStep_loss = []
         for inputsVal, targetsVal in validation_dl:
-    
+            if device is not None:
+                inputsVal, targetsVal = inputsVal.to(device, non_blocking=True), targetsVal.to(device, non_blocking=True)
             # Forward pass
             yPredVal = self.forward(inputsVal)
+
             with torch.no_grad():
                 validation_loss = self.calc_loss(yPredVal, targetsVal)
             validationStep_loss.append(validation_loss.tolist())
@@ -100,14 +105,21 @@ class NeuralNetwork(nn.Module):
         return loss
 
     # Evaluate the model
-    def evaluate_model(self, test_dl):
+    def evaluate_model(self, test_dl, device=None):
         self.eval()
         predictions, actuals = list(), list()
         for inputs, targets in test_dl:
+            if device is not None:
+                inputs, targets = inputs.to(device), targets.to(device)
             # evaluate the model on the test set
             with torch.no_grad():
                 yPred = self.forward(inputs)
             # retrieve numpy array
+
+            if device is not None:
+                yPred = yPred.cpu()
+                targets = targets.cpu()
+
             yPred = yPred.detach().numpy()
             actual = targets.numpy()
             actual = actual.reshape((-1, 1))

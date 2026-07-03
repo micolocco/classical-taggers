@@ -364,6 +364,62 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
         
         print(f"Rank {rank} exiting training function", flush=True)
 
+
+def train_model_earlyStopping_GPU(model, train_ds, validation_ds, target_path, config, seed):
+    # This function is not used in the current implementation, but kept for reference. It is a single-process version of the training function that uses GPU if available.
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # model.to(device)
+    bestEpoch = -1
+    lossValBest = 10000
+    lossTrainBest = 10000
+
+    training_start = time.time()
+    early_stopper = EarlyStopper(patience=config['patience'], min_delta=config['min_delta'])
+    
+    train_dl = DataLoader(train_ds, batch_size=config['train_batch_size'], shuffle=True, pin_memory=True, num_workers=16, persistent_workers=True)
+    validation_dl = DataLoader(validation_ds, batch_size=config['train_batch_size'], shuffle=False, pin_memory=True, num_workers=16, persistent_workers=True)
+
+    trainingEpoch_loss = []
+    validationEpoch_loss = []
+    initialValidation_loss = np.array(model.validate_model(validation_dl, device='cuda')).mean(axis=0)
+    print(f"The initial Validation Loss: {format_loss(initialValidation_loss)}")
+    
+    epoch = 0
+    epochtimes = []
+    stop_early = False
+    while not stop_early and epoch <= config['n_epochs']:
+        epoch_start = time.time()
+        print(f"--------------Epoch:{epoch+1}/{config['n_epochs']}--------------")
+        stepLoss = np.array(model.train_model(train_dl, device='cuda')).mean(axis=0)
+        trainingEpoch_loss.append(stepLoss)
+        validationStep_loss = np.array(model.validate_model(validation_dl, device='cuda')).mean(axis=0)
+        validationEpoch_loss.append(validationStep_loss)
+
+        print(f"Train:{format_loss(stepLoss)}, Validation:{format_loss(validationStep_loss)}, Time:{round((time.time()-epoch_start) ,2)}s, Early stopping counter: {early_stopper.counter}/{config['patience']}", flush=True)
+        
+        epochtimes.append((time.time()-epoch_start))
+        epoch += 1
+
+
+        early_stopper.early_stop(validationEpoch_loss[-1]) 
+        if early_stopper.counter == 0:
+            bestModel = copy.deepcopy(model)
+            bestModel.remove_DDP()
+
+            bestEpoch = epoch
+            lossValBest = validationEpoch_loss[-1]
+            lossTrainBest = trainingEpoch_loss[-1]
+
+    training_time = round((time.time()- training_start) / 60 , 2)
+    epochtimes_mean = np.mean(epochtimes)
+    epochtimes_std = np.std(epochtimes)
+
+    print(f'Average time per epoch: {epochtimes_mean} +/- {epochtimes_std} seconds')
+    print(f"Training finished in {training_time} min, {epoch-1} epochs, early stopping: {early_stopper.early_stop(validationEpoch_loss[-1])}")
+    
+    return bestModel, trainingEpoch_loss, validationEpoch_loss, bestEpoch, np.array([lossTrainBest, lossValBest], dtype=float)
+
+
 def __infere_model(rank, num_threads, model, ds, target_path, return_dict):
     if num_threads>1:
         port = ddp_setup(rank, num_threads, target_path) 
