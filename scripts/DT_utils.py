@@ -81,15 +81,16 @@ def plot_features_byOrigin(data, features, target_path, nbins=100):
 def plot_used_features(data, features, target_path, nbins=100):
     plt.figure(figsize=(24,25))
     for i, col in enumerate(features):
-        plt.subplot(3, 3, i + 1)
-        plt.xlabel(nice_names[col])
-        plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=ranges[col])
-        plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=ranges[col])
+        plt.subplot(int(np.ceil(np.sqrt(len(features)))), int(np.ceil(np.sqrt(len(features)))), i + 1)
+        plt.xlabel(nice_names.get(col, col))
+        range = ranges.get(col, (data[col].min(), data[col].max()))
+        plt.hist(data[col][data['particle']=='OSKaon'], density = True, bins=nbins, label = f"OSKaon", histtype='step', color='m', lw=2, range=range)
+        plt.hist(data[col][data['particle']=='OSMuon'], density = True, bins=nbins, label = f"OSMuon", histtype='step', color='b', lw=2, range=range)
+        plt.hist(data[col][data['particle']=='OSElectron'], density = True, bins=nbins, label = f"OSElectron", histtype='step', color='c', lw=2, range=range)
+        plt.hist(data[col][data['particle']=='SSPion'], density = True, bins=nbins, label = f"SSPion", histtype='step', color='g', lw=2, range=range)
+        plt.hist(data[col][data['particle']=='SSProton'], density = True, bins=nbins, label = f"SSProton", histtype='step', color='y', lw=2, range=range)
+        plt.hist(data[col][data['particle']=='SSKaon'], density = True, bins=nbins, label = f"SSKaon", histtype='step', color='r', lw=2, range=range)
+        plt.hist(data[col][data['particle']=='notSamePV'], density = True, bins=nbins, label = f"notSamePV", histtype='step', color='orange', lw=2, range=range)
     
     plt.legend() 
     plt.tight_layout()
@@ -188,6 +189,8 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
     for key in possible_particle_unified:
         table.add_column(key, justify="right", style="green")
 
+    df_confusion = pd.DataFrame(columns=["True", "Predicted", "Count"])
+
     # Compute percentages
     all_perc_Vectors = []
     for particle_A in possible_particle_unified:
@@ -209,6 +212,8 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
                     perc_Vector.append("{:.2f}".format(percentage))
                 else:
                     perc_Vector.append("0.00")  # No 'True' values, so 0% match
+
+                df_confusion[len(df_confusion)] = [particle_A, particle_B, perc_Vector[-1]]
             else:
                 perc_Vector.append("Not predicted")
         all_perc_Vectors.append(perc_Vector)
@@ -229,12 +234,16 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
         if savepath:
             plt.savefig(savepath.replace(".txt", "_heatmap.pdf"))
 
+    
+
 
 
     # Print or save the table
     if savepath:
         with open(savepath, "w") as f:
             rprint(table, file=f)
+
+        df_confusion.to_csv(savepath.replace(".txt", ".csv"), index=False)
     else:
         console.print(table)
 

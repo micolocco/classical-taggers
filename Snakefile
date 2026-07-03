@@ -185,52 +185,59 @@ wildcard_constraints:
     BN = '(_BN|)', #Empty string for no BN, _BN for with BN
     selection = '(/non_selected|)', # Added to some rules to allow for testing on non-selected data. Is empty for selected
 
-
 rule all:
-    input:
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN') for l in selected_mc['Bs2DsPi']['SSKaon']],
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'test') for l in selected_mc['Bs2DsPi']['SSKaon']],
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'validation') for l in selected_mc['Bs2DsPi']['SSKaon']],
+    input:  
+        'ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/config_test/training/model.pth',
+
+
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_only_hadron_lda/decision_tree_model.txt', 
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_lda/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_only_tagger_lda/decision_tree_model.txt',
+
+
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_2_2_1_2_05/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_2_2_1_1_05/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_2_2_1_2_1/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_2_2_1_1_1/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_1_1_1_2_1/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_1_1_1_1_05/decision_tree_model.txt',
+
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_2_2_1_4_05/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_05_2_1_4_05/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_2_2_6_4_05/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_4_4_1_4_05/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_05_05_1_025_2/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_05_2_6_4_05/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_025_4_1_4_05/decision_tree_model.txt',
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/v0_settings_confWeighted_2_05_1_025_2/decision_tree_model.txt',
         
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN') for l in selected_mc['Bs2DsPi']['OSKaon']],
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'test') for l in selected_mc['Bs2DsPi']['OSKaon']],
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'validation') for l in selected_mc['Bs2DsPi']['OSKaon']],
-        
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN') for l in selected_mc['Bs2DsPi']['OSMuon']],
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'test') for l in selected_mc['Bs2DsPi']['OSMuon']],
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'validation') for l in selected_mc['Bs2DsPi']['OSMuon']],
-        
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN') for l in selected_mc['Bs2DsPi']['OSElectron']],
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'test') for l in selected_mc['Bs2DsPi']['OSElectron']],
-        [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'validation') for l in selected_mc['Bs2DsPi']['OSElectron']],
-
-
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/test/weights_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/train/weights_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/validation/weights_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/test/weights_non_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/train/weights_non_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/validation/weights_non_selected.root',
-
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/test/weights_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/train/weights_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/validation/weights_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/test/weights_non_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/train/weights_non_selected.root',
-        '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/validation/weights_non_selected.root',
 
 
 
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bs2JpsiKst/test/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bs2JpsiKst/validation/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bs2DsPi/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSKaon_OSKaon_OSMuon_OSElectron/combined_tagged.root',
 
-        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bs2DsPi/test/weights_non_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/calibration.json',
+
+
+        # # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bs2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSKaon_OSKaon_OSMuon_OSElectron/combined_tagged.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bs2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSKaon_OSKaon_OSMuon_OSElectron/combined_tagged.root',
+
         # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/test/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/train/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/validation/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/test/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/train/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/validation/weights_selected.root',
+
 
 
         # '/ceph/users/togasa/FlavourTagging/Data/NTuples/4_track_selected/Bs2DsPi/non_selected/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/test/samples_0.root',
 
         # '/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bs2DsPi/non_selected/OSKaon/Run3v1/testing/Data/logit/taggingInfo_logit.json',
-
-
 
 
 
@@ -305,6 +312,47 @@ rule all:
         # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau2of4/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
         # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau3of4/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
         # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKstTau4of4/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/taggingInfo_logit.json',
+
+
+        # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/calibration.json',
+
+        # '/ceph/users/togasa/FlavourTagging/MC/DT_outputs/allBKGCAT_notSamePV_noOSP_SSK_balanced/decision_tree_model.pkl',
+
+
+
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN') for l in selected_mc['Bs2DsPi']['SSKaon']],
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'test') for l in selected_mc['Bs2DsPi']['SSKaon']],
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'validation') for l in selected_mc['Bs2DsPi']['SSKaon']],
+        
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN') for l in selected_mc['Bs2DsPi']['OSKaon']],
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'test') for l in selected_mc['Bs2DsPi']['OSKaon']],
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'validation') for l in selected_mc['Bs2DsPi']['OSKaon']],
+        
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN') for l in selected_mc['Bs2DsPi']['OSMuon']],
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'test') for l in selected_mc['Bs2DsPi']['OSMuon']],
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'validation') for l in selected_mc['Bs2DsPi']['OSMuon']],
+        
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN') for l in selected_mc['Bs2DsPi']['OSElectron']],
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'test') for l in selected_mc['Bs2DsPi']['OSElectron']],
+        # [l.replace('cut_name', 'allBKGCAT_notSamePV_noOSP_SSK_balanced').replace('features', 'union_PROBNN').replace('train', 'validation') for l in selected_mc['Bs2DsPi']['OSElectron']],
+
+
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/test/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/train/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/validation/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/test/weights_non_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/train/weights_non_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/validation/weights_non_selected.root',
+
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/test/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/train/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/validation/weights_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/test/weights_non_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/train/weights_non_selected.root',
+        # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bu2JpsiK/validation/weights_non_selected.root',
+
+
+
 
         # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/non_selected/combinations/Run3/trained_Data_BN/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
         # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/non_selected/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
@@ -707,32 +755,45 @@ def get_DT_input_paths(wildcards):
 rule train_DT:
     input:
         script = join(repo, 'scripts/origin_DT_cut.py'),
-        data = get_DT_input_paths
+        data = get_DT_input_paths,
+        settings = join(repo, 'DT_arguments/{cut_name}.txt'),
     output:
-        cuts = expand(join(out, "MC/DT_outputs/{{cut_name}}/{{balanced}}/cuts/{tagger}_preselections.txt"), tagger=all_taggers)
-    log:              join(out, "MC/DT_outputs/{cut_name}/{balanced}/tree_schema.log")
+        model =        join(out, "MC/DT_outputs/{cut_name}/decision_tree_model.txt")
+        # cuts  = expand(join(out, "MC/DT_outputs/{{cut_name}}/cuts/{tagger}.txt"), tagger=all_taggers), TODO recomment in
+    log:               join(out, "MC/DT_outputs/{cut_name}/tree_schema.log")
     resources:
-        request_memory = 20000, # Specify memory requirement in megabytes
-        mem = 20000,
+        request_memory = 80000, # Specify memory requirement in megabytes
+        mem = 80000,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 4,
     run:
-        target_path = os.path.dirname(os.path.dirname(output.cuts[0]))
+        target_path = os.path.dirname(output.model)
 
         if kernel_available():
             data = path_to_kernel(input.data)
         else:
             data = input.data
 
+
         cmd = [
             f'python {input.script}',
-            f'--input_files {data}',
+            f'--input_files', ' '.join(data),
             f'--target_path {target_path}',
-            f'--balanced {wildcards.balanced}',
-           # f'--unify_SS',
-            f'--BKG0',
-            f'&> {log}',
         ]
+
+        #Read settings file and paste all arguments into the command
+        with open(input.settings, 'r') as f:
+            settings = f.read()
+            #remove all line breaks
+            settings = settings.replace('\n', ' ')
+            split_settings = [f'--{arg} ' for arg in settings.split('--') if arg]
+
+            cmd.extend(split_settings)
+        
+
+
+        print(' '.join(cmd))
+        cmd += [f'&> {log}']
         shell(' '.join(cmd))
 
 

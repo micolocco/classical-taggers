@@ -1,0 +1,3 @@
+--balanced balanced
+--downsample
+--conf_weight_config '{{"SSKP_as_Rest" : 2, "Rest_as_SSKP" : 2, "diag" : 1, "tagpart_as_notSamePV" : 2, "notSamePV_as_tagpart" : 1,}}'
