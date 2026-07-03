@@ -18,6 +18,7 @@ matplotlib_lhcb_style(plt)
 from scripts.preSelections import run2_taggers_variables
 from scripts.train_tagger import get_architecture
 import lhcb_ftcalib as ft
+from scripts.adding_features import get_mass_label
 
 def plot_tagDec(tagger, df_TagParticles, plotPath):
     plt.figure()
@@ -68,9 +69,14 @@ if __name__ == '__main__':
     loading_variables = features+ run2_taggers_variables + ['B_Tr_T_Charge','selected', 
                                                             'RUNNUMBER', 'EVENTNUMBER', 'file_id', 
                                                             'label', f'{cfg.tagger}_TagDec', 'B_ID',
-                                                            'B_DTF_PV_Jpsi_MASS', 'B_TAU']
+                                                            get_mass_label(cfg.decayType), 'B_TAU', 
+                                                            'B_TAUERR', 'candidate_index']
+
     if cfg.data_type == 'Data':
         loading_variables += ["FillNumber", 'signal_weights']
+    else:
+        loading_variables += ['B_TRUEID']
+
         
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
@@ -105,8 +111,6 @@ if __name__ == '__main__':
     scalerPath = cfg.scaler
     transformerPath = cfg.transformer
 
-
-    columns_to_drop = ["B_ID", 'B_Tr_T_Charge','selected', 'RUNNUMBER', 'EVENTNUMBER', f'{cfg.tagger}_TagDec', 'file_id']
 
     test_dataset = inputDataset(df=test_df[features+['label']])
     if not os.path.exists(scalerPath) or not os.path.exists(transformerPath): # Check if the scaler and transformer already exist, if assume they are included in the model
@@ -164,9 +168,11 @@ if __name__ == '__main__':
     
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
-    save_vars = ['RUNNUMBER', 'EVENTNUMBER','file_id', 'selected',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", f"{cfg.tagger}_OMEGA_ERR", "B_ID"]+run2_taggers_variables
+    save_vars = ['RUNNUMBER', 'EVENTNUMBER','file_id', 'selected',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", f"{cfg.tagger}_OMEGA_ERR", "B_ID", get_mass_label(cfg.decayType), "B_TAU", "B_TAUERR", 'candidate_index']+run2_taggers_variables
     if cfg.data_type == 'Data':
-        save_vars += ["FillNumber", "B_DTF_PV_Jpsi_MASS", 'signal_weights', "B_TAU"]
+        save_vars += ["FillNumber", 'signal_weights']
+    else:
+        save_vars += ['B_TRUEID']
         # if 'Bu' not in cfg.decayType:
         #     save_vars.append()
     with uproot.recreate(f"{cfg.taggedData}") as file:

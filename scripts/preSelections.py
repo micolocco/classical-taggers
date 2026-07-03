@@ -87,10 +87,11 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     pprint(cfg)
 
+    BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
 
     selection_variables = extract_selection_var(cfg.cut_file)
     tagger_features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
-    extra_variables = ['candidate_index', 'file_id', 'RUNNUMBER', 'EVENTNUMBER', 'B_ID', 'B_Tr_T_Charge']
+    extra_variables = ['candidate_index', 'file_id', 'RUNNUMBER', 'EVENTNUMBER', 'B_ID', 'B_Tr_T_Charge', 'B_TAU', 'B_TAUERR']
     
     loading_variables = tagger_features + selection_variables + extra_variables + run2_taggers_variables
     loading_variables = np.unique(loading_variables).tolist()
@@ -100,9 +101,8 @@ if __name__ == '__main__':
     if cfg.data_type == 'Data':
         loading_variables += ["B_Tr_T_IsInTree", "FillNumber"]
         loading_variables.remove('B_Tr_T_Origin_Flag') # only in MC, replace with B_Tr_T_IsInTree in data
-
-    if cfg.data_type == 'Data':
-        loading_variables.append('B_TAU')
+    else:
+        loading_variables += ['B_TRUEID']
 
     loading_variables = list(dict.fromkeys(loading_variables)) #removes all duplicates
     print(loading_variables)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     # -1 == wrong tag  1 == correct tag
 
 
-    df["label"] = df[f"{cfg.tagger}_TagDec"] * df['B_ID']/abs(df['B_ID']) 
+    df["label"] = df[f"{cfg.tagger}_TagDec"] * df[BID]/abs(df[BID]) 
 
     df.loc[df.label == -1, "label"] = 0 # shifting the label from -1 to 0
 

@@ -63,6 +63,8 @@ def process_chunk(df, evtType):
     df.loc[:,f'B_Tr_T_OWNPVIPSig'] = np.sqrt(df[f'B_Tr_T_OWNPVIPCHI2'])
     df.loc[:,f'B_Tr_T_absOWNPV_IP'] = np.abs(df[f'B_Tr_T_OWNPVIP'])
     df.loc[:,f'B_TAU'] = df[get_mass_label(evtType).replace("MASS", "CTAU")]/0.29979 #Convert from mm to ps using speed of light in mm/ps
+    df.loc[:,f'B_TAUERR'] = df[get_mass_label(evtType).replace("MASS", "CTAUERR")]/0.29979 #Convert from mm to ps using speed of light in mm/ps
+    
 
     
     df.loc[:,f'B_Tr_T_endSV_Z'] = np.abs(df[f'B_ENDV_Z'] - df[f'B_Tr_T_firstZ'])
@@ -109,7 +111,6 @@ def process_chunk(df, evtType):
 def mc_vars_to_data_vars(variables):
         variables = [v for v in variables if ("TRUE" not in v and "BKGCAT" not in v and "Origin_Flag" not in v and "MC" not in v)]  
         variables.append("B_Tr_T_IsInTree")
-        variables.append("B_ID")
         variables.append("FillNumber")
         return variables
 
@@ -124,16 +125,14 @@ def get_loading_vars(evtType, data_type, loading_var_path = "configs/loading_var
 
     #Add CTAU
     loading_variables.append(get_mass_label(evtType).replace("MASS", "CTAU"))
-    
-
-    
+    loading_variables.append(get_mass_label(evtType).replace("MASS", "CTAUERR"))
 
     # BPV -> OWNPV will need to be changed for everything in the future productions!!!!
     if data_type == 'Data':
         loading_variables = mc_vars_to_data_vars(loading_variables)
-        
-
+    loading_variables.append("B_ID")
     loading_variables.append(get_mass_label(evtType))
+
 
     return loading_variables
 
@@ -199,8 +198,6 @@ if __name__ == '__main__':
                 chunk.reset_index(drop=True, inplace=True)
                 chunk[f'B_Tr_T_absID'] = np.abs(chunk[f'B_Tr_T_TRUE_PARTICLE_ID'])
             
-                translation_dict = {'B_TRUEID': 'B_ID'}
-                chunk.rename(columns=translation_dict, inplace=True)
 
             chunk = process_chunk(chunk, cfg.evtType)
             if i == 0:

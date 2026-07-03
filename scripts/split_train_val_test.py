@@ -35,6 +35,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', help='Random seed', default=45, type = int) 
     parser.add_argument('--config', help='Config yaml', type=str, default='configs/hyperpar_intervals.yaml') 
     parser.add_argument('--data_type', help="Type of Data used, MC, Data or domain_adapted when using domain adaptation",choices=('MC', 'Data', 'domain_adapted'))
+    parser.add_argument('--decay', help='Decay which is being used', type=str)
+
 
     cfg = parser.parse_args()
     pprint(cfg)
@@ -62,14 +64,23 @@ if __name__ == '__main__':
     print(df.columns)
     print(df.head(10))
 
+    
 
-    print(f'Total: {len(df["event_entry"].unique())} events, {len(df)} tracks')
-
+    print(f'Total: {len(df["event_entry"].unique())} events, {len(df)} tracks', flush=True)
+    
     #Split into train, validation and test Dataframes
-    split_dfs = pyTrain.splitByEvent(df=df, seed=cfg.seed, train_val_split=config['-train_val_split'])
-
+    split_dfs = list(pyTrain.splitByEvent(df=df, seed=cfg.seed, train_val_split=config['-train_val_split'], do_train_split = not (cfg.decay[:2] == 'Bs' and cfg.data_type == 'Data')))
     #Write each frame to file
     purposes = ['train', 'validation', 'test']
+    # if : 
+    #     # for Bs data, training is not needed as measured Bs data cannot be used for training, only for testing and maybe validation. For other decays, all splits are needed.
+    #     # -> Absorb train split into testing in this case
+    #     split_dfs[2] = pd.concat([split_dfs[0], split_dfs[2]], ignore_index=True) 
+
+    #     # Create an empty train split to avoid issues with snakemake
+    #     split_dfs[0] = pd.DataFrame(columns=split_dfs[0].columns)
+        
+
     for df_, p in zip(split_dfs, purposes):
         print(f'saving the {p} split. {len(df_["event_entry"].unique())} events, {len(df_)} tracks', flush=True)
         tracks_per_event = df_["event_entry"].value_counts().tolist()
@@ -88,7 +99,7 @@ if __name__ == '__main__':
 
             ascii_histogram(tracks_per_event, bins = 14)
             
-            print('\n\n')
+            print('\n\n', flush=True)
 
 
         #Drop event_entry because uproot can't write arrays of strings to disk

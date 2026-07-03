@@ -13,7 +13,7 @@ import json
 from scripts.shareddataset import SharedDataset
 import traceback
 import scripts.NNModel
-from preprocessing import StandardScalerLayer, PowerTransformerLayer, fit_freeze_preprocessing
+from scripts.preprocessing import StandardScalerLayer, PowerTransformerLayer, fit_freeze_preprocessing
 import collections
 
 from scripts.NNModel import EarlyStopper
@@ -74,7 +74,7 @@ def get_features(tagger, yaml_file, repo_path):
             return []
 
 
-def splitByEvent (df, seed, train_val_split):
+def splitByEvent (df, seed, train_val_split, do_train_split = True):
     '''Function to random split by events (not by index) the dataset into training and test set
     Set seed for reproducibility''' 
     import random
@@ -82,6 +82,13 @@ def splitByEvent (df, seed, train_val_split):
     random.Random(seed).shuffle(events_list)
     n_train_val = int(train_val_split*len(events_list)) # Divide
     n_train = int(0.8 * n_train_val)
+
+    if not do_train_split:
+        # for Bs data, training is not needed as measured Bs data cannot be used for training, only for testing and maybe validation. For other decays, all splits are needed.
+        # -> Absorb train split into testing in this case
+        n_train_val = int(0.2 * n_train_val)
+        n_train = 0
+
     train_df = df[df.event_entry.isin(events_list[:n_train])].copy()
     val_df = df[df.event_entry.isin(events_list[n_train:n_train_val])].copy()
     test_df = df[df.event_entry.isin(events_list[n_train_val:])].copy()
@@ -98,7 +105,7 @@ def prepare_data(train_df, val_df, scalerPath, transformerPath):
     return train_dataset, val_dataset
 
 
-def plot_features(data, features_list, target_path, name, flag, nbins=100):
+def plot_features(data, features_list, target_path, name, flag, BID, nbins=100):
     # Plot input features 
     plt.figure(figsize=(24,25))
     num_plots_per_axis = int(np.ceil(np.sqrt(len(features_list))))
@@ -114,10 +121,10 @@ def plot_features(data, features_list, target_path, name, flag, nbins=100):
                 xlabel = col
             
             bins = np.linspace(np.min(data[col]), np.max(data[col]), nbins+1)
-            plt.hist(data[col][(data[flag]==0) & (data['B_ID']<0)].to_numpy().astype(float), density = True, bins=bins, label = f"{flag} = 0, B_ID < 0",color='b', alpha=0.5, range=range_x)
-            plt.hist(data[col][(data[flag]==0) & (data['B_ID']>0)].to_numpy().astype(float), density = True, bins=bins, label = f"{flag} = 0, B_ID > 0",color='b', histtype='step', alpha=1, range=range_x)
-            plt.hist(data[col][(data[flag]==1) & (data['B_ID']<0)].to_numpy().astype(float), density = True, bins=bins, label = f"{flag} = 1, B_ID < 0",color='r', alpha=0.5, range=range_x)
-            plt.hist(data[col][(data[flag]==1) & (data['B_ID']>0)].to_numpy().astype(float), density = True, bins=bins, label = f"{flag} = 1, B_ID > 0",color='r', histtype='step', alpha=1, range=range_x)
+            plt.hist(data[col][(data[flag]==0) & (data[BID]<0)].to_numpy().astype(float), density = True, bins=bins, label = f"{flag} = 0, {BID} < 0",color='b', alpha=0.5, range=range_x)
+            plt.hist(data[col][(data[flag]==0) & (data[BID]>0)].to_numpy().astype(float), density = True, bins=bins, label = f"{flag} = 0, {BID} > 0",color='b', histtype='step', alpha=1, range=range_x)
+            plt.hist(data[col][(data[flag]==1) & (data[BID]<0)].to_numpy().astype(float), density = True, bins=bins, label = f"{flag} = 1, {BID} < 0",color='r', alpha=0.5, range=range_x)
+            plt.hist(data[col][(data[flag]==1) & (data[BID]>0)].to_numpy().astype(float), density = True, bins=bins, label = f"{flag} = 1, {BID} > 0",color='r', histtype='step', alpha=1, range=range_x)
             plt.xlabel(xlabel)
 
             plt.legend()
@@ -591,7 +598,7 @@ def plot_ROC(tagger, val_df, target_path, train_df= None, trueLabel= 'yTrue', pr
         plt.savefig(f"{target_path}/{fileLabel}ROC_TEST.pdf")
 
 
-def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbins=100, trueLabel= 'yTrue', 
+def plot_mistag(tagger, df, target_path, type, BID, show_trueB=False, clf = None, nbins=100, trueLabel= 'yTrue', 
                 predLabel='yPred', fileLabel='', correct_legend= "wrong tagging decision", wrong_legend= "correct tagging decision"):
     plt.figure()
     # plt.title("Mistag rate")
@@ -604,18 +611,18 @@ def plot_mistag(tagger, df, target_path, type, show_trueB=False, clf = None, nbi
         bins = np.linspace(0, 1, nbins+1)
         
     if show_trueB:
-        plt.hist(1-df[(df[trueLabel]==0)&(df['B_ID']<0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
-        plt.hist(1-df[(df[trueLabel]==0)&(df['B_ID']>0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
-        plt.hist(1-df[(df[trueLabel]==1)&(df['B_ID']<0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
-        plt.hist(1-df[(df[trueLabel]==1)&(df['B_ID']>0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
+        plt.hist(1-df[(df[trueLabel]==0)&(df[BID]<0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
+        plt.hist(1-df[(df[trueLabel]==0)&(df[BID]>0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
+        plt.hist(1-df[(df[trueLabel]==1)&(df[BID]<0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
+        plt.hist(1-df[(df[trueLabel]==1)&(df[BID]>0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
     else:
         plt.hist(1-df[df[trueLabel] == 0][predLabel],bins = bins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = correct_legend)
         plt.hist(1-df[df[trueLabel] == 1][predLabel],bins = bins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = wrong_legend)
     
-    data1=1-df[(df[trueLabel]==0)&(df['B_ID']<0)][predLabel]  
-    data2=1-df[(df[trueLabel]==0)&(df['B_ID']>0)][predLabel]   
-    data3=1-df[(df[trueLabel]==1)&(df['B_ID']<0)][predLabel]  
-    data4=1-df[(df[trueLabel]==1)&(df['B_ID']>0)][predLabel]
+    data1=1-df[(df[trueLabel]==0)&(df[BID]<0)][predLabel]  
+    data2=1-df[(df[trueLabel]==0)&(df[BID]>0)][predLabel]   
+    data3=1-df[(df[trueLabel]==1)&(df[BID]<0)][predLabel]  
+    data4=1-df[(df[trueLabel]==1)&(df[BID]>0)][predLabel]
     plt.title(f"{tagger}", fontsize=24)
     plt.xlabel(r"1 - NN output", fontsize=24)
     #plt.annotate(f'{len(df.yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
@@ -675,7 +682,7 @@ def bins_by_yield(etas, weights, nbins):
 
     return bin_edges
 
-def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag', npar=2, nbins = 7, weights = None, mode='Bu'):
+def calibration(tagger, df_tag, eventType, target_path, calibration_option='mistag', BID = 'B_ID', npar=2, nbins = 7, weights = None, mode='Bu'):
 
     #Calibration of the taggers and parameters saving
 
@@ -688,16 +695,21 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     
     if mode != 'Bu':
         tau_ps = df_tag['B_TAU'].to_numpy()
+        tauerr_ps = df_tag['B_TAUERR'].to_numpy()
     else:
         tau_ps = None
+        tauerr_ps = None
+
+    print(f"Calibrating {tagger} in {mode} mode with {calibration_option} calibration and {npar} parameters, using {nbins} bins.")
     
     taggers.create_tagger(name = tagger, 
                           eta_data = df_tag[f"{tagger}_Eta"].to_numpy(), 
                           dec_data = df_tag[f"{tagger}_TagDec"].to_numpy(), 
                           weight = weights, 
-                          B_ID = df_tag['B_ID'].to_numpy(),
+                          B_ID = df_tag[BID].to_numpy(),
                           mode = mode , 
-                          tau_ps = tau_ps)
+                          tau_ps = tau_ps,
+                          tauerr_ps = tauerr_ps)
 
     if calibration_option=='logit':
         taggers.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
@@ -725,8 +737,8 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
         print("Warning: Bins are not unique, using linspace instead.")
         bins = np.linspace(df_tag[f"{tagger}_Eta"].min(), df_tag[f"{tagger}_Eta"].max(), nbins+1)
 
-    class_indices = df_tag['B_ID'].values
-    class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\bar{B}^0$', }
+    class_indices = df_tag[BID].values
+    class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\bar{B}^0$', 531: '$B^0_s$', -531: r'$\bar{B}^0_s$'}
 
 
 

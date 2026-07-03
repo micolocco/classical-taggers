@@ -42,7 +42,7 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     pprint(cfg)
 
-
+    BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
 
     #Convert list of calibrations to dictionary with tagger names as keys
     calibration_dict = {}
@@ -62,11 +62,15 @@ if __name__ == '__main__':
 
     taggers_dataframes = []  # List to store DataFrames for each tagger
     # Loop over all taggers
-    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER',  'B_ID',] + run2_taggers_variables
+    vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER',  'B_ID'] + run2_taggers_variables
     if cfg.data_type == 'Data':
         vars += ['signal_weights']
         if 'Bu' not in cfg.decayType:
             vars.append('B_TAU')
+            if 'Bs' in cfg.decayType:
+                vars.append('B_TAUERR')
+    else:
+        vars += ['B_TRUEID']
 
     for tagger in cfg.tagger:
         all_vars = vars + [f'{tagger}_TagDec', f'{tagger}_Eta',f'{tagger}_CDEC', f'{tagger}_OMEGA', f'{tagger}_OMEGA_ERR']
@@ -116,6 +120,10 @@ if __name__ == '__main__':
         common_columns += ['signal_weights']
         if 'Bu' not in cfg.decayType:
             common_columns.append('B_TAU')
+            if 'Bs' in cfg.decayType:
+                common_columns.append('B_TAUERR')
+    else:
+        common_columns += ['B_TRUEID']
     
     for single_df in taggers_dataframes[1:]:
         single_df = single_df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'])
@@ -140,12 +148,16 @@ if __name__ == '__main__':
 
     weights = None
     tau = None
+    tau_ps_err = None
     mode = 'Bu'
     if cfg.data_type == 'Data':
         weights = df['signal_weights'].to_numpy()
         if 'Bu' not in cfg.decayType:
             tau = df['B_TAU'].to_numpy()
             mode = cfg.decayType[:2]
+            if 'Bs' in cfg.decayType:
+                tau_ps_err = df['B_TAUERR'].to_numpy()
+        
 
     npar = 2
     run = cfg.run
@@ -169,9 +181,10 @@ if __name__ == '__main__':
         tagger_obj = tagger_class(tagger,
                                     eta_data=df[eta_col], 
                                     dec_data=df[dec_col], 
-                                    B_ID=df["B_ID"], 
+                                    B_ID=df[BID], 
                                     mode = mode, 
                                     tau_ps=tau, 
+                                    tauerr_ps =tau_ps_err,
                                     weight=weights)
         
         if run == 'Run2':
@@ -210,9 +223,10 @@ if __name__ == '__main__':
     tagger_combination = ft.Tagger(f'{cfg.combinationName}',
                                     eta_data=uncali_combined_df[f'{cfg.combinationName}_ETA'].to_numpy(),
                                     dec_data=uncali_combined_df[f'{cfg.combinationName}_DEC'].to_numpy(),
-                                    B_ID=df["B_ID"].to_numpy(), 
+                                    B_ID=df[BID].to_numpy(), 
                                     mode = mode,
                                     tau_ps=tau,
+                                    tauerr_ps=tau_ps_err,
                                     weight=weights)
     
     tagger_combination.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
@@ -228,7 +242,7 @@ if __name__ == '__main__':
     ft.plotting.draw_calibration_curve(tagger_combination, savepath=cfg.outputPath)
     ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=cfg.outputPath)
 
-    class_indices = df['B_ID'].values
+    class_indices = df[BID].values
     class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\overline{B}^0$'}
 
     print(type(tagger_combination))

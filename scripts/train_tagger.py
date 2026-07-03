@@ -208,7 +208,7 @@ def get_architecture(config):
         return f'nL{nL}_nN{nN}_dp{dp}{bn}'
     
 
-def get_dataSets(train_df, val_df, config_name, target_path, seed, tagger, decay_type):
+def get_dataSets(train_df, val_df, config_name, target_path, seed, tagger, decay_type, features, BID='B_ID'):
     # Path to where the scaler parameters will be saved
     print("Preparing datasets...", flush=True)
 
@@ -239,7 +239,7 @@ def get_dataSets(train_df, val_df, config_name, target_path, seed, tagger, decay
     train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), scalerPath=scalerPath, transformerPath=transformerPath)
     
     if 'config_test' not in config_name:
-        pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures')
+        pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures', BID = BID)
     print(f"Datasets prepared", flush=True)
     return train_ds, validation_ds
 
@@ -352,7 +352,8 @@ def gen_training_plots(model, num_threads, train_df, val_df, train_ds, validatio
         pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path, 
                          trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_')
         pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False, 
-                            trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_', correct_legend= "Domain 0", wrong_legend= "Domain 1")
+                            trueLabel= 'dTrue', predLabel='dPred', fileLabel='domain_', correct_legend= "Domain 0", 
+                            wrong_legend= "Domain 1", BID = BID)
         plt.figure()
         plt.hist(1-train_df['dPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
         plt.title(r"Training set: Probability of label 0, only selected")
@@ -379,7 +380,7 @@ def gen_training_plots(model, num_threads, train_df, val_df, train_ds, validatio
     pyTrain.plot_ROC(tagger=tagger, val_df=val_df, train_df=train_df, target_path =target_path)
 
 
-    pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False,)
+    pyTrain.plot_mistag(tagger=tagger, df=train_df, target_path=target_path, type = 'Training', show_trueB=False, BID = BID)
     plt.figure()
     plt.hist(1-train_df['yPred'] ,bins = 100 , density = True , histtype = "stepfilled" )
     plt.title(r"Training set: Probability of label 0, only selected")
@@ -417,13 +418,15 @@ if __name__ == '__main__':
 
     print(f"training with {cfg.num_threads} threads")
 
-    BID = 'B_ID'
+    BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
 
-    vars = features + [BID,'selected', 'label',f"{cfg.tagger}_TagDec"] 
+    vars = features + ['B_ID','selected', 'label',f"{cfg.tagger}_TagDec"] 
     if cfg.data_type == 'domain_adapted':
-        vars = vars + ['domain']
+        vars += ['domain']
+    elif cfg.data_type == 'MC':
+        vars += ['B_TRUEID']
 
     print(vars)
 
@@ -453,7 +456,7 @@ if __name__ == '__main__':
 
     train_ds, validation_ds = get_dataSets(train_df=train_df, val_df=val_df, config_name=cfg.config, 
                                            target_path=cfg.target_path, seed=cfg.seed, tagger=cfg.tagger, 
-                                           decay_type=cfg.decay_type)
+                                           decay_type=cfg.decay_type, features=features, BID=BID)
 
     model = training(train_ds=train_ds, validation_ds=validation_ds, vars=vars, data_type=cfg.data_type, 
                      target_path=cfg.target_path, tagger=cfg.tagger, seed=cfg.seed, features=features, 

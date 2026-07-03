@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
         #Rename columns to match
         rename_dict = {
-            'B_ID' : 'B_TRUEID', 
+            'B_ID' : 'B_TRUEID', #TODO change this B_ID and B_TRUEID should not be mixed for anything other then Bu
             'B_Tr_T_OWNPVIPSig' : 'B_Tr_T_BPVIPSig', 
             'B_Tr_T_absOWNPVIP' : 'B_Tr_T_absBPVIP', 
         }

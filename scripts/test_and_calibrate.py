@@ -63,8 +63,8 @@ def study_eta_omega_dist(df, split_by, prefix, target_path, tagger, data_type):
     #Remove any duplicate bin edges. May happen with very strong bunching around eta = 0.5
     bins = np.unique(bins)
 
-    translation_dict = {'B_TRUEID': {-521: r'$B^-$', 521: r'$B^+$',-511: r'$\bar{B}^0$', 511: r'$B^0$'},
-                        'B_ID': {-521: r'$B^-$', 521: r'$B^+$',-511: r'$\bar{B}^0$', 511: r'$B^0$'},
+    translation_dict = {'B_TRUEID': {-521: r'$B^-$', 521: r'$B^+$',-511: r'$\bar{B}^0$', 511: r'$B^0$', -531: r'$\bar{B}^0_s$', 531: r'$B^0_s$'},
+                        'B_ID': {-521: r'$B^-$', 521: r'$B^+$',-511: r'$\bar{B}^0$', 511: r'$B^0$', -531: r'$\bar{B}^0_s$', 531: r'$B^0_s$'},
                         'OSKaon_TagDec': {1: 'Positive', -1: 'Negative'},
                         'OSMuon_TagDec': {1: 'Positive', -1: 'Negative'},
                         'OSElectron_TagDec': {1: 'Positive', -1: 'Negative'},
@@ -150,7 +150,7 @@ def study_eta_omega_dist(df, split_by, prefix, target_path, tagger, data_type):
         pickle.dump(bin_contents, f)
 
 
-def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, config,
+def testing_pipeline(test_df, BID, target_path, tagger, features, config,
                      decay_type, seed, repo, data_type, model_path, domain_adapted=False, 
                      calibration_config=None, benchmark_version=None, num_threads=1):
     start = datetime.datetime.now()
@@ -159,10 +159,9 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
     with open(f'{config}', 'r') as file:
         config_dict = yaml.safe_load(file)
 
-
     # Path to where the scaler parameters will be saved
-    scalerPath = f"{train_path}/st_scaler.pkl"
-    transformerPath = f"{train_path}/powerTransformer.pkl"
+    scalerPath = f"{model_path}/st_scaler.pkl"
+    transformerPath = f"{model_path}/powerTransformer.pkl"
 
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -186,12 +185,13 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
 
     bestModel.eval()
 
-    columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", BID,]#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
+    columns_to_drop = ['event_entry', 'selected', f"{tagger}_TagDec", 'B_ID', 'B_TAU', 'B_TAUERR']#, 'label']#, 'B_DTF_PV_Jpsi_MASS']
     if data_type == 'Data' :
         columns_to_drop.append('signal_weights')
         sweights = test_df['signal_weights']
+    else:
+        columns_to_drop.append('B_TRUEID')
 
-        columns_to_drop.append('B_TAU')
 
     # Adjust test dataframe as input for the NN. Note: only selected track=1 are needed
     print(f'Columns:{test_df.columns}')
@@ -217,9 +217,13 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
     # print(test_df['yTrue'].tolist())
 
     test_df[f"{tagger}_Eta"] = 1 - test_df['yPred']
-    cols_to_keep = ['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label',BID, 'yTrue', 'yPred', ]
+    cols_to_keep = ['event_entry','selected', f"{tagger}_Eta", f"{tagger}_TagDec", 'label','B_ID', 'yTrue', 'yPred', ]
+    if data_type == 'MC':
+        cols_to_keep.append('B_TRUEID')
     cols_to_keep.append('B_TAU')
+    cols_to_keep.append('B_TAUERR')
     test_df.drop(columns=test_df.columns.difference(cols_to_keep), inplace=True)
+    print(f"Benchmark version: {benchmark_version}")
 
     print(f'Columns after prediction: {test_df.columns}', flush = True)
 
@@ -228,10 +232,7 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
     print(f"Test set has {test_df[(test_df['selected']==1)&(test_df['label']==0)].shape[0]} wrong tagged tracks, {test_df[(test_df['selected']==1)&(test_df['label']==1)].shape[0]} correctly tagged tracks", flush = True)
     
     pyTrain.plot_ROC(tagger=tagger, val_df=test_df[test_df['selected'] == 1], target_path =target_path)
-    pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Test')
-
-
-    
+    pyTrain.plot_mistag(tagger=tagger, df=test_df[test_df['selected'] == 1], target_path=target_path, type = 'Test', BID = BID)
 
 
     test_df.loc[test_df.selected == 0, f"{tagger}_TagDec"] = 0  # classic
@@ -270,15 +271,15 @@ def testing_pipeline(test_df, BID, target_path, train_path, tagger, features, co
             calib_config_dict = yaml.safe_load(f)
         npar = calib_config_dict['npar']
     # Calibrating the tagger and saving parameters
-    mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles, mode=mode)
+    mistag_info = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, BID = BID, npar=npar, weights=sweights_TagParticles, mode=mode)
     # Try both calibration functions
-    logit_info  = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, weights=sweights_TagParticles, mode=mode, calibration_option='logit', )
+    logit_info  = pyTrain.calibration(tagger=tagger, df_tag=df_TagParticles, eventType=decay_type, target_path=target_path, BID = BID, npar=npar, weights=sweights_TagParticles, mode=mode, calibration_option='logit', )
 
     end = datetime.datetime.now()
     print(f'testing ended on {end.strftime("%Y-%m-%d %H:%M:%S")}')
     print(f'Time taken for testing and calibration: {end - start}', flush = True)
 
-    return mistag_info['TaggingPower'], logit_info['TaggingPower']
+    return mistag_info['TaggingPower_Cali'], logit_info['TaggingPower_Cali']
      
 
 if __name__ == '__main__':
@@ -288,7 +289,6 @@ if __name__ == '__main__':
     )
     parser.add_argument('--testing_data', help='Files of training data', nargs='+')
     parser.add_argument('--target_path', help='Name of the output dir', type=str)
-    parser.add_argument('--train_path', help='Name of the output dir', type=str)
     parser.add_argument('--treename', help='Tree name of the raw ntuples', type=str, default='DecayTree;1')
     parser.add_argument('--tagger', help='Tagger type', type=str, choices=('OSKaon', 'SSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton')) # add all the possible taggers
     parser.add_argument('--features', help='Input features for NN training', default='union') 
@@ -307,15 +307,16 @@ if __name__ == '__main__':
     pprint(cfg)
     pd.set_option('display.max_columns', 30)
     pd.set_option('display.width', 200)
-    BID = 'B_ID'
+    BID = 'B_ID' if cfg.data_type == 'Data' else 'B_TRUEID'
 
     features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     print(f"Features used: {features}", flush = True)
 
-    vars = features + [BID, 'selected', 'label', f"{cfg.tagger}_TagDec"]
+    vars = features + ['B_ID', 'selected', 'label', f"{cfg.tagger}_TagDec", 'B_TAU', 'B_TAUERR']
     if cfg.data_type == 'Data':
         vars = vars + ['signal_weights']
-        vars.append('B_TAU')
+    else:
+        vars = vars + ['B_TRUEID']
     print(vars, flush = True)
 
 
@@ -337,7 +338,7 @@ if __name__ == '__main__':
     print(f'Average number of tracks per event: {test_df.shape[0]/test_df.event_entry.nunique()}', flush = True)
     print(f'Average number of selected tracks per event: {test_df.selected.sum()/test_df[test_df.selected == 1].event_entry.nunique()}', flush = True)
 
-    testing_pipeline(test_df=test_df, BID=BID, target_path=cfg.target_path, train_path=cfg.train_path, 
+    testing_pipeline(test_df=test_df, BID=BID, target_path=cfg.target_path,
                      tagger=cfg.tagger, features=features, config=cfg.config, decay_type=cfg.decay_type, 
                      seed=cfg.seed, repo=cfg.repo, data_type=cfg.data_type, model_path = cfg.model_path,
                      domain_adapted=cfg.domain_adapted, calibration_config=cfg.calibration_config, 
