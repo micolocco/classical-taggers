@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 from io import StringIO
-
+import matplotlib.pyplot as plt
 
 def read_files(files, taggers,labels, tree):
     df = None
@@ -19,7 +19,7 @@ def read_files(files, taggers,labels, tree):
     general_variables = ['B_ID', 'signal_weights']
     tagging_variables = []
     for tagger in taggers:
-        tagging_variables += [f'{tagger}_CDEC', f'{tagger}_OMEGA', f'{tagger}_OMEGA_ERR']
+        tagging_variables += [f'{tagger}_CDEC', f'{tagger}_OMEGA']
 
     for f, label in zip(files, labels):
         print(f'Processing {f}')
@@ -29,8 +29,7 @@ def read_files(files, taggers,labels, tree):
         # Rename tagging variables to include label for identification
         for tagger in taggers:
             _df.rename(columns={f'{tagger}_CDEC': f'{label}_{tagger}_CDEC', 
-                                f'{tagger}_OMEGA': f'{label}_{tagger}_OMEGA', 
-                                f'{tagger}_OMEGA_ERR': f'{label}_{tagger}_OMEGA_ERR', }, inplace=True)
+                                f'{tagger}_OMEGA': f'{label}_{tagger}_OMEGA', }, inplace=True)
         _df['event_entry'] = _df['file_id'].astype(str) + "_" + _df['RUNNUMBER'].astype(str) + "_" + _df['EVENTNUMBER'].astype(str)
 
         _df.drop(columns=['file_id', 'RUNNUMBER', 'EVENTNUMBER'], inplace=True)        
@@ -119,7 +118,7 @@ def get_matrix_from_df(df, taggers, labels, target):
 def calc_correlation_with_dilution(df, tagger1, tagger2, df_corr=None):
     # Whenever there is an event only getting a decision from one tagger the events are uncorrelated
     #-> get the fraction of events where only one tagger has a decision, and the other does not have a decision (i.e. has a decision of 0)
-    frac_uncor = ((df[f'{tagger1}_CDEC'] == 0) ^ (df[f'{tagger2}_CDEC'] == 0)).sum() / len(df)
+    frac_uncor = ((df[f'{tagger1}_CDEC'] == 0) ^ (df[f'{tagger2}_CDEC'] == 0)).sum() / ((df[f'{tagger1}_CDEC'] == 1) | (df[f'{tagger2}_CDEC'] == 1)).sum()
     #-> calculate the correlation between the probabilities for the two taggers with decisions
     correlation = df.loc[(df[f'{tagger1}_CDEC'] != 0) & (df[f'{tagger2}_CDEC'] != 0).values, [f'{tagger1}_Prob_B', f'{tagger2}_Prob_B']].corr().iloc[0,1]
     #-> Dilute measured correlation by the fraction of uncorrelated events to get the true correlation between the taggers' decisions
@@ -128,6 +127,18 @@ def calc_correlation_with_dilution(df, tagger1, tagger2, df_corr=None):
     frac_opposite = ((df[f'{tagger1}_CDEC'] * df[f'{tagger2}_CDEC']) < 0).sum() / len(df)
 
     df_corr.loc[len(df_corr)] = [tagger1, tagger2, frac_uncor, frac_opposite, correlation, dil_corr]
+
+def plot_scatter_of_prob(df, tagger1, tagger2, out_path):
+    df = df[[f'{tagger1}_CDEC', f'{tagger2}_CDEC', f'{tagger1}_Prob_B', f'{tagger2}_Prob_B']].copy()
+    df = df.loc[(df[f'{tagger1}_CDEC'] != 0) & (df[f'{tagger2}_CDEC'] != 0).values]
+
+    plt.scatter(df[f'{tagger1}_Prob_B'], df[f'{tagger2}_Prob_B'], alpha = 0.4, marker='.', s = 1)
+    plt.xlabel(r"$P(B^0)$ of " + tagger1.split('_')[0])
+    plt.ylabel(r"$P(B^0)$ of " + tagger2.split('_')[0])
+    plt.savefig(os.path.join(out_path, f'{tagger1}_{tagger2}_scatter.png'))
+    plt.clf()
+    print("Scatterplot saved")
+
 
 
 
@@ -143,7 +154,7 @@ Comparison of allBKGCAT_notSamePV_noOSP_SSK_balanced with and without BN
 python scripts/tagging_power_diff.py --config_json '{"noBN": {"combined_data": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root", "SSPion": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN128/testing/Data/logit/calibration.json", "SSProton": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/calibration.json", "OSKaon": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/calibration.json", "OSMuon": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/calibration.json", "OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/calibration.json", "SSPion_SSProton_OSKaon_OSMuon_OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSPion_SSProton_OSKaon_OSMuon_OSElectron.json"}, "BN": {"combined_data": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data_BN/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root", "SSPion": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32_BN/testing/Data/logit/calibration.json", "SSProton": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL8_nN128_BN/testing/Data/logit/calibration.json", "OSKaon": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL8_nN64_BN/testing/Data/logit/calibration.json", "OSMuon": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32_BN/testing/Data/logit/calibration.json", "OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.001_bs8192_nL8_nN32_BN/testing/Data/logit/calibration.json", "SSPion_SSProton_OSKaon_OSMuon_OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data_BN/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSPion_SSProton_OSKaon_OSMuon_OSElectron.json"}}'
 
 Comparison of Run3v0 and Run3v1
-python scripts/tagging_power_diff.py --config_json '{"V0": {"combined_data": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root", "SSPion": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSPion.json", "SSProton": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSProton.json", "OSKaon": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/OSKaon.json", "OSMuon": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/OSMuon.json", "OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/OSElectron.json", "SSPion_SSProton_OSKaon_OSMuon_OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSPion_SSProton_OSKaon_OSMuon_OSElectron.json"}, "V1": {"combined_data": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root", "SSPion": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/SSPion/Run3v1/testing/Data/logit/calibration.json", "SSProton": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/SSProton/Run3v1/testing/Data/logit/calibration.json", "OSKaon": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSKaon/Run3v1/testing/Data/logit/calibration.json", "OSMuon": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSMuon/Run3v1/testing/Data/logit/calibration.json", "OSElectron": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSElectron/Run3v1/testing/Data/logit/calibration.json", "SSPion_SSProton_OSKaon_OSMuon_OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/with_event_selection/SSPion_SSProton_OSKaon_OSMuon_OSElectron.json"}}'
+python scripts/tagging_power_diff.py --config_json '{"V0": {"combined_data": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root", "SSPion": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSPion.json", "SSProton": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSProton.json", "OSKaon": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/OSKaon.json", "OSMuon": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/OSMuon.json", "OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/OSElectron.json", "SSPion_SSProton_OSKaon_OSMuon_OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSPion_SSProton_OSKaon_OSMuon_OSElectron.json"}, "V1": {"combined_data": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root", "SSPion": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/SSPion/Run3v1/testing/Data/logit/calibration.json", "SSProton": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/SSProton/Run3v1/testing/Data/logit/calibration.json", "OSKaon": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSKaon/Run3v1/testing/Data/logit/calibration.json", "OSMuon": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSMuon/Run3v1/testing/Data/logit/calibration.json", "OSElectron": "/ceph/users/togasa/FlavourTagging/MC/benchmarkModels/Bd2JpsiKst/OSElectron/Run3v1/testing/Data/logit/calibration.json", "SSPion_SSProton_OSKaon_OSMuon_OSElectron": "/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/SSPion_SSProton_OSKaon_OSMuon_OSElectron.json"}}'
 
 '''
 
@@ -153,9 +164,15 @@ if __name__ == "__main__":
         description='Script to estimate correlation between tagging powers and compute the tagging power difference between two taggers.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument('--config_json', type=str, help='JSON string describing inputs. Format: {"label1": {"combined_data": "path", "tagger1": "path", "tagger2": "path", ..., "combination_name": "path"}, "label2": {...}}. The combination tagger (last key) will be used for correlation calculations.', required=True)
+    parser.add_argument('--config_json', type=str, help='JSON string describing inputs. Format: {"label1": {"combined_data": "path", "tagger1": "path_toCalib_info", "tagger2": "path_toCalib_info", ..., "combination_name": "path_toCalib_info"}, "label2_toCalib_info": {...}}. The combination tagger (last key) will be used for correlation calculations.', required=True)
     parser.add_argument('--tree', type=str, default='DecayTree;1', help='Name of the tree in the ROOT files to read.')
+    parser.add_argument('--outpath', type=str, help='Path to where the output should be saved', default='/ceph/users/togasa/FlavourTagging/comparisons/')
+    parser.add_argument('--use_uncalibrated', action='store_true', help='Whether to use the calibrated probabilities for the correlation calculations.')
     cfg = parser.parse_args()
+
+    #make sure outpath exist
+    os.makedirs(cfg.outpath, exist_ok=True)
+
 
     config = json.loads(cfg.config_json)
     labels = list(config.keys())
@@ -236,7 +253,7 @@ if __name__ == "__main__":
     # Load the tagging powers for each tagger and combination, and compute the differences in tagging power between each combination 
     # with error propagation
 
-    df_tagging_power = pd.DataFrame(columns=['tagger', 'tagging_power', 'stat_unc', 'syst_unc'])
+    df_tagging_power = pd.DataFrame(columns=['tagger', 'tagging_power', 'stat_unc', 'calib_unc'])
 
     print(config)
 
@@ -282,26 +299,41 @@ if __name__ == "__main__":
         stat_unc1 = stat_unc1.values[0]
         stat_unc2 = stat_unc2.values[0]
 
-        # Correlation of statistical uncertainty is the fraction of events where both taggers have a decision 
-        corr_stat_unc = 1-df_corr.loc[(df_corr['tagger1'] == tagger1) & (df_corr['tagger2'] == tagger2), 'frac_uncorrelated']
-        assert len(corr_stat_unc) == 1, f"Fraction of uncorrelated events for {tagger1} and {tagger2} not found or not unique in the correlation dataframe. Check the correlation dataframe:\n{df_corr}"
-        corr_stat_unc = corr_stat_unc.values[0]
-        stat_unc_diff = np.sqrt(stat_unc1**2 + stat_unc2**2 - 2*corr_stat_unc*stat_unc1*stat_unc2)*100
+        # Correlation of statistical uncertainty is 100% 
+        stat_unc_diff = np.sqrt(stat_unc1**2 + stat_unc2**2 - 2*stat_unc1*stat_unc2)*100
 
-        syst_unc1 = df_tagging_power.loc[df_tagging_power['tagger'] == tagger1, 'syst_unc']
-        syst_unc2 = df_tagging_power.loc[df_tagging_power['tagger'] == tagger2, 'syst_unc']
-        assert len(syst_unc1) == 1 and len(syst_unc2) == 1, f"Systematic uncertainty for {tagger1} or {tagger2} not found or not unique in the tagging power dataframe. Check the tagging power dataframe:\n{df_tagging_power}"
-        syst_unc1 = syst_unc1.values[0]
-        syst_unc2 = syst_unc2.values[0]
+        calib_unc1 = df_tagging_power.loc[df_tagging_power['tagger'] == tagger1, 'calib_unc']
+        calib_unc2 = df_tagging_power.loc[df_tagging_power['tagger'] == tagger2, 'calib_unc']
+        assert len(calib_unc1) == 1 and len(calib_unc2) == 1, f"calibration uncertainty for {tagger1} or {tagger2} not found or not unique in the tagging power dataframe. Check the tagging power dataframe:\n{df_tagging_power}"
+        calib_unc1 = calib_unc1.values[0]
+        calib_unc2 = calib_unc2.values[0]
 
         # Correlation is diluted correlation between taggers' probabilities of being B
-        corr_syst_unc = df_corr.loc[(df_corr['tagger1'] == tagger1) & (df_corr['tagger2'] == tagger2), 'diluted_correlation']
-        assert len(corr_syst_unc) == 1, f"Diluted correlation for {tagger1} and {tagger2} not found or not unique in the correlation dataframe. Check the correlation dataframe:\n{df_corr}"
-        corr_syst_unc = corr_syst_unc.values[0]
-        syst_unc_diff = np.sqrt(syst_unc1**2 + syst_unc2**2 - 2*corr_syst_unc*syst_unc1*syst_unc2)*100
+        corr_calib_unc = df_corr.loc[(df_corr['tagger1'] == tagger1) & (df_corr['tagger2'] == tagger2), 'diluted_correlation']
+        assert len(corr_calib_unc) == 1, f"Diluted correlation for {tagger1} and {tagger2} not found or not unique in the correlation dataframe. Check the correlation dataframe:\n{df_corr}"
+        corr_calib_unc = corr_calib_unc.values[0]
+        calib_unc_diff = np.sqrt(calib_unc1**2 + calib_unc2**2 - 2*corr_calib_unc*calib_unc1*calib_unc2)*100
+
+        df_tagging_power.loc[len(df_tagging_power)] = ["diff_" + tagger, tp_diff, stat_unc_diff, calib_unc_diff]
 
 
         print(f"Tagger: {tagger}")
-        print(f"statistical correlation: {corr_stat_unc:.4f}, systematic correlation: {corr_syst_unc:.4f}")
+        print(f"statistical correlation: {1}, calibration correlation: {corr_calib_unc:.4f}")
         print(f"Order: {labels[0]} - {labels[1]}")
-        print(f"Tagging power difference: ({tp_diff:.4f} +/- {np.sqrt(stat_unc_diff**2 + syst_unc_diff**2):.4f})% [{stat_unc_diff:.4f}% (stat), {syst_unc_diff:.4f}% (syst)] ")
+        print(f"Tagging power difference: ({tp_diff:.4f} +/- {np.sqrt(stat_unc_diff**2 + calib_unc_diff**2):.4f})% [{stat_unc_diff:.4f}% (stat), {calib_unc_diff:.4f}% (calib)] ")
+
+    out_path = os.path.join(cfg.outpath, f'{labels[0]}_vs_{labels[1]}')
+    os.makedirs(out_path, exist_ok=True)
+
+    with open(os.path.join(out_path, 'tagging_power_comparison.csv'), 'w') as f:
+        df_tagging_power.to_csv(f, index=False)
+    with open(os.path.join(out_path, 'tagger_correlations.csv'), 'w') as f:
+        df_corr.to_csv(f, index=False)
+
+
+    plot_scatter_of_prob(df, 'V0_SSPion_SSProton_OSKaon_OSMuon_OSElectron', 'V1_SSPion_SSProton_OSKaon_OSMuon_OSElectron', out_path)
+    plot_scatter_of_prob(df, 'V0_OSKaon', 'V1_OSKaon', out_path)
+    plot_scatter_of_prob(df, 'V0_OSMuon', 'V1_OSMuon', out_path)
+    plot_scatter_of_prob(df, 'V0_OSElectron', 'V1_OSElectron', out_path)
+    plot_scatter_of_prob(df, 'V0_SSPion', 'V1_SSPion', out_path)
+    plot_scatter_of_prob(df, 'V0_SSProton', 'V1_SSProton', out_path)
