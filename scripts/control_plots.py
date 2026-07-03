@@ -33,6 +33,12 @@ def read_files(files, tree, vars, weights = None):
                 df = pd.concat([df, _df], ignore_index=True)
     return df
 
+'''
+python scripts/control_plots.py --decay Bu2JpsiK   --nbins 50 --outpath /ceph/users/togasa/FlavourTagging/Data/NTuples/control_plots/
+python scripts/control_plots.py --decay Bd2JpsiKst --nbins 50 --outpath /ceph/users/togasa/FlavourTagging/Data/NTuples/control_plots/
+'''
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='ProbNN control plots in MC and Data',

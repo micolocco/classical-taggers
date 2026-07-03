@@ -115,7 +115,7 @@ if __name__ == '__main__':
         print(df.head())
     assert all(taggers_dataframes[0].shape[1] == single_df.shape[1] for single_df in taggers_dataframes), "DataFrames have different number of columns. Check the input files."
     df = taggers_dataframes[0]
-    common_columns = ['B_ID', ] + run2_taggers_variables
+    common_columns = ['B_ID', 'RUNNUMBER', 'EVENTNUMBER', 'file_id'] + run2_taggers_variables
     if cfg.data_type == 'Data':
         common_columns += ['signal_weights']
         if 'Bu' not in cfg.decayType:
@@ -126,8 +126,6 @@ if __name__ == '__main__':
         common_columns += ['B_TRUEID']
     
     for single_df in taggers_dataframes[1:]:
-        single_df = single_df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'])
-
         df = pd.merge(df, single_df, on=['event_entry']+common_columns, how='outer')
     del taggers_dataframes  # Free memory
     df.reset_index(drop=False, inplace=True)  # Reset index after merging
@@ -140,6 +138,10 @@ if __name__ == '__main__':
     print(f'Number of NaN values in each column:\n{df.isna().sum()}')
 
     #print head of a dataframe where at least one of columns is NaN
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_colwidth', None)
     print(df[df.isna().any(axis=1)].head())
 
     assert not df.isna().any().any(), "There are NaN values in the DataFrame. Please check the input files and merging process."

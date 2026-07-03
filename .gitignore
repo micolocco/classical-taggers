@@ -25,3 +25,4 @@ model_configs/lr*.yaml
 NNarchitectures/nL*.yaml
 test/
 **/.nfs*
+scripts/test.py
