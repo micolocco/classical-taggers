@@ -27,6 +27,13 @@ class inputDataset(Dataset):
     def __getitem__(self, index):
         return [self.X[index], self.y[index]]
 
+    def __getitems__(self, indices):
+        X = self.X[indices]
+        y = self.y[indices]
+
+        return list(zip(X, y))  
+
+
     # Apply scaling
     def scale (self, test, scalerPath, transformerPath):
         if test:
