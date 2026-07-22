@@ -71,9 +71,10 @@ if __name__ == '__main__':
     if 'non_selected_signal_weights' in df_weight.columns:
         df_weight.rename(columns={'non_selected_signal_weights':     'signal_weights'},     inplace=True)
         df_weight.rename(columns={'non_selected_background_weights': 'background_weights'}, inplace=True)
-        
-
-    df_weight.drop(columns=["B_DTF_PV_Jpsi_MASS", 'RUNNUMBER', 'EVENTNUMBER', "file_id", 'candidate_index'], inplace=True)
+    
+    drop_cols = [col for col in df_weight.columns if col in df_data.columns]
+    drop_cols.remove("event_entry")
+    df_weight.drop(columns=drop_cols, inplace=True)
 
     print(f"Before merging {df_data.shape}", flush = True)
     df_data = df_data.merge(df_weight.reset_index(drop=True), on=["event_entry"], how='left')
