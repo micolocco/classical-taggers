@@ -241,7 +241,11 @@ if __name__ == '__main__':
 
 
     taggers.plot_calibration_curves(savepath = cfg.outputPath, omega_range="minimal", nbins=10)
-    ft.plotting.draw_calibration_curve(tagger_combination, savepath=cfg.outputPath)
+    taggers.plot_calibration_curves_smooth(savepath = cfg.outputPath, omega_range="minimal", nbins=10, smoothing='kde')
+    
+    ft.plotting.plot_calibration_curve(tagger_combination, savepath=cfg.outputPath)
+    ft.plotting.plot_calibration_curve_smooth(tagger_combination, savepath=cfg.outputPath, smoothing='kde')
+
     ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=cfg.outputPath)
 
     class_indices = df[BID].values

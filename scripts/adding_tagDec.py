@@ -152,12 +152,12 @@ if __name__ == '__main__':
                                           weight=weights)
     tagger.load(cfg.calibration, tagger_name = cfg.tagger, style='delta')
     tagger.apply()
-    tagger_df = tagger.get_dataframe(True)
+    tagger_df = tagger.get_dataframe('all')
     print('Calibrated tagging information')
     print(tagger_df.head())
     test_df[f"{cfg.tagger}_CDEC"] = tagger_df[f"{cfg.tagger}_CDEC"].values
     test_df[f"{cfg.tagger}_OMEGA"] = tagger_df[f"{cfg.tagger}_OMEGA"].values
-    test_df[f"{cfg.tagger}_OMEGA_ERR"] = tagger_df[f"{cfg.tagger}_OMEGA_ERR"].values
+    # test_df[f"{cfg.tagger}_OMEGA_ERR"] = tagger_df[f"{cfg.tagger}_OMEGA_ERR"].values
     
 
 
@@ -167,8 +167,9 @@ if __name__ == '__main__':
     print(f"Calibrated Tagging efficiency: {len(test_df[test_df[f'{cfg.tagger}_CDEC'] != 0]) / len(test_df)}")
     
     # Save the selected tracks into NTuples
+    # f"{cfg.tagger}_OMEGA_ERR",
     os.makedirs(os.path.dirname(cfg.taggedData), exist_ok=True)
-    save_vars = ['RUNNUMBER', 'EVENTNUMBER','file_id', 'selected',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", f"{cfg.tagger}_OMEGA_ERR", "B_ID", get_mass_label(cfg.decayType), "B_TAU", "B_TAUERR", 'candidate_index']+run2_taggers_variables
+    save_vars = ['RUNNUMBER', 'EVENTNUMBER','file_id', 'selected',  f'{cfg.tagger}_TagDec', f'{cfg.tagger}_Eta', f"{cfg.tagger}_CDEC", f"{cfg.tagger}_OMEGA", "B_ID", get_mass_label(cfg.decayType), "B_TAU", "B_TAUERR", 'candidate_index']+run2_taggers_variables
     if cfg.data_type == 'Data':
         save_vars += ["FillNumber", 'signal_weights']
     else:
