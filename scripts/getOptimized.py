@@ -138,7 +138,7 @@ if __name__ == '__main__':
     seeds  = [12]
 
     learning_rates = [0.0001, 0.001]
-    num_layers = [8, 16]
+    num_layers = [6, 8]
     num_neurons = [32, 64, 128]
     train_batch_sizes = [8192]
 
