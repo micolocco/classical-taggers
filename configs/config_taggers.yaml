@@ -1,11 +1,13 @@
-{
-    "__comment":  "Snakemake configuration for e5 cluster infrastructure",
-    "DATA": "/ceph/FlavourTagging/NTuples/Run3/data",
-    "MC": "/ceph/FlavourTagging/NTuples/Run3/MC",
-    "OUT": "/ceph/users/togasa/FlavourTagging/",
-    "REPO": "/home/togasa/classical-taggers",
-    "nCPUs":      "1",
-    "LOCALTMP": "/home/togasa/classical-taggers/outdir/tmp",
-    "LOG": "/home/togasa/classical-taggers/outdir/log",
-    "combined_df_n_splits": 75,
-}
+__comment           : "Snakemake configuration for e5 cluster infrastructure"
+DATA                : "/ceph/FlavourTagging/NTuples/Run3/data"
+MC                  : "/ceph/FlavourTagging/NTuples/Run3/MC"
+OUT                 : "/ceph/users/togasa/FlavourTagging/"
+REPO                : "/home/togasa/classical-taggers"
+nCPUs               : "1"
+LOCALTMP            : "/home/togasa/classical-taggers/outdir/tmp"
+LOG                 : "/home/togasa/classical-taggers/outdir/log"
+combined_df_n_splits: 
+    Bu2JpsiK        : 75
+    Bd2JpsiKst      : 75
+    Bs2JpsiKst      : 75
+    Bs2DsPi         : 200
