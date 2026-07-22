@@ -10,8 +10,8 @@ dependencies:
   - scikit-learn
   - numpy==1.24
   - matplotlib==3.8.0
-  - pandas==1.4.4
-  - python==3.10
+  - pandas==2.3.3
+  - python==3.11
   - uproot
   - pulp==2.7.0
   - ipython
@@ -20,8 +20,8 @@ dependencies:
   - pip:
     - awkward_pandas
     - awkward==2.8.2
-    - lhcb-ftcalib==1.4.5
-    - snakemake
+    - lhcb-ftcalib==2.0.1
+    - snakemake==9.20.0
     - rich
     - mplhep
     - zstandard
