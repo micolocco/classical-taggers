@@ -50,6 +50,24 @@ import yaml
 # piminus_MINIP                       -> hminus_MINIP
 # Kplus_MINIP                         -> hplus_MINIP
 
+#Bs2DsPi classifier based on above two classifiers
+# B_CHI2VXNDOF
+# B_MIN_OWNPV_IPCHI2
+# B_ETA
+# B_DTF_PV_Ds_CHI2
+# Ds_OWNPV_IP
+# Ds_OWNPV_FD
+# Ds_ETA
+# Ds_PZ
+# hplus_OWNPV_IP
+# hminus_OWNPV_IP
+# piminus_OWNPV_IP
+# piplus_OWNPV_IP
+# hplus_MINIP
+# hminus_MINIP
+# piminus_MINIP
+# piplus_MINIP
+
 
 class KFoldBDT:
     def __init__(self, bdtargs, n_folds=5):
@@ -124,7 +142,7 @@ class KFoldBDT:
         return np.array(result)
 
 
-def read_files(files, vars, treename, only_upper, massname):
+def read_files(files, vars, treename, massname, lower_USB_bound = None):
     df = pd.DataFrame(columns=vars)
     pd.set_option('display.max_columns', 15)
 
@@ -142,25 +160,38 @@ def read_files(files, vars, treename, only_upper, massname):
         _df = _df.groupby("candidate_entry").first()
         _df.reset_index(inplace=True)
 
-        if only_upper: #Only take upper mass sideband from data as example of combinatorial background
-            _df = _df[_df[massname] > 5350]
+        if lower_USB_bound is not None:
+            _df = _df[_df[massname] > lower_USB_bound]
+        print(f'num_rows: {len(_df["event_entry"])} unique events: {_df["event_entry"].nunique()}', flush=True)
         
 
         df = pd.concat([df, _df], ignore_index = True)
 
+        if df['event_entry'].nunique() >= 3_000_000: #Stop reading more files if we have enough events for training
+            print(f"Reached 2 million unique events, stopping reading more files.", flush=True)
+            print(f"Read a total of {i+1} files with {df['event_entry'].nunique()} unique events.", flush=True)
+            break
+
     return df
 
 
-def plot_by_label(df, massname, outpath, filename, xlim=(5200, 5600), bins = 40):
-    bins = np.linspace(xlim[0], xlim[1], bins+1)
+def plot_by_label(df, massname, outpath, filename, nbins = 50):
+    masses = df[massname].sort_values().to_numpy()
+    xlim = [masses[int(len(masses)*0.01)], masses[int(len(masses)*0.99)]]
+    xlim = [xlim[0]+100-xlim[0]%100, xlim[1]-xlim[1]%100+100] #Round to 100 MeV for neat binsize
 
-    texify_dict = {'B_DTF_PV_Jpsi_MASS' : r'$m(J/\psi K^{\pm})$'}
+    bins = np.linspace(xlim[0], xlim[1], nbins+1)
+
+    texify_dict = {
+        'B_DTF_PV_Jpsi_MASS' : r'$m(J/\psi K^{\pm})$',
+        'B_DTF_PV_Ds_MASS'   : r'$m(D_{s} K^{\pm})$',
+    }
 
     plt.figure(figsize=(8, 6))
     for label, group in df.groupby('label'):
         plt.hist(group[massname], bins=bins, alpha=0.5, label=f'Label {label}')
     plt.xlabel(fr'{texify_dict[massname]} in MeV')
-    plt.ylabel('counts per $10$MeV')
+    plt.ylabel(f'counts per ${int((xlim[1] - xlim[0]) / nbins)}$MeV')
     plt.legend()
     # plt.title(f'Histogram of {massname} split by label')
     plt.savefig(f'{outpath}/{filename}.pdf')
@@ -180,7 +211,7 @@ if __name__ == '__main__':
     parser.add_argument('--massname', help='Name of the invariant mass variable', type=str)
     parser.add_argument('--num_threads', help='Number of threads used for training', default=45, type = int) 
     parser.add_argument('--signal_class_features', help='Yaml file with the features to be used for signal classification', type=str, default='configs/signal_classifier_features.yaml')
-
+    parser.add_argument('--USB_start', help='Start of the upper sideband region in MeV', type=float, default=5350)
     
 
     cfg = parser.parse_args()
@@ -197,14 +228,14 @@ if __name__ == '__main__':
 
     print(f'Reading of data files begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
     print(f"Reading a total of {len(data_files)} files.", flush=True)
-    data = read_files(data_files, vars_to_load, cfg.treename, only_upper = True, massname = cfg.massname)
+    data = read_files(data_files, vars_to_load, cfg.treename, massname = cfg.massname, lower_USB_bound = cfg.USB_start)
     data['label'] = 0
     print(f'num_rows: {len(data["event_entry"])} unique events: {data["event_entry"].nunique()}', flush=True)
     print(f'Reading of data files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
 
     print(f'Reading of MC files begins {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
     print(f"Reading a total of {len(mc_files)} files.", flush=True)
-    MC = read_files(mc_files, vars_to_load, f'{cfg.treename}', only_upper = False, massname = cfg.massname)
+    MC = read_files(mc_files, vars_to_load, f'{cfg.treename}', massname = cfg.massname)
     MC['label'] = 1
     print(f'num_rows: {len(MC["event_entry"])} unique events: {MC["event_entry"].nunique()}', flush=True)
     print(f'Reading of MC files ends {datetime.datetime.now().strftime("%H:%M:%S")}', flush=True)
