@@ -6,7 +6,8 @@ import argparse
 import os
 from pprint import pprint
 from adding_features import get_mass_label
-
+from sklearn.preprocessing import StandardScaler
+from pickle import load
 
 def extract_selection_var(cut_file):
     '''
@@ -23,6 +24,31 @@ def extract_selection_var(cut_file):
     result_array = [match.strip() for match in matches]
     result_array = np.unique(result_array).tolist()
     return result_array
+
+
+def add_lda_variables(df, cut_file):
+    '''
+    Function to add the LDA variables to the dataframe
+    '''
+    lda_model = os.path.dirname(os.path.dirname(cut_file)) + 'lda_model.pkl'
+
+    if os.path.exists(lda_model):
+        df_copy = df.copy()
+        
+
+        #During development a scaler was used prior to the LDA
+        #Can eventually be dropped
+        lda_scaler = lda_model.replace('lda_model.pkl', 'lda_scaler.pkl') 
+        if os.path.exists(lda_scaler):
+            scaler = load(open(lda_scaler, 'rb'))
+            df_copy = scaler.transform(df_copy)
+        
+        lda = load(open(lda_model, 'rb'))
+        lda_variables = lda.transform(df_copy)
+
+        num_lda_variables = lda_variables.shape[1] if lda_variables.ndim > 1 else 1
+        for i in range(num_lda_variables):
+            df[f'lda_{i}'] = lda_variables[:, i] if num_lda_variables > 1 else lda_variables
     
 def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variables, BKG0, data_type, evtType):
     print(f"Applying pre-selections on sample: {notSelected_rootPath}")
