@@ -118,7 +118,7 @@ def mc_vars_to_data_vars(variables):
 def get_loading_vars(evtType, data_type, loading_var_path = "configs/loading_variables.txt", signal_class_feat_path = "configs/signal_classifier_features.yaml"):
     with open(loading_var_path, 'r') as f:
         loading_variables = f.read().splitlines()
-    if 'Bs' not in evtType:
+    if evtType == 'Bs2JpsiKst':
         with open(signal_class_feat_path, 'r') as f:
             signal_class_features = yaml.safe_load(f)
             loading_variables += signal_class_features[evtType]
