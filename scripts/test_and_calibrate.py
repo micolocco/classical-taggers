@@ -265,7 +265,7 @@ def testing_pipeline(test_df, BID, target_path, tagger, features, config,
     if data_type == 'MC':
         mode = 'Bu' #When truth information is availiable Bd or Bs mode is not needed
     
-    npar = 2 
+    npar = 3 
     if calibration_config is not None:
         with open(calibration_config, 'r') as f:
             calib_config_dict = yaml.safe_load(f)
