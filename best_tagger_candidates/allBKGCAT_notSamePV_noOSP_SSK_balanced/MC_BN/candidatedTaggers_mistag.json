@@ -1,57 +1,57 @@
 {
     "OSKaon": {
-        "calibrated tagging power": "0.967+/-0.023",
-        "calibrated tagging power MC": "2.086+/-0.023",
+        "calibrated tagging power": "0.981+/-0.023",
+        "calibrated tagging power MC": "2.101+/-0.024",
         "seed": 12,
         "learning_rate": 0.001,
         "batch_size": 8192,
         "numlayers": 8,
         "numneurons": 128,
-        "max_ratio": 41.35788543663675,
-        "precision": 0.024179185890247503
+        "max_ratio": 42.24551737138819,
+        "precision": 0.023671150508320547
     },
     "OSElectron": {
-        "calibrated tagging power": "0.395+/-0.014",
-        "calibrated tagging power MC": "0.495+/-0.011",
+        "calibrated tagging power": "0.402+/-0.015",
+        "calibrated tagging power MC": "0.503+/-0.012",
         "seed": 12,
         "learning_rate": 0.001,
         "batch_size": 8192,
         "numlayers": 8,
         "numneurons": 32,
-        "max_ratio": 27.8377733358579,
-        "precision": 0.03592241333152525
+        "max_ratio": 27.521839717229874,
+        "precision": 0.036334780315356474
     },
     "OSMuon": {
         "calibrated tagging power": "0.833+/-0.020",
-        "calibrated tagging power MC": "1.092+/-0.016",
+        "calibrated tagging power MC": "1.107+/-0.017",
         "seed": 12,
         "learning_rate": 0.001,
         "batch_size": 8192,
         "numlayers": 8,
         "numneurons": 32,
-        "max_ratio": 41.1453814496721,
-        "precision": 0.02430406438747378
+        "max_ratio": 40.75382377446424,
+        "precision": 0.024537574818355713
     },
     "SSPion": {
         "calibrated tagging power": "0.94+/-0.06",
-        "calibrated tagging power MC": "1.09+/-0.15",
+        "calibrated tagging power MC": "1.22+/-0.05",
         "seed": 12,
         "learning_rate": 0.0001,
         "batch_size": 8192,
         "numlayers": 6,
         "numneurons": 32,
-        "max_ratio": 16.419003962261844,
-        "precision": 0.06090503433085489
+        "max_ratio": 16.365420418746048,
+        "precision": 0.06110444916248733
     },
     "SSProton": {
-        "calibrated tagging power": "0.210+/-0.029",
-        "calibrated tagging power MC": "0.050+/-0.027",
+        "calibrated tagging power": "0.293+/-0.033",
+        "calibrated tagging power MC": "0.057+/-0.012",
         "seed": 12,
         "learning_rate": 0.001,
         "batch_size": 8192,
         "numlayers": 6,
         "numneurons": 32,
-        "max_ratio": 7.293679790843246,
-        "precision": 0.137105004425261
+        "max_ratio": 8.825891004705216,
+        "precision": 0.11330300810047221
     }
 }
