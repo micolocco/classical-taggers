@@ -100,7 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_prePath', help='Name of the output dir', type=str, default='/ceph/users/togasa/FlavourTagging')
     parser.add_argument('--cut', help='Cut type to be used', type=str, default='notSamePV_noOSP')
     parser.add_argument('--outpath', help='Where the best tagger candidates configs will be saved', type=str, default='./best_tagger_candidates')
-    parser.add_argument('--plot_path', help='Where the plots will be saved', type=str, default='/ceph/users/togasa/FlavourTagging/')
+    parser.add_argument('--plot_path', help='Where the plots will be saved', type=str, default='/ceph/users/togasa/FlavourTagging/comparisons/')
     parser.add_argument('--features', help='Input features for NN training', default='union_PROBNN') 
     parser.add_argument('--data_type', help='Type of data to be used', type=str, choices=['MC', 'Data'])  # 'MC' or 'Data'
     parser.add_argument('--tagger_input', help='File of the tagger inputs, only needed for num parameter plot', type=str, default='/home/togasa/classical-taggers/tagger_inputFeatures/union_PROBNN.yaml')
@@ -216,7 +216,7 @@ if __name__ == '__main__':
         # os.makedirs(os.path.dirname(filename), exist_ok=True)
         path_name = os.path.join(cfg.outpath, f'{cfg.cut}/{data_type}')
         if cfg.BN: path_name = path_name.replace(data_type, data_type+'_BN')
-        plot_path = os.path.join(cfg.plot_path, f'{data_type}/hyperparameters_plots/{cfg.cut}/{link}')
+        plot_path = os.path.join(cfg.plot_path, f'hyperparameters_opt/{data_type}/{cfg.cut}/{link}')
         if cfg.BN: plot_path = plot_path.replace(data_type, data_type+'_BN')
         os.makedirs(path_name, exist_ok=True)
         os.makedirs(plot_path, exist_ok=True)
