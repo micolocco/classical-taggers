@@ -32,6 +32,9 @@ def get_tex_decay(decay):
     elif "Bd2JpsiKst" == decay:
         tex_decay = r"$B^{0} \to J/\psi K^*$"
         xlabel = r"$ m(J/\psi K^{*})~[\mathrm{MeV}/c^2]$"
+    elif "Bs2DsPi" == decay:
+        tex_decay = r"$B^{0}_{s} \to D_{s}^{-} \pi^+$"
+        xlabel = r"$ m(D_{s}^{\pm} \pi^{\mp})~[\mathrm{MeV}/c^2]$"
     elif "Bs2JpsiKst" == decay:
         tex_decay = r"$B^{0}_{s} \to J/\psi K^*$"
         xlabel = r"$ m(J/\psi K^{*})~[\mathrm{MeV}/c^2]$"
@@ -51,10 +54,22 @@ def fit_valid(result):
     return [True, "Fit is valid"]
 
 
-def plot_mass_fit(model_builder, masses, bins, mass_range, model, params, yield_signal, yield_bkg, outputdir, filename, xlabel, tex_decay, is_simulation):
+def plot_mass_fit(model_builder, masses, bins, mass_range, model, params, yield_signal, yield_bkg, outputdir, filename, xlabel, tex_decay, is_simulation, yscale='log'):
     print(f'Generating figures for {tex_decay} fit', flush=True)
 
-    x_plot, binwidth, counts, bin_centers, errors = model_builder._common_plot_arrays(masses, bins, mass_range)
+    # x_plot, binwidth, counts, bin_centers, errors = model_builder._common_plot_arrays(masses, bins, mass_range)
+
+    x_plot = np.linspace(mass_range[0], mass_range[1], 1000)
+    binwidth = (mass_range[1] - mass_range[0] )/bins
+
+    counts, bin_edges = np.histogram(masses, bins=bins, range=mass_range)
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])  
+    errors = np.sqrt(counts)
+
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [4, 1]}, sharex=True)
+
+
     ylabel = f"Events$~/~${binwidth}" + r"$[~\mathrm{MeV}/c^2]$"
 
     fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={"height_ratios": [4, 1]}, sharex=True)
@@ -62,7 +77,7 @@ def plot_mass_fit(model_builder, masses, bins, mass_range, model, params, yield_
 
     ax1.errorbar(bin_centers, counts, yerr=errors, fmt="o", color="black", label="MC Data" if is_simulation else "Data", markersize=1, elinewidth=1.0)
     ax1.set_ylabel(ylabel)
-    ax1.set_yscale("log")
+    ax1.set_yscale(yscale)
     ax1.legend()
 
     total_fit_at_bin_centers = np.interp(bin_centers, x_plot, total_pdf_eval)
@@ -79,30 +94,34 @@ def plot_mass_fit(model_builder, masses, bins, mass_range, model, params, yield_
     y_min = np.min(counts)
     if y_min <= 2:
         y_min = 2
-    ax1.set_ylim(y_min * 0.66, np.max(counts) * 2)
+    if yscale == 'log':
+        ax1.set_ylim(y_min * 0.66, np.max(counts) * 2)
+    else:
+        ax1.set_ylim(0, np.max(counts) * 1.2)
+
 
     plt.tight_layout()
     plt.savefig(join(outputdir, filename))
     print(f'Figure saved to {join(outputdir, filename)}', flush=True)
     plt.close()
 
-    # Plot individual PDF contributions
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(x_plot, signal_scaled, label=tex_decay, color="blue", linewidth=2.5)
-    if not is_simulation:
-        ax.plot(x_plot, bkg_scaled, label="Combinatorial", color="gray", linewidth=2.5)
-        if use_secondary:
-            ax.plot(x_plot, secondary_scaled, label=secondary_label, color="goldenrod", linewidth=2.5)
+    # # Plot individual PDF contributions
+    # fig, ax = plt.subplots(figsize=(10, 6))
+    # ax.plot(x_plot, signal_scaled, label=tex_decay, color="blue", linewidth=2.5)
+    # if not is_simulation:
+    #     ax.plot(x_plot, bkg_scaled, label="Combinatorial", color="gray", linewidth=2.5)
+    #     if use_secondary:
+    #         ax.plot(x_plot, secondary_scaled, label=secondary_label, color="goldenrod", linewidth=2.5)
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_yscale('log')
-    ax.legend(fontsize=12)
-    ax.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(join(outputdir, filename.replace(".pdf", "_pdf_contributions.png")))
-    print(f'PDF contributions plot saved to {join(outputdir, filename.replace(".pdf", "_pdf_contributions.png"))}', flush=True)
-    plt.close()
+    # ax.set_xlabel(xlabel)
+    # ax.set_ylabel(ylabel)
+    # ax.set_yscale('log')
+    # ax.legend(fontsize=12)
+    # ax.grid(True, alpha=0.3)
+    # plt.tight_layout()
+    # plt.savefig(join(outputdir, filename.replace(".pdf", "_pdf_contributions.png")))
+    # print(f'PDF contributions plot saved to {join(outputdir, filename.replace(".pdf", "_pdf_contributions.png"))}', flush=True)
+    # plt.close()
 
     #Plot the Differences in counts and the Fit function
     diffs = counts - total_fit_at_bin_centers
@@ -139,11 +158,16 @@ def massfit(obs, masses, tex_decay, xlabel, outname, simulation, sim_fit, filena
     else:
         mc_tail_parameters = None
 
+    print(f"Loaded MC tail parameters from {sim_fit}: {mc_tail_parameters}", flush=True)
+
     model_builder = GenericMassModel.from_decay_type(obs, tex_decay, simulation, is_selected, len(df), mc_tail_parameters)
     fit_context = model_builder.build()
     model = fit_context["model"]
     yield_signal = fit_context["yield_signal"]
-    yield_bkg = fit_context["yield_bkg"]
+    if not simulation:
+        yield_bkg = fit_context["yield_bkg"]
+    else:
+        yield_bkg = None
 
 
     # Convert data
@@ -198,6 +222,8 @@ def massfit(obs, masses, tex_decay, xlabel, outname, simulation, sim_fit, filena
 
     if generate_figures:
         plot_mass_fit(model_builder, masses, bins, mass_range, model, params, yield_signal, yield_bkg, outputdir, prefix + filename, xlabel, tex_decay, simulation)
+        plot_mass_fit(model_builder, masses, bins, mass_range, model, params, yield_signal, yield_bkg, outputdir, prefix + 'linear_' + filename, xlabel, tex_decay, simulation, yscale='linear')
+
                 
     if compute_weights:
 
@@ -231,57 +257,77 @@ def massfit(obs, masses, tex_decay, xlabel, outname, simulation, sim_fit, filena
         print(weights)
 
         df[f"{prefix}signal_weights"]     = weights[yield_signal] 
-        df[f"{prefix}background_weights"] = weights[yield_bkg] 
+
+        for key, value in weights.items():
+            if key != yield_signal:
+                df[f"{prefix}{key}_weights"] = value
+
+
+        # df[f"{prefix}background_weights"] = weights[yield_bkg] 
 
         #Plot the weighted mass spectra
-        if generate_figures:
-            plt.figure(figsize=(10, 6))
-            plt.hist(
-                masses,
-                bins=100,
-                weights=df[f"{prefix}signal_weights"],
-                histtype="step",
-                linewidth=2,
-                color="red",
-                label="signal-weighted",
-                alpha=0.7
-            )
-            plt.hist(
-                masses,
-                bins=100,
-                weights=df[f"{prefix}background_weights"],
-                histtype="step",
-                linewidth=2,
-                color="green",
-                label="background-weighted",
-                alpha=0.7
-            )
-            plt.xlabel(xlabel)
-            plt.ylabel("Weighted candidates")
-            plt.legend()
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-            plt.savefig(join(outputdir, prefix + "weighted_mass_spectra.png"))
-            plt.close()
+        # if generate_figures:
+        #     plt.figure(figsize=(10, 6))
+        #     plt.hist(
+        #         masses,
+        #         bins=100,
+        #         weights=df[f"{prefix}signal_weights"],
+        #         histtype="step",
+        #         linewidth=2,
+        #         color="red",
+        #         label="signal-weighted",
+        #         alpha=0.7
+        #     )
+        #     plt.hist(
+        #         masses,
+        #         bins=100,
+        #         weights=df[f"{prefix}background_weights"],
+        #         histtype="step",
+        #         linewidth=2,
+        #         color="green",
+        #         label="background-weighted",
+        #         alpha=0.7
+        #     )
+        #     plt.xlabel(xlabel)
+        #     plt.ylabel("Weighted candidates")
+        #     plt.legend()
+        #     plt.grid(True, alpha=0.3)
+        #     plt.tight_layout()
+        #     plt.savefig(join(outputdir, prefix + "weighted_mass_spectra.png"))
+        #     plt.close()
 
         
-        del weights
         if generate_figures:
-            plt.plot(masses, df[f"{prefix}signal_weights"], marker=".", linestyle="None", color="red", markersize=1, label="signal")
-            plt.plot(masses, df[f"{prefix}background_weights"], marker=".", linestyle="None", color="green", markersize=1, label="background weights")
-            weight_sum = df[f"{prefix}signal_weights"] + df[f"{prefix}background_weights"]
+            weight_sum = np.zeros_like(masses)
+            for key, value in weights.items():
+                plt.plot(masses, value, marker=".", linestyle="None", markersize=1, label=key)
+                weight_sum += value
+            plt.plot(masses, weight_sum, marker=".", linestyle="None", color="black", markersize=1, label="Sum of all weights")
 
-            plt.plot(masses, weight_sum, marker=".", linestyle="None", color="black", markersize=1, label="Sum of three")
-            plt.xlabel(xlabel)
-            plt.ylabel("weights")
+
+
+            # plt.plot(masses, df[f"{prefix}signal_weights"], marker=".", linestyle="None", color="red", markersize=1, label="signal")
+            # plt.plot(masses, df[f"{prefix}background_weights"], marker=".", linestyle="None", color="green", markersize=1, label="background weights")
+            # weight_sum = df[f"{prefix}signal_weights"] + df[f"{prefix}background_weights"]
+
+            # plt.plot(masses, weight_sum, marker=".", linestyle="None", color="black", markersize=1, label="Sum of three")
+            # plt.xlabel(xlabel)
+            # plt.ylabel("weights")
+
             # use line-only entries in the legend (points remain as plotted)
-            handles = [Line2D([0], [0], color='red', linestyle='-', label='signal'),
-                       Line2D([0], [0], color='green', linestyle='-', label='background weights')]
-            handles.append(Line2D([0], [0], color='black', linestyle='-', label='Sum of three'))
+            # handles = [Line2D([0], [0], color='red', linestyle='-', label='signal'),
+            #            Line2D([0], [0], color='green', linestyle='-', label='background weights')]
+            # handles.append(Line2D([0], [0], color='black', linestyle='-', label='Sum of three'))
+
+            handles = [Line2D([0], [0], linestyle='-', label=str(key).split('=')[0], color=plt.gca().lines[i].get_color()) for i, key in enumerate(weights.keys())]
+
             plt.legend(handles=handles)
             plt.grid(True, alpha=0.3)
+            plt.legend()
+            plt.xlabel(xlabel)
             plt.savefig(join(outputdir, prefix + f"validate_sweights.png"))
             plt.close()
+        del weights
 
     print(f"Fit ended with status: {result.status}", flush=True)
     return df
@@ -331,7 +377,9 @@ if __name__ == '__main__':
         _df.dropna(inplace=True)
         
         if cfg.simulation:
-            _df = _df.query("B_BKGCAT == 0")  
+            BKGCAT_value = 0 if cfg.decay_type != "Bs2DsPi" else 20
+
+            _df = _df.query(f"B_BKGCAT == {BKGCAT_value}")  
 
 
         _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
