@@ -840,9 +840,30 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
         # Print the formatted data
         for key, value in formatted_data.items():
             print(f"{key}: {value}")
-    except (AssertionError, np.linalg.LinAlgError, ValueError)  as e:
-        print(f"Error occurred during calibration: {e}.")
-        print(traceback.format_exc())
+    except AssertionError as e:
+        print(f"AssertionError occurred during calibration: {e}.")
+        info_dict = {"TaggingEfficiency"     : np.nan,
+                    "TaggingPower"           : np.nan,
+                    "EffectiveMistag"        : np.nan,
+                    "TaggingEfficiency_Cali" : np.nan,
+                    "TaggingPower_Cali"      : np.nan,
+                    "EffectiveMistag_Cali"   : np.nan,} 
+        for i in range(npar):
+            info_dict[f"Fitpar_p{i}"]      = [np.nan, np.nan]
+            info_dict[f"Fitpar_deltap{i}"] = [np.nan, np.nan]
+    except np.linalg.LinAlgError as e:
+        print(f"LinAlgError occurred during calibration: {e}.")
+        info_dict = {"TaggingEfficiency"     : np.nan,
+                    "TaggingPower"           : np.nan,
+                    "EffectiveMistag"        : np.nan,
+                    "TaggingEfficiency_Cali" : np.nan,
+                    "TaggingPower_Cali"      : np.nan,
+                    "EffectiveMistag_Cali"   : np.nan,} 
+        for i in range(npar):
+            info_dict[f"Fitpar_p{i}"]      = [np.nan, np.nan]
+            info_dict[f"Fitpar_deltap{i}"] = [np.nan, np.nan]
+    except ValueError as e:
+        print(f"ValueError occurred during calibration: {e}.")
         info_dict = {"TaggingEfficiency"     : np.nan,
                     "TaggingPower"           : np.nan,
                     "EffectiveMistag"        : np.nan,
