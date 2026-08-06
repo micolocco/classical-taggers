@@ -113,7 +113,9 @@ if __name__ == '__main__':
 
 
     test_dataset = inputDataset(df=test_df[features+['label']])
-    if not os.path.exists(scalerPath) or not os.path.exists(transformerPath): # Check if the scaler and transformer already exist, if assume they are included in the model
+    if cfg.benchmark_version is None:
+        print(f"Scaler and transformer found at {scalerPath} and {transformerPath}, using them for scaling and transforming the data")
+
         test_dataset.scale(test=True, scalerPath=scalerPath, transformerPath=transformerPath)
     test_dl = DataLoader(test_dataset, batch_size = 1024, shuffle=False)
 
@@ -129,10 +131,9 @@ if __name__ == '__main__':
     # Assign tagging decision = 0 for tracks that don't pass the pre-selection
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_TagDec"] = 0  # classic
     test_df.loc[test_df.selected == 0, f"{cfg.tagger}_Eta"] = 0.5  # classic
-
+    test_df = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['event_entry']).first().reset_index()
 
     # Aplly calibration to get omegas
-
     mode=cfg.decayType[:2]
 
     tau_ps = None
@@ -158,11 +159,14 @@ if __name__ == '__main__':
     test_df[f"{cfg.tagger}_CDEC"] = tagger_df[f"{cfg.tagger}_CDEC"].values
     test_df[f"{cfg.tagger}_OMEGA"] = tagger_df[f"{cfg.tagger}_OMEGA"].values
     # test_df[f"{cfg.tagger}_OMEGA_ERR"] = tagger_df[f"{cfg.tagger}_OMEGA_ERR"].values
-    
 
 
     # Take only tagging track with best mistag
-    test_df = test_df.sort_values(by = ['selected',f'{cfg.tagger}_Eta'] , ascending = [False,True]).groupby(['event_entry']).first().reset_index()
+
+    print('Value counts of TAGDEC:')
+    print(test_df[f'{cfg.tagger}_TagDec'].value_counts())
+    print('Value counts of CDEC:')
+    print(test_df[f'{cfg.tagger}_CDEC'].value_counts())
     print(f"Tagging efficiency: {len(test_df[test_df[f'{cfg.tagger}_TagDec'] != 0]) / len(test_df)}")
     print(f"Calibrated Tagging efficiency: {len(test_df[test_df[f'{cfg.tagger}_CDEC'] != 0]) / len(test_df)}")
     
