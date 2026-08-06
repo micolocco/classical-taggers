@@ -73,7 +73,7 @@ if __name__ == '__main__':
         vars += ['B_TRUEID']
 
     for tagger in cfg.tagger:
-        all_vars = vars + [f'{tagger}_TagDec', f'{tagger}_Eta',f'{tagger}_CDEC', f'{tagger}_OMEGA', f'{tagger}_OMEGA_ERR']
+        all_vars = vars + [f'{tagger}_TagDec', f'{tagger}_Eta',f'{tagger}_CDEC', f'{tagger}_OMEGA', ] # f'{tagger}_OMEGA_ERR'
 
         print(f'Processing tagger {tagger}')
         print(f'Base path {cfg.input_files}')
@@ -201,12 +201,12 @@ if __name__ == '__main__':
             
         
 
-        tagger_df = tagger_obj.get_dataframe(True)
+        tagger_df = tagger_obj.get_dataframe('all')
         print('Calibrated tagging information')
         print(tagger_df.head())
         df[f"{tagger}_CDEC"] = tagger_df[f"{tagger}_CDEC"].values
         df[f"{tagger}_OMEGA"] = tagger_df[f"{tagger}_OMEGA"].values
-        df[f"{tagger}_OMEGA_ERR"] = tagger_df[f"{tagger}_OMEGA_ERR"].values
+        # df[f"{tagger}_OMEGA_ERR"] = tagger_df[f"{tagger}_OMEGA_ERR"].values
 
         print(f'{tagger} has loaded tagging power of {tagger_obj.stats.tagging_power(calibrated=True)}')
 
@@ -221,7 +221,7 @@ if __name__ == '__main__':
 
 
     
-    uncali_combined_df = target_combination.get_dataframe(calibrated=False) #individual taggers calibrated but not the combination
+    uncali_combined_df = target_combination.get_dataframe('all') #individual taggers calibrated but not the combination
     tagger_combination = ft.Tagger(f'{cfg.combinationName}',
                                     eta_data=uncali_combined_df[f'{cfg.combinationName}_ETA'].to_numpy(),
                                     dec_data=uncali_combined_df[f'{cfg.combinationName}_DEC'].to_numpy(),
@@ -234,10 +234,10 @@ if __name__ == '__main__':
     tagger_combination.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
     ## And calibrate this tagger again
     tagger_combination.calibrate()
-    tagger_df = tagger_combination.get_dataframe(True)
+    tagger_df = tagger_combination.get_dataframe('all')
     df[f"{cfg.combinationName}_CDEC"] = tagger_df[f"{cfg.combinationName}_CDEC"].values
     df[f"{cfg.combinationName}_OMEGA"] = tagger_df[f"{cfg.combinationName}_OMEGA"].values
-    df[f"{cfg.combinationName}_OMEGA_ERR"] = tagger_df[f"{cfg.combinationName}_OMEGA_ERR"].values
+    # df[f"{cfg.combinationName}_OMEGA_ERR"] = tagger_df[f"{cfg.combinationName}_OMEGA_ERR"].values
 
 
     taggers.plot_calibration_curves(savepath = cfg.outputPath, omega_range="minimal", nbins=10)
@@ -283,6 +283,3 @@ if __name__ == '__main__':
     with uproot.recreate(f"{cfg.outputPath}/combined_tagged.root") as file:
         file["DecayTree"] = df
     print(f'File with combined tagging information created at {cfg.outputPath}/combined_tagged.root')
-        
-        
-    
