@@ -1,0 +1,19 @@
+{
+  'Bu2JpsiK': 
+    [
+    ],
+  'Bd2JpsiKst': 
+    [
+    ],
+  'Bs2DsPi': 
+    [
+      'hplus_PX', 
+      'hplus_PY', 
+      'hplus_PZ', 
+      'hminus_PX', 
+      'hminus_PY', 
+      'hminus_PZ',
+      'piplus_PID_K',
+      'piminus_PID_P',
+    ]
+}

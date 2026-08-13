@@ -638,6 +638,7 @@ rule add_features:
             '--treename', tree,
             '--loading_features {input.loading_vars}',
             '--signal_class_features {input.signal_class_features}',
+            '--classic_selection_features {input.classical_selection_features}',
             '--data_type {wildcards.data_type}',
             '&> {log}',
         ]
@@ -791,10 +792,13 @@ rule train_signal_classifier:
 rule event_selection: #Applies BDT signal selection and in case a bin is supplied in addition to the decay, also cuts away events outside the bin
     input:
         script = join(repo, 'scripts/apply_event_selection.py'),
+        data   = join(out,  '{data_type}/NTuples/2_split/{decay}/{partition}/{ID}.root'),
+
+        signal_class_features        = join(repo, 'configs/signal_classifier_features.yaml'),
         classifier = lambda wildcards: join(out, f'Data/signal_classifier/{wildcards.decay if wildcards.decay != "Bs2JpsiKst" else "Bd2JpsiKst"}/bdt_model.pkl'), 
-        data = join(out, '{data_type}/NTuples/2_split/{decay}/{partition}/{ID}.root'),
-        signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
-        bin_file = lambda wildcards: join(repo, 'configs/binnings.yaml') if wildcards.binning else [],
+        classical_selection_features = join(repo, 'configs/classic_selection_features.yaml'),
+
+        bin_file = lambda wildcards:   join(repo, 'configs/binnings.yaml') if wildcards.binning else [],
     output:
         join(out, '{data_type}/NTuples/3_event_selected/{decay}{binning}/{partition}/{ID}.root'),
     log:
@@ -820,6 +824,7 @@ rule event_selection: #Applies BDT signal selection and in case a bin is supplie
             binning,
             '--BDT {input.classifier}',
             '--signal_class_features {input.signal_class_features}',
+            '--classical_selection_features {input.classical_selection_features}',
             '&> {log}',
         ]
 

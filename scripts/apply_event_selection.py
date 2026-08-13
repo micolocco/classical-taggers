@@ -9,6 +9,8 @@ import pickle
 import yaml
 import datetime
 
+import matplotlib.pyplot as plt
+
 bin_var_translation = {'Tau': 'B_TAU'} #Expand here if other binning variables are added in the future
 
 def load_bins(decay, binning, bin_file):
@@ -22,6 +24,64 @@ def load_bins(decay, binning, bin_file):
             b = float(b)
     
     return binnings[binning][decay]    
+
+
+def get_phi_mask(df, save_plot=False):
+    # Calculate the invariant mass of the Phi meson from its decay products (K+ and K-)
+
+
+    df_kin = df[['hplus_PX', 'hplus_PY', 'hplus_PZ', 'hminus_PX', 'hminus_PY', 'hminus_PZ']]
+
+    m_K = 493.677  # Mass of Kaon in MeV/c^2
+    df_kin['E_Kplus'] = np.sqrt(df_kin['hplus_PX']**2 + df_kin['hplus_PY']**2 + df_kin['hplus_PZ']**2 + m_K**2)
+    df_kin['E_Kminus'] = np.sqrt(df_kin['hminus_PX']**2 + df_kin['hminus_PY']**2 + df_kin['hminus_PZ']**2 + m_K**2)
+
+    
+    df_kin['inv_mass'] = np.sqrt(
+                       (df_kin['E_Kplus']  + df_kin['E_Kminus'])**2  -
+                      ((df_kin['hplus_PX'] + df_kin['hminus_PX'])**2 + 
+                       (df_kin['hplus_PY'] + df_kin['hminus_PY'])**2 + 
+                       (df_kin['hplus_PZ'] + df_kin['hminus_PZ'])**2))
+
+    if save_plot:
+        mass_sorted = np.sort(df_kin['inv_mass'])
+        m_min = mass_sorted[int(len(mass_sorted)*0.01)]
+        m_max = mass_sorted[int(len(mass_sorted)*0.99)]
+        bins = np.linspace(m_min, m_max, 100)
+        plt.hist(df_kin['inv_mass'], bins=bins, alpha=0.7, color='blue', label='Before phi mass cut')
+
+    # Constrain the inv mass of the intermediate phi to [1000, 1040] MeV/c^2
+    df_kin['mask'] = (df_kin['inv_mass'] >= 1000) & (df_kin['inv_mass'] <= 1040)
+
+    if save_plot:
+        plt.hist(df_kin.loc[df_kin['mask'], 'inv_mass'], bins=bins, alpha=0.7, color='orange', label='After phi mass cut')
+        plt.xlabel('$m(K^+K^-)$ [MeV/c^2]')
+        plt.ylabel('Frequency')
+        plt.title('Phi Mass Distribution')
+        plt.legend()
+        if save_plot:
+            plt.savefig('/ceph/users/togasa/collected_pdfs/selections/phi_mass_distribution.png')
+
+    return df_kin['mask']
+
+
+def apply_classical_selection(df, features, decay_type, save_plot = False):
+    if decay_type == 'Bs2DsPi':
+        num_events_before = len(df)
+        df = df.loc[df['piplus_PID_K'] < 0]
+        print(f"PIDK cut efficiency: {len(df)/num_events_before:.3f}")
+
+        num_events_before = len(df)
+        df = df.loc[df['piminus_PID_P'] < 10]
+        print(f"PIDP cut efficiency: {len(df)/num_events_before:.3f}")
+
+        num_events_before = len(df)
+        df = df[get_phi_mask(df[features], save_plot=save_plot)]
+        print(f"Phi mass cut efficiency: {len(df)/num_events_before:.3f}")
+
+        return df
+    else:
+        return df
     
 
 if __name__ == "__main__":
@@ -36,6 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('--binning', help='Binning applied to the data if applicable, e.g. Tau1of5 for the first bin in a 5-bin split according to the Tau variable. Each bin contains roughly the same number of events.')
     parser.add_argument('--BDT', help='Path to the trained BDT model')
     parser.add_argument('--signal_class_features', help='Path to the yaml file containing the features used for training the BDT model')
+    parser.add_argument('--classical_selection_features', help='Path to the yaml file containing the features used for classical selection')
     parser.add_argument('--bin_file', help='Path to the file containing the bin edges for the variable used for binning the data')
 
     cfg = parser.parse_args()
@@ -60,10 +121,15 @@ if __name__ == "__main__":
     
     with open(cfg.signal_class_features, 'r') as f:
         signal_class_features = yaml.safe_load(f)[load_decay]
-    
+
+    with open(cfg.classical_selection_features, 'r') as f:
+        classical_selection_features = yaml.safe_load(f)[load_decay]
+
     df["event_entry"] = df["file_id"].astype(str) + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
     df['candidate_entry'] = df['file_id'].astype(str) + "_" + df['candidate_index'].astype(str)
     print(f"Input file contains {df['event_entry'].nunique()} unique events", flush=True)
+
+    df = apply_classical_selection(df, classical_selection_features, cfg.decay_type, save_plot = '00001_1' in  os.path.basename(cfg.target)) #only save the plot for the first file 
 
     # Apply the BDT to select signal events
     # Grouped by candidate_entry not event_entry because one event may have several candidates, due to (almost purely) incorrect reconstruction, 
