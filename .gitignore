@@ -17,7 +17,7 @@ os_commands.py
 scaler_old
 **/*.pdf
 best_tagger_candidates/*/candidatedTaggers*.json
-scripts/trouble_shhoting.ipynb
+scripts/*.ipynb
 # Except for PDFs in the tagging_power_tables directory
 !tagging_power_tables/**/*.pdf
 */DT_outputs
