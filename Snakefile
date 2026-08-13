@@ -840,7 +840,7 @@ def get_DT_input_paths():
 rule train_DT:
     input:
         script = join(repo, 'scripts/origin_DT_cut.py'),
-        data = get_DT_input_paths,
+        data = get_DT_input_paths(),
         settings = join(repo, 'DT_arguments/{cut_name}.txt'),
     output:
         model =        join(out, "MC/DT_outputs/{cut_name}/decision_tree_model.txt")
