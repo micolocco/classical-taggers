@@ -69,6 +69,8 @@ if __name__ == '__main__':
     parser.add_argument('--save_dataframes', help='If specified, dataframes containing training and exporatory information is saved to disk for debugging or prototyping',  action='store_true')
     parser.add_argument('--conf_weight_config', help='A dictionary containing the parameter constructing the confusion matrix weights.', type=str,)
     parser.add_argument('--lda_classes', help='Particle types included in the LDA training. If none no LDA is performed. LDA features are supplied to the DT.', default=None, nargs='+', type=str)
+    parser.add_argument('--feature_set', help='The set of features to use for training the DT.', default='v1_set', type=str)
+
     print(f'Run at time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush=True)
 
     cfg = parser.parse_args()
@@ -140,73 +142,9 @@ if __name__ == '__main__':
     else:
         output_path = f'{cfg.target_path}'
 
-    features_added = ['B_Tr_T_cos_PhiDistance', 'B_Tr_T_PhiDistance', 'B_Tr_T_diff_z', 'B_Tr_T_DeltaR', 'diff_P', 'P_proj', 't', 'EVIP', 'B_Tr_T_absOWNPV_IP', 'B_Tr_T_EtaDistance', 'B_Tr_T_DeltaQ_Pion', 'B_Tr_T_DeltaQ_Muon', 'B_Tr_T_DeltaQ_Electron', 'B_Tr_T_DeltaQ_Proton', 'B_Tr_T_DeltaQ_Kaon', 'B_Tr_T_Signal_TagPart_PT', 'B_Tr_T_OWNPVIPSig', 'logEVIP', 'logP_proj', 'B_Tr_T_atanPT_PZ']
-    load_extra = ['EVENTNUMBER','RUNNUMBER']
-    features_noMC = [
-        'B_OWNPV_X',
-        'B_OWNPV_Y',
-        'B_OWNPV_Z',
-        'B_ENDV_X',
-        'B_ENDV_Y',
-        'B_ENDV_Z',
-        'B_ENERGY',
-        'B_ETA',
-        'B_M',
-        'B_P',
-        'B_PHI',
-        'B_PT',
-        'B_PX',
-        'B_PY',
-        'B_PZ',
-        'B_nPVs',
-        'B_nTracks',
-        'B_Tr_T_TRACKISLONG',
-        'B_Tr_T_OWNPVIP',
-        'B_Tr_T_OWNPVIPCHI2',
-        'B_Tr_T_Charge',
-        'B_Tr_T_ISMUON',
-        'B_Tr_T_ENERGY',
-        'B_Tr_T_Eta',
-        'B_Tr_T_MINIP',
-        'B_Tr_T_MINIPChi2',
-        'B_Tr_T_P',
-        'B_Tr_T_PT',
-        'B_Tr_T_PIDK',
-        'B_Tr_T_PIDe',
-        'B_Tr_T_PIDmu',
-        'B_Tr_T_PIDP',
-        'B_Tr_T_PROBNN_GHOST',
-        'B_Tr_T_PROBNN_E',
-        'B_Tr_T_PROBNN_K',
-        'B_Tr_T_PROBNN_P',
-        'B_Tr_T_PROBNN_MU',
-        'B_Tr_T_PROBNN_PI',
-        #'B_Tr_T_firstX',
-        #'B_Tr_T_firstY',
-        #'B_Tr_T_firstZ',
-        #'B_Tr_T_firstTX',
-        #'B_Tr_T_firstTY',
-        #'B_Tr_T_OWNPV_X',
-        #'B_Tr_T_OWNPV_XERR',
-        #'B_Tr_T_OWNPV_Y',
-        #'B_Tr_T_OWNPV_YERR',
-        #'B_Tr_T_OWNPV_Z',
-        #'B_Tr_T_OWNPV_ZERR',
-        #'B_Tr_T_Phi',
-        #'B_Tr_T_M',
-        'B_Tr_T_CHI2DOF',
-        'B_Tr_T_GHOSTPROB',
-        'B_Tr_T_PX',
-        'B_Tr_T_PY',
-        'B_Tr_T_PZ',
-        'B_Tr_T_X',
-        'B_Tr_T_Y',
-        'B_Tr_T_Z',
-        #'B_Tr_T_OBJECT_KEY',
-        'B_Tr_T_IPChi2BVTX',
-        'B_Tr_T_IPBVTX',]
 
-    features_added += ['B_Tr_T_endSV_Z'] # To test if this variable increases seperability of notSamePV and other classes
+    
+
         
     # Missing fetaures wrt Run2
     # TRPCHI2 dropped (CHI2 probability)
@@ -219,11 +157,17 @@ if __name__ == '__main__':
     # SumBDT_ult don't know what is
     # PVndof not clear
     # TRGHP alias for TRACKGHOSTPROB
-    features = features_noMC + features_added
+
+
+    with open(f'configs/DT_feature_set.yaml', 'r') as f:
+        features = yaml.safe_load(f)[cfg.feature_set]
+
+
     mc_info = ["B_BKGCAT", "B_Tr_T_absID", "B_Tr_T_Origin_Flag", "B_TRUEID", "B_Tr_T_MC_MOTHER_ID", 
                'B_Tr_T_MC_MOTHER_KEY', 'B_Tr_T_MC_GD_MOTHER_ID', 'B_Tr_T_MC_GD_MOTHER_KEY', 
                'B_Tr_T_MC_GD_GD_MOTHER_ID', 'B_Tr_T_MC_GD_GD_MOTHER_KEY']
 
+    load_extra = ['EVENTNUMBER','RUNNUMBER']
     loading_variables = features + mc_info + load_extra
  
     folders = ['Bd2JpsiKst', 'Bs2DsPi', 'Bu2JpsiK']

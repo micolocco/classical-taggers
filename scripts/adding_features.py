@@ -45,12 +45,14 @@ def dPhi(df):
     df[f'B_Tr_T_PhiDistance'] = np.arctan2(x_arctan, y_arctan)
     return df
 
+def E_T(df, Mass):
+    return np.sqrt(Mass**2 + df[f'B_Tr_T_PT']**2)
+
 def process_chunk(df, evtType):
     df = df.copy()
 
 
     df = dPhi(df)
-    df.loc[:,f'B_Tr_T_diff_z'] = np.abs(df[f'B_OWNPV_Z'] - df[f'B_Tr_T_OWNPV_Z'])
     df.loc[:,f'B_Tr_T_Signal_TagPart_PT'] = np.sqrt((df[f'B_PX'] + df[f'B_Tr_T_PX'])**2 + (df[f'B_PY'] + df[f'B_Tr_T_PY'])**2)
     df.loc[:,f'B_Tr_T_cos_PhiDistance'] = np.cos(df[f'B_Tr_T_PhiDistance'])
     df.loc[:,f'B_Tr_T_EtaDistance'] = np.abs(df[f'B_ETA'] - df[f'B_Tr_T_Eta'])
@@ -65,6 +67,7 @@ def process_chunk(df, evtType):
     df.loc[:,f'B_TAU'] = df[get_mass_label(evtType).replace("MASS", "CTAU")]/0.29979 #Convert from mm to ps using speed of light in mm/ps
     df.loc[:,f'B_TAUERR'] = df[get_mass_label(evtType).replace("MASS", "CTAUERR")]/0.29979 #Convert from mm to ps using speed of light in mm/ps
     
+
 
     
     df.loc[:,f'B_Tr_T_endSV_Z'] = np.abs(df[f'B_ENDV_Z'] - df[f'B_Tr_T_firstZ'])
@@ -93,10 +96,114 @@ def process_chunk(df, evtType):
         df['t']**2 * (df[f'B_Tr_T_PX']**2 + df[f'B_Tr_T_PY']**2 + df[f'B_Tr_T_PZ']**2) +
         2 * df['t'] * (df[f'B_Tr_T_X'] * df[f'B_Tr_T_PX'] + df[f'B_Tr_T_Y'] * df[f'B_Tr_T_PY'] + df[f'B_Tr_T_Z'] * df[f'B_Tr_T_PZ'])
     )
-    df.loc[:,f'B_Tr_T_EoverP'] = df[f'B_Tr_T_ENERGY'] / df[f'B_Tr_T_P']
     df.loc[:,'logEVIP'] = np.log(df['EVIP'])
     df.loc[:,'logP_proj'] = np.log(df['P_proj'])
     df.loc[:,f'B_Tr_T_atanPT_PZ'] = np.arctan2(df[f'B_Tr_T_PT'], df[f'B_Tr_T_PZ'])
+
+
+    # Momenta differences
+    df.loc[:,f'B_Tr_T_DeltaP_X'] = df[f'B_PX'] - df[f'B_Tr_T_PX']
+    df.loc[:,f'B_Tr_T_DeltaP_Y'] = df[f'B_PY'] - df[f'B_Tr_T_PY']
+    df.loc[:,f'B_Tr_T_DeltaP_Z'] = df[f'B_PZ'] - df[f'B_Tr_T_PZ']
+    df.loc[:,f'B_Tr_T_DeltaP_X_abs'] = np.abs(df[f'B_PX'] - df[f'B_Tr_T_PX'])
+    df.loc[:,f'B_Tr_T_DeltaP_Y_abs'] = np.abs(df[f'B_PY'] - df[f'B_Tr_T_PY'])
+    df.loc[:,f'B_Tr_T_DeltaP_Z_abs'] = np.abs(df[f'B_PZ'] - df[f'B_Tr_T_PZ'])
+    df.loc[:,f'B_Tr_T_DeltaP'] = np.sqrt(df[f'B_Tr_T_DeltaP_X']**2 + df[f'B_Tr_T_DeltaP_Y']**2 + df[f'B_Tr_T_DeltaP_Z']**2)
+    df.loc[:,f'B_Tr_T_DeltaP_T'] = np.sqrt(df[f'B_Tr_T_DeltaP_X']**2 + df[f'B_Tr_T_DeltaP_Y']**2)
+
+    #Eta as angle
+    df.loc[:,f'B_Tr_T_Theta']         = np.arctan2(df[f'B_Tr_T_PT'], df[f'B_Tr_T_PZ'])
+    df.loc[:,f'B_Theta']              = np.arctan2(df[f'B_PT'], df[f'B_PZ'])
+    df.loc[:,f'B_Tr_T_ThetaDistance'] = np.abs(df[f'B_Theta'] - df[f'B_Tr_T_Theta'])
+
+    #Positional differences
+    df.loc[:,f'B_Tr_T_diff_x'] = np.abs(df[f'B_OWNPV_X'] - df[f'B_Tr_T_OWNPV_X'])
+    df.loc[:,f'B_Tr_T_diff_y'] = np.abs(df[f'B_OWNPV_Y'] - df[f'B_Tr_T_OWNPV_Y'])
+    df.loc[:,f'B_Tr_T_diff_z'] = np.abs(df[f'B_OWNPV_Z'] - df[f'B_Tr_T_OWNPV_Z'])
+    df.loc[:,f'B_Tr_T_diff_rho'] = np.sqrt(df[f'B_Tr_T_diff_x']**2 + df[f'B_Tr_T_diff_y']**2) #Distance in the transverse plane
+    df.loc[:,f'B_Tr_T_diff_R'] = np.sqrt(df[f'B_Tr_T_diff_x']**2 + df[f'B_Tr_T_diff_y']**2 + df[f'B_Tr_T_diff_z']**2) #Distance in 3D space
+
+    #Angular seperation (combination of theta and phi differences) 
+    df.loc[:,f'B_Tr_T_AngleSep'] = np.acos(np.cos(df[f'B_Tr_T_ThetaDistance']) * np.cos(df[f'B_Tr_T_PhiDistance']))
+    df.loc[:,f'B_Tr_T_cos_AngleSep'] = np.cos(df[f'B_Tr_T_AngleSep'])
+    df.loc[:,f'B_Tr_T_sin_AngleSep'] = np.sin(df[f'B_Tr_T_AngleSep'])
+
+
+    #Products of angle differences and distances
+    df.loc[:,f'B_Tr_T_AngleSep_diff_z']   = df[f'B_Tr_T_AngleSep'] * df[f'B_Tr_T_diff_z']
+    df.loc[:,f'B_Tr_T_AngleSep_diff_rho'] = df[f'B_Tr_T_AngleSep'] * df[f'B_Tr_T_diff_rho']
+    df.loc[:,f'B_Tr_T_AngleSep_diff_R']   = df[f'B_Tr_T_AngleSep'] * df[f'B_Tr_T_diff_R']
+    df.loc[:,f'B_Tr_T_cos_AngleSep_diff_z']   = df[f'B_Tr_T_cos_AngleSep'] * df[f'B_Tr_T_diff_z']
+    df.loc[:,f'B_Tr_T_cos_AngleSep_diff_rho'] = df[f'B_Tr_T_cos_AngleSep'] * df[f'B_Tr_T_diff_rho']
+    df.loc[:,f'B_Tr_T_cos_AngleSep_diff_R']   = df[f'B_Tr_T_cos_AngleSep'] * df[f'B_Tr_T_diff_R']
+    df.loc[:,f'B_Tr_T_sin_AngleSep_diff_z']   = df[f'B_Tr_T_sin_AngleSep'] * df[f'B_Tr_T_diff_z']
+    df.loc[:,f'B_Tr_T_sin_AngleSep_diff_rho'] = df[f'B_Tr_T_sin_AngleSep'] * df[f'B_Tr_T_diff_rho']
+    df.loc[:,f'B_Tr_T_sin_AngleSep_diff_R']   = df[f'B_Tr_T_sin_AngleSep'] * df[f'B_Tr_T_diff_R']
+        
+
+
+    df.loc[:,f'B_Tr_T_PhiDist_diff_z']   = df[f'B_Tr_T_PhiDistance'] * df[f'B_Tr_T_diff_z']
+    df.loc[:,f'B_Tr_T_PhiDist_diff_rho'] = df[f'B_Tr_T_PhiDistance'] * df[f'B_Tr_T_diff_rho']
+    df.loc[:,f'B_Tr_T_PhiDist_diff_R']   = df[f'B_Tr_T_PhiDistance'] * df[f'B_Tr_T_diff_R']
+    df.loc[:,f'B_Tr_T_cosPhiDist_diff_z']   = df[f'B_Tr_T_cos_PhiDistance'] * df[f'B_Tr_T_diff_z']
+    df.loc[:,f'B_Tr_T_cosPhiDist_diff_rho'] = df[f'B_Tr_T_cos_PhiDistance'] * df[f'B_Tr_T_diff_rho']
+    df.loc[:,f'B_Tr_T_cosPhiDist_diff_R']   = df[f'B_Tr_T_cos_PhiDistance'] * df[f'B_Tr_T_diff_R']
+
+    df.loc[:,f'B_Tr_T_ThetaDist_diff_z']   = df[f'B_Tr_T_ThetaDistance'] * df[f'B_Tr_T_diff_z']
+    df.loc[:,f'B_Tr_T_ThetaDist_diff_rho'] = df[f'B_Tr_T_ThetaDistance'] * df[f'B_Tr_T_diff_rho']
+    df.loc[:,f'B_Tr_T_ThetaDist_diff_R']   = df[f'B_Tr_T_ThetaDistance'] * df[f'B_Tr_T_diff_R']
+
+
+    #ProbbNN ratios
+    df.loc[:,f'B_Tr_T_ProbNN_EoverMu']  = df[f'B_Tr_T_PROBNN_E']  / (df[f'B_Tr_T_PROBNN_E']  + df[f'B_Tr_T_PROBNN_MU'])
+    df.loc[:,f'B_Tr_T_ProbNN_EoverPi']  = df[f'B_Tr_T_PROBNN_E']  / (df[f'B_Tr_T_PROBNN_E']  + df[f'B_Tr_T_PROBNN_PI'])
+    df.loc[:,f'B_Tr_T_ProbNN_EoverK']   = df[f'B_Tr_T_PROBNN_E']  / (df[f'B_Tr_T_PROBNN_E']  + df[f'B_Tr_T_PROBNN_K'])
+    df.loc[:,f'B_Tr_T_ProbNN_EoverP']   = df[f'B_Tr_T_PROBNN_E']  / (df[f'B_Tr_T_PROBNN_E']  + df[f'B_Tr_T_PROBNN_P'])
+
+    df.loc[:,f'B_Tr_T_ProbNN_MuoverE']  = df[f'B_Tr_T_PROBNN_MU'] / (df[f'B_Tr_T_PROBNN_MU'] + df[f'B_Tr_T_PROBNN_E'])
+    df.loc[:,f'B_Tr_T_ProbNN_MuoverPi'] = df[f'B_Tr_T_PROBNN_MU'] / (df[f'B_Tr_T_PROBNN_MU'] + df[f'B_Tr_T_PROBNN_PI'])
+    df.loc[:,f'B_Tr_T_ProbNN_MuoverK']  = df[f'B_Tr_T_PROBNN_MU'] / (df[f'B_Tr_T_PROBNN_MU'] + df[f'B_Tr_T_PROBNN_K'])
+    df.loc[:,f'B_Tr_T_ProbNN_MuoverP']  = df[f'B_Tr_T_PROBNN_MU'] / (df[f'B_Tr_T_PROBNN_MU'] + df[f'B_Tr_T_PROBNN_P'])
+
+    df.loc[:,f'B_Tr_T_ProbNN_PioverE']  = df[f'B_Tr_T_PROBNN_PI'] / (df[f'B_Tr_T_PROBNN_PI'] + df[f'B_Tr_T_PROBNN_E'])
+    df.loc[:,f'B_Tr_T_ProbNN_PioverMu'] = df[f'B_Tr_T_PROBNN_PI'] / (df[f'B_Tr_T_PROBNN_PI'] + df[f'B_Tr_T_PROBNN_MU'])
+    df.loc[:,f'B_Tr_T_ProbNN_PioverK']  = df[f'B_Tr_T_PROBNN_PI'] / (df[f'B_Tr_T_PROBNN_PI'] + df[f'B_Tr_T_PROBNN_K'])
+    df.loc[:,f'B_Tr_T_ProbNN_PioverP']  = df[f'B_Tr_T_PROBNN_PI'] / (df[f'B_Tr_T_PROBNN_PI'] + df[f'B_Tr_T_PROBNN_P'])
+
+    df.loc[:,f'B_Tr_T_ProbNN_KoverE']   = df[f'B_Tr_T_PROBNN_K']  / (df[f'B_Tr_T_PROBNN_K']  + df[f'B_Tr_T_PROBNN_E'])
+    df.loc[:,f'B_Tr_T_ProbNN_KoverMu']  = df[f'B_Tr_T_PROBNN_K']  / (df[f'B_Tr_T_PROBNN_K']  + df[f'B_Tr_T_PROBNN_MU'])
+    df.loc[:,f'B_Tr_T_ProbNN_KoverPi']  = df[f'B_Tr_T_PROBNN_K']  / (df[f'B_Tr_T_PROBNN_K']  + df[f'B_Tr_T_PROBNN_PI'])
+    df.loc[:,f'B_Tr_T_ProbNN_KoverP']   = df[f'B_Tr_T_PROBNN_K']  / (df[f'B_Tr_T_PROBNN_K']  + df[f'B_Tr_T_PROBNN_P'])
+
+    df.loc[:,f'B_Tr_T_ProbNN_PoverE']   = df[f'B_Tr_T_PROBNN_P']  / (df[f'B_Tr_T_PROBNN_P']  + df[f'B_Tr_T_PROBNN_E'])
+    df.loc[:,f'B_Tr_T_ProbNN_PoverMu']  = df[f'B_Tr_T_PROBNN_P']  / (df[f'B_Tr_T_PROBNN_P']  + df[f'B_Tr_T_PROBNN_MU'])
+    df.loc[:,f'B_Tr_T_ProbNN_PoverPi']  = df[f'B_Tr_T_PROBNN_P']  / (df[f'B_Tr_T_PROBNN_P']  + df[f'B_Tr_T_PROBNN_PI'])
+    df.loc[:,f'B_Tr_T_ProbNN_PoverK']   = df[f'B_Tr_T_PROBNN_P']  / (df[f'B_Tr_T_PROBNN_P']  + df[f'B_Tr_T_PROBNN_K'])
+
+    df.loc[:,f'B_Tr_T_ProbNN_PioverHadron']  = df[f'B_Tr_T_PROBNN_PI'] / (df[f'B_Tr_T_PROBNN_PI'] + df[f'B_Tr_T_PROBNN_K'] + df[f'B_Tr_T_PROBNN_P'])
+    df.loc[:,f'B_Tr_T_ProbNN_KoverHadron']   = df[f'B_Tr_T_PROBNN_K'] / (df[f'B_Tr_T_PROBNN_PI'] + df[f'B_Tr_T_PROBNN_K'] + df[f'B_Tr_T_PROBNN_P'])
+    df.loc[:,f'B_Tr_T_ProbNN_PoverHadron']   = df[f'B_Tr_T_PROBNN_P'] / (df[f'B_Tr_T_PROBNN_PI'] + df[f'B_Tr_T_PROBNN_K'] + df[f'B_Tr_T_PROBNN_P'])
+        
+    #Combination of IP and IPChi2
+    df.loc[:,f'B_Tr_T_IPBVTX_IPChi2BVTX'] = df[f'B_Tr_T_IPBVTX'] * df[f'B_Tr_T_IPChi2BVTX']
+    df.loc[:,f'B_Tr_T_MINIPChi2_IPChi2BVTX'] = df[f'B_Tr_T_MINIPChi2'] * df[f'B_Tr_T_IPChi2BVTX']
+
+    # Energy momentum ratios
+    df.loc[:,f'B_Tr_T_EoverP']  = df[f'B_Tr_T_ENERGY'] / df[f'B_Tr_T_P']
+    df.loc[:,f'B_Tr_T_EoverPT'] = df[f'B_Tr_T_ENERGY'] / df[f'B_Tr_T_PT']
+    df.loc[:,f'B_Tr_T_ET']      = E_T(df, df[f'B_Tr_T_M'])
+
+    # Positional distances
+    df.loc[:,f'B_Tr_T_Rho'] = np.sqrt(df[f'B_Tr_T_X']**2 + df[f'B_Tr_T_Y']**2)
+    df.loc[:,f'B_Tr_T_R'] = np.sqrt(df[f'B_Tr_T_X']**2 + df[f'B_Tr_T_Y']**2 + df[f'B_Tr_T_Z']**2)
+    df.loc[:,f'B_Tr_T_firstRho'] = np.sqrt(df[f'B_Tr_T_firstX']**2 + df[f'B_Tr_T_firstY']**2)
+    df.loc[:,f'B_Tr_T_firstR'] = np.sqrt(df[f'B_Tr_T_firstX']**2 + df[f'B_Tr_T_firstY']**2 + df[f'B_Tr_T_firstZ']**2)
+
+
+    df.loc[:,f'signal_is_Bs'] = float('Bs' in evtType)
+
+
+
 
     with_na=df.shape[0]
     print(f"\nDropping NaN values and converting data types for chunk with shape {df.shape}", flush=True)
@@ -115,13 +222,15 @@ def mc_vars_to_data_vars(variables):
         return variables
 
 
-def get_loading_vars(evtType, data_type, loading_var_path = "configs/loading_variables.txt", signal_class_feat_path = "configs/signal_classifier_features.yaml"):
+def get_loading_vars(evtType, data_type, loading_var_path = "configs/loading_variables.txt", signal_class_feat_path = "configs/signal_classifier_features.yaml", classical_selection_features_path = "configs/classic_selection_features.yaml"):
     with open(loading_var_path, 'r') as f:
         loading_variables = f.read().splitlines()
-    if evtType == 'Bs2JpsiKst':
-        with open(signal_class_feat_path, 'r') as f:
-            signal_class_features = yaml.safe_load(f)
-            loading_variables += signal_class_features[evtType]
+    with open(signal_class_feat_path, 'r') as f:
+        signal_class_features = yaml.safe_load(f)
+        loading_variables += signal_class_features[evtType]
+    with open(classical_selection_features_path, 'r') as f:
+        classical_selection_features = yaml.safe_load(f)
+        loading_variables += classical_selection_features[evtType]
 
     #Add CTAU
     loading_variables.append(get_mass_label(evtType).replace("MASS", "CTAU"))
@@ -148,7 +257,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help='Type of data (MC or Data)', type=str, choices=('MC', 'Data'))
     parser.add_argument('--loading_features', help='Path to file containing all features to load', type=str)
     parser.add_argument('--signal_class_features', help='Path to yaml file containing the features used by the signal classifier', type=str)
-    
+    parser.add_argument('--classic_selection_features', help='Path to yaml file containing the features used by the classical selection', type=str)
     cfg = parser.parse_args()
     pprint(cfg)
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
@@ -159,9 +268,11 @@ if __name__ == '__main__':
     abs_id_map = {'Bs2DsPi': 531, 'Bd2JpsiKst': 511, 'Bu2JpsiK': 521, 'Bd2DmPi': 511, 'Bs2JpsiPhi': 531}
     abs_id = abs_id_map.get(cfg.evtType)
 
-    loading_variables = get_loading_vars(cfg.evtType, cfg.data_type, cfg.loading_features, cfg.signal_class_features)
-    if cfg.data_type == 'MC':
-        print(f'Loading variables before translation: {loading_variables}')
+    loading_variables = get_loading_vars(cfg.evtType, cfg.data_type, cfg.loading_features, cfg.signal_class_features, cfg.classic_selection_features)
+
+    # Drop duplicates while preserving order
+    loading_variables = list(OrderedDict.fromkeys(loading_variables))
+
 
     print(f'Loading variables: {loading_variables}')
     print('Started processing')

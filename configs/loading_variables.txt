@@ -40,6 +40,8 @@ B_Tr_T_PROBNN_K
 B_Tr_T_PROBNN_P
 B_Tr_T_PROBNN_MU
 B_Tr_T_PROBNN_PI
+B_Tr_T_firstX
+B_Tr_T_firstY
 B_Tr_T_firstZ
 B_Tr_T_OWNPV_X
 B_Tr_T_OWNPV_Y
