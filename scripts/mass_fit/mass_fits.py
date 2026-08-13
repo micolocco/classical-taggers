@@ -34,7 +34,7 @@ def get_tex_decay(decay):
         xlabel = r"$ m(J/\psi K^{*})~[\mathrm{MeV}/c^2]$"
     elif "Bs2DsPi" == decay:
         tex_decay = r"$B^{0}_{s} \to D_{s}^{-} \pi^+$"
-        xlabel = r"$ m(D_{s}^{\pm} \pi^{\mp})~[\mathrm{MeV}/c^2]$"
+        xlabel = r"$ m(D_{s}^{\mp} \pi^{\pm})~[\mathrm{MeV}/c^2]$"
     elif "Bs2JpsiKst" == decay:
         tex_decay = r"$B^{0}_{s} \to J/\psi K^*$"
         xlabel = r"$ m(J/\psi K^{*})~[\mathrm{MeV}/c^2]$"

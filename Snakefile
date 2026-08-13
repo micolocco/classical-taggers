@@ -26,7 +26,7 @@ except:
 massranges = {'Bu2JpsiK': (5200, 5350), 
               'Bd2JpsiKst': (5200, 5400), 
               'Bs2JpsiKst': (5200, 5400), 
-              'Bs2DsPi': (5100, 5600),}
+              'Bs2DsPi': (5200, 6000),}
 
 
 def in_data(data_path, list_of_files):
@@ -945,7 +945,7 @@ def get_fit_mc_res(wildcards):
 
 rule mass_fit:
     input:
-        script = join(repo, 'scripts/mass_fits.py'),
+        script = join(repo, 'scripts/mass_fit/mass_fits.py'),
         data = get_fit_input_paths,
 
         mc_res = get_fit_mc_res,
