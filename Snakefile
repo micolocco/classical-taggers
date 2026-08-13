@@ -605,12 +605,18 @@ def copy_to_scratch(paths):
         scratch_paths.append(path_scratch)
     return scratch_paths
 
+def add_features_hours(wildcards):
+    if wildcards.decay == 'Bs2DsPi':
+        return 2
+    else:
+        return 1
 
 rule add_features:
     input:
         script = join(repo, 'scripts/adding_features.py'),
         loading_vars = join(repo, 'configs/loading_variables.txt'),
         signal_class_features = join(repo, 'configs/signal_classifier_features.yaml'),
+        classical_selection_features = join(repo, 'configs/classic_selection_features.yaml'),
         raw = lambda wildcards: get_raw_paths(wildcards.decay, wildcards.ID, wildcards.data_type),
     output: 
         root =join(out, '{data_type}/NTuples/1_added_features/{decay}/{ID}.root'), 
@@ -620,7 +626,7 @@ rule add_features:
         max_retries=0,
         request_memory = 10_000,
         mem = 10_000,
-        MaxRunHours = 1, # short queue
+        MaxRunHours = add_features_hours, # Bs2DsPi is a bit bigger so give it more time
     run:
         tree = find_tree_name(wildcards.decay)
        
@@ -686,6 +692,12 @@ def get_to_split(wildcards):
         return join(out, f'Data/NTuples/1_added_features/{wildcards.decay}/combined/{wildcards.ID}.root'),
         
 
+def get_memory_split_and_eventSelect(wildcards):
+    if wildcards.decay == 'Bs2DsPi': 
+        return 128_000
+    else:
+        return 32_000
+
 rule split_sample:
     input:
         script = join(repo, 'scripts/split_train_val_test.py'),
@@ -701,8 +713,8 @@ rule split_sample:
         join(out, '{data_type}/NTuples/2_split/{decay}/log/.{ID}.log'),
     resources:
         max_retries=0,
-        request_memory = 70_000,
-        mem = 70_000,
+        request_memory = get_memory_split_and_eventSelect,
+        mem = get_memory_split_and_eventSelect,
         MaxRunHours = 1,
     run:
         out_path = os.path.dirname(os.path.dirname(output.train))
@@ -747,9 +759,7 @@ rule train_signal_classifier:
         request_memory = 20_000,
         mem = 20_000,
         MaxRunHours = 4,
-    priority:
-        1, # TODO REMOVE
-    threads:
+        threads:
         8,
     run:
         out_path = os.path.dirname(output.BDT)
@@ -791,8 +801,8 @@ rule event_selection: #Applies BDT signal selection and in case a bin is supplie
         join(out, '{data_type}/NTuples/3_event_selected/{decay}{binning}/{partition}/.{ID}.log'),
     resources:
         max_retries=0,
-        request_memory = 70_000,
-        mem = 70_000,
+        request_memory = get_memory_split_and_eventSelect,
+        mem = get_memory_split_and_eventSelect,
         MaxRunHours = 1,
     run:
         if kernel_available():
