@@ -830,7 +830,7 @@ rule event_selection: #Applies BDT signal selection and in case a bin is supplie
 
         shell(' '.join(cmd))
 
-def get_DT_input_paths(wildcards):
+def get_DT_input_paths():
     all_mc_files = []
     for decay in feat_added_mc.keys():
         all_mc_files.extend(feat_added_mc[decay])

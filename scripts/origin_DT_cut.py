@@ -69,6 +69,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_dataframes', help='If specified, dataframes containing training and exporatory information is saved to disk for debugging or prototyping',  action='store_true')
     parser.add_argument('--conf_weight_config', help='A dictionary containing the parameter constructing the confusion matrix weights.', type=str,)
     parser.add_argument('--feature_set', help='The set of features to use for training the DT.', default='v1_set', type=str)
+    parser.add_argument('--decay_specific_TaggDefinition', help='If specified, the definition of the SS Tagging Particles is decay specific, i.e. SSKaon for Bs and SSPion/Proton for Bd.', action='store_true')
 
     print(f'Run at time: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', flush=True)
 
@@ -195,22 +196,43 @@ if __name__ == '__main__':
     # Define labels for multiclassification
     # List of (condition, particle_type) tuples
 
+
+    # Last Term  of SS Taggers either always evaluates true if the old definition of tagging particles, i.e. non decay specific, is used 
+    # or in the other case it pulls only SSPion and SSProton for Bd2JpsiKst and SSKaon for Bs2DsPi
     condition_particle_pairs = [
-    ((df.B_Tr_T_absID == 321)  & (df.B_Tr_T_Origin_Flag == 2),                                                                         "OSKaon"),
-    ((df.B_Tr_T_absID == 13)   & (df.B_Tr_T_Origin_Flag == 2),                                                                         "OSMuon"),
-    ((df.B_Tr_T_absID == 11)   & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22 ),                                  "OSElectron"),
-    ((df.B_Tr_T_absID == 211)  & (df.B_Tr_T_Origin_Flag == 1),                                                                         "SSPion"),
-    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1),                                                                         "SSProton"),
-    ((df.B_Tr_T_absID == 321)  & (df.B_Tr_T_Origin_Flag == 1),                                                                         "SSKaon"),
-    ((df.B_Tr_T_absID == 321)  & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherK"),
-    ((df.B_Tr_T_absID == 13)   & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherMu"),
-    ((df.B_Tr_T_absID == 11)   & (df.B_Tr_T_Origin_Flag != 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) != 22 ) & (df.B_Tr_T_Origin_Flag != 100), "otherE"),
-    ((df.B_Tr_T_absID == 11)   & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) == 22 ),                                  "photonOSEl"),
-    ((df.B_Tr_T_absID == 211)  & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherPi"),
+    ((df.B_Tr_T_absID ==  321) & (df.B_Tr_T_Origin_Flag == 2),                                                                           "OSKaon"),
+    ((df.B_Tr_T_absID ==   13) & (df.B_Tr_T_Origin_Flag == 2),                                                                           "OSMuon"),
+    ((df.B_Tr_T_absID ==   11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) !=  22),                                    "OSElectron"),
+    ((df.B_Tr_T_absID ==  211) & (df.B_Tr_T_Origin_Flag == 1),                                                                           "SSPion"), 
+    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1),                                                                           "SSProton"),
+    ((df.B_Tr_T_absID ==  321) & (df.B_Tr_T_Origin_Flag == 1),                                                                           "SSKaon"),
+    ((df.B_Tr_T_absID ==  321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag       != 100),                                    "otherK"),
+    ((df.B_Tr_T_absID ==   13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag       != 100),                                    "otherMu"),
+    ((df.B_Tr_T_absID ==   11) & (df.B_Tr_T_Origin_Flag != 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) !=  22) & (df.B_Tr_T_Origin_Flag != 100),   "otherE"),
+    ((df.B_Tr_T_absID ==   11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) ==  22),                                    "photonOSEl"),
+    ((df.B_Tr_T_absID ==  211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag       != 100),                                    "otherPi"),
+    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag       != 100),                                    "otherP"),
+    
+    ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
+    ]
+
+    condition_particle_pairs_SS_decaySpecific = [
+    ((df.B_Tr_T_absID ==  321) & (df.B_Tr_T_Origin_Flag == 2),                                                                         "OSKaon"),
+    ((df.B_Tr_T_absID ==   13) & (df.B_Tr_T_Origin_Flag == 2),                                                                         "OSMuon"),
+    ((df.B_Tr_T_absID ==   11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) !=  22),                                  "OSElectron"),
+    ((df.B_Tr_T_absID ==  211) & (df.B_Tr_T_Origin_Flag == 1) & (df.decay                    == 'Bd2JpsiKst'),                         "SSPion"), 
+    ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag == 1) & (df.decay                    == 'Bd2JpsiKst'),                         "SSProton"),
+    ((df.B_Tr_T_absID ==  321) & (df.B_Tr_T_Origin_Flag == 1) & (df.decay                    == 'Bs2DsPi'   ),                         "SSKaon"),
+    ((df.B_Tr_T_absID ==  321) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherK"),
+    ((df.B_Tr_T_absID ==   13) & (df.B_Tr_T_Origin_Flag != 2) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherMu"),
+    ((df.B_Tr_T_absID ==   11) & (df.B_Tr_T_Origin_Flag != 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) !=  22) & (df.B_Tr_T_Origin_Flag != 100), "otherE"),
+    ((df.B_Tr_T_absID ==   11) & (df.B_Tr_T_Origin_Flag == 2) & (abs(df.B_Tr_T_MC_MOTHER_ID) ==  22),                                  "photonOSEl"),
+    ((df.B_Tr_T_absID ==  211) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherPi"),
     ((df.B_Tr_T_absID == 2212) & (df.B_Tr_T_Origin_Flag != 1) & (df.B_Tr_T_Origin_Flag       != 100),                                  "otherP"),
     
     ((df.B_Tr_T_Origin_Flag == 100), "notSamePV"),
     ]
+
 
     if cfg.unify_SS:
         #combine the SSKaon and SSProton classes into a single class "SSKaon+SSProton"
@@ -230,9 +252,14 @@ if __name__ == '__main__':
     # Separate conditions and particle types for np.select()
     conditions = [pair[0] for pair in condition_particle_pairs]
     particle_type = [pair[1] for pair in condition_particle_pairs]
-
     # Assign particle types based on conditions, with default "Others" for unmatched rows
     df['particle'] = np.select(conditions, particle_type, default="Others")
+    conditions = [pair[0] for pair in condition_particle_pairs_SS_decaySpecific]
+    particle_type = [pair[1] for pair in condition_particle_pairs_SS_decaySpecific]
+    # Assign particle types based on conditions, with default "Others" for unmatched rows
+    df['decSpec_particle'] = np.select(conditions, particle_type, default="Others")
+
+
     print(f"Number of tracks for each particle type:\n{df['particle'].value_counts()}", flush=True)
 
 
@@ -300,21 +327,29 @@ if __name__ == '__main__':
     
     df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
-    x = df[features + ["particle"]].copy()
-    y = x["particle"].copy()
+    target_column = "particle"
+    if cfg.decay_specific_TaggDefinition:
+        target_column = "decSpec_particle"
+    label_vars = ["particle", "decSpec_particle"]
+
+    x = df[features + label_vars]
+    del df
+
+    y = x[label_vars].copy()
 
     print(f'The features used are {len(features)}: {features}', flush=True)
     print('-----------------------------------------', flush=True)
     # To get same amount of not_taggingPart
-    x.drop(columns=["particle"] , inplace = True)
+    x.drop(columns=label_vars , inplace = True)
     X_train , x_test ,y_train, y_test= train_test_split(x, y, test_size = 0.01, random_state=42)
+    del x, y
     print(type(X_train))
     # Drop 'Other' particles from training dataset
-    #Drop all particles that are not in train_particle_types, other particles are included for monitoring during testing
+    # Drop all particles that are not in train_particle_types, other particles are included for monitoring during testing
     mask = np.isin(y_train, cfg.train_classes)
 
     X_train = X_train[mask]
-    y_train = y_train[mask]
+    y_train = y_train[mask][target_column]
 
     if cfg.downsample:
         # Downsample all non tagging particle classes (this case only notSamePV, if other background classes are added in the future add them here) 
@@ -323,22 +358,22 @@ if __name__ == '__main__':
 
         # Downsample the 'notSamePV' classes. 
         # Get the count of the largest class excluding "notSamePV"
-        X_train["particle"] = y_train
+        X_train[target_column] = y_train
 
-        # max_class_size = X_train[X_train["particle"] == 'SSPion'].value_counts().max()
-        max_class_size = X_train.loc[X_train["particle"] != 'notSamePV', "particle"].value_counts().max()
+        # max_class_size = X_train[X_train[target_column] == 'SSPion'].value_counts().max()
+        max_class_size = X_train.loc[X_train[target_column] != 'notSamePV', target_column].value_counts().max()
 
         # Filter the 'notSamePV' rows
-        not_same_pv_rows = X_train[X_train["particle"] == 'notSamePV']
+        not_same_pv_rows = X_train[X_train[target_column] == 'notSamePV']
         # Randomly sample the maximum class size from 'notSamePV'
         sampled_not_same_pv = not_same_pv_rows.sample(n=max_class_size, random_state=42)
         # Filter out 'notSamePV' from the original dataframe to keep the other rows
-        X_train = X_train.loc[(X_train["particle"] != 'notSamePV')]
+        X_train = X_train.loc[(X_train[target_column] != 'notSamePV')]
         # Concatenate the sampled 'notSamePV' rows back with the other classes
         X_train = pd.concat([X_train, sampled_not_same_pv])
 
-        y_train = X_train["particle"]
-        X_train.drop(columns=["particle"], inplace=True)
+        y_train = X_train[target_column]
+        X_train.drop(columns=[target_column], inplace=True)
 
         #df = pd.concat([df, others_rows])
         print(f'Composition after downsampling:\n{y_train.value_counts()}', flush=True)
@@ -383,7 +418,7 @@ if __name__ == '__main__':
         # Plot features
         if cfg.all_plots:
             print("Plotting features...", flush=True)
-            DT_utils.plot_features_byOrigin(df, features, target_path=cfg.target_path, nbins=50)   
+            DT_utils.plot_features_byOrigin(X_train, features, target_path=cfg.target_path, nbins=50)   
 
         print("Start fitting", flush=True)
         start_fit = time.time()
@@ -391,16 +426,15 @@ if __name__ == '__main__':
         # clf.fit(X_train, y_train)
         
         particle_labels = particle_type+['others']
-        X_train_val = X_train.to_numpy(copy=False)
-        X_train_val = X_train_val.astype(np.float32)
+        X_train = X_train.astype(np.float32)
         
-        y_train_val = y_train.to_numpy()
-        # Change y_train_val to in32 for c++ compatibility, since pyDecisionTree expects the target to be of type int32
+        y_train_cpp = y_train.to_numpy()
+        # Change y_train to in32 for c++ compatibility, since pyDecisionTree expects the target to be of type int32
         # use the particle_dict to convert the particle types to integers
-        y_train_val = np.array([particle_dict[particle] for particle in y_train_val])
-        y_train_val = y_train_val.astype(np.int32)
+        y_train_cpp = np.array([particle_dict[particle] for particle in y_train_cpp])
+        y_train_cpp = y_train_cpp.astype(np.int32)
 
-        cpp_df = pyDecisionTree.Dataframe(X_train_val, y_train_val, X_train.columns.to_list(), particle_labels, debugInfo=False)
+        cpp_df = pyDecisionTree.Dataframe(X_train, y_train_cpp, X_train.columns.to_list(), particle_labels, debugInfo=False)
 
         if cfg.balanced == 'unbalanced':
             balancing_weights = None
@@ -417,7 +451,7 @@ if __name__ == '__main__':
         clf = pyDecisionTree.DecisionTree(criterion, 6, X_train.columns.to_list(), particle_labels, 2, 1, 0.0, 0.009, verbose=False)
         clf.fit(cpp_df.get_data(), cpp_df.get_targets(), balancing_weights)
 
-
+        del cpp_df, y_train_cpp
 
         print(f'Decision Tree training required: {round(time.time()-start_fit, 2)}s', flush=True)
         os.makedirs(output_path, exist_ok=True)
@@ -470,6 +504,8 @@ if __name__ == '__main__':
     X_train['particle'] = y_train
     DT_utils.plot_used_features(X_train, features_DT_used, target_path=cfg.target_path, nbins=50)
     print(f"Features used by the Decision Tree:\n {features_DT_used}", flush=True)
+    del X_train, y_train
+
 
 
 
@@ -481,25 +517,30 @@ if __name__ == '__main__':
 
     inv_particle_dict = {v: k for k, v in particle_dict.items()}
     y_pred_test = np.array([inv_particle_dict[pred] for pred in y_pred_test])
-    y_test = y_test.to_numpy()
 
     print(f"Prediction on test set completed. Number of predictions: {len(y_pred_test)}", flush=True)
     print(f"Unique predicted classes: {np.unique(y_pred_test)}", flush=True)
     print(f"Predicted classes: {y_pred_test}", flush=True)
-    print(f"True classes: {y_test}", flush=True)
+    print(f"True classes: {y_test[target_column]}", flush=True)
 
     #Define order of particles in table/heatmap
     ordered_particles = ['OSKaon', 'OSMuon', 'OSElectron', 'SSPion', 'SSProton', 'SSKaon','notSamePV', 'otherK', 'otherMu', 'otherE', 'photonOSEl', 'otherPi', 'otherP', 'Others']
     #Add in any potenially missing particles in the dataset (e.g. if some particle types are not present in the ordererd list but are in the dataset)
-    for p in np.unique(y_test):
+    for p in np.unique(y_test[target_column]):
         if p not in ordered_particles:
             ordered_particles.append(p)
 
 
-    DT_utils.metric_table(y_true=y_test, y_predicted=y_pred_test, possible_particle=ordered_particles, title='Versus True (pruned)', savepath=f"{output_path}/unified_pruned_confusion_normalised_by_truth.txt", unify_classes=unify_classes)
-    DT_utils.metric_table(y_true=y_test, y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/unified_pruned_confusion_normalised_by_prediction.txt", unify_classes=unify_classes)
-    DT_utils.metric_table(y_true=y_test, y_predicted=y_pred_test, possible_particle=ordered_particles, title='Versus True (pruned)', savepath=f"{output_path}/pruned_confusion_normalised_by_truth.txt", unify_classes=None)
-    DT_utils.metric_table(y_true=y_test, y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/pruned_confusion_normalised_by_prediction.txt", unify_classes=None)
+    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles,                            title='Versus True (pruned)',                 savepath=f"{output_path}/allSS_unified_confusion_TruthNormalised.txt",      unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/allSS_unified_confusion_PredictionNormalised.txt", unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles,                            title='Versus True (pruned)',                 savepath=f"{output_path}/allSS_confusion_TruthNormalised.txt",              unify_classes=None)
+    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/allSS_confusion_PredictionNormalised.txt",         unify_classes=None)
+
+
+    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles,                            title='Versus True (pruned)',                 savepath=f"{output_path}/SpecSS_unified_confusion_TruthNormalised.txt",      unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/SpecSS_unified_confusion_PredictionNormalised.txt", unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles,                            title='Versus True (pruned)',                 savepath=f"{output_path}/SpecSS_confusion_TruthNormalised.txt",              unify_classes=None)
+    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/SpecSS_confusion_PredictionNormalised.txt",         unify_classes=None)
 
 
     print(f'Running the script required: {time.time()-start}s', flush=True)

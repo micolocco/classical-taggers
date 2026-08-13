@@ -154,7 +154,7 @@ def count_BKGCAT(df):
             print(f"B_BKGCAT {bkgcat}: {percentage:.2f}%")
         print('\n')
 
-def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, savepath=None, unify_classes=None, create_heatmap=True):
+def metric_table(y_true, y_predicted, possible_particle, title='Versus True', normalization=None, savepath=None, unify_classes=None, create_heatmap=True, num_train_classes = 7):
     '''
     Function to get metrics (in form of a table) for the amount of true VS predicted particle types.
     Denominator can be the amount of predicted particles or of true particles for a specific type.
@@ -225,10 +225,18 @@ def metric_table(y_true, y_predicted, possible_particle, title='Versus True', no
 
         # Create a heatmap from the percentage vectors
         heatmap_data = np.array([[float(value) if value != "Not predicted" else 0 for value in perc_Vector] for perc_Vector in all_perc_Vectors])
+
+        tagger_class_map = heatmap_data[0:num_train_classes, 0:num_train_classes]
+        diagonalness =np.sum((tagger_class_map/100 - np.eye(num_train_classes))**2)
+
+
         plt.figure(figsize=(10, 8))
         sns.heatmap(heatmap_data, annot=True, fmt=".2f", xticklabels=possible_particle_unified, yticklabels=possible_particle_unified, cmap="YlGnBu")
-        plt.title(title)
-        plt.xlabel("Predicted")
+
+        norm = "Predicted" if normalization == 'predicted' else "True"
+
+        plt.title(f'Normalized by {norm} - Diagonalness: {diagonalness:.4f}')
+        plt.xlabel(f"Predicted")
         plt.ylabel("True")
         plt.tight_layout()
         if savepath:
