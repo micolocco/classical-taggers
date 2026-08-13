@@ -1146,7 +1146,7 @@ def get_testing_inputs(wildcards):
     if wildcards.data_type == 'Data':
         files_dict = weighted_data
     else:
-        files_dict = selected_mc
+        files_dict = [file for file in selected_mc if not file.endswith('01_1.mc.root') ]
 
     if 'benchmark_version' in wildcards.keys():
         if wildcards.benchmark_version == 'Run3v1':
@@ -1292,7 +1292,7 @@ def extract_best(tagger, cut, model_type ,link='logit'):
         config = f'lr{lr}_bs{bs}_nL{nl}_nN{nn}{BN}'
         return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'numlayers':nl, 'numneurons':nn, 'tagger':tagger, 'cut':cut, 'link':link}
 
-def get_model_path(wildcards, all_taggers=False):
+def get_model_path(wildcards,all_taggers=False):
     # if 'Run3v' not in wildcards.model_types:
     #     data_type = wildcards.model_types.removeprefix('trained_')
     # else:
@@ -1313,7 +1313,7 @@ def get_model_path(wildcards, all_taggers=False):
         # BN = 'BN' if 'BN' in wildcards.model_types else ''
         # best = [extract_best(tagger=tag, cut=cut_name, data_type=data_type, BN=BN) for tag in tagger]
         best = [extract_best(tagger=tag, cut=wildcards.cut_name, model_type=wildcards.model_types) for tag in tagger]
-        model = [join(out, f'{wildcards.data_type}/savedModels/{dec}/{tag}/{wildcards.cut_name}/{wildcards.features}/{bes["seed"]}/{bes["config"]}/training/model.pth') for tag, dec, bes in zip(tagger, decay, best)]
+        model = [join(out, f'{wildcards.model_types.split("_")[1]}/savedModels/{dec}/{tag}/{wildcards.cut_name}/{wildcards.features}/{bes["seed"]}/{bes["config"]}/training/model.pth') for tag, dec, bes in zip(tagger, decay, best)]
     else:
         model = [join(repo, f'benchmark_tagger/{wildcards.model_types}/{tag}/model.pth') for tag in tagger]
 
