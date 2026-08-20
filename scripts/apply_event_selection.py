@@ -55,7 +55,7 @@ def get_phi_mask(df, save_plot=False):
 
     if save_plot:
         plt.hist(df_kin.loc[df_kin['mask'], 'inv_mass'], bins=bins, alpha=0.7, color='orange', label='After phi mass cut')
-        plt.xlabel('$m(K^+K^-)$ [MeV/c^2]')
+        plt.xlabel('$m(K^+K^-)$ [MeV/$c^2$]')
         plt.ylabel('Frequency')
         plt.title('Phi Mass Distribution')
         plt.legend()
@@ -133,7 +133,7 @@ if __name__ == "__main__":
             chunk['candidate_entry'] = chunk['file_id'].astype(str) + "_" + chunk['candidate_index'].astype(str)
             print(f"Chunk file contains {chunk['event_entry'].nunique()} unique events", flush=True)
 
-            chunk = apply_classical_selection(chunk, classical_selection_features, cfg.decay_type, save_plot = '00001_1' in  os.path.basename(cfg.target)) #only save the plot for the first file 
+            chunk = apply_classical_selection(chunk, classical_selection_features, cfg.decay_type)
 
             # Apply the BDT to select signal events
             # Grouped by candidate_entry not event_entry because one event may have several candidates, due to (almost purely) incorrect reconstruction, 
