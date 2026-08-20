@@ -26,3 +26,4 @@ NNarchitectures/nL*.yaml
 test/
 **/.nfs*
 scripts/test.py
+.vscode/
