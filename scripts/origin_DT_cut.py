@@ -254,6 +254,7 @@ if __name__ == '__main__':
     particle_type = [pair[1] for pair in condition_particle_pairs]
     # Assign particle types based on conditions, with default "Others" for unmatched rows
     df['particle'] = np.select(conditions, particle_type, default="Others")
+    
     conditions = [pair[0] for pair in condition_particle_pairs_SS_decaySpecific]
     particle_type = [pair[1] for pair in condition_particle_pairs_SS_decaySpecific]
     # Assign particle types based on conditions, with default "Others" for unmatched rows
@@ -346,7 +347,7 @@ if __name__ == '__main__':
     print(type(X_train))
     # Drop 'Other' particles from training dataset
     # Drop all particles that are not in train_particle_types, other particles are included for monitoring during testing
-    mask = np.isin(y_train, cfg.train_classes)
+    mask = np.isin(y_train[target_column], cfg.train_classes)
 
     X_train = X_train[mask]
     y_train = y_train[mask][target_column]
@@ -537,10 +538,10 @@ if __name__ == '__main__':
     DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/allSS_confusion_PredictionNormalised.txt",         unify_classes=None)
 
 
-    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles,                            title='Versus True (pruned)',                 savepath=f"{output_path}/SpecSS_unified_confusion_TruthNormalised.txt",      unify_classes=unify_classes)
-    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/SpecSS_unified_confusion_PredictionNormalised.txt", unify_classes=unify_classes)
-    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles,                            title='Versus True (pruned)',                 savepath=f"{output_path}/SpecSS_confusion_TruthNormalised.txt",              unify_classes=None)
-    DT_utils.metric_table(y_true=y_test['particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/SpecSS_confusion_PredictionNormalised.txt",         unify_classes=None)
+    DT_utils.metric_table(y_true=y_test['decSpec_particle'], y_predicted=y_pred_test, possible_particle=ordered_particles,                            title='Versus True (pruned)',                 savepath=f"{output_path}/SpecSS_unified_confusion_TruthNormalised.txt",      unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_test['decSpec_particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/SpecSS_unified_confusion_PredictionNormalised.txt", unify_classes=unify_classes)
+    DT_utils.metric_table(y_true=y_test['decSpec_particle'], y_predicted=y_pred_test, possible_particle=ordered_particles,                            title='Versus True (pruned)',                 savepath=f"{output_path}/SpecSS_confusion_TruthNormalised.txt",              unify_classes=None)
+    DT_utils.metric_table(y_true=y_test['decSpec_particle'], y_predicted=y_pred_test, possible_particle=ordered_particles, normalization='predicted', title='Versus Predicted (pruned / balanced)', savepath=f"{output_path}/SpecSS_confusion_PredictionNormalised.txt",         unify_classes=None)
 
 
     print(f'Running the script required: {time.time()-start}s', flush=True)
