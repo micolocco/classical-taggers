@@ -93,7 +93,6 @@ if __name__ == '__main__':
             _df.dropna(inplace=True)
 
             _df["event_entry"] = _df["file_id"].astype(str) + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
-            # _df.drop(columns=['RUNNUMBER', 'EVENTNUMBER', 'file_id'], inplace=True)
 
 
             singleTagger_dataframes.append(_df)
@@ -142,7 +141,7 @@ if __name__ == '__main__':
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
     pd.set_option('display.max_colwidth', None)
-    print(df[df.isna().any(axis=1)].head())
+    print(df[df.isna().any(axis=1)].head(), flush = True)
 
     assert not df.isna().any().any(), "There are NaN values in the DataFrame. Please check the input files and merging process."
 
@@ -169,6 +168,8 @@ if __name__ == '__main__':
     else:
         taggers = ft.TargetTaggerCollection()
 
+    print(f"Using mode {mode} for the combination")
+    print(f"Tau_ps_err: {tau_ps_err}")
 
     for tagger in cfg.tagger:
         if run == 'Run2':
@@ -193,11 +194,11 @@ if __name__ == '__main__':
             print(f"Calibrating {tagger}")
             tagger_obj.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
             tagger_obj.calibrate()
-            ft.save_calibration(taggers=tagger_obj, title=f"{tagger}.json", save_path=cfg.outputPath)
         else:
             print(f"Loading calibration for {tagger} from {calibration_dict[tagger]}")
             tagger_obj.load(calibration_dict[tagger], tagger_name = tagger, style='delta')
             tagger_obj.apply()
+        ft.save_calibration(taggers=tagger_obj, title=f"calibration.json", save_path=cfg.outputPath)
             
         
 
@@ -246,7 +247,7 @@ if __name__ == '__main__':
     ft.plotting.plot_calibration_curve(tagger_combination, savepath=cfg.outputPath)
     ft.plotting.plot_calibration_curve_smooth(tagger_combination, savepath=cfg.outputPath, smoothing='kde')
 
-    ft.save_calibration(taggers=tagger_combination, title=cfg.combinationName, save_path=cfg.outputPath)
+    ft.save_calibration(taggers=tagger_combination, title="calibration.json", save_path=cfg.outputPath)
 
     class_indices = df[BID].values
     class_label_dict = {521: '$B^+$', -521: '$B^-$', 511: '$B^0$', -511: r'$\overline{B}^0$'}
