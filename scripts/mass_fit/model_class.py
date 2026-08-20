@@ -50,7 +50,7 @@ def _build_double_CB_with_double_gauss(self, obs, parameters=None): # doubleCB w
 		"sigmaR":	 zfit.Parameter("sigmaR",	 12.0,	0.10,   30.0),
 		"g_sigma1":   zfit.Parameter("g_sigma1",	6.0,	0.10,   30.0),
 		"g_sigma2":   zfit.Parameter("g_sigma2",   18.0,	0.10,   50.0),
-		"sig_frac":   zfit.Parameter("sig_frac",	0.5,	0.00,	1.0),
+		"sig_frac":   zfit.Parameter("sig_frac",	0.2,	0.01,	1.0),
 		"gauss_frac": zfit.Parameter("gauss_frac",  0.5,	0.00,	1.0),
 		"alphaL":	 zfit.Parameter("alphaL",	  3.0,	0.00,	5.0),
 		"nL":		 zfit.Parameter("nL",		  1.5,	0.01,   15.0),
@@ -262,19 +262,19 @@ class BdMassModel(GenericMassModel):
 		frac_secondary = zfit.Parameter("frac_secondary", 0.1, 0, 1)
 		background_model, background_params = self.construct_background_model(self.obs, True)
 		background_mix = zfit.pdf.SumPDF([secondary_model, background_model], [frac_secondary])
-		self._drawing_backgrounds["model_bs"] = {
-			"model": secondary_model,
-			"frac": frac_secondary,
-			"yield": yield_bkg,
-			"label": r"$B^{0}_{s} \to J/\psi K^*$",
-			"color": "goldenrod",
-		}
 		self._drawing_backgrounds["comb_model"] = {
 			"model": background_model,
 			"frac": None,
 			"yield": yield_bkg,
 			"label": "Combinatorial",
 			"color": "lightgray",
+		}
+		self._drawing_backgrounds["model_bs"] = {
+			"model": secondary_model,
+			"frac": frac_secondary,
+			"yield": yield_bkg,
+			"label": r"$B^{0}_{s} \to J/\psi K^*$",
+			"color": "goldenrod",
 		}
 		self._context.update(
 			{
@@ -300,31 +300,37 @@ class BdMassModel(GenericMassModel):
 
 		background_pdf_evals = {}
 		for name, bg_info in self._drawing_backgrounds.items():
-			bg_model = bg_info["model"]
-			bg_frac = bg_info["frac"]
+			bg_model = bg_info['model']
+			bg_frac = bg_info['frac']
+
+			print(f"Drawing background: {name}, Fraction: {bg_frac}, color: {bg_info['color']}, label: {bg_info['label']}")
+
 			if bg_frac is None:
-				other_fracs = [info["frac"] for n, info in self._drawing_backgrounds.items() if n != name and info["frac"] is not None]
-				frac = 1 - sum([params[frac]["value"] for frac in other_fracs]) if other_fracs else 1.0
-			else:
+				# Get the fraction as 1 - all other fractions
+				other_fracs = [info['frac'] for n, info in self._drawing_backgrounds.items() if n != name and info['frac'] is not None]
+				if other_fracs:
+					frac = 1 - sum([params[frac]["value"] for frac in other_fracs])
+				else:
+					frac = 1.0
+			else: 
 				frac = params[bg_frac]["value"]
+
+			print(f"Background: {name}, Fraction: {frac}")
+
 			bg_pdf_eval = bg_model.pdf(x_plot, norm_range=self.obs)
 			background_pdf_evals[name] = params[yield_bkg]["value"] * frac * bg_pdf_eval * binwidth
 
+		
+
 		background_scaled = np.zeros_like(x_plot)
 		for name, bg_scaled in background_pdf_evals.items():
-			ax1.fill_between(
-				x_plot,
-				background_scaled,
-				background_scaled + bg_scaled,
-				label=self._drawing_backgrounds[name]["label"],
-				color=self._drawing_backgrounds[name]["color"],
-				linewidth=0,
-				alpha=0.8,
-			)
+			ax1.fill_between(x_plot, background_scaled, background_scaled + bg_scaled, label=self._drawing_backgrounds[name]['label'], color=self._drawing_backgrounds[name]['color'], linewidth=0, alpha=0.8)
 			background_scaled += bg_scaled
 		ax1.plot(x_plot, signal_scaled + background_scaled, label="Total Fit", color="black", linewidth=2)
-		return signal_scaled + background_scaled
 
+
+
+		return signal_scaled + background_scaled
 
 class BsMassModel(GenericMassModel):
 	def construct_signal_model(self, obs, parameters=None):
@@ -511,13 +517,13 @@ class Bs2DsPiMassModel(GenericMassModel):
 		#Exponential contribution of background
 		comb_model, background_params = self.construct_background_model(self.obs, True, )
 		exp_yield = zfit.Parameter("exp_yield", self.n_events * 0.5, 0, self.n_events)
-		frac_comb = zfit.Parameter("frac_comb", 0.3, 0.2, .38)
+		frac_comb = zfit.Parameter("frac_comb", 0.3, 0.2, .40)
 		self._drawing_backgrounds['comb_model'] = {'model': comb_model, 'frac' : frac_comb, 'yield': exp_yield, 'label': 'Combinatorial', 'color': 'lightgray'}
 
 
 		#2 Gaussian for partially reconstructed background
 		part_yield = zfit.Parameter("part_yield", self.n_events * 0.2, 0, self.n_events)	
-		frac_part = zfit.Parameter("frac_part", 0.32, 0.3, .65)
+		frac_part = zfit.Parameter("frac_part", 0.32, 0.3, .55)
 		mu1_part = zfit.Parameter("mu1_part", 5130, 5075, 5175)
 		sigma1_part = zfit.Parameter("sigma1_part", 100, 15, 200)
 		part_gaus1 = zfit.pdf.Gauss(obs=self.obs, mu=mu1_part, sigma=sigma1_part)
@@ -536,19 +542,19 @@ class Bs2DsPiMassModel(GenericMassModel):
 
 
 		#Gaussian for Lambda_b background
-		# Lb_yield = zfit.Parameter("Lb_yield", self.n_events * 0.1, 0, self.n_events)
-		# mu_Lb = zfit.Parameter("mu_Lb", 5480, 5450, 5550)
-		# sigma1_Lb = zfit.Parameter("sigma1_Lb", 25, 10, 100)
-		# sigma2_Lb = zfit.Parameter("sigma2_Lb", 70, 10, 100)
+		Lb_yield = zfit.Parameter("Lb_yield", self.n_events * 0.1, 0, self.n_events)
+		mu_Lb = zfit.Parameter("mu_Lb", 5480, 5450, 5550)
+		sigma1_Lb = zfit.Parameter("sigma1_Lb", 25, 10, 100)
+		sigma2_Lb = zfit.Parameter("sigma2_Lb", 70, 10, 100)
 
-		# Lb_ratio = zfit.Parameter("Lb_ratio", 0.5, 0.01, .99)
-		# gauss1_Lb = zfit.pdf.Gauss(obs=self.obs, mu=mu_Lb, sigma=sigma1_Lb)
-		# gauss2_Lb = zfit.pdf.Gauss(obs=self.obs, mu=mu_Lb, sigma=sigma2_Lb)
-		# # model_Lb = zfit.pdf.SumPDF([gauss1_Lb, gauss2_Lb], [Lb_ratio])
-		# model_Lb = gauss1_Lb
+		Lb_ratio = zfit.Parameter("Lb_ratio", 0.5, 0.01, .99)
+		gauss1_Lb = zfit.pdf.Gauss(obs=self.obs, mu=mu_Lb, sigma=sigma1_Lb)
+		gauss2_Lb = zfit.pdf.Gauss(obs=self.obs, mu=mu_Lb, sigma=sigma2_Lb)
+		# model_Lb = zfit.pdf.SumPDF([gauss1_Lb, gauss2_Lb], [Lb_ratio])
+		model_Lb = gauss1_Lb
 
-		# frac_Lb = zfit.Parameter("frac_Lb", 0.03, 0.02, .15)
-		# self._drawing_backgrounds['model_Lb'] = {'model': model_Lb, 'frac' : frac_Lb, 'yield': Lb_yield, 'label': r'$\Lambda_b^0 \rightarrow \bar{\Lambda_c} \pi^+$', 'color': 'mediumseagreen'}
+		frac_Lb = zfit.Parameter("frac_Lb", 0.03, 0.02, .15)
+		self._drawing_backgrounds['model_Lb'] = {'model': model_Lb, 'frac' : frac_Lb, 'yield': Lb_yield, 'label': r'$\Lambda_b^0 \rightarrow \bar{\Lambda_c} \pi^+$', 'color': 'mediumseagreen'}
 
 
 		#Bd2DsPi contribution. Same as signal just shifted and scaled
@@ -587,8 +593,8 @@ class Bs2DsPiMassModel(GenericMassModel):
 		# background_mix = zfit.pdf.SumPDF([comb_model, model_part, model_Lb, model_Bd2DsPi, model_DsK ], [frac_comb, frac_part, frac_Lb, frac_Bd2DsPi, frac_Bd2DsPi])
 		# model = zfit.pdf.SumPDF([signal_model.create_extended(self._context["yield_signal"]), background_mix.create_extended(yield_bkg)])
 
-		# background_mix = zfit.pdf.SumPDF([comb_model, model_part, model_Lb, model_Bd2DsPi, model_DsK ], [frac_comb, frac_part, frac_Lb, frac_Bd2DsPi])
-		background_mix = zfit.pdf.SumPDF([comb_model, model_part, model_Bd2DsPi, model_DsK ], [frac_comb, frac_part, frac_Bd2DsPi])
+		background_mix = zfit.pdf.SumPDF([comb_model, model_part, model_Lb, model_Bd2DsPi, model_DsK ], [frac_comb, frac_part, frac_Lb, frac_Bd2DsPi])
+		# background_mix = zfit.pdf.SumPDF([comb_model, model_part, model_Bd2DsPi, model_DsK ], [frac_comb, frac_part, frac_Bd2DsPi])
 		# background_mix = zfit.pdf.SumPDF([comb_model, model_part, model_Lb, model_Bd2DsPi,], [frac_comb, frac_part, frac_Lb])
 		model = zfit.pdf.SumPDF([signal_model.create_extended(self._context["yield_signal"]), background_mix.create_extended(yield_bkg)])
 
@@ -618,7 +624,6 @@ class Bs2DsPiMassModel(GenericMassModel):
 	
 	def plot_mass_fit(self, ax1, x_plot, binwidth, model, params, yield_signal, yield_bkg):
 		signal = model if self.simulation else model.models[0]
-		background = None if self.simulation else model.models[1]
 		signal_pdf_eval = signal.pdf(x_plot, norm_range=self.obs)
 		signal_scaled = params[yield_signal]["value"] * signal_pdf_eval * binwidth
 

@@ -26,7 +26,7 @@ except:
 massranges = {'Bu2JpsiK': (5200, 5350), 
               'Bd2JpsiKst': (5200, 5400), 
               'Bs2JpsiKst': (5200, 5400), 
-              'Bs2DsPi': (5200, 6000),}
+              'Bs2DsPi': (5100, 6000),}
 
 
 def in_data(data_path, list_of_files):
