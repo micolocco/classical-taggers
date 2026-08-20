@@ -693,11 +693,11 @@ def get_to_split(wildcards):
         return join(out, f'Data/NTuples/1_added_features/{wildcards.decay}/combined/{wildcards.ID}.root'),
         
 
-def get_memory_split_and_eventSelect(wildcards):
+def get_memory_split(wildcards):
     if wildcards.decay == 'Bs2DsPi': 
         return 128_000
     else:
-        return 32_000
+        return 64_000
 
 rule split_sample:
     input:
@@ -714,9 +714,9 @@ rule split_sample:
         join(out, '{data_type}/NTuples/2_split/{decay}/log/.{ID}.log'),
     resources:
         max_retries=0,
-        request_memory = get_memory_split_and_eventSelect,
-        mem = get_memory_split_and_eventSelect,
-        MaxRunHours = 1,
+        request_memory = get_memory_split,
+        mem = get_memory_split,
+        MaxRunHours = 4,
     run:
         out_path = os.path.dirname(os.path.dirname(output.train))
         treename = '"DecayTree;1"' 
@@ -787,7 +787,13 @@ rule train_signal_classifier:
         ]
 
 
-        shell(' '.join(cmd))
+#         shell(' '.join(cmd))
+
+def get_memory_eventSelect(wildcards):
+    if wildcards.decay == 'Bs2DsPi': 
+        return 64_000
+    else:
+        return 16_000
 
 rule event_selection: #Applies BDT signal selection and in case a bin is supplied in addition to the decay, also cuts away events outside the bin
     input:
@@ -805,8 +811,8 @@ rule event_selection: #Applies BDT signal selection and in case a bin is supplie
         join(out, '{data_type}/NTuples/3_event_selected/{decay}{binning}/{partition}/.{ID}.log'),
     resources:
         max_retries=0,
-        request_memory = get_memory_split_and_eventSelect,
-        mem = get_memory_split_and_eventSelect,
+        request_memory = get_memory_eventSelect,
+        mem = get_memory_eventSelect,
         MaxRunHours = 1,
     run:
         if kernel_available():
