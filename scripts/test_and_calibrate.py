@@ -264,6 +264,10 @@ def testing_pipeline(test_df, BID, target_path, tagger, features, config,
     mode = decay_type[:2]
     if data_type == 'MC':
         mode = 'Bu' #When truth information is availiable Bd or Bs mode is not needed
+
+    print(f"Using mode {mode} for the combination")
+    print(f"Tau_ps_err: {df_TagParticles['B_TAUERR']}")
+
     
     npar = 3 
     if calibration_config is not None:
