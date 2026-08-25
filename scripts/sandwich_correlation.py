@@ -329,13 +329,15 @@ def get_sandwich_estimator(tagger1, tagger2):
 '''
 Comparison of Run3v0 and Run3v1
 
-
-TEMP
-python scripts/sandwich_correlation.py --labels V0 V1 --combined_root_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/_combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json --taggers SSPion SSProton OSKaon OSMuon OSElectron
-
-
-
 python scripts/sandwich_correlation.py --labels V0 V1 --combined_root_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json --taggers SSPion SSProton OSKaon OSMuon OSElectron
+
+python scripts/sandwich_correlation.py  --labels V01 V02 --combined_root_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json  --taggers SSPion SSProton OSKaon OSMuon OSElectron
+
+python scripts/sandwich_correlation.py  --labels Data MC  --combined_root_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json --taggers SSPion SSProton OSKaon OSMuon OSElectron
+
+
+python scripts/sandwich_correlation.py --labels V0 V1 --combined_root_files /ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json --taggers SSPion SSProton OSKaon OSMuon OSElectron --data_type MC --mode Bu
+
 
 
 '''
@@ -352,12 +354,18 @@ if __name__ == "__main__":
     parser.add_argument('--mode',                type=str,                           help='Mode of the decay. Used to determine the correct calibration file to use.', default='Bd',)
     parser.add_argument('--tree',                type=str,                           help='Name of the tree in the ROOT files to read.', default='DecayTree;1',)
     parser.add_argument('--outpath',             type=str,                           help='Path to where the output should be saved',    default='/ceph/users/togasa/FlavourTagging/comparisons/tagging_power_diff')
+    parser.add_argument('--data_type',           type=str,                           help='Type of data to use. Can be either "Data" or "MC".', default='Data', choices=['Data', 'MC'])
     cfg = parser.parse_args()
 
     np.set_printoptions(linewidth=10_000)
 
 
-    event_vars = ['signal_weights', 'B_TAU', 'B_ID'] 
+    if cfg.data_type == 'Data':
+        event_vars = ['B_ID', 'B_TAU', 'signal_weights']
+        BID = 'B_ID'
+    else:
+        event_vars = ['B_TRUEID']
+        BID = 'B_TRUEID'
 
     df = load_dataframes(cfg.combined_root_files, cfg.labels, event_vars, cfg.taggers)
 
@@ -365,15 +373,22 @@ if __name__ == "__main__":
     combined_taggers = []
     for label, calib_file in zip(cfg.labels, cfg.calibration_files):
 
-        df_label = df[df['label'] == label]#[:1_000]
+        df_label = df[df['label'] == label]
         tagger_collection = ft.TargetTaggerCollection()
         for tagger in cfg.taggers:
+            weights = None
+            decay_time = None 
+            if cfg.data_type == 'Data':
+                weights = df_label['signal_weights'].to_numpy()
+                decay_time = df_label['B_TAU'].to_numpy()
+                
+
             tagger_obj = ft.TargetTagger(tagger,
                                          eta_data  =df_label[f'{tagger}_Eta'].to_numpy(), 
                                          dec_data  =df_label[f'{tagger}_TagDec'].to_numpy(), 
-                                         B_ID      =df_label['B_ID'].to_numpy(), 
-                                         tau_ps    =df_label['B_TAU'].to_numpy(), 
-                                         weight    =df_label['signal_weights'].to_numpy(),
+                                         B_ID      =df_label[BID].to_numpy(), 
+                                         tau_ps    =decay_time, 
+                                         weight    =weights,
                                          mode      =cfg.mode, 
                                         #  tauerr_ps =tau_ps_err,
                                         )
