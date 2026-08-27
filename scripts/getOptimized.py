@@ -214,7 +214,7 @@ if __name__ == '__main__':
         print(json.dumps(max_ratios,  indent=4, default=str))
         # filename=f'{cfg.outputPath}/{cfg.cut}/candidatedTaggers_{link}.json'
         # os.makedirs(os.path.dirname(filename), exist_ok=True)
-        path_name = os.path.join(cfg.outpath, f'{cfg.cut}/{data_type}')
+        path_name = os.path.join(cfg.outpath, f'{cfg.cut}/{cfg.features}/{data_type}')
         if cfg.BN: path_name = path_name.replace(data_type, data_type+'_BN')
         plot_path = os.path.join(cfg.plot_path, f'hyperparameters_opt/{data_type}/{cfg.cut}/{link}')
         if cfg.BN: plot_path = plot_path.replace(data_type, data_type+'_BN')
@@ -225,8 +225,8 @@ if __name__ == '__main__':
         with open(os.path.join(plot_path, f'best_models_{link}.json'), 'w') as f:
             json.dump(best_models, f, indent=4, default=str)
 
-        for tagger, decay in tagger_dict.items():
-            plot_hyperparams_vs_tagging_power(performances[performances['tagger'] == tagger], os.path.join(plot_path, f'{tagger}_Hyperparams_vs_TaggingPower.png'), len(tagger_input_features[tagger]['features']))
+        # for tagger, decay in tagger_dict.items():
+        #     plot_hyperparams_vs_tagging_power(performances[performances['tagger'] == tagger], os.path.join(plot_path, f'{tagger}_Hyperparams_vs_TaggingPower.png'), len(tagger_input_features[tagger]['features']))
 
         performances['link'] = link
         full_df = pd.concat([full_df, performances], ignore_index=True)
@@ -245,5 +245,5 @@ if __name__ == '__main__':
     full_df.to_csv(os.path.join(df_path, 'performances.csv'), index=False)   
 
 
-    print(f"All results saved to {cfg.outpath}/{cfg.cut}/{data_type}/")
+    print(f"All results saved to {cfg.outpath}/{cfg.cut}/{cfg.features}/{data_type}/")
 
