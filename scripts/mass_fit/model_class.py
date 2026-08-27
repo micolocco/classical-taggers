@@ -8,10 +8,8 @@ import matplotlib.pyplot as plt
 
 #TODO 
 # -make default parameters more centralized
-# -test whether this works at all
 # -go from particle based model to decay based model directly
 #    -> Naming still missing
-# - Proveread the newest changes (everything except Bs2DsPiMassModel)
 
 
 def _build_double_CB_with_gauss(self, obs, parameters=None): # doubleCB with 1 gaussian
