@@ -1,0 +1,53 @@
+{
+  "decay": "Bs2DsPi",
+  "proxies": {
+    "n": "number of candidates (rows) in the fit dataframe"
+  },
+  "signal": {
+    "mean":     {"name": "mean_bs",  "start": 5366.0, "limits": [5340.00, 5380.0]},
+    "sigmaL":   {"name": "sigmaL",   "start":   12.0, "limits": [   0.10,   30.0]},
+    "sigmaR":   {"name": "sigmaR",   "start":   12.0, "limits": [   0.10,   30.0]},
+    "alphaL":   {"name": "alphaL",   "start":    4.0, "limits": [   0.00,    5.0]},
+    "nL":       {"name": "nL",       "start":    1.5, "limits": [   0.01,   15.0]},
+    "alphaR":   {"name": "alphaR",   "start":    2.0, "limits": [   0.00,    5.0]},
+    "nR":       {"name": "nR",       "start":    1.6, "limits": [   0.01,   15.0]},
+    "g_sigma":  {"name": "g_sigma",  "start":   30.0, "limits": [   0.10,  100.0]},
+    "sig_frac": {"name": "sig_frac", "start":    0.8, "limits": [   0.00,    1.0]}
+  },
+  "background": {
+    "selected": {
+      "lambda": {"name": "lambda", "start": -0.01, "limits": [-1.0, -0.0005]}
+    },
+    "unselected": {
+      "c1": {"name": "c1", "start":  0.05, "limits": null},
+      "c2": {"name": "c2", "start":  -0.2, "limits": null},
+      "c3": {"name": "c3", "start":   0.0, "limits": null},
+      "c4": {"name": "c4", "start":  0.01, "limits": null}
+    }
+  },
+  "components": {
+    "comb_fraction": {"name": "frac_comb",    "start":    0.3, "limits": [   0.20,    0.40]},
+    "part_fraction": {"name": "frac_part",    "start":   0.32, "limits": [   0.30,    0.55]},
+    "part_mean1":    {"name": "mu1_part",     "start": 5130.0, "limits": [5075.00, 5175.00]},
+    "part_sigma1":   {"name": "sigma1_part",  "start":  100.0, "limits": [  15.00,  200.00]},
+    "part_ratio":    {"name": "part_ratio",   "start":    0.2, "limits": [   0.01,    0.99]},
+    "part_mean2":    {"name": "mu2_part",     "start": 5200.0, "limits": [5100.00, 5300.00]},
+    "part_sigma2":   {"name": "sigma2_part",  "start":   50.0, "limits": [  15.00,  200.00]},
+    "lb_mean":       {"name": "mu_Lb",        "start": 5480.0, "limits": [5450.00, 5550.00]},
+    "lb_sigma":      {"name": "sigma1_Lb",    "start":   25.0, "limits": [  10.00,  100.00]},
+    "lb_fraction":   {"name": "frac_Lb",      "start":   0.03, "limits": [   0.02,    0.15]},
+    "bd_fraction":   {"name": "frac_Bd2DsPi", "start":   0.05, "limits": [   0.02,    0.08]},
+    "dsk_mean":      {"name": "mu_DsK",       "start": 5320.0, "limits": [5310.00, 5340.00]},
+    "dsk_sigma":     {"name": "sigma1_DsK",   "start":   10.0, "limits": [  10.00,   25.00]}
+  },
+  "yields": {
+    "signal":                {"name": "yield_signal",   "start":       "n", "limits": [0, "1.01 * n"]},
+    "background_selected":   {"name": "yield_bkg",      "start": "0.1 * n", "limits": [0,        "n"]},
+    "background_unselected": {"name": "yield_bkg",      "start": "0.5 * n", "limits": [0,        "n"]},
+    "exponential_component": {"name": "exp_yield",      "start": "0.5 * n", "limits": [0,        "n"]},
+    "partial_component":     {"name": "part_yield",     "start": "0.2 * n", "limits": [0,        "n"]},
+    "lb_component":          {"name": "Lb_yield",       "start": "0.1 * n", "limits": [0,        "n"]},
+    "bd_component":          {"name": "Bd2DsPi_yield",  "start": "0.1 * n", "limits": [0,        "n"]},
+    "dsk_component":         {"name": "Bs2DsK_yield",   "start": "0.5 * n", "limits": [0,        "n"]}
+  }
+}

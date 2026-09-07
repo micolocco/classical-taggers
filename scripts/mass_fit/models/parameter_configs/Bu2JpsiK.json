@@ -1,0 +1,35 @@
+{
+  "decay": "Bu2JpsiK",
+  "proxies": {
+    "n": "number of candidates (rows) in the fit dataframe"
+  },
+  "signal": {
+    "mean":       {"name": "mean_bu",    "start": 5275.0, "limits": [5250.00, 5350.0]},
+    "sigmaL":     {"name": "sigmaL",     "start":   12.0, "limits": [   0.10,   30.0]},
+    "sigmaR":     {"name": "sigmaR",     "start":   12.0, "limits": [   0.10,   30.0]},
+    "alphaL":     {"name": "alphaL",     "start":    3.0, "limits": [   0.00,    5.0]},
+    "nL":         {"name": "nL",         "start":    1.5, "limits": [   0.01,   15.0]},
+    "alphaR":     {"name": "alphaR",     "start":    3.0, "limits": [   0.00,    5.0]},
+    "nR":         {"name": "nR",         "start":    1.6, "limits": [   0.01,   15.0]},
+    "g_sigma1":   {"name": "g_sigma1",   "start":    6.0, "limits": [   0.10,   30.0]},
+    "g_sigma2":   {"name": "g_sigma2",   "start":   18.0, "limits": [   0.10,   50.0]},
+    "sig_frac":   {"name": "sig_frac",   "start":    0.2, "limits": [   0.01,    1.0]},
+    "gauss_frac": {"name": "gauss_frac", "start":    0.5, "limits": [   0.00,    1.0]}
+  },
+  "background": {
+    "selected": {
+      "lambda": {"name": "lambda", "start": -0.01, "limits": [-1.0, -0.0005]}
+    },
+    "unselected": {
+      "c1": {"name": "c1", "start":  0.05, "limits": null},
+      "c2": {"name": "c2", "start":  -0.2, "limits": null},
+      "c3": {"name": "c3", "start":   0.0, "limits": null},
+      "c4": {"name": "c4", "start":  0.01, "limits": null}
+    }
+  },
+  "components": {},
+  "yields": {
+    "signal":     {"name": "yield_signal", "start":       "n", "limits": [0, "1.01 * n"]},
+    "background": {"name": "yield_bkg",    "start": "0.1 * n", "limits": [0,        "n"]}
+  }
+}
