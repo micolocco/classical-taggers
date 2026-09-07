@@ -813,7 +813,7 @@ rule event_selection: #Applies BDT signal selection and in case a bin is supplie
         max_retries=0,
         request_memory = get_memory_eventSelect,
         mem = get_memory_eventSelect,
-        MaxRunHours = 1,
+        MaxRunHours = 4,
     run:
         if kernel_available():
             data = path_to_kernel(input.data)
@@ -857,7 +857,6 @@ rule train_DT:
         mem = 150_000,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
         MaxRunHours = 4,
-        requirements='(Machine == "rhino.e5.physik.tu-dortmund.de")',
     run:
         target_path = os.path.dirname(output.model)
 
@@ -951,8 +950,13 @@ def get_fit_mc_res(wildcards):
 
 rule mass_fit:
     input:
-        script = join(repo, 'scripts/mass_fit/mass_fits.py'),
+        script = join(repo, 'scripts/mass_fit/mass_fit.py'),
         data = get_fit_input_paths,
+
+
+        #For validation partition, fix shape fitted from testing partition, because of low statistics in validation partition
+        shape_parameters = lambda wildcards: join(out, '{data_type}/mass_fit/{decay}{binning}/test/event_{is_selected}_fit.json') 
+            if wildcards.partition == 'validation' else [],
 
         mc_res = get_fit_mc_res,
     output: 
@@ -974,6 +978,12 @@ rule mass_fit:
         else:
             data = input.data
 
+        
+        if wildcards.partition == 'validation':
+            shape_parameters = "--fixed_shape_params " + input.shape_parameters
+        else:
+            shape_parameters = ''
+
         cmd = [
             'python {input.script}',
             '--input_files', ' '.join(data),
@@ -984,6 +994,7 @@ rule mass_fit:
             '--sim_fit {input.mc_res}' if wildcards.data_type   == 'Data'     else '',
             '--selected'               if wildcards.is_selected == 'selected' else '',
             '--output', out_path,
+            shape_parameters,
             '--decay_type {wildcards.decay}',
             '--num_threads {threads}',
             '&> {log}'
