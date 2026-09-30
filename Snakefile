@@ -159,15 +159,15 @@ generated_paths_OSMuon = read_generated_paths(
 
 # print(expand(ntuples_selected_withUT['Bd2JpsiKst']['SSPion'], cut_name=['allBKGCAT_notSamePV_noOSP_SSK_balanced'], balanced=['balanced'],features=['union_PROBNN']),)
 #FEATURES = 'explore_new'
-FEATURES = 'union_PROBNN'
+FEATURES = 'union_PROBNN_charge'
 OUTPUT=[]
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.0001_bs8192_nL3_nN32/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN32/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
-#OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.01_bs4096_nL3_nN32/asym_level1/{SPEC}/model.pth"))
-OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs128_nL3_nN3/asym_level1/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level2/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.0001_bs8192_nL3_nN32/asym_level2/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSElectron/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN32/asym_level2/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bu2JpsiK/OSMuon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level2/{SPEC}/model.pth"))
+#OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs4096_nL3_nN256/asym_level2/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bs2DsPi/SSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.01_bs4096_nL3_nN32/asym_level2/{SPEC}/model.pth"))
+OUTPUT.append(join(modified_MC,f"savedModels/withUT_MC_2024/Bd2JpsiKst/SSProton/allBKGCAT_notSamePV_noOSP_SSK_balanced/{FEATURES}/test_newNN/45/lr0.001_bs128_nL3_nN3/asym_level2/{SPEC}/model.pth"))
 
 
 # print(expand(join(modified_MC, 'savedModels/withUT_MC_2024/Bd2JpsiKst/SSPion/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/14/lr0.001_bs1024_simple_dm0.0/ROC_TRAIN_VAL.pdf'))

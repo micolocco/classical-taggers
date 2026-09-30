@@ -79,7 +79,7 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Reading datasets
-    vars = features + ['B_TRUEID','B_Tr_T_Charge','selected',]
+    vars = features + ['B_TRUEID','selected',]
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device used: {device}")
@@ -146,7 +146,9 @@ if __name__ == '__main__':
         df.loc[df['label'] == -1, 'label'] = 0 # shifting the label from -1 to 0
 
         # Split
-        cols_needed = features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']
+        #cols_needed = features + ['event_entry', 'selected', f"{cfg.tagger}_TagDec", 'B_TRUEID', 'label']
+        cols_needed = features + ['event_entry', 'selected', 'B_TRUEID', 'label']
+
         train_df, val_df, test_df = pyTrain.splitByEvent(
             df=df[cols_needed],
             asym_level=cfg.asymmetry_level,
