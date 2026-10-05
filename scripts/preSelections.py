@@ -41,7 +41,9 @@ def apply_preSelections(notSelected_rootPath, cut_file, treename, loading_variab
 
     if data_type == 'Data':
         print("replacing B_Tr_T_Origin_Flag with B_Tr_T_IsInTree in the cut string for data")
-        cuts = np.char.replace(cuts, "(B_Tr_T_Origin_Flag!=0)", "(B_Tr_T_IsInTree!=1)")
+        cuts = np.char.replace(cuts, "(B_Tr_T_Origin_Flag!=0)",  "(B_Tr_T_IsInTree!=1)")
+        cuts = np.char.replace(cuts, "(B_Tr_T_Origin_Flag !=0)", "(B_Tr_T_IsInTree!=1)")
+
     cuts = np.char.replace(cuts, "BPV", "OWNPV")
     cuts = np.char.replace(cuts, "OWNPV_IP", "OWNPVIP")
     print(f"The applied cut is: {cuts}")
