@@ -192,6 +192,8 @@ wildcard_constraints:
     combinationName = '[^/]+',
     BN = '(_BN|)', #Empty string for no BN, _BN for with BN
     selection = '(/non_selected|)', # Added to some rules to allow for testing on non-selected data. Is empty for selected
+    corrected = '(pidcorr/|)', #Empty string for no correction, pidcorr/ for corrected data
+    test_or_valid = '(testing|validating)', #Used for testing or validation of trained models
 
 rule all:
     input:
@@ -889,10 +891,10 @@ rule train_DT:
 
 
 
-rule add_selection:
+rule add_track_selection:
     input:
         script = join(repo, 'scripts/preSelections.py'),
-        to_select = lambda wildcards : join(out, '{data_type}/NTuples/2_split/{decay}{binning}/{partition}/{ID}.root') if (wildcards.data_type == 'MC' and wildcards.binning == '') or wildcards.selection != ''
+        to_select = lambda wildcards : join(out, '{data_type}/NTuples/2_split/{decay}{binning}/' + f'{"pidcorr/" if wildcards.features == "union_PROBNN_pidcorr" else ""}' + '{partition}/{ID}.root') if (wildcards.data_type == 'MC' and wildcards.binning == '') or wildcards.selection != ''
                                   else join(out, '{data_type}/NTuples/3_event_selected/{decay}{binning}/{partition}/{ID}.root'),
     output: join(out, '{data_type}/NTuples/4_track_selected/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{partition}/{ID}.root'),
     log:    join(out, '{data_type}/NTuples/4_track_selected/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{partition}/.{ID}.log')
@@ -1175,7 +1177,9 @@ def get_testing_inputs(wildcards):
         cut_name = wildcards.cut_name
         features = wildcards.features
 
-    return [f.replace('cut_name', f'{cut_name}').replace('train', 'test').replace(wildcards.decay, f'{wildcards.decay}{wildcards.binning}{wildcards.selection}').replace('features', f'{features}')
+        if wildcards.features == 'union_PROBNN_pidcorr' and wildcards.data_type == "Data":
+            features = 'union_PROBNN'
+
             for f in files_dict[f'{wildcards.decay}'][f'{wildcards.tagger}']]
 
 rule test_and_calibrate:
@@ -1188,12 +1192,12 @@ rule test_and_calibrate:
         script = join(repo, 'scripts/test_and_calibrate.py'),
         config = join(repo, 'model_configs/{config}.yaml'),
     output:
-        logit =  join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/logit/taggingInfo_logit.json'),
-        mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/mistag/taggingInfo_mistag.json'),
-        calibration_logit =  join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/logit/calibration.json'),
-        calibration_mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/mistag/calibration.json'),
+        logit              = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/{test_or_valid}/{data_type}/logit/taggingInfo_logit.json'),
+        calibration_logit  = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/{test_or_valid}/{data_type}/logit/calibration.json'),
+        mistag             = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/{test_or_valid}/{data_type}/mistag/taggingInfo_mistag.json'),
+        calibration_mistag = join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/{test_or_valid}/{data_type}/mistag/calibration.json'),
     log: 
-        join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/testing/{data_type}/testing_log.log')
+        join(out, '{data_type_or_adapted}/savedModels/{decay}{binning}{selection}/{tagger}/{cut_name}/{features}/{seed}/{config}/{test_or_valid}/{data_type}/testing_log.log')
     priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
@@ -1212,14 +1216,17 @@ rule test_and_calibrate:
         else:
             test_kernel = input.testing
 
+features = wildcards.features
+        if features == 'union_PROBNN_pidcorr' and wildcards.data_type == "Data":
+            features = 'union_PROBNN'
 
         cmd = [
             'python', input.script,
             '--testing_data', ' '.join(test_kernel),
-            '--target_path', outpath,
+           f'--features {features}',
             '--treename "DecayTree;1"',
             '--tagger {wildcards.tagger}',
-            '--features {wildcards.features}',
+           f'--features {features}',
             '--config', input.config,
             '--decay_type {wildcards.decay}',
             '--seed {wildcards.seed}',
@@ -1354,7 +1361,7 @@ def get_best_link(wildcards, tagger=None):
 rule add_tagDec:
     input:
         script = join(repo, 'scripts/adding_tagDec.py'),
-        to_tag = lambda wildcards: join(out, '{data_type}/NTuples/5_weighted/{decay}{selection}/{tagger}/{cut_name}/{features}/test/{ID}.root') if wildcards.data_type == 'Data' 
+        to_tag = lambda wildcards: join(out, '{data_type}/NTuples/5_weighted/{decay}{selection}/{tagger}/{cut_name}/' + f'{wildcards.features if wildcards.features != "union_PROBNN_pidcorr" else "union_PROBNN"}' + '/test/{ID}.root') if wildcards.data_type == 'Data' 
                               else join(out, '{data_type}/NTuples/4_track_selected/{decay}{selection}/{tagger}/{cut_name}/{features}/test/{ID}.root'),
         
 
@@ -1395,7 +1402,9 @@ rule add_tagDec:
 
         # domain = '--domain_adapted' if wildcards.data_type_or_adapted == 'domain_adapted' else ''
         domain = '--domain_adapted' if 'domain_adapted' in wildcards.model_types else ''
-        benchmark_version = f'--benchmark_version {wildcards.model_types}' if 'Run3v' in wildcards.model_types else ''
+        benchmark_version = f'--benchmark_version {model_type}' if 'benchmark_tagger' in input.config else ''
+
+        features = wildcards.features if wildcards.features != 'union_PROBNN_pidcorr' else 'union_PROBNN'
 
         cmd = [
             'python', input.script,
@@ -1407,7 +1416,7 @@ rule add_tagDec:
             '--config {input.config}',
             '--decayType {wildcards.decay}', # Decay used for evaluating the tagger
             '--tagger {wildcards.tagger}',
-            '--features {wildcards.features}',
+           f'--features {features}',
             '--data_type {wildcards.data_type}', 
             f'--seed {config.get("seed")}',
             '--calibration {input.calibration}',
