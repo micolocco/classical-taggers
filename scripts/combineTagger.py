@@ -36,6 +36,7 @@ if __name__ == '__main__':
     parser.add_argument('--combinationName', help='Name used for the output combination', type=str)
     parser.add_argument('--data_type', help='Type of data used for calibration: Data or MC', type=str, choices=('Data', 'MC'))
     parser.add_argument('--input_files', help='Path to the input files used for the combination, used to find the data files. tagger_placeholder is used as used as placeholder for the tagger name', type=str)
+    parser.add_argument('--model_type', help='Model type used for the combination, e.g. Run3v1 or trained_MC', type=str)
     parser.add_argument('--calibrations', help='List of calibration json files for each tagger, only used for Run3', nargs='*')
 
     print(f'Combining taggers started on {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
@@ -77,8 +78,18 @@ if __name__ == '__main__':
 
         print(f'Processing tagger {tagger}')
         print(f'Base path {cfg.input_files}')
-        # input_path = os.path.join(cfg.tagged_prePath, cfg.decayType, tagger, cfg.cut, cfg.features, f'trained_{cfg.trained_on}/*.root')
-        input_path = os.path.join(cfg.input_files.replace('tagger_placeholder', tagger), f'*.root')
+
+        # For SSKaon use trained_mc even if model_type is trained_Data
+        if tagger == 'SSKaon' and 'Run3v' not in cfg.model_type:
+            model_type_to_use = 'trained_MC'
+            if cfg.model_type.endswith('BN'):
+                model_type_to_use += '_BN'
+        else:
+            model_type_to_use = cfg.model_type
+
+        path_model_type = cfg.input_files.split('/')[-1]
+        input_path = cfg.input_files.replace(path_model_type, model_type_to_use)
+        input_path = os.path.join(input_path.replace('tagger_placeholder', tagger), f'*.root')
         print(f'input path: {input_path}')
         input_files = glob.glob(input_path)
         # Loop over all files
@@ -100,12 +111,13 @@ if __name__ == '__main__':
 
             
         df_merged=pd.concat(singleTagger_dataframes, ignore_index=True)
-        print(df_merged['event_entry'].nunique())
+        print( df_merged['event_entry'].nunique())
         assert df_merged['event_entry'].nunique() == len(df_merged), f"There are duplicate event entries in the merged DataFrame. Check {f}."
 
-        df_merged = df_merged.groupby("event_entry").first()
+        df_merged = df_merged.groupby("event_entry").first().reset_index(drop=False)
         taggers_dataframes.append(df_merged)
-        
+
+        print(f"Tagger {tagger} has {len(df_merged)} entries, with {df_merged['event_entry'].nunique()} unique event entries, and {np.sum(df_merged[f"{tagger}_TagDec"] != 0)} tagged events.", flush=True)        
         # Merge all DataFrames on the common columns
         
     for df in taggers_dataframes:
@@ -126,7 +138,12 @@ if __name__ == '__main__':
     
     for single_df in taggers_dataframes[1:]:
         df = pd.merge(df, single_df, on=['event_entry']+common_columns, how='outer')
-    del taggers_dataframes  # Free memory
+    del taggers_dataframes, singleTagger_dataframes # Free memory
+
+    for tagger in cfg.tagger:
+        print(f"Tagger {tagger} has {len(df)} entries, with {df['event_entry'].nunique()} unique event entries, and {np.sum(df[f"{tagger}_TagDec"] != 0)} tagged events.", flush=True)        
+
+
     df.reset_index(drop=False, inplace=True)  # Reset index after merging
     print(df.shape)
     print(df.columns)
@@ -151,6 +168,7 @@ if __name__ == '__main__':
     tau = None
     tau_ps_err = None
     mode = 'Bu'
+    BIDs = df[BID].to_numpy()
     if cfg.data_type == 'Data':
         weights = df['signal_weights'].to_numpy()
         if 'Bu' not in cfg.decayType:
@@ -158,7 +176,12 @@ if __name__ == '__main__':
             mode = cfg.decayType[:2]
             if 'Bs' in cfg.decayType:
                 tau_ps_err = df['B_TAUERR'].to_numpy()
-        
+                print(f"Applying decay time calibration for {mode} mode")
+                print(f"Original head of tauerr_ps: {tau_ps_err[:5]}")  # Print first 5 values for debugging
+                decayTime_calib_p = [0.011, 0.91, 0]
+                tau_ps_err = np.polyval(decayTime_calib_p, tau_ps_err*1000)/1000
+                print(f"Calibrated head of tauerr_ps: {tau_ps_err[:5]}")  # Print first 5 values for debugging
+    
 
     npar = 2
     run = cfg.run
@@ -169,6 +192,7 @@ if __name__ == '__main__':
         taggers = ft.TargetTaggerCollection()
 
     print(f"Using mode {mode} for the combination")
+    print(f"Tau_ps: {tau}")
     print(f"Tau_ps_err: {tau_ps_err}")
 
     for tagger in cfg.tagger:
@@ -181,15 +205,31 @@ if __name__ == '__main__':
             dec_col = f'{tagger}_TagDec'
             tagger_class = ft.TargetTagger
 
+        print(f"eta_col: {eta_col}, dec_col: {dec_col}, tagger_class: {tagger_class}")
+
         tagger_obj = tagger_class(tagger,
-                                    eta_data=df[eta_col], 
-                                    dec_data=df[dec_col], 
-                                    B_ID=df[BID], 
-                                    mode = mode, 
-                                    tau_ps=tau, 
-                                    tauerr_ps =tau_ps_err,
-                                    weight=weights)
-        
+                                  eta_data  = df[eta_col], 
+                                  dec_data  = df[dec_col], 
+                                  B_ID      = BIDs, 
+                                  mode      = mode, 
+                                  tau_ps    = tau, 
+                                  tauerr_ps = tau_ps_err,
+                                  weight    = weights)
+
+        print(f"Tagger {tagger} has {np.sum(np.logical_and(df[dec_col] != 0, df[eta_col] < 0.5))} tagged events before calibration")
+
+        print(f"Tagger {tagger} has Ntagged of {tagger_obj.stats.Nt} before calibration")
+        print(f"Tagger {tagger} has manuel Ntagged of {np.sum(np.logical_and(tagger_obj.stats._full_data["dec"] != 0, tagger_obj.stats._full_data["eta"] < 0.5))} before calibration")
+
+        eta_read = df[eta_col].to_numpy()
+        eta_ft = tagger_obj.stats._full_data["eta"]
+
+        df_eta = pd.DataFrame({'eta_read': eta_read, 'eta_ft': eta_ft})
+
+        df_eta.to_csv(f'eta_comparison_{tagger}.csv', index=False)
+
+
+
         if run == 'Run2':
             print(f"Calibrating {tagger}")
             tagger_obj.set_calibration(ft.PolynomialCalibration(npar=2, link=ft.link.logit))
@@ -200,7 +240,9 @@ if __name__ == '__main__':
             tagger_obj.apply()
         ft.save_calibration(taggers=tagger_obj, title=f"calibration.json", save_path=cfg.outputPath)
             
-        
+        print(f"Tagger {tagger} has loaded tagging power of {tagger_obj.stats.tagging_power(calibrated=True)}")
+        print(f"Tagger {tagger} has Ntagged of {tagger_obj.stats.Nt} after calibration")
+
 
         tagger_df = tagger_obj.get_dataframe('all')
         print('Calibrated tagging information')
@@ -223,22 +265,44 @@ if __name__ == '__main__':
 
     
     uncali_combined_df = target_combination.get_dataframe('all') #individual taggers calibrated but not the combination
+
+    # When the Taggingefficiency is pretty much 1, it can happen that the untagged events all have a negative sWeight
+    # causing problems in the determination of the statistical uncertainty of the tagging power. In this case,
+    # simply drop the untagged events from the dataframe. As long as these are very few events, this should not 
+    # significantly affect the tagging power.
+
+    uncali_combined_df['signal_weights'] = weights
+    sum_weights_untagged = np.sum(uncali_combined_df.loc[uncali_combined_df[f'{cfg.combinationName}_DEC'] == 0, 'signal_weights'])
+    if sum_weights_untagged < 0:
+        if np.sum(uncali_combined_df[f'{cfg.combinationName}_DEC'] == 0)/len(uncali_combined_df) < 1e-4:
+            print(f"Warning: The sum of weights for untagged events is negative ({sum_weights_untagged}). Dropping untagged events from the dataframe.")
+
+            mask = uncali_combined_df[f'{cfg.combinationName}_DEC'] != 0
+            uncali_combined_df = uncali_combined_df[mask]
+            weights = weights[mask]
+            BIDs = BIDs[mask]
+            tau = tau[mask] if tau is not None else None
+            tau_ps_err = tau_ps_err[mask] if tau_ps_err is not None else None
+            df = df[mask]
+        else:
+            raise ValueError(f"Error: The sum of weights for untagged events is negative ({sum_weights_untagged}).")
+
+
     tagger_combination = ft.Tagger(f'{cfg.combinationName}',
-                                    eta_data=uncali_combined_df[f'{cfg.combinationName}_ETA'].to_numpy(),
-                                    dec_data=uncali_combined_df[f'{cfg.combinationName}_DEC'].to_numpy(),
-                                    B_ID=df[BID].to_numpy(), 
-                                    mode = mode,
-                                    tau_ps=tau,
-                                    tauerr_ps=tau_ps_err,
-                                    weight=weights)
+                                    eta_data  = uncali_combined_df[f'{cfg.combinationName}_ETA'].to_numpy(),
+                                    dec_data  = uncali_combined_df[f'{cfg.combinationName}_DEC'].to_numpy(),
+                                    B_ID      = BIDs, 
+                                    mode      = mode,
+                                    tau_ps    = tau,
+                                    tauerr_ps = tau_ps_err,
+                                    weight    = weights)
     
     tagger_combination.set_calibration(ft.PolynomialCalibration(npar=npar, link=ft.link.logit))
-    ## And calibrate this tagger again
+    # And calibrate this tagger again
     tagger_combination.calibrate()
     tagger_df = tagger_combination.get_dataframe('all')
     df[f"{cfg.combinationName}_CDEC"] = tagger_df[f"{cfg.combinationName}_CDEC"].values
     df[f"{cfg.combinationName}_OMEGA"] = tagger_df[f"{cfg.combinationName}_OMEGA"].values
-    # df[f"{cfg.combinationName}_OMEGA_ERR"] = tagger_df[f"{cfg.combinationName}_OMEGA_ERR"].values
 
 
     taggers.plot_calibration_curves(savepath = cfg.outputPath, omega_range="minimal", nbins=10)

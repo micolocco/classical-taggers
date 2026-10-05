@@ -1295,13 +1295,12 @@ rule test_and_calibrate_benchmark:
         shell(' '.join(cmd))
 
 # def extract_best(tagger, cut, data_type,link='logit', BN = ''):
-def extract_best(tagger, cut, model_type ,link='logit'):
+def extract_best(tagger, cut, model_type, features, link='logit'):
     #Read the best tagger candidate config from json file with the best hyperparameter combination
 
     
-
-    with open(join(repo, f'best_tagger_candidates/{cut}/{model_type.removeprefix("trained_")}/candidatedTaggers_{link}.json'), 'r') as f: # trainOn
-    # with checkpoints.get_optimized.get(tagger = tagger, cut_name = cut).output[0].open() as f:
+    json_path = join(repo, f'best_tagger_candidates/{cut}/{features}/{model_type.removeprefix("trained_")}/candidatedTaggers_{link}.json')
+    with open(json_path, 'r') as f: # trainOn
         data = json.load(f)
 
     seed = int(data[tagger]['seed'])
@@ -1321,33 +1320,49 @@ def extract_best(tagger, cut, model_type ,link='logit'):
         return {'config':config, 'seed':seed, 'lr':lr, 'bs':bs, 'numlayers':nl, 'numneurons':nn, 'tagger':tagger, 'cut':cut, 'link':link}
 
 def get_model_path(wildcards,all_taggers=False):
-    # if 'Run3v' not in wildcards.model_types:
-    #     data_type = wildcards.model_types.removeprefix('trained_')
-    # else:
-    #     data_type = wildcards.data_type
-
-    if not all_taggers:
-        tagger = [wildcards.tagger]
-    else:
+    if all_taggers:
         tagger = get_taggers_from_combination(wildcards.combinationName)
-        
-    if 'Run3v' not in wildcards.model_types:
-        
-        if all_taggers:
-            decay = [wildcards.decay for _ in tagger]
-        else:
-            decay = [extract_decay(tag) for tag in tagger]
-
-        # BN = 'BN' if 'BN' in wildcards.model_types else ''
-        # best = [extract_best(tagger=tag, cut=cut_name, data_type=data_type, BN=BN) for tag in tagger]
-        best = [extract_best(tagger=tag, cut=wildcards.cut_name, model_type=wildcards.model_types) for tag in tagger]
-        model = [join(out, f'{wildcards.model_types.split("_")[1]}/savedModels/{dec}/{tag}/{wildcards.cut_name}/{wildcards.features}/{bes["seed"]}/{bes["config"]}/training/model.pth') for tag, dec, bes in zip(tagger, decay, best)]
+        decay = [extract_decay(tag) for tag in tagger]
     else:
-        model = [join(repo, f'benchmark_tagger/{wildcards.model_types}/{tag}/model.pth') for tag in tagger]
+        tagger = [wildcards.tagger]
+        decay = [extract_decay(tagger[0])]
+        
+
+    if 'Run3v' not in wildcards.model_types:
+        trained_on = wildcards.model_types.split("_")[1]
+        trained_on = [trained_on if tag != 'SSKaon' else 'MC' for tag in tagger]
+        configs = [extract_best(tagger=tag, cut=wildcards.cut_name, model_type=wildcards.model_types if tag != 'SSKaon' or 'Run3v' in wildcards.model_types else 'trained_MC', features=wildcards.features) for tag in tagger]
+        else:
+        trained_on = [None for tag in tagger]
+        configs = [{'config' : f'{wildcards.model_types}'} for tag in tagger]
+
+    model = []
+    for tag, dec, con, _trained_on in zip(tagger, decay, configs, trained_on):
+        if 'Run3v' in con['config']:
+            model.append(join(repo, f'benchmark_tagger/{con["config"]}/{tag}/model.pth'))
+    else:
+            model.append(join(out, f'{_trained_on}/savedModels/{dec}/{tag}/{wildcards.cut_name}/{wildcards.features}/{con["seed"]}/{con["config"]}/training/model.pth'))
+
 
     if not all_taggers:
         model = model[0]
     return model
+
+def get_config_path(model_path):
+    if 'benchmark_tagger' in model_path:
+        config_path = model_path.replace('model.pth', 'model_config.yaml')
+    else:
+        config_name = 'lr' + model_path.split('lr')[1].split('/')[0]
+        config_path = join(repo, f'model_configs/{config_name}.yaml')
+    return config_path
+
+def get_config_path(model_path):
+    if 'benchmark_tagger' in model_path:
+        config_path = model_path.replace('model.pth', 'model_config.yaml')
+    else:
+        config_name = 'lr' + model_path.split('lr')[1].split('/')[0]
+        config_path = join(repo, f'model_configs/{config_name}.yaml')
+    return config_path
 
 def get_best_link(wildcards, tagger=None):
     if tagger is None:
@@ -1361,26 +1376,46 @@ def get_best_link(wildcards, tagger=None):
     else:
         return 'logit'
 
+def get_model_objects(wildcards):
+    model = get_model_path(wildcards)
+    scaler = model.replace('training/model.pth', 'training/st_scaler.pkl')
+    transformer = model.replace('training/model.pth', 'training/powerTransformer.pkl')
+    if model.split('/')[-2] == 'training':
+        calibration = model.replace('training/model.pth', f'testing/{wildcards.data_type}/logit/calibration.json')
+    else:
+        calibration = join(out, f'MC/benchmarkModels/{wildcards.decay}{wildcards.selection}/{wildcards.tagger}/{wildcards.model_types}/testing/{wildcards.data_type}/{get_best_link(wildcards)}/calibration.json')
+
+    return {
+        'model': model,
+        'scaler': scaler,
+        'transformer': transformer,
+        'calibration': calibration
+    }
+def get_model_objects(wildcards):
+    model = get_model_path(wildcards)
+    scaler = model.replace('training/model.pth', 'training/st_scaler.pkl')
+    transformer = model.replace('training/model.pth', 'training/powerTransformer.pkl')
+    if model.split('/')[-2] == 'training':
+        calibration = model.replace('training/model.pth', f'testing/{wildcards.data_type}/logit/calibration.json')
+    else:
+        calibration = join(out, f'MC/benchmarkModels/{wildcards.decay}{wildcards.selection}/{wildcards.tagger}/{wildcards.model_types}/testing/{wildcards.data_type}/{get_best_link(wildcards)}/calibration.json')
+
+    return {
+        'model': model,
+        'scaler': scaler,
+        'transformer': transformer,
+        'calibration': calibration
+    }
 
 rule add_tagDec:
     input:
+        unpack(get_model_objects),
         script = join(repo, 'scripts/adding_tagDec.py'),
         to_tag = lambda wildcards: join(out, '{data_type}/NTuples/5_weighted/{decay}{selection}/{tagger}/{cut_name}/' + f'{wildcards.features if wildcards.features != "union_PROBNN_pidcorr" else "union_PROBNN"}' + '/test/{ID}.root') if wildcards.data_type == 'Data' 
                               else join(out, '{data_type}/NTuples/4_track_selected/{decay}{selection}/{tagger}/{cut_name}/{features}/test/{ID}.root'),
         
 
-        model       = lambda wildcards: get_model_path(wildcards),
-        scaler      = lambda wildcards: get_model_path(wildcards).replace('training/model.pth', 'training/st_scaler.pkl'), 
-        transformer = lambda wildcards: get_model_path(wildcards).replace('training/model.pth', 'training/powerTransformer.pkl'), 
-        calibration = lambda wildcards: get_model_path(wildcards).replace('training/model.pth', f'testing/{wildcards.data_type}/logit/calibration.json')
-                        if 'Run3v' not in wildcards.model_types 
-                        else join(out, f'MC/benchmarkModels/{wildcards.decay}{wildcards.selection}/{wildcards.tagger}/{wildcards.model_types}/testing/{wildcards.data_type}/{get_best_link(wildcards)}/calibration.json'),
-
-
-        # config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, data_type=wildcards.data_type_or_adapted, BN=wildcards.BN).get("config")}.yaml'),
-        config = lambda wildcards: join(repo, f'model_configs/{extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, model_type=wildcards.model_types).get("config")}.yaml') 
-                              if 'Run3v' not in wildcards.model_types 
-                              else join(repo, f'benchmark_tagger/{wildcards.model_types}/{wildcards.tagger}/model_config.yaml'),
+        config = lambda wildcards: get_config_path(get_model_path(wildcards)),    
     output:
         root = join(out, '{data_type}/NTuples/6_tagged/{decay}{selection}/{tagger}/{cut_name}/{features}/{model_types}/{ID}.root'),
     log:
@@ -1391,13 +1426,12 @@ rule add_tagDec:
         mem = 40_000,
         MaxRunHours = 1, 
     run:
-        # config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, data_type=wildcards.data_type_or_adapted, BN=wildcards.BN)
-
-        if 'Run3v' in wildcards.model_types:
-            with open(join(repo, f'benchmark_tagger/{wildcards.model_types}/{wildcards.tagger}/best_calib.yaml'), 'r') as f:
+        model_type = wildcards.model_types
+        if 'benchmark_tagger' in input.config:
+            with open(join(repo, f'benchmark_tagger/{model_type}/{wildcards.tagger}/best_calib.yaml'), 'r') as f:
                 config = yaml.safe_load(f)
         else:
-            config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, model_type=wildcards.model_types)
+            config = extract_best(tagger=wildcards.tagger, cut=wildcards.cut_name, model_type=wildcards.model_types, features=wildcards.features)
 
 
 
@@ -1453,7 +1487,14 @@ def get_tagged_paths(wildcards):
         paths = tagged_mc[decay][tagger] if data_type == 'MC' else tagged_data[decay][tagger]
         paths = np.array(paths)
         paths = np.char.replace(paths, 'cut_name/features', f'{cut_name}/{features}')
-        paths = np.char.replace(paths, 'trained_on', model_types)
+
+        model_type_to_use = model_types
+        if tagger == 'SSKaon' and 'Run3v' not in model_types:
+            model_type_to_use = 'trained_MC'
+            if model_types.endswith('BN'):
+                model_type_to_use += '_BN'
+
+        paths = np.char.replace(paths, 'trained_on', model_type_to_use)
         all_paths = np.concatenate((all_paths, paths))
 
     return all_paths
@@ -1470,8 +1511,18 @@ def get_calibrations_for_combination(wildcards):
         return [join(out, f'MC/benchmarkModels/{wildcards.decay}{wildcards.selection}/{tagger}/{wildcards.model_types}/testing/{wildcards.data_type}/{get_best_link(wildcards, tagger)}/calibration.json') 
                 for tagger in get_taggers_from_combination(wildcards.combinationName)]
     else:
-        return [path.replace(f'{wildcards.decay}', f'{wildcards.decay}{wildcards.selection}').replace('training/model.pth', f'testing/{wildcards.data_type}/logit/calibration.json') 
+        paths = [path.replace(f'{wildcards.decay}', f'{wildcards.decay}{wildcards.selection}').replace('training/model.pth', f'testing/{wildcards.data_type}/logit/calibration.json') 
                 for path in get_model_path(wildcards, all_taggers=True)]
+
+        # Replace the Decay the tagger was trained on with the decay its supossed to be used for.
+        taggers = []
+        for i, path in enumerate(paths):
+            tagger = re.search('((?:SS|OS)[A-Za-z]+)', path)
+            if tagger:
+                taggers.append(tagger.group(1))
+            else:
+                raise ValueError(f"Could not extract tagger from path: {path}")
+        return [path.replace(extract_decay(taggers[i]), wildcards.decay) for i, path in enumerate(paths)]
 
 rule combine_tagger: 
     input:
@@ -1513,6 +1564,7 @@ rule combine_tagger:
             '--combinationName {wildcards.combinationName}',
             '--decayType {wildcards.decay}',
             f'--input_files {tagger_placeholder_path}',
+            f'--model_type {wildcards.model_types}',
             f'--outputPath {out_path}',
             '--features {wildcards.features}',
             '--cut {wildcards.cut_name}',
@@ -1639,5 +1691,4 @@ rule combine_tagger:
 #         ]
 
 #         shell(' '.join(cmd))
-
 

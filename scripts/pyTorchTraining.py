@@ -781,6 +781,13 @@ def calibration(tagger, df_tag, eventType, target_path, calibration_option='mist
     if mode != 'Bu':
         tau_ps = df_tag['B_TAU'].to_numpy()
         tauerr_ps = df_tag['B_TAUERR'].to_numpy()
+
+        if mode == 'Bs':
+            print(f"Applying decay time calibration for {mode} mode")
+            print(f"Original tauerr_ps: {tauerr_ps[:5]}")  # Print first 5 values for debugging
+            decayTime_calib_p = [0.011, 0.91, 0]
+            tauerr_ps = np.polyval(decayTime_calib_p, tauerr_ps*1000)/1000
+            print(f"Calibrated tauerr_ps: {tauerr_ps[:5]}")  # Print first 5 values for debugging
     else:
         tau_ps = None
         tauerr_ps = None
