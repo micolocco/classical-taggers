@@ -285,7 +285,7 @@ if __name__ == '__main__':
     file_id = int(file_id)
     #Optimize memory usage by input files batch by batch instead of loading the whole file at once.  
     candidate_index = 0
-    with uproot.recreate(cfg.output) as fout:
+    with uproot.recreate(cfg.output.replace('.root', '_temp.root')) as fout:
         chunk_iter = uproot.iterate({cfg.raw: cfg.treename}, filter_name=loading_variables, library="ak", step_size=cfg.batch_size)
 
         for i, chunk in enumerate(tqdm(chunk_iter, desc="Processing chunks")):
@@ -316,6 +316,7 @@ if __name__ == '__main__':
             else:
                 fout["DecayTree"].extend(chunk)
     print(list(chunk.columns))
+    os.rename(cfg.output.replace('.root', '_temp.root'), cfg.output)
     
 
 
