@@ -37,6 +37,7 @@ import lhcb_ftcalib as ft
 import traceback
 import logging  
 import warnings
+import datetime
 
 
 def recreate_directory(target_path, clean=False):
@@ -247,7 +248,7 @@ def train_worker(rank, model, train_ds, validation_ds, target_path, config, seed
     try:
         train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path, config, seed, return_dict, num_threads)
     except Exception as e:
-        logging.error(f"Worker {rank} crashed at {time.time()}:")
+        logging.error(f"Worker {rank} crashed at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}:")
         logging.error(traceback.format_exc())
         traceback.print_exc()
         raise
@@ -300,6 +301,12 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
             dist.barrier() #Ensure all processes have finished validation before starting training, to avoid possible issues with early stopping if one process is much faster than the others
         epoch = 0
         epochtimes = []
+
+        # During distributed Training sometimes the trainingtime of an epoch can increase dramatically for unkown reasons.
+        # When this happens, the training is stopped to avoid wasting time. The maximum time for an epoch is set to 10 minutes (600 seconds).
+        # When 2 consecutive epochs take longer than 10 minutes, the training is stopped. 
+        max_epoch_time = 600
+
         while return_dict.get('early_stopping', False) == False and epoch <= config['n_epochs']: 
             epoch_start = time.time()
             if num_threads > 1:
@@ -324,6 +331,27 @@ def train_model_EarlyStopping(rank, model, train_ds, validation_ds, target_path,
                     print(f'Memory report failed in rank {rank}')
  
             epochtimes.append((time.time()-epoch_start))
+
+            if epochtimes[-1] > max_epoch_time and epochtimes[-2] > max_epoch_time:
+                print(f"Epoch {epoch+1} and {epoch} took longer than {max_epoch_time} seconds. Stopping training to avoid wasting time.", flush=True)
+
+                # Logging information about the status
+                log_path = target_path.split('Flagging')[0] + 'Flagging/TrainingIssueLog.txt'
+                with open(log_path, 'a') as f:
+                    f.write(f"Training stopped due to long epoch times.\n")
+                    f.write(f"Tagger: {config['tagger']}\n")
+                    f.write(f"Config: {config}\n")
+                    f.write(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"Memory usage: {psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2} MiB\n")
+                    f.write(f"Machine: {socket.gethostname()}\n")
+                    f.write(f"Epoch: {epoch+1}\n")
+                    f.write(f"Training Loss: {format_loss(stepLoss)}\n")
+                    f.write(f"Validation Loss: {format_loss(validationStep_loss)}\n")
+                    f.write(f"Early stopping counter: {early_stopper.counter}/{config['patience']}\n\n\n")
+
+                raise RuntimeError(f"Epoch {epoch+1} and {epoch} took longer than {max_epoch_time} seconds. Stopping training to avoid wasting time.")
+
+
 
             if rank == 0:
                 return_dict['early_stopping'] = early_stopper.early_stop(validationEpoch_loss[-1]) 
