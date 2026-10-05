@@ -1,18 +1,13 @@
 
 import uproot 
 import pandas as pd
-import os
 import numpy as np
 import argparse
-from pprint import pprint
-from rich.console import Console
-from rich.table import Table
-from rich import box
+import os
+from contextlib import redirect_stdout
 from io import StringIO
-import matplotlib.pyplot as plt
 
 import lhcb_ftcalib as ft
-from xarray import corr, cov
 
 
 def load_dataframes(root_paths, labels, base_vars, taggers):
@@ -22,7 +17,7 @@ def load_dataframes(root_paths, labels, base_vars, taggers):
         if 'V0' in label:
             vars = ['B_Run2_' + tagger + '_Omega' for tagger in taggers] + ['B_Run2_' + tagger + '_Dec' for tagger in taggers]
         else:
-            vars = [tagger + '_Eta' for tagger in taggers] + [tagger + '_TagDec' for tagger in taggers]
+            vars = [tagger + '_Eta' for tagger in taggers] + [tagger + '_TagDec' for tagger in taggers] + [tagger + '_OMEGA' for tagger in taggers]
 
 
         with uproot.open(path) as f:
@@ -85,9 +80,6 @@ def hessian(tagger, squared_weight = False):
             vals = np.zeros_like(data.eta)
             vals[data.correct_tags] = dPi[data.correct_tags] * dPj[data.correct_tags] / Pi[data.correct_tags]**2
             vals[data.wrong_tags]   = dPi[data.wrong_tags] * dPj[data.wrong_tags] / (1.0 - Pi[data.wrong_tags])**2
-
-            weights = data.weight
-
 
             if squared_weight:
                 hesse[i][j] = np.sum(data.weight**2 * vals)
@@ -159,7 +151,7 @@ def get_score_vector(tagger):
 
     for i in range(dim):
         dPi = -domega_given[i] * (1.0 - dilution) + domega_oscil[i] * dilution
-        
+
         score_vector[i][correct_tags] = dPi[correct_tags] / Pi[correct_tags]
         score_vector[i][wrong_tags]   = dPi[wrong_tags] / (1.0 - Pi[wrong_tags])
 
@@ -168,7 +160,7 @@ def get_score_vector(tagger):
 
     return score_vector
 
-def get_sandwich_estimator(tagger1, tagger2):
+def _get_sandwich_estimator_verbose(tagger1, tagger2):
     score_vector1= get_score_vector(tagger1)
     score_vector2= get_score_vector(tagger2)
 
@@ -318,26 +310,189 @@ def get_sandwich_estimator(tagger1, tagger2):
     print('Uncertainty of tagging power for tagger 2:', np.sqrt(cov_tagpower[1][1]))
     print("\n\n corr tagging power starts", flush = True)
     print(corr_tagpower)
-    
+
+    return cov_tagpower, corr_tagpower
 
 
+def get_sandwich_estimator(tagger1, tagger2, verbose=False):
+    """Return the tagging-power covariance and correlation matrices.
+
+    Parameters
+    ----------
+    tagger1, tagger2:
+        Applied ``lhcb_ftcalib`` taggers built from corresponding event samples.
+    verbose:
+        Retain the detailed matrix dump from the original diagnostic script.
+
+    This small, quiet wrapper is the supported entry point for other scripts.
+    """
+    if verbose:
+        return _get_sandwich_estimator_verbose(tagger1, tagger2)
+    with redirect_stdout(StringIO()):
+        return _get_sandwich_estimator_verbose(tagger1, tagger2)
 
 
+def _load_combined_tagger(
+    root_path,
+    calibration_path,
+    taggers,
+    combined_tagger_name,
+    mode,
+    data_type,
+    tree,
+):
+    """Construct one applied combined tagger for the sandwich calculation."""
+    with uproot.open(root_path) as root_file:
+        root_tree = root_file[tree]
+        available = {str(key).split(';')[0] for key in root_tree.keys()}
+        columns = ['B_ID', 'signal_weights'] if data_type == 'Data' else ['B_TRUEID']
 
+        if mode != 'Bu':
+            columns.append('B_TAU')
+        if mode == 'Bs':
+            columns.append('B_TAUERR')
+
+        branch_names = {}
+        for tagger in taggers:
+            run3_names = (f'{tagger}_Eta', f'{tagger}_TagDec')
+            run2_names = (f'B_Run2_{tagger}_Omega', f'B_Run2_{tagger}_Dec')
+            if set(run3_names) <= available:
+                branch_names[tagger] = run3_names
+            else:
+                branch_names[tagger] = run2_names
+            columns.extend(branch_names[tagger])
+        dataframe = root_tree.arrays(columns, library='pd')
+        del root_tree
+
+    if data_type == 'Data':
+        weights    = dataframe['signal_weights'].to_numpy()
+        bid_column = 'B_ID'
+    else:
+        weights    = None
+        bid_column = 'B_TRUEID'
+
+    tau_ps     = dataframe['B_TAU'   ].to_numpy() if mode != 'Bu' else None
+    tauerr_ps  = dataframe['B_TAUERR'].to_numpy() if mode == 'Bs' else None
+
+    collection = ft.TargetTaggerCollection()
+    for tagger in taggers:
+        eta_column, decision_column = branch_names[tagger]
+        tagger_object = ft.TargetTagger(
+            tagger,
+            eta_data  = dataframe[eta_column].to_numpy(),
+            dec_data  = dataframe[decision_column].to_numpy(),
+            B_ID      = dataframe[bid_column].to_numpy(),
+            tau_ps    = tau_ps,
+            tauerr_ps = tauerr_ps,
+            weight    = weights,
+            mode      = mode,
+        )
+        tagger_object.load(calibration_path, tagger_name=tagger, style='delta')
+        tagger_object.apply()
+        collection.add_taggers(tagger_object)
+
+    if len(taggers) == 1:
+        return collection[taggers[0]]
+
+    combined = collection.combine_taggers(combined_tagger_name, calibrated=True)
+    combined.load(
+        calibration_path,
+        tagger_name=combined_tagger_name,
+        style='delta',
+    )
+    combined.apply()
+    return combined
+
+
+def calculate_tagging_power_correlation(
+    calibration_files,
+    taggers,
+    mode='Bd',
+    data_type='Data',
+    tree='DecayTree;1',
+    filename='combined_tagged.root'
+):
+    """Calculate the sandwich correlation for two combined calibrations.
+
+    Each ROOT path and the combined-tagger name are inferred from the supplied
+    calibration path and tagger list.
+    """
+    combined_root_files = [
+        os.path.join(os.path.dirname(path), filename)
+        for path in calibration_files
+    ]
+    combined_tagger_name = '_'.join(taggers)
+    combined_taggers = [
+        _load_combined_tagger(
+            root_path,
+            calibration_path,
+            taggers,
+            combined_tagger_name,
+            mode,
+            data_type,
+            tree,
+        )
+        for root_path, calibration_path in zip(
+            combined_root_files, calibration_files
+        )
+    ]
+    _, correlation = get_sandwich_estimator(
+        combined_taggers[0], combined_taggers[1]
+    )
+    return correlation
 
 
 '''
 Comparison of Run3v0 and Run3v1
 
+Bd2JpsiKst V0 vs V1
 python scripts/sandwich_correlation.py --labels V0 V1 --combined_root_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json --taggers SSPion SSProton OSKaon OSMuon OSElectron
 
-python scripts/sandwich_correlation.py  --labels V01 V02 --combined_root_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json  --taggers SSPion SSProton OSKaon OSMuon OSElectron
-
+Bd2JpsiKst Data vs MC
 python scripts/sandwich_correlation.py  --labels Data MC  --combined_root_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json --taggers SSPion SSProton OSKaon OSMuon OSElectron
 
+Bs2DsPi V0 vs V1
+python scripts/sandwich_correlation.py --labels V0 V1 --combined_root_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bs2DsPi/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSKaon_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/Data/savedModels/Bs2DsPi/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSKaon_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/Data/savedModels/Bs2DsPi/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSKaon_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/Data/savedModels/Bs2DsPi/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSKaon_OSKaon_OSMuon_OSElectron/calibration.json --taggers SSKaon OSKaon OSMuon OSElectron --data_type Data --mode Bs
 
-python scripts/sandwich_correlation.py --labels V0 V1 --combined_root_files /ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root /ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root --calibration_files /ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json /ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json --taggers SSPion SSProton OSKaon OSMuon OSElectron --data_type MC --mode Bu
+Bd2JpsiKst MC vs MCcor, OSKaon & SSPion
+python
+scripts/sandwich_correlation.py
+--labels
+MC
+MCcor
+--combined_root_files
+/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root
+/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_pidcorr/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root
+--calibration_files
+/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/12/lr0.0001_bs8192_nL8_nN32/testing/Data/mistag/calibration.json
+/ceph/users/togasa/FlavourTagging/MC/savedModels/Bd2JpsiKst/OSKaon/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_pidcorr/12/lr0.0001_bs8192_nL8_nN32/testing/Data/logit/calibration.json
+--taggers
+OSKaon
+--data_type
+Data
+--mode
+Bd
 
+
+
+Bd2JpsiKst MC vs Data, OSKaon
+python
+scripts/sandwich_correlation.py
+--labels
+MC
+Data
+--combined_root_files
+/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root
+/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root
+--calibration_files
+/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_MC/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json
+/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/SSPion_SSProton_OSKaon_OSMuon_OSElectron/calibration.json
+--taggers
+OSKaon
+--data_type
+Data
+--mode
+Bd
 
 
 '''
@@ -392,38 +547,59 @@ if __name__ == "__main__":
                                          mode      =cfg.mode, 
                                         #  tauerr_ps =tau_ps_err,
                                         )
-            # tagger_obj.load(calib_file, tagger_name=tagger)
-            # tagger_obj.apply()
+            tagger_obj.load(calib_file, tagger_name=tagger, style='delta')
+            tagger_obj.apply()
             tagger_collection.add_taggers(tagger_obj)
 
-        tagger_collection.load_calibrations(calib_file)
-        tagger_collection.apply()
+            print(f'Tagging power of {label} {tagger}: {tagger_collection[tagger].stats.tagging_power(calibrated = True)}')
+
+        # tagger_collection.load_calibrations(calib_file)
+        # tagger_collection.apply()
+
 
         col_tagger = tagger_collection.combine_taggers('combined', calibrated = True)
 
-        col_tagger.load(calib_file, tagger_name='_'.join(cfg.taggers))
-        col_tagger.apply()
+        if len(cfg.taggers) > 1:
+            col_tagger.load(calib_file, tagger_name='_'.join(cfg.taggers), style='delta')
+            col_tagger.apply()
+        else:
+            col_tagger = tagger_collection[cfg.taggers[0]]
 
+        tagger_df = col_tagger.get_dataframe('all')
+
+        print(list(tagger_df.columns))
+
+        print(f'Omega values for {label}:')
+        print(df_label[f'{tagger}_OMEGA'].to_numpy())
+        print(tagger_df[f"{tagger}_OMEGA"].values)
+
+        print(f'Tagging power of {label} combined: {col_tagger.stats.tagging_power(calibrated = True)}')
 
         print(f"minimizer values: {col_tagger.minimizer.values}", flush = True)
 
         combined_taggers.append(col_tagger)
 
 
-
-
-
     corrected_1Tagger_covariance(combined_taggers[0])
     corrected_1Tagger_covariance(combined_taggers[1])
-    get_sandwich_estimator(combined_taggers[0], combined_taggers[1])
+    cov, _ = get_sandwich_estimator(
+        combined_taggers[0], combined_taggers[1], verbose=True
+    )
 
+    tag_power1, stat_unc1, calib_unc_1 = np.array(combined_taggers[0].stats.tagging_power(calibrated = True))*100
+    tag_power2, stat_unc2, calib_unc_2 = np.array(combined_taggers[1].stats.tagging_power(calibrated = True))*100
     
-    
-    
 
+    diff_tagpower = tag_power1 - tag_power2
 
+    diff_jacobi_calib = np.array([1, -1])
+    diff_unc_calib = np.sqrt((diff_jacobi_calib @ cov @ diff_jacobi_calib.T))*100
 
+    # The statistical components are assumed to be 100% correlated.
+    diff_unc_stat = abs(stat_unc1 - stat_unc2)
 
-
-
-    
+    print('\n\n\n\n\n')
+    print(f'Tagging power Tagger {cfg.labels[0]}: {tag_power1   } ± {np.sqrt(stat_unc1**2    + calib_unc_1**2   )} (± {stat_unc1    } (stat) ± {calib_unc_1   } (calib))')
+    print(f'Tagging power Tagger {cfg.labels[1]}: {tag_power2   } ± {np.sqrt(stat_unc2**2    + calib_unc_2**2   )} (± {stat_unc2    } (stat) ± {calib_unc_2   } (calib))')
+    print(f'Delta Tagging power:    {              diff_tagpower} ± {np.sqrt(diff_unc_stat**2+ diff_unc_calib**2)} (± {diff_unc_stat} (stat) ± {diff_unc_calib} (calib))', flush = True)
+    print(f'Significance of Delta:  {              diff_tagpower/np.sqrt(diff_unc_stat**2+ diff_unc_calib**2)} sigma', flush = True)
