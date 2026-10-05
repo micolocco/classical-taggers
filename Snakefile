@@ -686,11 +686,12 @@ def get_to_split(wildcards):
     decay = wildcards.decay
     if decay == 'Bs2JpsiKst':
         decay = 'Bd2JpsiKst' # For Bs2JpsiKst use the Bs fraction of Bd2JpsiKst tuples
-
+    if wildcards.corrected != '' and wildcards.data_type == 'Data':
+        raise ValueError('Corrections are only applicable for MC')
 
     if wildcards.data_type == 'MC' or wildcards.decay == 'Bs2DsPi': 
         #Skipp combining for MC as its not needed and Bs2DsPi as the files are too big
-        return join(out, f'{wildcards.data_type}/NTuples/1_added_features/{wildcards.decay}/{wildcards.ID}.root')
+        return join(out, f'{wildcards.data_type}/NTuples/1_added_features/{wildcards.decay}/{wildcards.corrected}{wildcards.ID}.root')
     else:
         return join(out, f'Data/NTuples/1_added_features/{wildcards.decay}/combined/{wildcards.ID}.root'),
         
@@ -789,7 +790,7 @@ rule train_signal_classifier:
         ]
 
 
-#         shell(' '.join(cmd))
+        shell(' '.join(cmd))
 
 def get_memory_eventSelect(wildcards):
     if wildcards.decay == 'Bs2DsPi': 
@@ -906,6 +907,9 @@ rule add_track_selection:
     run:
         BKG0 = '--BKG0' if wildcards.data_type == 'MC' else ''
         cut_file = join(repo, 'cuts/{wildcards.decay}/{wildcards.tagger}/{wildcards.cut_name}.txt')
+
+        if not os.path.exists(cut_file):
+            cut_file = join(out, 'MC/DT_outputs/{wildcards.cut_name}/cuts/{wildcards.tagger}.txt')
 
         if kernel_available():
             to_select = path_to_kernel(input.to_select)
