@@ -1356,14 +1356,6 @@ def get_config_path(model_path):
         config_path = join(repo, f'model_configs/{config_name}.yaml')
     return config_path
 
-def get_config_path(model_path):
-    if 'benchmark_tagger' in model_path:
-        config_path = model_path.replace('model.pth', 'model_config.yaml')
-    else:
-        config_name = 'lr' + model_path.split('lr')[1].split('/')[0]
-        config_path = join(repo, f'model_configs/{config_name}.yaml')
-    return config_path
-
 def get_best_link(wildcards, tagger=None):
     if tagger is None:
         tagger = wildcards.tagger
@@ -1376,21 +1368,6 @@ def get_best_link(wildcards, tagger=None):
     else:
         return 'logit'
 
-def get_model_objects(wildcards):
-    model = get_model_path(wildcards)
-    scaler = model.replace('training/model.pth', 'training/st_scaler.pkl')
-    transformer = model.replace('training/model.pth', 'training/powerTransformer.pkl')
-    if model.split('/')[-2] == 'training':
-        calibration = model.replace('training/model.pth', f'testing/{wildcards.data_type}/logit/calibration.json')
-    else:
-        calibration = join(out, f'MC/benchmarkModels/{wildcards.decay}{wildcards.selection}/{wildcards.tagger}/{wildcards.model_types}/testing/{wildcards.data_type}/{get_best_link(wildcards)}/calibration.json')
-
-    return {
-        'model': model,
-        'scaler': scaler,
-        'transformer': transformer,
-        'calibration': calibration
-    }
 def get_model_objects(wildcards):
     model = get_model_path(wildcards)
     scaler = model.replace('training/model.pth', 'training/st_scaler.pkl')
