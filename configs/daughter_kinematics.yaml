@@ -1,0 +1,24 @@
+{
+  "Bd2JpsiKst": [
+    'muplus_ETA', 'muplus_PHI', 'muplus_PT', 'muplus_PX', 'muplus_PY', 'muplus_PZ',
+    'muminus_ETA', 'muminus_PHI', 'muminus_PT', 'muminus_PX', 'muminus_PY', 'muminus_PZ',
+    'hminus_ETA', 'hminus_PHI', 'hminus_PT', 'hminus_PX', 'hminus_PY', 'hminus_PZ',
+    'hplus_ETA', 'hplus_PHI', 'hplus_PT', 'hplus_PX', 'hplus_PY', 'hplus_PZ',
+    'B_Tr_T_Eta', 'B_Tr_T_Phi', 'B_Tr_T_PT', 'B_Tr_T_PX', 'B_Tr_T_PY', 'B_Tr_T_PZ',
+  ],
+  "Bu2JpsiK": [
+    'muplus_ETA', 'muplus_PHI', 'muplus_PT', 'muplus_PX', 'muplus_PY', 'muplus_PZ',
+    'muminus_ETA', 'muminus_PHI', 'muminus_PT', 'muminus_PX', 'muminus_PY', 'muminus_PZ',
+    'hplus_ETA', 'hplus_PHI', 'hplus_PT', 'hplus_PX', 'hplus_PY', 'hplus_PZ',
+    'B_Tr_T_Eta', 'B_Tr_T_Phi', 'B_Tr_T_PT', 'B_Tr_T_PX', 'B_Tr_T_PY', 'B_Tr_T_PZ',
+
+  ],
+  "Bs2DsPi": [
+    'hplus_ETA', 'hplus_PHI', 'hplus_PT', 'hplus_PX', 'hplus_PY', 'hplus_PZ',
+    'hminus_ETA', 'hminus_PHI', 'hminus_PT', 'hminus_PX', 'hminus_PY', 'hminus_PZ',
+    'piplus_ETA', 'piplus_PHI', 'piplus_PT', 'piplus_PX', 'piplus_PY', 'piplus_PZ',
+    'piminus_ETA', 'piminus_PHI', 'piminus_PT', 'piminus_PX', 'piminus_PY', 'piminus_PZ',
+    'B_Tr_T_Eta', 'B_Tr_T_Phi', 'B_Tr_T_PT', 'B_Tr_T_PX', 'B_Tr_T_PY', 'B_Tr_T_PZ',
+
+  ]
+}

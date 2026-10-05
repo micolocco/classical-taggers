@@ -77,6 +77,9 @@ if __name__ == '__main__':
     else:
         loading_variables += ['B_TRUEID']
 
+    with open('configs/daughter_kinematics.yaml', 'r') as f:
+        daughter_kinematics = yaml.safe_load(f)
+        loading_variables += daughter_kinematics[cfg.decayType]
         
     loading_variables = np.unique(loading_variables).tolist()
     print(f"The features used are: {features}")
@@ -180,6 +183,7 @@ if __name__ == '__main__':
         save_vars += ['B_TRUEID']
         # if 'Bu' not in cfg.decayType:
         #     save_vars.append()
+    save_vars += daughter_kinematics[cfg.decayType]
     with uproot.recreate(f"{cfg.taggedData}") as file:
         file["DecayTree"] = test_df[save_vars]
         

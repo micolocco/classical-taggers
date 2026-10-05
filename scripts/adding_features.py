@@ -231,6 +231,9 @@ def get_loading_vars(evtType, data_type, loading_var_path = "configs/loading_var
     with open(classical_selection_features_path, 'r') as f:
         classical_selection_features = yaml.safe_load(f)
         loading_variables += classical_selection_features[evtType]
+    with open("configs/daughter_kinematics.yaml", 'r') as f:
+        daughter_kinematics = yaml.safe_load(f)
+        loading_variables += daughter_kinematics[evtType]
 
     #Add CTAU
     loading_variables.append(get_mass_label(evtType).replace("MASS", "CTAU"))

@@ -1,6 +1,8 @@
 import numpy as np
 import uproot
 import re
+
+import yaml
 import scripts.pyTorchTraining as pyTrain
 import argparse
 import os
@@ -97,6 +99,10 @@ if __name__ == '__main__':
     selection_variables = extract_selection_var(cfg.cut_file)
     tagger_features = pyTrain.get_features(tagger=cfg.tagger, yaml_file=cfg.features, repo_path=cfg.repo)
     extra_variables = ['candidate_index', 'file_id', 'RUNNUMBER', 'EVENTNUMBER', 'B_ID', 'B_Tr_T_Charge', 'B_TAU', 'B_TAUERR']
+
+    with open('configs/daughter_kinematics.yaml', 'r') as f:
+        daughter_kinematics = yaml.safe_load(f)
+        extra_variables += daughter_kinematics[cfg.evtType]
     
     loading_variables = tagger_features + selection_variables + extra_variables + run2_taggers_variables
     loading_variables = np.unique(loading_variables).tolist()
