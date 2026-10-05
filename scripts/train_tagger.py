@@ -147,6 +147,7 @@ def stats_printout(tagger, decay_type, train_df, val_df, BID):
     # console.print(table)
 
     output = StringIO()
+    console = Console(file=output, width=200)
     console.print(table)
     table_str = output.getvalue()
     print(table_str)
@@ -157,7 +158,7 @@ def read_files(files, vars, treename, event_type, data_type):
 
     additional_vars = ['file_id', 'RUNNUMBER', 'EVENTNUMBER']
 
-    if event_type[:2] == 'Bu' and data_type == 'data':
+    if event_type[:2] == 'Bd' and data_type == 'data':
         additional_vars = additional_vars + ['B_TAU']
 
 
@@ -185,7 +186,7 @@ def read_files(files, vars, treename, event_type, data_type):
             _df.loc[_df['domain'] == 0, 'event_entry'] = _df["file_id"].astype(str) + "_" + "data" + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
             _df.loc[_df['domain'] == 1, 'event_entry'] = _df["file_id"].astype(str) + "_" + "mc" + "_" + _df["RUNNUMBER"].astype(str) + "_" + _df["EVENTNUMBER"].astype(str)
 
-        if event_type[:2] == 'Bu' and data_type == 'data': #remove data with a liftime greater then 2.2ps, to ensure low oscillation likelyhood
+        if event_type[:2] == 'Bd' and data_type == 'data': #remove data with a liftime greater then 2.2ps, to ensure low oscillation likelyhood
             _df = _df[_df['B_TAU'] < 2.2]
 
 
@@ -236,7 +237,7 @@ def get_dataSets(train_df, val_df, config_name, target_path, seed, tagger, decay
     print(train_df.drop(columns = columns_to_drop).columns)
     print(features)
     
-    train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df.drop(columns = columns_to_drop), val_df=val_df.drop(columns = columns_to_drop), scalerPath=scalerPath, transformerPath=transformerPath)
+    train_ds, validation_ds = pyTrain.prepare_data(train_df=train_df[features+['label']], val_df=val_df[features+['label']], scalerPath=scalerPath, transformerPath=transformerPath)
     
     if 'config_test' not in config_name:
         pyTrain.plot_features(data=train_df, features_list=features, target_path=target_path, flag='label', name=f'training_inputFeatures', BID = BID)
@@ -321,8 +322,6 @@ def gen_training_plots(model, num_threads, train_df, val_df, train_ds, validatio
     start = datetime.datetime.now()
     print(f"Evaluating model on validation and test set {start.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
     if 'domain' in train_df.columns:
-        #TODO Change to new parallelized inference function
-
         pred, true = model.evaluate_model(validation_ds)
 
 
