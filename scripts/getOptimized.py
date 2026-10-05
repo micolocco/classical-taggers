@@ -21,6 +21,47 @@ import numpy as np
 from scripts import matplotlib_lhcb_style
 matplotlib_lhcb_style(plt)
 
+
+DECAYS = ('Bu2JpsiK', 'Bd2JpsiKst', 'Bs2DsPi')
+
+
+def read_tagging_power(path):
+    """Read calibrated tagging power, or return a missing-value placeholder."""
+    if os.path.exists(path):
+        return utils.load_and_process_json(path)['TaggingPower_Cali']
+    return ufloat(np.nan, np.nan)
+
+
+def get_tagging_powers_for_decay(folder_path, link):
+    """Return all reported tagging powers for one decay and model configuration."""
+    return {
+        "calibrated tagging power": read_tagging_power(
+            os.path.join(folder_path, f"testing/Data/{link}/taggingInfo_{link}.json")
+        ),
+        "calibrated tagging power MC": read_tagging_power(
+            os.path.join(folder_path, f"testing/MC/{link}/taggingInfo_{link}.json")
+        ),
+        "validation calibrated tagging power": read_tagging_power(
+            os.path.join(folder_path, f"validating/Data/{link}/taggingInfo_{link}.json")
+        ),
+        "validation calibrated tagging power MC": read_tagging_power(
+            os.path.join(folder_path, f"validating/MC/{link}/taggingInfo_{link}.json")
+        ),
+    }
+
+
+def get_tagging_powers_by_decay(model_pre_path, data_type, tagger, cut,
+                                 features, seed, config, link):
+    """Collect one selected configuration's performance on every decay."""
+    tagging_powers = {}
+    for decay in DECAYS:
+        folder_path = os.path.join(
+            model_pre_path, data_type, 'savedModels', decay, tagger, cut,
+            features, str(seed), config,
+        )
+        tagging_powers[decay] = get_tagging_powers_for_decay(folder_path, link)
+    return tagging_powers
+
 '''
 python scripts/getOptimized.py --cut <cutName> --data_type <MC/Data> 
 '''
@@ -105,6 +146,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_type', help='Type of data to be used', type=str, choices=['MC', 'Data'])  # 'MC' or 'Data'
     parser.add_argument('--tagger_input', help='File of the tagger inputs, only needed for num parameter plot', type=str, default='/home/togasa/classical-taggers/tagger_inputFeatures/union_PROBNN.yaml')
     parser.add_argument('--BN', help='Whether to check batch normalized models', action='store_true')
+    parser.add_argument('--optimize_on', choices=['validation', 'testing'], default='validation', help='Dataset split whose Data tagging power is used for optimization')
     
     cfg = parser.parse_args()
 
@@ -118,7 +160,7 @@ if __name__ == '__main__':
         "OSMuon": "Bu2JpsiK",
         "SSPion": "Bd2JpsiKst",
         "SSProton": "Bd2JpsiKst",
-        # "SSKaon": "Bs2DsPi",
+        "SSKaon": "Bs2DsPi",
     }
 
     #open tagger input features
@@ -145,66 +187,101 @@ if __name__ == '__main__':
     combinations = list(product(seeds, learning_rates, train_batch_sizes, num_layers, num_neurons))
     print(combinations)
 
-    full_df =          pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc', 'link'])
-    max_ratios = {}
-    best_models = {}
+    performance_columns = [
+        'tagger', 'decay', 'learning_rate', 'batch_size', 'num_layers',
+        'num_neurons', 'tagging_power', 'tagging_power_unc',
+        'tagging_power_mc', 'tagging_power_mc_unc',
+        'validation_tagging_power', 'validation_tagging_power_unc',
+        'validation_tagging_power_mc', 'validation_tagging_power_mc_unc',
+    ]
+    performance_frames = []
     for link in  ['logit', 'mistag']:
-        performances = pd.DataFrame(columns=['tagger', 'learning_rate', 'batch_size', 'num_layers', 'num_neurons', 'tagging_power', 'tagging_power_unc', 'tagging_power_mc', 'tagging_power_mc_unc'])
+        max_ratios = {}
+        best_models = {}
+        performances = pd.DataFrame(columns=performance_columns)
 
-        for tagger, decay in tagger_dict.items():
+        for tagger, optimization_decay in tagger_dict.items():
             max_ratio = -np.inf
             best_hyperparams = None
             best_model = None
             for seed, lr, bs, nl, nn in combinations:
 
-                # Read tagging power values from JSON files
-                results_folder = f"{cfg.model_prePath}/{data_type}/savedModels/{decay}/{tagger}/{cfg.cut}/{cfg.features}/{seed}" #cfg.seed
                 config = f"lr{lr}_bs{bs}_nL{nl}_nN{nn}"
                 if cfg.BN: config += f"_BN"
-                folder_path = os.path.join(results_folder, config)
 
-                json_file_data = os.path.join(folder_path, f"testing/Data/{link}/taggingInfo_{link}.json")
-                json_file_mc = os.path.join(folder_path, f"testing/MC/{link}/taggingInfo_{link}.json")
+                tagging_powers_by_decay = get_tagging_powers_by_decay(
+                    cfg.model_prePath, data_type, tagger, cfg.cut, cfg.features,
+                    seed, config, link,
+                )
+                for performance_decay, powers in tagging_powers_by_decay.items():
+                    tagging_power = powers['calibrated tagging power']
+                    tagging_power_mc = powers['calibrated tagging power MC']
+                    validation_tagging_power = powers['validation calibrated tagging power']
+                    validation_tagging_power_mc = powers['validation calibrated tagging power MC']
+                    performances.loc[len(performances)] = [
+                        tagger, performance_decay, lr, bs, nl, nn,
+                        tagging_power.nominal_value, tagging_power.std_dev,
+                        tagging_power_mc.nominal_value, tagging_power_mc.std_dev,
+                        validation_tagging_power.nominal_value, validation_tagging_power.std_dev,
+                        validation_tagging_power_mc.nominal_value, validation_tagging_power_mc.std_dev,
+                    ]
 
-                print(f'Checking files {json_file_data} and {json_file_mc}')
-                if os.path.exists(json_file_data):
-                    data = utils.load_and_process_json(json_file_data)
-                    tagging_power = data['TaggingPower_Cali']
+                # Only the decay assigned in tagger_dict contributes to optimization.
+                optimization_powers = tagging_powers_by_decay[optimization_decay]
+                validation_tagging_power = optimization_powers['validation calibrated tagging power']
+                optimization_tagging_power = optimization_powers['validation calibrated tagging power' if cfg.optimize_on == 'validation' else 'calibrated tagging power']
+                if not (optimization_tagging_power.nominal_value > 1e-4 and optimization_tagging_power.std_dev > 1e-4):
+                    continue
 
-                    if os.path.exists(json_file_mc):
-                        data_mc = utils.load_and_process_json(json_file_mc)
-                        tagging_power_mc = data_mc['TaggingPower_Cali']
-                    else:
-                        tagging_power_mc = ufloat(np.nan, np.nan)
+                tagging_power = optimization_powers['calibrated tagging power']
+                tagging_power_mc = optimization_powers['calibrated tagging power MC']
+                validation_tagging_power_mc = optimization_powers['validation calibrated tagging power MC']
+                ratio = optimization_tagging_power.nominal_value / optimization_tagging_power.std_dev
+                ratio_precision = optimization_tagging_power.std_dev / optimization_tagging_power.nominal_value
 
-
-                    if not np.isnan(tagging_power.nominal_value) and tagging_power.nominal_value != 0:
-                        if tagging_power.std_dev > 1e-4 and tagging_power.nominal_value > 1e-4: # Make sure tagging power and uncertainty are realistic
-                            try:
-                                ratio = tagging_power.nominal_value / tagging_power.std_dev
-                                ratio_precision =  tagging_power.std_dev / tagging_power.nominal_value 
-                            except ZeroDivisionError:
-                                print("Check std deviation or nominal value. They might be 0")
-
-
-                            if ratio > max_ratio:
-                                max_ratio = ratio
-                                best_hyperparams = {
-                                    "calibrated tagging power": tagging_power,
-                                    "calibrated tagging power MC": tagging_power_mc,
-                                    "seed": seed,
-                                    "learning_rate": lr,
-                                    "batch_size": bs,
-                                    "numlayers": nl,
-                                    "numneurons": nn,
-                                    "max_ratio": max_ratio,
-                                    "precision": ratio_precision,
-                                }
-                                best_model = json_file_data
-                            print(f"Tagger: {tagger}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Tagging Power: {tagging_power.nominal_value}, Ratio: {ratio}, Tagging Power MC: {tagging_power_mc.nominal_value}")
-                            performances.loc[len(performances)] = [tagger, lr, bs, nl, nn, tagging_power.nominal_value, tagging_power.std_dev, tagging_power_mc.nominal_value, tagging_power_mc.std_dev]
+                if ratio > max_ratio:
+                    max_ratio = ratio
+                    best_hyperparams = {
+                        "calibrated tagging power": tagging_power,
+                        "calibrated tagging power MC": tagging_power_mc,
+                        "validation calibrated tagging power": validation_tagging_power,
+                        "validation calibrated tagging power MC": validation_tagging_power_mc,
+                        "seed": seed,
+                        "learning_rate": lr,
+                        "batch_size": bs,
+                        "numlayers": nl,
+                        "numneurons": nn,
+                        "max_ratio": max_ratio,
+                        "precision": ratio_precision,
+                    }
+                    best_model = os.path.join(
+                        cfg.model_prePath, data_type, 'savedModels', optimization_decay,
+                        tagger, cfg.cut, cfg.features, str(seed), config,
+                        f'testing/Data/{link}/taggingInfo_{link}.json',
+                    )
+                print(f"Tagger: {tagger}, Optimization decay: {optimization_decay}, Seed: {seed}, LR: {lr}, Bs: {bs}, NL: {nl}, NN: {nn}, Validation Tagging Power: {validation_tagging_power}, Ratio: {ratio}, Validation Tagging Power MC: {validation_tagging_power_mc}, Test Tagging Power: {tagging_power}, Test Tagging Power MC: {tagging_power_mc}")
 
             if best_hyperparams:
+                best_config = (
+                    f"lr{best_hyperparams['learning_rate']}_"
+                    f"bs{best_hyperparams['batch_size']}_"
+                    f"nL{best_hyperparams['numlayers']}_"
+                    f"nN{best_hyperparams['numneurons']}"
+                )
+                if cfg.BN:
+                    best_config += "_BN"
+
+                best_hyperparams["optimized decay"] = optimization_decay
+                best_hyperparams["tagging powers by decay"] = get_tagging_powers_by_decay(
+                    cfg.model_prePath,
+                    data_type,
+                    tagger,
+                    cfg.cut,
+                    cfg.features,
+                    best_hyperparams['seed'],
+                    best_config,
+                    link,
+                )
                 max_ratios[tagger] = best_hyperparams
                 best_models[tagger] = best_model
                 print(best_model)
@@ -212,10 +289,8 @@ if __name__ == '__main__':
 
         # Output the dictionary with the maximum ratios and corresponding hyperparameters
         print(json.dumps(max_ratios,  indent=4, default=str))
-        # filename=f'{cfg.outputPath}/{cfg.cut}/candidatedTaggers_{link}.json'
-        # os.makedirs(os.path.dirname(filename), exist_ok=True)
         path_name = os.path.join(cfg.outpath, f'{cfg.cut}/{cfg.features}/{data_type}')
-        if cfg.BN: path_name = path_name.replace(data_type, data_type+'_BN')
+        if cfg.BN: path_name = path_name.replace(data_type, data_type+'_BN') 
         plot_path = os.path.join(cfg.plot_path, f'hyperparameters_opt/{data_type}/{cfg.cut}/{link}')
         if cfg.BN: plot_path = plot_path.replace(data_type, data_type+'_BN')
         os.makedirs(path_name, exist_ok=True)
@@ -225,11 +300,9 @@ if __name__ == '__main__':
         with open(os.path.join(plot_path, f'best_models_{link}.json'), 'w') as f:
             json.dump(best_models, f, indent=4, default=str)
 
-        # for tagger, decay in tagger_dict.items():
-        #     plot_hyperparams_vs_tagging_power(performances[performances['tagger'] == tagger], os.path.join(plot_path, f'{tagger}_Hyperparams_vs_TaggingPower.png'), len(tagger_input_features[tagger]['features']))
 
         performances['link'] = link
-        full_df = pd.concat([full_df, performances], ignore_index=True)
+        performance_frames.append(performances)
 
 
         filename = os.path.join(path_name, f'candidatedTaggers_{link}.json')
@@ -237,13 +310,13 @@ if __name__ == '__main__':
 
 
         with open(filename, 'w') as f:
-            json.dump(max_ratios, f, indent=4, default=str)  # `default=str` to handle non-serializable objects
+            json.dump(max_ratios, f, indent=4, default=str)  
         print(f"Max ratios with link {link} saved to {filename}")
 
     # Save the full DataFrame to a CSV file
+    full_df = pd.concat(performance_frames, ignore_index=True)
     df_path = os.path.dirname(plot_path)
     full_df.to_csv(os.path.join(df_path, 'performances.csv'), index=False)   
 
 
     print(f"All results saved to {cfg.outpath}/{cfg.cut}/{cfg.features}/{data_type}/")
-
