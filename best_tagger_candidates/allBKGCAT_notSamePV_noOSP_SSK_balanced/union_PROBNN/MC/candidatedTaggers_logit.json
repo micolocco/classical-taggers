@@ -1,57 +1,206 @@
 {
     "OSKaon": {
-        "calibrated tagging power": "0.966+/-0.023",
-        "calibrated tagging power MC": "2.089+/-0.024",
+        "calibrated tagging power": "0.984+/-0.024",
+        "calibrated tagging power MC": "2.083+/-0.025",
+        "validation calibrated tagging power": "0.98+/-0.04",
+        "validation calibrated tagging power MC": "2.05+/-0.04",
         "seed": 12,
-        "learning_rate": 0.0001,
+        "learning_rate": 0.001,
         "batch_size": 8192,
         "numlayers": 6,
-        "numneurons": 128,
-        "max_ratio": 41.75887209113236,
-        "precision": 0.023947006945437912
+        "numneurons": 64,
+        "max_ratio": 41.53485565024245,
+        "precision": 0.024076164087840347,
+        "optimized decay": "Bu2JpsiK",
+        "tagging powers by decay": {
+            "Bu2JpsiK": {
+                "calibrated tagging power": "0.984+/-0.024",
+                "calibrated tagging power MC": "2.083+/-0.025",
+                "validation calibrated tagging power": "0.98+/-0.04",
+                "validation calibrated tagging power MC": "2.05+/-0.04"
+            },
+            "Bd2JpsiKst": {
+                "calibrated tagging power": "0.98+/-0.06",
+                "calibrated tagging power MC": "2.00+/-0.17",
+                "validation calibrated tagging power": "1.14+/-0.12",
+                "validation calibrated tagging power MC": "1.65+/-0.28"
+            },
+            "Bs2DsPi": {
+                "calibrated tagging power": "0.77+/-0.08",
+                "calibrated tagging power MC": "1.66+/-0.06",
+                "validation calibrated tagging power": "0.93+/-0.25",
+                "validation calibrated tagging power MC": "1.68+/-0.12"
+            }
+        }
     },
     "OSElectron": {
-        "calibrated tagging power": "0.388+/-0.014",
-        "calibrated tagging power MC": "0.502+/-0.011",
-        "seed": 12,
-        "learning_rate": 0.0001,
-        "batch_size": 8192,
-        "numlayers": 6,
-        "numneurons": 64,
-        "max_ratio": 26.978676232449406,
-        "precision": 0.037066310866550975
-    },
-    "OSMuon": {
-        "calibrated tagging power": "0.836+/-0.020",
-        "calibrated tagging power MC": "1.103+/-0.017",
-        "seed": 12,
-        "learning_rate": 0.0001,
-        "batch_size": 8192,
-        "numlayers": 6,
-        "numneurons": 64,
-        "max_ratio": 40.828095049720034,
-        "precision": 0.024492937982587976
-    },
-    "SSPion": {
-        "calibrated tagging power": "0.94+/-0.06",
-        "calibrated tagging power MC": "1.25+/-0.05",
+        "calibrated tagging power": "0.380+/-0.014",
+        "calibrated tagging power MC": "0.497+/-0.012",
+        "validation calibrated tagging power": "0.407+/-0.027",
+        "validation calibrated tagging power MC": "0.521+/-0.022",
         "seed": 12,
         "learning_rate": 0.0001,
         "batch_size": 8192,
         "numlayers": 6,
         "numneurons": 32,
-        "max_ratio": 16.330190038223535,
-        "precision": 0.061236274511155916
+        "max_ratio": 26.367363949190665,
+        "precision": 0.03792567212736844,
+        "optimized decay": "Bu2JpsiK",
+        "tagging powers by decay": {
+            "Bu2JpsiK": {
+                "calibrated tagging power": "0.380+/-0.014",
+                "calibrated tagging power MC": "0.497+/-0.012",
+                "validation calibrated tagging power": "0.407+/-0.027",
+                "validation calibrated tagging power MC": "0.521+/-0.022"
+            },
+            "Bd2JpsiKst": {
+                "calibrated tagging power": "0.347+/-0.035",
+                "calibrated tagging power MC": "0.50+/-0.08",
+                "validation calibrated tagging power": "0.44+/-0.07",
+                "validation calibrated tagging power MC": "0.68+/-0.17"
+            },
+            "Bs2DsPi": {
+                "calibrated tagging power": "0.36+/-0.05",
+                "calibrated tagging power MC": "0.459+/-0.033",
+                "validation calibrated tagging power": "0.40+/-0.17",
+                "validation calibrated tagging power MC": "0.50+/-0.06"
+            }
+        }
     },
-    "SSProton": {
-        "calibrated tagging power": "0.317+/-0.034",
-        "calibrated tagging power MC": "0.067+/-0.013",
+    "OSMuon": {
+        "calibrated tagging power": "0.821+/-0.021",
+        "calibrated tagging power MC": "1.103+/-0.017",
+        "validation calibrated tagging power": "0.78+/-0.04",
+        "validation calibrated tagging power MC": "1.097+/-0.032",
         "seed": 12,
         "learning_rate": 0.001,
         "batch_size": 8192,
         "numlayers": 6,
         "numneurons": 32,
-        "max_ratio": 9.277563306522538,
-        "precision": 0.10778692281161323
+        "max_ratio": 39.98064637858617,
+        "precision": 0.0250121018687583,
+        "optimized decay": "Bu2JpsiK",
+        "tagging powers by decay": {
+            "Bu2JpsiK": {
+                "calibrated tagging power": "0.821+/-0.021",
+                "calibrated tagging power MC": "1.103+/-0.017",
+                "validation calibrated tagging power": "0.78+/-0.04",
+                "validation calibrated tagging power MC": "1.097+/-0.032"
+            },
+            "Bd2JpsiKst": {
+                "calibrated tagging power": "0.69+/-0.05",
+                "calibrated tagging power MC": "0.96+/-0.11",
+                "validation calibrated tagging power": "0.93+/-0.10",
+                "validation calibrated tagging power MC": "1.44+/-0.23"
+            },
+            "Bs2DsPi": {
+                "calibrated tagging power": "0.61+/-0.07",
+                "calibrated tagging power MC": "1.06+/-0.05",
+                "validation calibrated tagging power": "0.63+/-0.19",
+                "validation calibrated tagging power MC": "0.95+/-0.08"
+            }
+        }
+    },
+    "SSPion": {
+        "calibrated tagging power": "0.96+/-0.06",
+        "calibrated tagging power MC": "1.17+/-0.13",
+        "validation calibrated tagging power": "1.04+/-0.11",
+        "validation calibrated tagging power MC": "1.63+/-0.27",
+        "seed": 12,
+        "learning_rate": 0.0001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 64,
+        "max_ratio": 16.60203202669596,
+        "precision": 0.06023359058650209,
+        "optimized decay": "Bd2JpsiKst",
+        "tagging powers by decay": {
+            "Bu2JpsiK": {
+                "calibrated tagging power": "nan+/-nan",
+                "calibrated tagging power MC": "nan+/-nan",
+                "validation calibrated tagging power": "nan+/-nan",
+                "validation calibrated tagging power MC": "nan+/-nan"
+            },
+            "Bd2JpsiKst": {
+                "calibrated tagging power": "0.96+/-0.06",
+                "calibrated tagging power MC": "1.17+/-0.13",
+                "validation calibrated tagging power": "1.04+/-0.11",
+                "validation calibrated tagging power MC": "1.63+/-0.27"
+            },
+            "Bs2DsPi": {
+                "calibrated tagging power": "nan+/-nan",
+                "calibrated tagging power MC": "nan+/-nan",
+                "validation calibrated tagging power": "nan+/-nan",
+                "validation calibrated tagging power MC": "nan+/-nan"
+            }
+        }
+    },
+    "SSProton": {
+        "calibrated tagging power": "0.303+/-0.033",
+        "calibrated tagging power MC": "0.078+/-0.034",
+        "validation calibrated tagging power": "0.31+/-0.06",
+        "validation calibrated tagging power MC": "0.10+/-0.07",
+        "seed": 12,
+        "learning_rate": 0.0001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 64,
+        "max_ratio": 9.23683032334215,
+        "precision": 0.10826224635445846,
+        "optimized decay": "Bd2JpsiKst",
+        "tagging powers by decay": {
+            "Bu2JpsiK": {
+                "calibrated tagging power": "nan+/-nan",
+                "calibrated tagging power MC": "nan+/-nan",
+                "validation calibrated tagging power": "nan+/-nan",
+                "validation calibrated tagging power MC": "nan+/-nan"
+            },
+            "Bd2JpsiKst": {
+                "calibrated tagging power": "0.303+/-0.033",
+                "calibrated tagging power MC": "0.078+/-0.034",
+                "validation calibrated tagging power": "0.31+/-0.06",
+                "validation calibrated tagging power MC": "0.10+/-0.07"
+            },
+            "Bs2DsPi": {
+                "calibrated tagging power": "nan+/-nan",
+                "calibrated tagging power MC": "nan+/-nan",
+                "validation calibrated tagging power": "nan+/-nan",
+                "validation calibrated tagging power MC": "nan+/-nan"
+            }
+        }
+    },
+    "SSKaon": {
+        "calibrated tagging power": "0.95+/-0.08",
+        "calibrated tagging power MC": "3.00+/-0.08",
+        "validation calibrated tagging power": "1.07+/-0.25",
+        "validation calibrated tagging power MC": "2.63+/-0.14",
+        "seed": 12,
+        "learning_rate": 0.0001,
+        "batch_size": 8192,
+        "numlayers": 8,
+        "numneurons": 64,
+        "max_ratio": 11.344527507210714,
+        "precision": 0.08814822824171287,
+        "optimized decay": "Bs2DsPi",
+        "tagging powers by decay": {
+            "Bu2JpsiK": {
+                "calibrated tagging power": "nan+/-nan",
+                "calibrated tagging power MC": "nan+/-nan",
+                "validation calibrated tagging power": "nan+/-nan",
+                "validation calibrated tagging power MC": "nan+/-nan"
+            },
+            "Bd2JpsiKst": {
+                "calibrated tagging power": "nan+/-nan",
+                "calibrated tagging power MC": "nan+/-nan",
+                "validation calibrated tagging power": "nan+/-nan",
+                "validation calibrated tagging power MC": "nan+/-nan"
+            },
+            "Bs2DsPi": {
+                "calibrated tagging power": "0.95+/-0.08",
+                "calibrated tagging power MC": "3.00+/-0.08",
+                "validation calibrated tagging power": "1.07+/-0.25",
+                "validation calibrated tagging power MC": "2.63+/-0.14"
+            }
+        }
     }
 }
