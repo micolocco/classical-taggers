@@ -1169,7 +1169,7 @@ def get_testing_inputs(wildcards):
     if wildcards.data_type == 'Data':
         files_dict = weighted_data
     else:
-        files_dict = [file for file in selected_mc if not file.endswith('01_1.mc.root') ]
+        files_dict = {decay: {tagger: [f for f in files if not f.endswith('01_1.mc.root')] for tagger, files in taggers.items()} for decay, taggers in selected_mc.items()}
 
     if 'benchmark_version' in wildcards.keys():
         if wildcards.benchmark_version == 'Run3v1':
@@ -1184,6 +1184,14 @@ def get_testing_inputs(wildcards):
         if wildcards.features == 'union_PROBNN_pidcorr' and wildcards.data_type == "Data":
             features = 'union_PROBNN'
 
+    if wildcards.test_or_valid == 'testing':
+        partition = 'test'
+    elif wildcards.test_or_valid == 'validating':
+        partition = 'validation'
+    else:
+        raise ValueError(f"Unknown test_or_valid value: {wildcards.test_or_valid}. Must be 'testing' or 'validating'.")
+
+    return [f.replace('cut_name', f'{cut_name}').replace('train', partition).replace(wildcards.decay, f'{wildcards.decay}{wildcards.binning}{wildcards.selection}').replace('features', f'{features}')
             for f in files_dict[f'{wildcards.decay}'][f'{wildcards.tagger}']]
 
 rule test_and_calibrate:
@@ -1208,7 +1216,7 @@ rule test_and_calibrate:
         request_memory = 35_000, # Specify memory requirement in megabytes 
         mem = 35_000,
         OnExitRemove = "ExitCode == 0 || ExitCode == 1",  # Allow exit code 1 for debugging
-        MaxRunHours = 4
+        MaxRunHours = 1
     # threads:
     #     4,
     run:
@@ -1227,7 +1235,7 @@ features = wildcards.features
         cmd = [
             'python', input.script,
             '--testing_data', ' '.join(test_kernel),
-           f'--features {features}',
+            '--target_path', outpath,
             '--treename "DecayTree;1"',
             '--tagger {wildcards.tagger}',
            f'--features {features}',
@@ -1252,11 +1260,11 @@ rule test_and_calibrate_benchmark:
         script = join(repo, 'scripts/test_and_calibrate.py'),
         config = join(repo, 'benchmark_tagger/{benchmark_version}/{tagger}/model_config.yaml'),
     output:
-        logit              = join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/testing/{data_type}/logit/taggingInfo_logit.json'),
-        mistag             = join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/testing/{data_type}/mistag/taggingInfo_mistag.json'),
-        calibration_logit  = join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/testing/{data_type}/logit/calibration.json'),
-        calibration_mistag = join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/testing/{data_type}/mistag/calibration.json'),
-    log:                     join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/testing/{data_type}/testing_log.log'),
+        logit              = join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/{test_or_valid}/{data_type}/logit/taggingInfo_logit.json'),
+        mistag             = join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/{test_or_valid}/{data_type}/mistag/taggingInfo_mistag.json'),
+        calibration_logit  = join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/{test_or_valid}/{data_type}/logit/calibration.json'),
+        calibration_mistag = join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/{test_or_valid}/{data_type}/mistag/calibration.json'),
+    log:                     join(out, 'MC/benchmarkModels/{decay}{binning}{selection}/{tagger}/{benchmark_version}/{test_or_valid}/{data_type}/testing_log.log'),
     priority: -2, # Lower priority for efficient use of requested cores
     resources:
         max_retries=0,
