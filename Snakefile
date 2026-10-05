@@ -1044,7 +1044,7 @@ rule add_weights:
 
         shell(' '.join(cmd))
 
-# rule train_tagger_MC: 
+rule train_tagger_MC: 
 input:
 script =join(repo, 'scripts/train_tagger.py'),
 train = lambda wildcards: [
@@ -1064,10 +1064,10 @@ log:
 join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
 priority: -1, # Lower priority for tagger training so all prior steps are executed first
 resources:
-max_retries=0,
+        max_retries=5,
 request_memory = 30_000, # Specify memory requirement in megabytes 
 mem = 30_000,
-MaxRunHours = 15, 
+        MaxRunHours = 36, 
 threads:
 4,
 run:
@@ -1120,10 +1120,10 @@ log:
 join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
 priority: -1, # Lower priority for tagger training so all prior steps are executed first
 resources:
-max_retries=0,
+        max_retries=5,
 request_memory = 40_000, # Specify memory requirement in megabytes 
 mem = 40_000,
-MaxRunHours = 12, # long queue
+        MaxRunHours = 36, # long queue
 threads:
 8,
 run:
