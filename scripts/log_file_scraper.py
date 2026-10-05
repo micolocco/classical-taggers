@@ -26,7 +26,7 @@ for match in rule_pattern.finditer(content):
     rules[rule_name]["job_ids"].add(int(jobid))
 
 # Find finished jobs
-finished_jobs = [int(j) for j in re.findall(r"Finished job (\d+)\.", content)]
+finished_jobs = [int(j) for j in re.findall(r"Finished jobid:\s*(\d+)", content)]
 
 #Error in rule
 # Find failed jobs
