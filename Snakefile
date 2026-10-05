@@ -585,7 +585,7 @@ rule all:
 
         # # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v1/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
         # # '/ceph/users/togasa/FlavourTagging/Data/savedModels/Bd2JpsiKst/combinations/Run3/Run3v0/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN_edited_for_benchmark/SSPion_SSProton_OSKaon_OSMuon_OSElectron/combined_tagged.root',
-        
+
         # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/test/weights_selected.root',
         # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/train/weights_selected.root',
         # '/ceph/users/togasa/FlavourTagging/Data/mass_fit/Bd2JpsiKst/validation/weights_selected.root',
@@ -913,7 +913,7 @@ rule train_signal_classifier:
         request_memory = 20_000,
         mem = 20_000,
         MaxRunHours = 4,
-        threads:
+    threads:
         8,
     run:
         out_path = os.path.dirname(output.BDT)
@@ -1102,7 +1102,14 @@ def get_fit_mc_res(wildcards):
     if wildcards.data_type == 'MC':
         return []
     mc_decay = wildcards.decay if wildcards.decay != "Bs2JpsiKst" else "Bd2JpsiKst"
-    return join(out, 'MC/mass_fit/' + f'{mc_decay}' + '{binning}/{partition}/event_{is_selected}_fit.json') 
+    mc_partition = 'test' if wildcards.partition == 'validation' else wildcards.partition
+    return join(
+        out,
+        'MC/mass_fit',
+        f'{mc_decay}{{binning}}',
+        mc_partition,
+        'event_{is_selected}_fit.json',
+    )
 
 rule mass_fit:
     input:
@@ -1158,7 +1165,7 @@ rule mass_fit:
         print(' '.join(cmd))
         shell(' '.join(cmd))
 
-rule add_weights:
+rule add_weights: 
     input:
         script       = join(repo, 'scripts/add_weights.py'),
         loading_vars = join(repo, 'configs/loading_variables.txt'),
@@ -1195,119 +1202,119 @@ rule add_weights:
         shell(' '.join(cmd))
 
 rule train_tagger_MC: 
-input:
-script =join(repo, 'scripts/train_tagger.py'),
-train = lambda wildcards: [
-f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}')
-for f in selected_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-],
-val = lambda wildcards: [
-f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'validation')
-for f in selected_mc[f'{wildcards.decay}'][f'{wildcards.tagger}']
-],
-config = join(repo, 'model_configs/{config}.yaml'),
-output:
-model=       join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
-scaler=      join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
-transformer= join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
-log:
-join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
-priority: -1, # Lower priority for tagger training so all prior steps are executed first
-resources:
+    input:
+        script =join(repo, 'scripts/train_tagger.py'),
+        train = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}')
+            for f in selected_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+        ],
+        val = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'validation')
+            for f in selected_mc[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+        ],
+        config = join(repo, 'model_configs/{config}.yaml'),
+    output:
+        model=       join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
+        scaler=      join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
+        transformer= join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
+    log:
+        join(out, 'MC/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
+    priority: -1, # Lower priority for tagger training so all prior steps are executed first
+    resources:
         max_retries=5,
-request_memory = 30_000, # Specify memory requirement in megabytes 
-mem = 30_000,
+        request_memory = 30_000, # Specify memory requirement in megabytes 
+        mem = 30_000,
         MaxRunHours = 36, 
-threads:
-4,
-run:
-outpath = os.path.dirname(output.model)
-if kernel_available():
-outpath = path_to_kernel(outpath)
-train = path_to_kernel(input.train)
-val = path_to_kernel(input.val)
-else:
-train = input.train
-val = input.val
+    threads:
+        4,
+    run:
+        outpath = os.path.dirname(output.model)
+        if kernel_available():
+            outpath = path_to_kernel(outpath)
+            train = path_to_kernel(input.train)
+            val = path_to_kernel(input.val)
+        else:
+            train = input.train
+            val = input.val
 
-cmd = [
-'python', input.script,
-'--training_data', ' '.join(train),
-'--validation_data', ' '.join(val),
-'--tagger {wildcards.tagger}',
-'--seed {wildcards.seed}',
-'--features {wildcards.features}',
-'--decay_type {wildcards.decay}',
-'--repo', repo,
-'--data_type MC',
-'--target_path', outpath,
-'--config {input.config}',
-'--num_threads {threads}',
-'&> {log}',
-]
-print(' '.join(cmd))
-shell(' '.join(cmd))
+        cmd = [
+            'python', input.script,
+            '--training_data', ' '.join(train),
+            '--validation_data', ' '.join(val),
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
+            '--decay_type {wildcards.decay}',
+            '--repo', repo,
+            '--data_type MC',
+            '--target_path', outpath,
+            '--config {input.config}',
+            '--num_threads {threads}',
+            '&> {log}',
+        ]
+        print(' '.join(cmd))
+        shell(' '.join(cmd))
 
 
 rule train_tagger_data:
-input:
-script = join(repo, 'scripts/train_tagger.py'),
-train = lambda wildcards: [
-f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}')
-for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
-],
-val = lambda wildcards: [
-f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'validation')
-for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
-],
+    input:
+        script = join(repo, 'scripts/train_tagger.py'),
+        train = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}')
+            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}'] 
+        ],
+        val = lambda wildcards: [
+            f.replace('cut_name', f'{wildcards.cut_name}').replace('features', f'{wildcards.features}').replace('train', 'validation')
+            for f in weighted_data[f'{wildcards.decay}'][f'{wildcards.tagger}']
+        ],
 
-config = join(repo, 'model_configs/{config}.yaml'),
-output:
-model=       join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
-scaler=      join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
-transformer= join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
-log:
-join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
-priority: -1, # Lower priority for tagger training so all prior steps are executed first
-resources:
+        config = join(repo, 'model_configs/{config}.yaml'),
+    output:
+        model=       join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/model.pth'),
+        scaler=      join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/st_scaler.pkl'),
+        transformer= join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/powerTransformer.pkl'),
+    log:
+        join(out,'Data/savedModels/{decay}/{tagger}/{cut_name}/{features}/{seed}/{config}/training/training_log.log'),
+    priority: -1, # Lower priority for tagger training so all prior steps are executed first
+    resources:
         max_retries=5,
-request_memory = 40_000, # Specify memory requirement in megabytes 
-mem = 40_000,
+        request_memory = 40_000, # Specify memory requirement in megabytes 
+        mem = 40_000,
         MaxRunHours = 36, # long queue
-threads:
-8,
-run:
-outpath = os.path.dirname(output.model)
-if kernel_available():
-outpath = path_to_kernel(outpath)
-train = path_to_kernel(input.train)
-val = path_to_kernel(input.val)
-else:
-train = input.train
-val = input.val
+    threads:
+        8,
+    run:
+        outpath = os.path.dirname(output.model)
+        if kernel_available():
+            outpath = path_to_kernel(outpath)
+            train = path_to_kernel(input.train)
+            val = path_to_kernel(input.val)
+        else:
+            train = input.train
+            val = input.val
 
-cmd = [
-'python', input.script,
-'--training_data', ' '.join(train),
-'--validation_data', ' '.join(val),
-'--tagger {wildcards.tagger}',
-'--seed {wildcards.seed}',
-'--features {wildcards.features}',
-'--decay_type {wildcards.decay}',
-'--repo', repo,
-'--data_type Data',
-'--target_path', outpath,
-'--config {input.config}',
-'--num_threads {threads}',
-'&> {log}',
-]
-print(' '.join(cmd))
-shell(' '.join(cmd))
+        cmd = [
+            'python', input.script,
+            '--training_data', ' '.join(train),
+            '--validation_data', ' '.join(val),
+            '--tagger {wildcards.tagger}',
+            '--seed {wildcards.seed}',
+            '--features {wildcards.features}',
+            '--decay_type {wildcards.decay}',
+            '--repo', repo,
+            '--data_type Data',
+            '--target_path', outpath,
+            '--config {input.config}',
+            '--num_threads {threads}',
+            '&> {log}',
+        ]
+        print(' '.join(cmd))
+        shell(' '.join(cmd))
 
 # Define the function to extract the decay based on the tagger
 def extract_decay(tagger):
     if tagger in ['OSKaon', 'OSMuon', 'OSElectron']:
-        return 'Bu2JpsiK'
+        return 'Bu2JpsiK' 
     elif tagger == 'SSKaon':
         return 'Bs2DsPi'
     elif tagger in ['SSPion', 'SSProton']:
@@ -1377,8 +1384,8 @@ rule test_and_calibrate:
             test_kernel = path_to_kernel(input.testing)
         else:
             test_kernel = input.testing
-
-features = wildcards.features
+        
+        features = wildcards.features
         if features == 'union_PROBNN_pidcorr' and wildcards.data_type == "Data":
             features = 'union_PROBNN'
 
@@ -1456,7 +1463,7 @@ rule test_and_calibrate_benchmark:
 def extract_best(tagger, cut, model_type, features, link='logit'):
     #Read the best tagger candidate config from json file with the best hyperparameter combination
 
-    
+
     json_path = join(repo, f'best_tagger_candidates/{cut}/{features}/{model_type.removeprefix("trained_")}/candidatedTaggers_{link}.json')
     with open(json_path, 'r') as f: # trainOn
         data = json.load(f)
@@ -1490,7 +1497,7 @@ def get_model_path(wildcards,all_taggers=False):
         trained_on = wildcards.model_types.split("_")[1]
         trained_on = [trained_on if tag != 'SSKaon' else 'MC' for tag in tagger]
         configs = [extract_best(tagger=tag, cut=wildcards.cut_name, model_type=wildcards.model_types if tag != 'SSKaon' or 'Run3v' in wildcards.model_types else 'trained_MC', features=wildcards.features) for tag in tagger]
-        else:
+    else:
         trained_on = [None for tag in tagger]
         configs = [{'config' : f'{wildcards.model_types}'} for tag in tagger]
 
@@ -1498,7 +1505,7 @@ def get_model_path(wildcards,all_taggers=False):
     for tag, dec, con, _trained_on in zip(tagger, decay, configs, trained_on):
         if 'Run3v' in con['config']:
             model.append(join(repo, f'benchmark_tagger/{con["config"]}/{tag}/model.pth'))
-    else:
+        else:
             model.append(join(out, f'{_trained_on}/savedModels/{dec}/{tag}/{wildcards.cut_name}/{wildcards.features}/{con["seed"]}/{con["config"]}/training/model.pth'))
 
 
@@ -1591,7 +1598,7 @@ rule add_tagDec:
             '--tagger {wildcards.tagger}',
            f'--features {features}',
             '--data_type {wildcards.data_type}', 
-            f'--seed {config.get("seed")}',
+           f'--seed {config.get("seed")}',
             '--calibration {input.calibration}',
             '--repo', repo,
             benchmark_version,
@@ -1712,17 +1719,40 @@ rule combine_tagger:
         print(' '.join(cmd))
         shell(' '.join(cmd))
 
+def tagged_path_one_tagger(wildcards):
+    wildcards.combinationName = wildcards.tagger
+    return get_tagged_paths(wildcards)
 
 
+# A rule that makes a plot showing the relation between the predicted mistag and the minimal distance of the tracks 
+# momentum with one of the daughters of the B-meson. This is to check if daughter tracks are being used for tagging. 
+rule eta_momentum_diff: 
+    input:
+        script = join(repo, 'scripts/eta_direction_diff.py'),
+        tagged = tagged_path_one_tagger,
+    output:
+        pdf= join(out, 'comparisons/eta_momentum_diff/{data_type}/{decay}{selection}/{cut_name}/{features}/{model_types}/{tagger}/plot.pdf'),
+    log:     join(out, 'comparisons/eta_momentum_diff/{data_type}/{decay}{selection}/{cut_name}/{features}/{model_types}/{tagger}/plot.log')
+    resources:
+        max_retries=0,
+        request_memory = 40_000, 
+        mem = 40_000,
+        MaxRunHours = 4,
+    run:
 
+        cmd = [
+            'python', input.script,
+            '--input_files', ' '.join(input.tagged),
+            '--tagger {wildcards.tagger}',
+            '--output', output.pdf,
+            '--decayType {wildcards.decay}',
+            '&> {log}',
+        ]
 
-
-
+        print(' '.join(cmd))
+        shell(' '.join(cmd))
 
 ###TILL HERE THE PIPELINE IS REWORKED AND FUNCTIONAL, RULES BELOW MAY NEED TO BE ADJUSTED TO NEW FOLDER STRUCTURE AND SCRIPT-CHANGES
-
-
-
 
 
 
