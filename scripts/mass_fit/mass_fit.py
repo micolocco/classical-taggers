@@ -555,12 +555,7 @@ def main():
             + "_"
             + current_df["EVENTNUMBER"].astype(str)
         )
-        current_df["candidate_entry"] = (
-            current_df["file_id"].astype(str)
-            + "_"
-            + current_df["candidate_index"].astype(str)
-        )
-        current_df = current_df.groupby("candidate_entry").first().reset_index()
+        current_df = current_df.groupby("event_entry").first().reset_index()
         print(
             "File read. Number of events: "
             f"{len(current_df['event_entry'].unique())}, "
@@ -604,7 +599,7 @@ def main():
     tree_dict = {
         column: np.array(df_data[column])
         for column in df_data.columns
-        if column not in {"event_entry", "candidate_entry"}
+        if column not in {"event_entry"}
     }
     print(tree_dict)
     for column, values in tree_dict.items():

@@ -53,6 +53,7 @@ if __name__ == '__main__':
     
     if cfg.data_type != 'domain_adapted':
         df["event_entry"] = df["file_id"].astype(str) + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
+        df['candidate_entry'] = df['file_id'].astype(str) + "_" + df['candidate_index'].astype(str)
     else:
         df.loc[df['domain'] == 0, 'event_entry'] = df["file_id"].astype(str) + "_" + "data" + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
         df.loc[df['domain'] == 1, 'event_entry'] = df["file_id"].astype(str) + "_" + "mc"   + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
@@ -64,6 +65,15 @@ if __name__ == '__main__':
     print(df.columns)
     print(df.head(10))
 
+
+    # Drop multiplicity candidates before splitting
+    df_candidates = df[['event_entry', 'candidate_entry']].groupby('candidate_entry').first().reset_index(drop=False)
+    # df_candidates = df_candidates.groupby("event_entry", group_keys=False).sample(n=1).reset_index(drop=False)
+    df_candidates = df_candidates.groupby("event_entry").first().reset_index(drop=False)
+    df = df.merge(df_candidates[["candidate_entry"]], on="candidate_entry", how="inner")
+    del df_candidates
+    
+
     
 
     print(f'Total: {len(df["event_entry"].unique())} events, {len(df)} tracks', flush=True)
@@ -72,13 +82,6 @@ if __name__ == '__main__':
     split_dfs = list(pyTrain.splitByEvent(df=df, seed=cfg.seed, train_val_split=config['-train_val_split'], do_train_split = not (cfg.decay[:2] == 'Bs' and cfg.data_type == 'Data')))
     #Write each frame to file
     purposes = ['train', 'validation', 'test']
-    # if : 
-    #     # for Bs data, training is not needed as measured Bs data cannot be used for training, only for testing and maybe validation. For other decays, all splits are needed.
-    #     # -> Absorb train split into testing in this case
-    #     split_dfs[2] = pd.concat([split_dfs[0], split_dfs[2]], ignore_index=True) 
-
-    #     # Create an empty train split to avoid issues with snakemake
-    #     split_dfs[0] = pd.DataFrame(columns=split_dfs[0].columns)
         
 
     for df_, p in zip(split_dfs, purposes):
@@ -103,7 +106,7 @@ if __name__ == '__main__':
 
 
         #Drop event_entry because uproot can't write arrays of strings to disk
-        df_.drop(columns=['event_entry'], inplace = True)
+        df_.drop(columns=['event_entry', 'candidate_entry'], inplace = True)
 
         tree_dict = {col: df_[col].to_numpy(copy=False) for col in df_.columns}
         path = os.path.join(cfg.target_path, p)

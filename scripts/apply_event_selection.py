@@ -130,26 +130,19 @@ if __name__ == "__main__":
 
         for i, chunk in tqdm(enumerate(chunk_iter)):
             chunk["event_entry"] = chunk["file_id"].astype(str) + "_" + chunk["RUNNUMBER"].astype(str) + "_" + chunk["EVENTNUMBER"].astype(str)
-            chunk['candidate_entry'] = chunk['file_id'].astype(str) + "_" + chunk['candidate_index'].astype(str)
             print(f"Chunk file contains {chunk['event_entry'].nunique()} unique events", flush=True)
 
             chunk = apply_classical_selection(chunk, classical_selection_features, cfg.decay_type)
 
             # Apply the BDT to select signal events
-            # Grouped by candidate_entry not event_entry because one event may have several candidates, due to (almost purely) incorrect reconstruction, 
-            # multiplicity is removed after prediction
-            chunk_candidates = chunk[signal_class_features + ['event_entry', 'candidate_entry']].groupby('candidate_entry').first().reset_index(drop=False)
-            chunk_candidates['signalness'] = BDT.predict_proba(chunk_candidates[signal_class_features].to_numpy(), chunk_candidates["candidate_entry"].values)
-            chunk_candidates = chunk_candidates[chunk_candidates['signalness'] > cut]
+            chunk_events = chunk[signal_class_features + ['event_entry']].groupby('event_entry').first().reset_index(drop=False)
+            chunk_events['signalness'] = BDT.predict_proba(chunk_events[signal_class_features].to_numpy(), chunk_events["event_entry"].values)
+            chunk_events = chunk_events[chunk_events['signalness'] > cut]
 
-            #Drop Multiplicit candidates, i.e. events with more than one candidate passing the selection, almost allways incorrect reconstructions
-            #-> Choose one candidate per event, which is the one with the highest signalness, as the most probable correct reconstruction
-            chunk_candidates = chunk_candidates.sort_values('signalness').groupby("event_entry").last().reset_index(drop=False)
-
-            #Merge the selected candidates back to the dataframe, dropping all non-selected candidates, 
+            #Merge the selected events back to the dataframe, dropping all non-selected events, 
             # and keeping only one candidate per event, which is the one with the highest signalness
-            chunk = chunk.merge(chunk_candidates[["candidate_entry", "signalness"]], on="candidate_entry", how="inner")
-            del chunk_candidates
+            chunk = chunk.merge(chunk_events[["event_entry", "signalness"]], on="event_entry", how="inner")
+            del chunk_events
 
             print(f"Number of events after selection: {chunk['event_entry'].nunique()}", flush=True)
 
@@ -172,7 +165,7 @@ if __name__ == "__main__":
                 chunk = chunk.merge(chunk_events[["event_entry"]], on="event_entry", how="inner")
                 del chunk_events
 
-            chunk.drop(columns=['event_entry', 'candidate_entry'], inplace=True)
+            chunk.drop(columns=['event_entry'], inplace=True)
 
             if i == 0:
                 fout["DecayTree"] = chunk
@@ -185,3 +178,4 @@ if __name__ == "__main__":
     # Prevents the case where the file is not fully written and the target file is created, but empty / partially written
     # and snakemake finds a target file and thinks the rule is completed, while it is not
     os.rename(cfg.target.replace('.root', '_temp.root'), cfg.target)
+    print(f'Script finished successfully at {datetime.datetime.now().strftime("%H:%M:%S")}', flush = True)

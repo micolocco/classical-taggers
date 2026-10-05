@@ -112,18 +112,6 @@ if __name__ == '__main__':
     df = apply_preSelections(cfg.to_select, cfg.cut_file, cfg.treename, loading_variables, cfg.BKG0, cfg.data_type, cfg.evtType)
 
 
-    #drop multiplicity candidates, i.e. events with more than one candidate passing the selection, almost allways incorrect reconstructions
-    # Should be done in event_selection, but for MC event_selection is currently not applied, so multiplicity candidates are removed here
-    df["event_entry"] = df["file_id"].astype(str) + "_" + df["RUNNUMBER"].astype(str) + "_" + df["EVENTNUMBER"].astype(str)
-    df['candidate_entry'] = df['file_id'].astype(str) + "_" + df['candidate_index'].astype(str)
-    df_candidates = df[['event_entry', 'candidate_entry']].groupby('candidate_entry').first().reset_index(drop=False)
-    # df_candidates = df_candidates.groupby("event_entry", group_keys=False).sample(n=1).reset_index(drop=False)
-    df_candidates = df_candidates.groupby("event_entry").first().reset_index(drop=False)
-    df = df.merge(df_candidates[["candidate_entry"]], on="candidate_entry", how="inner")
-    del df_candidates
-    df.drop(columns=["event_entry", "candidate_entry"], inplace=True)
-
-
     # Assignation of the tagging decision (d)
     # d = (-1) * charge of the track --> neutral B: any OS taggers and SS proton tagger, charged B: any taggers
     if ("Bd" or "Bs" in cfg.evtType) and (cfg.tagger == "SSKaon" or cfg.tagger == "SSPion" ):
