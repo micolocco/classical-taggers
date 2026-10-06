@@ -26,6 +26,17 @@ def read_files_and_apply_selection(files, variables):
     return df
 
 
+def mark_momentum_overflow_bin(ax, overflow_start):
+    """Mark the upper momentum-difference bin as an overflow bin on the y-axis."""
+    lower_limit, _ = ax.get_ylim()
+    ticks = np.linspace(lower_limit, overflow_start, 6)
+    labels = [f'{tick:g}' for tick in ticks[:-1]]
+    labels.append(f'≥ {overflow_start:.3g}\n(overflow)')
+    ax.set_yticks(ticks, labels=labels)
+    ax.set_ylim(lower_limit, overflow_start * 1.05)
+    ax.axhline(overflow_start, color='white', linewidth=0.8)
+
+
 if __name__ == "__main__":
     args = argparse.ArgumentParser(
         description="Script to plot the relation between the predicted mistag proability and the difference"
@@ -63,35 +74,58 @@ if __name__ == "__main__":
 
     df['min_track_daughter_diff'] = df[[f'{pre}_track_diff' for pre in prefixes]].min(axis=1)
 
+    # Reserve the final momentum-difference bin for the upper 5% of values.
+    # Eta continues to use its normal 25 bins.
+    momentum_diff = df['min_track_daughter_diff'].to_numpy()
+    momentum_overflow_start = np.quantile(momentum_diff, 0.95)
+    momentum_bin_edges = np.concatenate((
+        np.linspace(momentum_diff.min(), momentum_overflow_start, 15),
+        [np.nextafter(momentum_diff.max(), np.inf)],
+    ))
+    histogram_bins = [25, momentum_bin_edges]
+    counts, eta_bin_edges, momentum_bin_edges = np.histogram2d(
+        df[f'{args.tagger}_Eta'], momentum_diff, bins=histogram_bins,
+    )
+    column_totals = counts.sum(axis=1, keepdims=True)
+    normalized_counts = np.divide(
+        counts, column_totals, out=np.zeros_like(counts),
+        where=column_totals != 0,
+    )
+
 
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
-    hist = ax.hist2d(
-        df[f'{args.tagger}_Eta'],
-        df['min_track_daughter_diff'],
-        bins=25,
+    hist = ax.pcolormesh(
+        eta_bin_edges,
+        momentum_bin_edges,
+        normalized_counts.T,
+        shading='auto',
     )
-    fig.colorbar(hist[3],ax=ax, label='Counts')
+    fig.colorbar(hist, ax=ax, label=r'Counts normalized per $\eta$ bin')
+    mark_momentum_overflow_bin(ax, momentum_overflow_start)
 
-
-
-    plt.xlabel(f"{args.tagger} Eta")
-    plt.ylabel("Minimum track-daughter momentum difference")
+    ax.set_xlabel(rf"{args.tagger} $\eta$")
+    ax.set_ylabel("Minimum track-daughter momentum difference")
+    fig.tight_layout()
     plt.savefig(args.output)
     plt.close()
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
-    hist = ax.hist2d(
-        df[f'{args.tagger}_Eta'],
-        df['min_track_daughter_diff'],
-        bins=25,
+    hist = ax.pcolormesh(
+        eta_bin_edges,
+        momentum_bin_edges,
+        np.ma.masked_less_equal(normalized_counts.T, 0),
+        shading='auto',
         norm=LogNorm(),
     )
-    fig.colorbar(hist[3],ax=ax, label='Counts')
+    fig.colorbar(hist, ax=ax, label=r'Counts normalized per $\eta$ bin')
+    mark_momentum_overflow_bin(ax, momentum_overflow_start)
 
 
 
-    plt.xlabel(f"{args.tagger} Eta")
-    plt.ylabel("Minimum track-daughter momentum difference")
+
+    ax.set_xlabel(rf"{args.tagger} $\eta$")
+    ax.set_ylabel("Minimum track-daughter momentum difference")
+    fig.tight_layout()
     plt.savefig(args.output.replace(".pdf", "_log.pdf"))

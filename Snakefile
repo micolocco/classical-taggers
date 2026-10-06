@@ -197,26 +197,68 @@ wildcard_constraints:
 
 rule all:
     input:
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
 
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
 
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
-        '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
+        
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
+
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
+
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_Data/OSElectron/plot.pdf',
+
+
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSElectron/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bu2JpsiK/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSElectron/plot.pdf',
+
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSElectron/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bd2JpsiKst/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSElectron/plot.pdf',
+
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/MC/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSElectron/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSKaon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSMuon/plot.pdf',
+        # '/ceph/users/togasa/FlavourTagging/comparisons/eta_momentum_diff/Data/Bs2DsPi/v1_2StageSS_newFeatures_balanced/union_PROBNN/trained_MC/OSElectron/plot.pdf',
+
+
+
+
+
+        # feat_added_data['Bu2JpsiK'],
+        # feat_added_data['Bd2JpsiKst'],
+        # feat_added_data['Bs2DsPi'],
+
+        # feat_added_mc['Bu2JpsiK'],
+        # feat_added_mc['Bd2JpsiKst'],
+        # feat_added_mc['Bs2DsPi'],
+
+
+
+
+
 
 
         # '/ceph/users/togasa/FlavourTagging/MC/savedModels/Bu2JpsiK/combinations/Run3/trained_Data/allBKGCAT_notSamePV_noOSP_SSK_balanced/union_PROBNN/OSKaon_OSMuon_OSElectron/combined_tagged.root',
@@ -1735,9 +1777,9 @@ rule eta_momentum_diff:
     log:     join(out, 'comparisons/eta_momentum_diff/{data_type}/{decay}{selection}/{cut_name}/{features}/{model_types}/{tagger}/plot.log')
     resources:
         max_retries=0,
-        request_memory = 40_000, 
-        mem = 40_000,
-        MaxRunHours = 4,
+        request_memory = 10_000, 
+        mem = 10_000,
+        MaxRunHours = 1,
     run:
 
         cmd = [
