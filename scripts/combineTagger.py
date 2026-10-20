@@ -345,6 +345,8 @@ if __name__ == '__main__':
 
     #save the dataframe with all tagging information to root file
     df.drop(columns=['event_entry'], inplace=True)
-    with uproot.recreate(f"{cfg.outputPath}/combined_tagged.root") as file:
+    compression = uproot.ZSTD(9)
+
+    with uproot.recreate(f"{cfg.outputPath}/combined_tagged.root", compression=compression) as file:
         file["DecayTree"] = df
     print(f'File with combined tagging information created at {cfg.outputPath}/combined_tagged.root')

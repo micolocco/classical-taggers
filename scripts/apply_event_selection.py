@@ -124,8 +124,8 @@ if __name__ == "__main__":
     with open(cfg.classical_selection_features, 'r') as f:
         classical_selection_features = yaml.safe_load(f)[load_decay]
 
-
-    with uproot.recreate(cfg.target.replace('.root', '_temp.root')) as fout:
+    compression = uproot.ZSTD(9)
+    with uproot.recreate(cfg.target.replace('.root', '_temp.root'), compression=compression) as fout:
         chunk_iter = uproot.iterate({cfg.data: cfg.treename}, library="pd", step_size=cfg.batch_size)
 
         for i, chunk in tqdm(enumerate(chunk_iter)):

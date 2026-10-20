@@ -183,8 +183,9 @@ if __name__ == '__main__':
         save_vars += ['B_TRUEID']
         # if 'Bu' not in cfg.decayType:
         #     save_vars.append()
-    save_vars += daughter_kinematics[cfg.decayType]
-    with uproot.recreate(f"{cfg.taggedData}") as file:
+    # save_vars += daughter_kinematics[cfg.decayType]
+    compression = uproot.ZSTD(9)  
+    with uproot.recreate(f"{cfg.taggedData}", compression=compression) as file:
         file["DecayTree"] = test_df[save_vars]
         
     print(f'File created at {cfg.taggedData}')

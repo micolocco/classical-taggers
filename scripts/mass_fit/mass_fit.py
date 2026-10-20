@@ -606,7 +606,8 @@ def main():
         print(f"{column}: {values[0]} ({type(values[0])})")
     del df_data
     print("Writing file to disk")
-    with uproot.recreate(join(outputdir, f"weights_{selected_string}.root")) as output:
+    compression = uproot.ZSTD(9)
+    with uproot.recreate(join(outputdir, f"weights_{selected_string}.root"), compression=compression) as output:
         output["DecayTree"] = tree_dict
     print(f"Mass fit script ended on {datetime.datetime.now().strftime('%H:%M:%S')}")
 

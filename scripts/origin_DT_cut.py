@@ -390,7 +390,8 @@ if __name__ == '__main__':
                 "Bu2JpsiK": 2}
     #Save the dataframe with ids, flags and particles types to a root file for exploration
     if cfg.save_dataframes:
-        with uproot.recreate(f"{cfg.target_path}/ids_flags_particles.root") as file:
+        compression = uproot.ZSTD(9)
+        with uproot.recreate(f"{cfg.target_path}/ids_flags_particles.root", compression=compression) as file:
             file["DecayTree"] = df[mc_info + ['particle', 'decSpec_particle', 'target']]
         
         df_export = df.copy()
@@ -408,12 +409,14 @@ if __name__ == '__main__':
         df_export = df_export.astype(float)
         print(df_export['particle'].unique())
         df_export['particle'] = df_export['particle'].astype(int)
-
-        with uproot.recreate(f"{cfg.target_path}/DT10k_trainingset.root") as file:
+        compression = uproot.ZSTD(9)
+        with uproot.recreate(f"{cfg.target_path}/DT10k_trainingset.root", compression=compression) as file:
             file["DecayTree"] = df_export[:10_000]
-        with uproot.recreate(f"{cfg.target_path}/DT1M_trainingset.root") as file:
+        compression = uproot.ZSTD(9)
+        with uproot.recreate(f"{cfg.target_path}/DT1M_trainingset.root", compression=compression) as file:
             file["DecayTree"] = df_export[:1_000_000]
-        with uproot.recreate(f"{cfg.target_path}/DT_trainingset.root") as file:
+        compression = uproot.ZSTD(9)
+        with uproot.recreate(f"{cfg.target_path}/DT_trainingset.root", compression=compression) as file:
             file["DecayTree"] = df_export
         print('Exploration dataframe with particle types, IDs and flags saved to root file', flush=True)
         del df_export

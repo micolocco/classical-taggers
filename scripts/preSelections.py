@@ -145,6 +145,7 @@ if __name__ == '__main__':
     print(df.columns.tolist())
     # Save the selected tracks into NTuples
     os.makedirs(os.path.dirname(cfg.output), exist_ok=True)
-    with uproot.recreate(f"{cfg.output}") as file:
+    compression = uproot.ZSTD(9)
+    with uproot.recreate(f"{cfg.output}", compression=compression) as file:
         file["DecayTree"] = df
     print(f"Pre-selections applied. NTuple saved at {cfg.output}")

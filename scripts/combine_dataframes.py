@@ -133,6 +133,7 @@ if __name__ == '__main__':
         print(f"Saving combined DataFrame subset to {output_file}", flush=True)
         tree_dict = {col: subset_df[col].to_numpy(copy=False) for col in subset_df.columns}
 
-        with uproot.recreate(output_file) as f:
+        compression = uproot.ZSTD(9)
+        with uproot.recreate(output_file, compression=compression) as f:
             f['DecayTree'] = tree_dict
         print(f'File written to {output_file}')

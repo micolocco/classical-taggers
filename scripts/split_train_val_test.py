@@ -111,7 +111,9 @@ if __name__ == '__main__':
         tree_dict = {col: df_[col].to_numpy(copy=False) for col in df_.columns}
         path = os.path.join(cfg.target_path, p)
         path = os.path.join(path, os.path.basename(cfg.to_split))
-        with uproot.recreate(path) as f:
+        compression = uproot.ZSTD(9)
+
+        with uproot.recreate(path, compression=compression) as f:
             f['DecayTree'] = tree_dict
         
         print(f'Saved {p} file to {path}')

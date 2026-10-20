@@ -245,7 +245,8 @@ for in_path in tqdm(in_paths, desc="Processing files"):
 
     pid_df = pd.DataFrame()
 
-    with uproot.recreate(outpath) as fout:
+    compression = uproot.ZSTD(9)
+    with uproot.recreate(outpath, compression=compression) as fout:
         chunk_iter = uproot.iterate({in_path: tree}, library="pd", step_size=batch_size)
 
         for i, chunk in enumerate(tqdm(chunk_iter, desc="Processing chunks")):

@@ -94,7 +94,8 @@ if __name__ == '__main__':
 
     path = os.path.join(cfg.out_path, os.path.basename(cfg.data_file))
     print(f'writing to {path}', flush = True)
-    with uproot.recreate(path) as f:
+    compression = uproot.ZSTD(9)
+    with uproot.recreate(path, compression=compression) as f:
         f['DecayTree'] = tree_dict
     
     print("Added weights", flush = True)
