@@ -683,7 +683,10 @@ def plot_ROC(tagger, val_df, target_path, train_df= None, trueLabel= 'yTrue', pr
 
 
 def plot_mistag(tagger, df, target_path, type, BID, show_trueB=False, clf = None, nbins=100, trueLabel= 'yTrue', 
-                predLabel='yPred', fileLabel='', correct_legend= "wrong tagging decision", wrong_legend= "correct tagging decision"):
+                predLabel='yPred', fileLabel='', 
+                correct_legend= "wrong tagging decision", 
+                wrong_legend= "correct tagging decision",
+                Normalize=True):
     plt.figure()
     # plt.title("Mistag rate")
     plt.yscale("log")
@@ -695,13 +698,13 @@ def plot_mistag(tagger, df, target_path, type, BID, show_trueB=False, clf = None
         bins = np.linspace(0, 1, nbins+1)
         
     if show_trueB:
-        plt.hist(1-df[(df[trueLabel]==0)&(df[BID]<0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
-        plt.hist(1-df[(df[trueLabel]==0)&(df[BID]>0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
-        plt.hist(1-df[(df[trueLabel]==1)&(df[BID]<0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
-        plt.hist(1-df[(df[trueLabel]==1)&(df[BID]>0)][predLabel], bins = bins, density = True, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
+        plt.hist(1-df[(df[trueLabel]==0)&(df[BID]<0)][predLabel], bins = bins, density = Normalize, histtype="stepfilled", color = "skyblue", alpha = 0.5, label = f"true l=0, B")
+        plt.hist(1-df[(df[trueLabel]==0)&(df[BID]>0)][predLabel], bins = bins, density = Normalize, histtype="stepfilled", color = "b", alpha = 0.5, label = f"true l=0, antiB")
+        plt.hist(1-df[(df[trueLabel]==1)&(df[BID]<0)][predLabel], bins = bins, density = Normalize, histtype="stepfilled", color = "salmon", alpha = 0.5, label = f"true l=1, B")
+        plt.hist(1-df[(df[trueLabel]==1)&(df[BID]>0)][predLabel], bins = bins, density = Normalize, histtype="stepfilled", color = "red", alpha = 0.5, label = f"true l=1, antiB")
     else:
-        plt.hist(1-df[df[trueLabel] == 0][predLabel],bins = bins, density = True, histtype="stepfilled", color = "b", alpha = 0.5, label = correct_legend)
-        plt.hist(1-df[df[trueLabel] == 1][predLabel],bins = bins, density = True, histtype="stepfilled", color = "r", alpha = 0.5, label = wrong_legend)
+        plt.hist(1-df[df[trueLabel] == 0][predLabel],bins = bins, density = Normalize, histtype="stepfilled", color = "b", alpha = 0.5, label = correct_legend)
+        plt.hist(1-df[df[trueLabel] == 1][predLabel],bins = bins, density = Normalize, histtype="stepfilled", color = "r", alpha = 0.5, label = wrong_legend)
     
     data1=1-df[(df[trueLabel]==0)&(df[BID]<0)][predLabel]  
     data2=1-df[(df[trueLabel]==0)&(df[BID]>0)][predLabel]   
@@ -711,31 +714,34 @@ def plot_mistag(tagger, df, target_path, type, BID, show_trueB=False, clf = None
     plt.xlabel(r"1 - NN output", fontsize=24)
     #plt.annotate(f'{len(df.yPred)} tracks', xy=(0, 1), xycoords='axes fraction', fontsize=12, ha='left', va='top')
     plt.grid()
-    plt.ylabel("Normalized number of tracks", fontsize=24)
+    norm_string = "Normalized " if Normalize else ""
+    plt.ylabel(f"{norm_string} number of tracks", fontsize=24)
     plt.legend(loc = "best", title=f'{type}:{len(df[predLabel])} total tracks')
     plt.savefig(f"{target_path}/{fileLabel}NNoutput_{type}.pdf")
 
     plt.clf()
     plt.title(f'{type}: {tagger}', fontsize=24)
-    plt.hist(data3, bins=bins, color='salmon',  alpha=0.4, density = True, histtype="bar",  label = f'true l=1, B')  
-    plt.hist(data4, bins=bins, color='red',     alpha=1,   density = True, histtype="step", label = f'true l=1, antiB',)
-    plt.hist(data1, bins=bins, color='skyblue', alpha=0.4, density = True, histtype="bar",  label = f'true l=0, B',)
-    plt.hist(data2, bins=bins, color='blue',    alpha=1,   density = True, histtype="step", label = f'true l=0, antiB')
+    plt.hist(data3, bins=bins, color='salmon',  alpha=0.4, density = Normalize, histtype="bar",  label = f'true l=1, B')  
+    plt.hist(data4, bins=bins, color='red',     alpha=1,   density = Normalize, histtype="step", label = f'true l=1, antiB',)
+    plt.hist(data1, bins=bins, color='skyblue', alpha=0.4, density = Normalize, histtype="bar",  label = f'true l=0, B',)
+    plt.hist(data2, bins=bins, color='blue',    alpha=1,   density = Normalize, histtype="step", label = f'true l=0, antiB')
     plt.legend()
     plt.yscale('log')
     plt.xlabel(f'1 - NN output', fontsize=22)
-    plt.ylabel('Normalized number of tracks', fontsize=22)
+    plt.ylabel(f'{norm_string} number of tracks', fontsize=22)
 
     plt.tight_layout()
     plt.savefig(f"{target_path}/{fileLabel}NNoutput_{type}_byTRUEID.pdf")
 
+    plt.close()
+
     
-def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins=100):
+def plot_tagDec(tagger, df_TagParticles, plot_name='Normalized_TagDec.pdf',nbins=100, normalize=True):
     # Get the particle with the lowest mistag for each event
     plt.figure()
     plt.yscale("log")
-    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == -1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),df_TagParticles[f"{tagger}_Eta"].max()), color = "green" , alpha=0.5, label = f"Tag. dec: b")
-    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == 1)][f"{tagger}_Eta"] ,bins = 100 , density = True , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),df_TagParticles[f"{tagger}_Eta"].max()), color = "orange" , alpha=0.5, label = f"Tag. dec: anti-b")
+    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == -1)][f"{tagger}_Eta"] ,bins = 100 , density = normalize , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),df_TagParticles[f"{tagger}_Eta"].max()), color = "green" , alpha=0.5, label = f"Tag. dec: b")
+    plt.hist(df_TagParticles.loc[(df_TagParticles[f"{tagger}_TagDec"] == 1)][f"{tagger}_Eta"] ,bins = 100 , density = normalize , histtype = "stepfilled" ,range=(df_TagParticles[f"{tagger}_Eta"].min(),df_TagParticles[f"{tagger}_Eta"].max()), color = "orange" , alpha=0.5, label = f"Tag. dec: anti-b")
     plt.grid()
     plt.xlabel(r"$\eta$",fontsize=24)
     plt.ylabel("Normalized number of tracks", fontsize=24)
